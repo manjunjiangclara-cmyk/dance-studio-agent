@@ -1,0 +1,21 @@
+name: dance-studio-agent
+
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: copilot
+      POSTGRES_PASSWORD: copilot_local
+      POSTGRES_DB: studio_copilot
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U copilot -d studio_copilot"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  postgres_data:
