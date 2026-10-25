@@ -64,14 +64,14 @@ def seed_demo(db: Session) -> dict:
     alex = Student(
         id=ids["alex"],
         display_name="Alex Morgan",
-        email="alex@example.test",
+        email="alex@example.com",
         highest_level="Level 2",
         context={"preferred_day": "Saturday"},
     )
     sam = Student(
         id=ids["sam"],
         display_name="Sam Taylor",
-        email="sam@example.test",
+        email="sam@example.com",
         highest_level="Level 2",
     )
     classes = {}

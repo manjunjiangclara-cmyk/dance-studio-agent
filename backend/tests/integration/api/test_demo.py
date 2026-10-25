@@ -4,6 +4,7 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from studio_copilot.api.schemas import IncomingEmail
 from studio_copilot.demo import seed_demo
 from studio_copilot.persistence.models import ClassSession, Location, Student, StudioClass, Term
 
@@ -45,4 +46,8 @@ def test_demo_catalog_has_coherent_locations_and_term_dates(db_engine):
             assert local_start < session.ends_at.astimezone(zone)
             assert local_start.strftime("%A") in regular_class.name
         for student in db.scalars(select(Student)):
-            assert student.email.endswith("@example.test")
+            assert student.email.endswith("@example.com")
+            incoming = IncomingEmail.model_validate(
+                {"from": student.email, "body": "Could I join Saturday ballet?"}
+            )
+            assert str(incoming.sender) == student.email
