@@ -49,3 +49,9 @@ def review_run(run_id: UUID, body: Review, agent: Agent):
 @router.post("/agent-runs/{run_id}/retry", response_model=s.AgentRunRead)
 def retry_run(run_id: UUID, agent: Agent):
     return agent.retry(run_id)
+
+
+@router.post("/incoming-emails", response_model=s.AgentRunRead)
+def receive_email(body: s.IncomingEmail, agent: Agent):
+    """Receive an email, resolve its sender and conversation, and generate a reviewable draft."""
+    return agent.receive_email(str(body.sender), body.body)

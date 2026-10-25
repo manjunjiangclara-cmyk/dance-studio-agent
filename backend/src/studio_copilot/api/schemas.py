@@ -253,3 +253,8 @@ class AgentRunRead(Record):
     draft_details: dict[str, Any]
     policy_snapshot: dict[str, Any]
     error: str | None
+
+
+class IncomingEmail(Input):
+    sender: EmailStr = Field(alias="from")
+    body: Body

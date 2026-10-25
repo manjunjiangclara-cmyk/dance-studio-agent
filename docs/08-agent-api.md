@@ -21,12 +21,32 @@ uv run --env-file .env uvicorn studio_copilot.api.app:app --host 127.0.0.1 --por
 
 The ordinary staff API and agent-result GET work without OpenAI credentials. Agent processing returns 503 if model/key configuration is missing. Calls to the real OpenAI API incur usage charges. There is no fake-model production mode; tests explicitly inject their fake adapter.
 
+## Single email entrance
+
+Use authenticated `POST /api/v1/incoming-emails` to submit an email and generate a draft in one request:
+
+```json
+{
+  "from": "new.enquirer@example.com",
+  "body": "I have never done ballet. Which class would suit me?"
+}
+```
+
+A known sender is matched case-insensitively and their latest conversation is reused (ordered by creation time, then ID). If none exists, a conversation is created. For a known-student example, use `alex.demo@example.com` with the same `from` and `body` fields. An unknown sender gets a minimal profile named `New enquirer`, with unknown level and no enrolments, plus a conversation. Their first run is routed to `new_student_enquiry` / `teacher_handoff`; this routing context is retained for recovery. Later submissions from that sender use ordinary intent routing and the stored history. Staff can update the placeholder profile through existing student APIs.
+
+The server sets receipt time and returns the existing agent-run response synchronously: inspect `status`, `draft_details.body`, `interpretation`, `evidence` and `error`. The response includes IDs needed for review or recovery; callers supply none. A successful draft is `awaiting_review`; a processing failure returns a retained `failed` run that can be retried through `/agent-runs/{id}/retry` without inserting another email. Approval still requires an explicit review request.
+
+Missing model configuration or invalid policy returns 503 before intake writes. A busy student returns 409 without saving the submission. Validation requires a valid `from` address and nonblank `body`; other input fields are rejected. Each POST represents a new received email; repeated bodies are not deduplicated.
+
+Existing future-dated conversation emails also produce 409 without saving the submission, preserving the latest-email rule. In particular, the seeded Alex conversation contains February 2027 emails. Before then, use a fresh fictional address or a student without future-dated history for current-time intake testing. The endpoint does not connect an inbox, enrol students, reserve places or send responses.
+
 ## Endpoints
 
 All routes require the existing admin bearer token and have prefix `/api/v1`.
 
 | Route | Request and result |
 | --- | --- |
+| POST `/incoming-emails` | `{"from":"someone@example.com","body":"Email content"}`. Resolves sender/history, saves the email, and runs the agent. |
 | POST `/conversations/{id}/agent-runs` | `{"source_message_id":"UUID"}`. Source must be the latest student email in that conversation. Runs synchronously to review or failure; repeat starts return the existing run. |
 | GET `/agent-runs/{id}` | Returns status, revision, interpretation, evidence, policy snapshot, draft details, linked message IDs, and a safe error if processing failed. |
 | POST `/agent-runs/{id}/review` | `{"action":"approve","expected_revision":1,"body":"Final teacher response"}`. Body is optional; defaults to the current draft. Stores a teacher response, then updates memory. |

@@ -1,11 +1,12 @@
 """Synchronous local run lifecycle, serialized per student; no worker queue required."""
 
 import logging
+from datetime import UTC, datetime
 from pathlib import Path
-from uuid import UUID
+from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 
 from langgraph.types import Command
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from yaml import YAMLError
 
@@ -15,7 +16,7 @@ from studio_copilot.agent.persistence.checkpoints import postgres_checkpointer
 from studio_copilot.agent.persistence.locking import student_lock
 from studio_copilot.agent.policy import load_policy
 from studio_copilot.agent.workflow import Workflow
-from studio_copilot.persistence.models import AgentRun, Conversation, Message
+from studio_copilot.persistence.models import AgentRun, Conversation, Message, Student
 
 logger = logging.getLogger(__name__)
 
@@ -64,33 +65,87 @@ class AgentService:
     def start(self, conversation_id: UUID, source_message_id: UUID):
         with student_lock(self.engine, self._student(conversation_id)):
             with Session(self.engine, expire_on_commit=False) as db, db.begin():
-                source = require(db, Message, source_message_id)
-                if source.conversation_id != conversation_id or source.kind != "student_email":
-                    invalid("Source must be a student email in this conversation.")
                 existing = db.scalar(
-                    select(AgentRun).where(AgentRun.source_message_id == source.id)
+                    select(AgentRun).where(AgentRun.source_message_id == source_message_id)
                 )
-                if existing is not None:
-                    return existing
-                if latest_email(db, conversation_id).id != source.id:
-                    conflict("Start the agent from the latest student email in this conversation.")
-                try:
-                    policy = load_policy(self.policy_path)
-                except (OSError, ValueError, YAMLError) as error:
-                    raise AdministrationError(
-                        503, "policy_unavailable", "The policy resource is invalid or unavailable."
-                    ) from error
-                supersede_pending(db, conversation_id)
-                run = AgentRun(
-                    conversation_id=conversation_id,
-                    source_message_id=source.id,
-                    policy_snapshot=policy,
-                )
-                db.add(run)
-                db.flush()
+                run = self._create_run(db, conversation_id, source_message_id)
                 run_id = run.id
-            self._drive(run_id, {"run_id": str(run_id)})
+            if not existing:
+                self._drive(run_id, {"run_id": str(run_id)})
             return self.get(run_id)
+
+    def _policy(self):
+        try:
+            return load_policy(self.policy_path)
+        except (OSError, ValueError, YAMLError) as error:
+            raise AdministrationError(
+                503, "policy_unavailable", "The policy resource is invalid or unavailable."
+            ) from error
+
+    def _create_run(self, db, conversation_id, source_message_id, *, policy=None, new_sender=False):
+        """Create a run inside the caller's transaction while holding the student lock."""
+        source = require(db, Message, source_message_id)
+        if source.conversation_id != conversation_id or source.kind != "student_email":
+            invalid("Source must be a student email in this conversation.")
+        existing = db.scalar(select(AgentRun).where(AgentRun.source_message_id == source.id))
+        if existing is not None:
+            return existing
+        if latest_email(db, conversation_id).id != source.id:
+            conflict("Start the agent from the latest student email in this conversation.")
+        supersede_pending(db, conversation_id)
+        run = AgentRun(
+            conversation_id=conversation_id,
+            source_message_id=source.id,
+            policy_snapshot=policy if policy is not None else self._policy(),
+            interpretation={"intake": {"new_sender": True}} if new_sender else {},
+        )
+        db.add(run)
+        db.flush()
+        return run
+
+    def receive_email(self, sender: str, body: str):
+        """Persist an incoming email and run its workflow under one student lock."""
+        sender = sender.strip().lower()
+        policy = self._policy()
+        # Serialize first contact before a student ID exists. The distinct namespace
+        # keeps these keys independent from ordinary student locks.
+        sender_key = uuid5(NAMESPACE_URL, "studio-copilot/incoming-email/" + sender)
+        with student_lock(self.engine, sender_key):
+            with Session(self.engine) as db:
+                student_id = db.scalar(
+                    select(Student.id).where(func.lower(Student.email) == sender)
+                )
+            new_sender = student_id is None
+            student_id = student_id or uuid4()
+            with student_lock(self.engine, student_id):
+                with Session(self.engine) as db, db.begin():
+                    if new_sender:
+                        db.add(Student(id=student_id, display_name="New enquirer", email=sender))
+                        db.flush()
+                    conversation = db.scalar(
+                        select(Conversation)
+                        .where(Conversation.student_id == student_id)
+                        .order_by(Conversation.created_at.desc(), Conversation.id.desc())
+                        .limit(1)
+                    )
+                    if conversation is None:
+                        conversation = Conversation(student_id=student_id)
+                        db.add(conversation)
+                        db.flush()
+                    source = Message(
+                        conversation_id=conversation.id,
+                        kind="student_email",
+                        body=body,
+                        occurred_at=datetime.now(UTC),
+                    )
+                    db.add(source)
+                    db.flush()
+                    run = self._create_run(
+                        db, conversation.id, source.id, policy=policy, new_sender=new_sender
+                    )
+                    run_id = run.id
+                self._drive(run_id, {"run_id": str(run_id)})
+                return self.get(run_id)
 
     def review(self, run_id: UUID, review: Review):
         run = self.get(run_id)
