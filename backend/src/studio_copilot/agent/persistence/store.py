@@ -135,11 +135,13 @@ class WorkflowStore:
                 "history": history,
                 "history_limit": HISTORY_LIMIT,
                 "policy": run.policy_snapshot,
+                "intake": run.interpretation.get("intake", {}),
             }
 
     def save_routing(self, run_id: str, routing: dict, flow: str) -> None:
         with Session(self.engine) as db, db.begin():
-            _active_run(db, run_id).interpretation = {"routing": routing, "flow": flow}
+            run = _active_run(db, run_id)
+            run.interpretation = {**run.interpretation, "routing": routing, "flow": flow}
 
     def remember_student(
         self,
@@ -160,7 +162,12 @@ class WorkflowStore:
                 interpretation.request_summary,
                 interpretation.enduring_preferences,
             )
-            run.interpretation = {**interpretation.model_dump(), "routing": routing, "flow": flow}
+            run.interpretation = {
+                **run.interpretation,
+                **interpretation.model_dump(),
+                "routing": routing,
+                "flow": flow,
+            }
 
     def save_draft(
         self,

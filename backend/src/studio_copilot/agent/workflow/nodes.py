@@ -69,7 +69,15 @@ class WorkflowNodes:
 
     def route(self, state: State) -> dict:
         try:
-            routing = self.model.route(state["context"])
+            if state["context"].get("intake", {}).get("new_sender"):
+                routing = Routing(
+                    intents=["new_student_enquiry"],
+                    request_summary="First email from a new enquirer; teacher assessment required.",
+                    needs_clarification=False,
+                    reason="The sender had no student profile when this email was received.",
+                )
+            else:
+                routing = self.model.route(state["context"])
         except ModelError:
             routing = Routing(
                 intents=["unknown"],
