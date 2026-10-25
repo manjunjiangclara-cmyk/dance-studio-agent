@@ -47,7 +47,7 @@ Class term/location links are fixed after creation; moving a student uses the en
 
 ## Conversations
 
-Kinds are `student_email`, `assistant_draft`, and `staff_note`. All are entered manually. Incoming emails and notes preserve their original contents; add a new staff note to correct information. Draft bodies can be edited. Messages are ordered by occurrence time, creation time, and ID. There is no send or draft-approval endpoint, and recording messages does not update student context automatically.
+Kinds are `student_email`, `assistant_draft`, `staff_note`, and `teacher_response`. Incoming messages, notes, and approved responses retain their contents. Manually entered draft bodies can be edited; agent drafts are edited through their versioned review endpoint. Messages are ordered by occurrence time, creation time, and ID. Recording an email supersedes older pending agent drafts; explicitly starting its agent run interprets it and updates memory. Approval stores a teacher response with unconfirmed delivery. See [agent APIs](08-agent-api.md).
 
 ## Synthetic walkthrough
 
@@ -55,7 +55,7 @@ Kinds are `student_email`, `assistant_draft`, and `staff_note`. All are entered 
 2. Open Swagger and authorize. List students; inspect Alex with `on_date=2027-02-08` to see the Monday enrolment.
 3. Query `/enrolments?student_id=...` and copy the active enrolment ID. Query sessions by term or location, and inspect the Monday roster.
 4. Change Alex to the seeded Thursday class, effective `2027-02-10`. Inspect the profile on February 9 and February 10; history retains both periods.
-5. List the seeded conversation's consecutive emails and edit its manually entered draft. No email is sent and no context is generated automatically.
+5. List the seeded conversation's consecutive emails and edit its manually entered draft. The seed and manual message edits generate no AI context. Start an agent run to exercise automatic interpretation and memory.
 
 The seed uses fictional February–March 2027 records so it remains reproducible. Its students, locations, policies/descriptions, drafts, and context are examples, not real studio information.
 
@@ -63,4 +63,4 @@ The seed uses fictional February–March 2027 records so it remains reproducible
 
 Errors use `{"error":{"code":"...","message":"..."}}`; validation errors also include field locations and messages. Expected statuses: 401 missing/invalid token, 404 missing record, 409 conflicting registration/capacity/duplicate data, 422 invalid input, and 503 database unavailable. SQL and connection details are not returned.
 
-Run `uv run --env-file .env.example pytest` against the dedicated test database. Tests exercise complete HTTP journeys with real PostgreSQL, including history, transfer rollback, capacity checks, timezone/date filtering, manual conversations, authentication, validation, and repeatable seed data. Alembic checks continue to verify the unchanged eight-table schema. There is no public deployment, real inbox integration, AI dependency, payment workflow, or staff-account system in this increment.
+Run `uv run --env-file .env.example pytest` against the dedicated test database. Tests exercise complete HTTP journeys with real PostgreSQL, including history, transfer rollback, capacity checks, timezone/date filtering, manual conversations, authentication, validation, and repeatable seed data. Alembic checks verify nine application tables; LangGraph checkpoint tables are managed separately. There is no public deployment, real inbox integration, payment workflow, or staff-account system.

@@ -4,13 +4,11 @@ import os
 import uuid
 from collections.abc import Iterator
 from datetime import date, datetime
-from pathlib import Path
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
 import pytest
 from alembic import command
-from alembic.config import Config
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
@@ -25,12 +23,7 @@ from studio_copilot.persistence.models import (
     StudioClass,
     Term,
 )
-
-BACKEND = Path(__file__).resolve().parents[1]
-
-
-def migration_config() -> Config:
-    return Config(str(BACKEND / "alembic.ini"))
+from tests.support import migration_config
 
 
 @pytest.fixture

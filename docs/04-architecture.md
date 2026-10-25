@@ -1,55 +1,47 @@
 # Architecture and repository
 
-## Current backend
+## Runtime
 
-A small Python package using FastAPI, PostgreSQL, SQLAlchemy, and Alembic. It stores studio records, enrolment history, messages, and student context. Staff can manage those records through a local bearer-protected API. No agent, worker, or dashboard exists yet.
-
-```text
-dance-studio-agent/
-  backend/
-    pyproject.toml
-    uv.lock
-    alembic.ini
-    migrations/
-    src/studio_copilot/persistence/
-      models.py
-      database.py
-    src/studio_copilot/administration/
-      service.py
-    src/studio_copilot/api/
-      app.py
-      schemas.py
-      students.py
-      timetable.py
-      enrolments.py
-      conversations.py
-    src/studio_copilot/demo.py
-    tests/
-  compose.yaml
-  docs/
-```
-
-The local PostgreSQL 18 container has persistent storage and binds to localhost. Configuration uses `DATABASE_URL`, with separate `TEST_DATABASE_URL` for test schemas and `ADMIN_API_TOKEN` for staff access. Commands and local credentials are documented in the root README. No production deployment is configured.
-
-HTTP schemas validate requests; synchronous routes use one SQLAlchemy session per request. Ordinary application services implement enrolment changes and timetable checks without importing FastAPI. Each write commits once; a failed class transfer rolls back both attendance periods. Regular enrolment/session writers coordinate with a class-row lock while checking capacity of existing dated sessions. This does not implement makeup inventory or a queue system.
-
-## Next architectural layer
+One Python codebase uses FastAPI, PostgreSQL, SQLAlchemy, Alembic, LangGraph, and the OpenAI Python SDK. The staff API handles ordinary administration; the graph handles a teacher-reviewed makeup enquiry. There is no worker queue, browser UI, real inbox, or email delivery.
 
 ```mermaid
 flowchart LR
-    S[Manual synthetic input] --> A[FastAPI staff API]
-    T[Teacher review: future] --> A
-    A --> G[One LangGraph workflow: future]
-    G --> M[Typed model adapter: future]
-    G --> Q[Backend queries and supported rule checks: future]
+    S[Synthetic messages and staff review] --> A[FastAPI staff API]
+    A --> G[LangGraph workflow]
+    G --> M[OpenAI Responses API adapter]
+    G --> Q[Read-only backend query tools]
     Q --> DB[(PostgreSQL)]
-    P[Editable policy YAML: future] --> Q
-    DB --> C[Conversation history and student context]
-    C --> G
+    G --> DB
+    P[Editable policy YAML] --> G
 ```
 
-The agent interprets and drafts. Backend services query official enrolments and evaluate supported policy settings. PostgreSQL stores conversation memory; no vector store is necessary to resume a known student's discussion. Mutable studio policies remain external inputs, without a general rules engine.
+A structured intent-routing step precedes flow-specific interpretation. The makeup branch uses `MakeupInterpretation`; other or unclear requests use a teacher-handoff branch with no makeup queries. Shared memory, drafting, and review follow the selected interpretation. Enrolment, cancellation, and new-student flows can be added as separate branches later.
 
-Keep this as one codebase. Add modules as their behavior is implemented rather than generating empty application layers. LangGraph, checkpoint persistence, policy loading, and context summarization are next steps. SQS, job leases, outbox delivery, RAG, detailed makeup booking transactions, React, and AWS are deferred.
+The agent package keeps responsibilities separate:
 
-The current staff API uses one configured local bearer credential. User accounts, staff roles, and per-actor audit records are deferred. A future AI integration must keep model memory updates limited to conversational context and use approved application operations for official data.
+- `workflow/graph.py` defines graph nodes, edges, and tracing.
+- `workflow/nodes.py` implements each step's model decisions and state updates.
+- `workflow/queries.py` runs bounded, read-only tool exploration.
+- `persistence/store.py` owns short database transactions for context, memory, drafts, and approval.
+
+Shared contracts, `openai_model.py`, policy loading, query tools, and run lifecycle services stay at the package root. Agent-specific database transactions, checkpoints, and locking are grouped under `persistence/`. See the [package map](../backend/src/studio_copilot/agent/README.md) for the full layout and reading order. HTTP routes stay separate from graph behavior. Future model integrations can implement the same small adapter contract; tests use a deterministic fake.
+
+## Two kinds of persistence
+
+Application tables store official studio records, messages, run results, and student memory. Alembic manages these nine tables. `AgentRun` connects a source email to its interpretation, policy snapshot, evidence, current draft, revision, and approved response.
+
+LangGraph's PostgreSQL saver manages checkpoint tables separately. Each run's UUID is its graph thread ID. Framework setup is explicit; startup performs no automatic migration. Review interrupts survive restarts. Conversation continuity comes from application messages and student memory, rather than reusing one student's entire graph state indefinitely.
+
+The first memory update follows interpretation and precedes queries. The second follows storage of the final teacher response. Structured source-linked memory occupies `Student.context._agent_memory`, while `ai_summary` renders it for staff inspection. Other context keys are preserved. Official highest level and enrolments remain staff-managed.
+
+## Execution boundaries
+
+Model-selected tools are read-only, student-scoped, validated, and bounded to four rounds and three calls per round. Unsupported policy or missing data becomes visible uncertainty. No graph node executes bookings, financial changes, or message delivery.
+
+A session-level advisory lock serializes agent work per student. Incoming messages use the matching transaction lock and return a conflict if processing is active. Database row locks are limited to short persistence transactions rather than model calls. Identical source starts and approval retries reuse existing records; edited draft revisions require a matching version.
+
+The existing enrolment service retains its transaction and regular-roster capacity checks. Those checks do not establish makeup inventory. The existing local admin bearer token protects both administration and agent endpoints; user accounts and role management remain deferred.
+
+## Operation
+
+Use the local PostgreSQL 18 Compose service with a dedicated `_test` database for integration tests. Configure `OPENAI_API_KEY`, `OPENAI_MODEL`, and optional policy path through the environment. Structured local logs report graph/tool activity and model usage. See the [agent walkthrough](08-agent-api.md) for setup, errors, retries, and evaluation.

@@ -14,7 +14,8 @@ from sqlalchemy.exc import IntegrityError, OperationalError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from studio_copilot.administration.service import AdministrationError
-from studio_copilot.api import conversations, enrolments, students, timetable
+from studio_copilot.agent.telemetry import configure_logging
+from studio_copilot.api import agents, conversations, enrolments, students, timetable
 from studio_copilot.api.common import Db
 from studio_copilot.persistence.database import make_engine, make_session_factory
 
@@ -33,14 +34,19 @@ def require_admin(
         )
 
 
-def create_app(engine: Engine | None = None, *, admin_token: str | None = None) -> FastAPI:
+def create_app(
+    engine: Engine | None = None, *, admin_token: str | None = None, agent_service=None
+) -> FastAPI:
     @asynccontextmanager
     async def lifespan(application: FastAPI):
+        configure_logging()
         token = admin_token if admin_token is not None else os.environ.get("ADMIN_API_TOKEN")
         if not token:
             raise RuntimeError("Set ADMIN_API_TOKEN before starting the staff API.")
         database = engine if engine is not None else make_engine()
         application.state.admin_token = token
+        application.state.engine = database
+        application.state.agent_service = agent_service
         application.state.session_factory = make_session_factory(database)
         try:
             yield
@@ -50,8 +56,8 @@ def create_app(engine: Engine | None = None, *, admin_token: str | None = None) 
 
     application = FastAPI(
         title="Ballet Studio Administration API",
-        version="0.2.0",
-        description="Local staff administration with synthetic data. No AI or email sending.",
+        version="0.3.0",
+        description="Staff administration and teacher-reviewed AI drafts. No email delivery.",
         lifespan=lifespan,
     )
 
@@ -124,7 +130,13 @@ def create_app(engine: Engine | None = None, *, admin_token: str | None = None) 
         db.execute(text("SELECT 1"))
         return {"status": "ok"}
 
-    for router in [students.router, timetable.router, enrolments.router, conversations.router]:
+    for router in [
+        students.router,
+        timetable.router,
+        enrolments.router,
+        conversations.router,
+        agents.router,
+    ]:
         application.include_router(router, prefix="/api/v1", dependencies=[Depends(require_admin)])
     return application
 

@@ -71,6 +71,7 @@ class StudentRead(Record):
     display_name: str
     email: str
     highest_level: str | None
+    ai_summary: str | None
     context: dict[str, Any]
 
 
@@ -218,7 +219,7 @@ class ConversationRead(Record):
 
 
 class MessageCreate(Input):
-    kind: Literal["student_email", "assistant_draft", "staff_note"]
+    kind: Literal["student_email", "assistant_draft", "staff_note", "teacher_response"]
     body: Body
     occurred_at: AwareDatetime | None = None
 
@@ -229,6 +230,26 @@ class DraftPatch(Input):
 
 class MessageRead(Record):
     conversation_id: UUID
-    kind: Literal["student_email", "assistant_draft", "staff_note"]
+    kind: Literal["student_email", "assistant_draft", "staff_note", "teacher_response"]
     body: str
     occurred_at: datetime
+
+
+class AgentStart(Input):
+    source_message_id: UUID
+
+
+class AgentRunRead(Record):
+    conversation_id: UUID
+    source_message_id: UUID
+    draft_message_id: UUID | None
+    approved_response_id: UUID | None
+    status: Literal[
+        "running", "awaiting_review", "finalizing", "approved", "closed", "superseded", "failed"
+    ]
+    revision: int
+    interpretation: dict[str, Any]
+    evidence: list[dict[str, Any]]
+    draft_details: dict[str, Any]
+    policy_snapshot: dict[str, Any]
+    error: str | None
