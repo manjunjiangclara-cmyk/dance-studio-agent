@@ -5,12 +5,15 @@ No model calls happen here. LangGraph checkpoint storage is managed separately.
 
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from studio_copilot.administration.service import conflict, require
 from studio_copilot.agent.contracts import RequestInterpretation, ReviewedMemory
 from studio_copilot.agent.tools import enrolments
 from studio_copilot.persistence.models import AgentRun, Conversation, Message, Student
+
+HISTORY_LIMIT = 3
 
 
 def _active_run(db, run_id):
@@ -106,20 +109,31 @@ class WorkflowStore:
             conversation = require(db, Conversation, run.conversation_id)
             student = require(db, Student, conversation.student_id)
             # Preserve message kinds, including the distinction between drafts and responses.
-            history = [_message_data(message) for message in conversation.messages][-50:]
+            recent = list(
+                db.scalars(
+                    select(Message)
+                    .where(Message.conversation_id == conversation.id)
+                    .order_by(
+                        Message.occurred_at.desc(), Message.created_at.desc(), Message.id.desc()
+                    )
+                    .limit(HISTORY_LIMIT)
+                )
+            )
+            history = [_message_data(message) for message in reversed(recent)]
             return {
                 "source": _message_data(source),
                 "conversation_id": str(conversation.id),
                 "student": {
                     "id": str(student.id),
                     "name": student.display_name,
+                    "email": student.email,
                     "highest_level": student.highest_level,
                     "context": student.context,
                     "ai_summary": student.ai_summary,
                 },
                 "enrolments": enrolments(student),
                 "history": history,
-                "history_limit": 50,
+                "history_limit": HISTORY_LIMIT,
                 "policy": run.policy_snapshot,
             }
 
