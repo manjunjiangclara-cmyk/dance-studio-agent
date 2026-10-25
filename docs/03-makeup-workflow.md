@@ -51,3 +51,15 @@ Tools read the current student's enrolments, timetable sessions, locations, and 
 Application records use Alembic; LangGraph manages its checkpoint tables through an explicit setup command. PostgreSQL checkpoints preserve review pauses across service restarts. Each source email has at most one run. Newer student emails supersede pending drafts according to occurrence time, creation time, and ID. Old draft revisions cannot be approved.
 
 A student-scoped PostgreSQL advisory lock serializes processing and message insertion. Conflicting requests receive 409 and may be retried; the API does not wait indefinitely for that lock. This local synchronous runtime intentionally has no worker queue. See [agent API and walkthrough](08-agent-api.md).
+
+
+Context loading selects only the latest three messages in the current conversation in SQL,
+then presents them chronologically. The source email and student memory remain explicit inputs;
+older emails remain stored without being sent wholesale to the model.
+
+Before every OpenAI request, a local pseudonymization layer replaces the known student's name,
+name components, email and ID with placeholders. It also masks email addresses in nested memory,
+feedback, history and tool results. The mapping stays local and restores model outputs for teacher
+review. This targets known student identity and email addresses; it does not detect every possible
+identifier, such as phone numbers, postal addresses or unknown third-party names. Provider-generated
+encrypted reasoning tokens remain unchanged for replay; their readable summaries are redacted.

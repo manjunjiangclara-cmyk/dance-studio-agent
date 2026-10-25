@@ -17,6 +17,7 @@ from studio_copilot.agent.contracts import (
     ToolCall,
     ToolTurn,
 )
+from studio_copilot.agent.privacy import StudentPrivacy
 from studio_copilot.agent.tools import tool_definitions
 
 logger = logging.getLogger(__name__)
@@ -29,6 +30,7 @@ Unknown policy and missing facts must remain explicit. No invented credits, limi
 Distinguish student statements, staff notes, unsent drafts, and approved undelivered responses.
 Do not describe drafts or approved responses as sent, student-accepted, or completed actions.
 Use the email's occurred_at as the reference for relative dates; locations use their local timezone.
+Keep supplied identity placeholders verbatim. Do not invent or infer the student's real identity.
 """
 
 
@@ -41,6 +43,15 @@ class OpenAIModel:
             raise ModelError("Configure OPENAI_API_KEY before starting agent runs.")
         # One bounded retry for transient SDK errors. No retries for schema/refusal failures.
         self.client = client or OpenAI(timeout=20.0, max_retries=1)
+        self._privacy_key = None
+        self._privacy = None
+
+    def _privacy_for(self, context):
+        student = context.get("student", {})
+        key = (student.get("id"), student.get("name"), student.get("email"))
+        if self._privacy is None or self._privacy_key != key:
+            self._privacy_key, self._privacy = key, StudentPrivacy(student)
+        return self._privacy
 
     def _request(self, operation, **kwargs):
         started = time.monotonic()
@@ -70,15 +81,16 @@ class OpenAIModel:
         return response
 
     def _parse(self, context, schema, instruction):
+        privacy = self._privacy_for(context)
         response = self._request(
             self.client.responses.parse,
             instructions=INSTRUCTIONS + instruction,
-            input=json.dumps(context, default=str),
+            input=json.dumps(privacy.redact(context), default=str),
             text_format=schema,
         )
         if response.output_parsed is None:
             raise ModelError("The model declined or returned no structured result.")
-        return response.output_parsed
+        return schema.model_validate(privacy.restore(response.output_parsed.model_dump()))
 
     def route(self, context):
         return self._parse(
@@ -114,6 +126,7 @@ one makeup request belongs in the request fields, not enduring_preferences.
         )
 
     def choose_tools(self, context, transcript):
+        privacy = self._privacy_for(context)
         response = self._request(
             self.client.responses.create,
             instructions=INSTRUCTIONS
@@ -122,13 +135,20 @@ Gather only needed information using the provided read-only tools.
 Call no more than three tools per turn. Do not repeat the same call. If information is unavailable,
 stop calling tools. Return no tool calls when evidence is sufficient or clarification is needed.
 """,
-            input=[{"role": "user", "content": json.dumps(context, default=str)}, *transcript],
+            input=[
+                {"role": "user", "content": json.dumps(privacy.redact(context), default=str)},
+                *privacy.transcript(transcript),
+            ],
             tools=tool_definitions(),
             parallel_tool_calls=True,
         )
         try:
             calls = [
-                ToolCall(call_id=item.call_id, name=item.name, arguments=json.loads(item.arguments))
+                ToolCall(
+                    call_id=item.call_id,
+                    name=item.name,
+                    arguments=privacy.restore(json.loads(item.arguments)),
+                )
                 for item in response.output
                 if item.type == "function_call"
             ]

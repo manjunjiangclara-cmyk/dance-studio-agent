@@ -7,6 +7,7 @@ agent/
   service.py                 Start, inspect, review, retry, and supersede runs
   contracts.py               Shared model outputs, graph state, and adapter protocol
   openai_model.py            Responses API calls and model instructions
+  privacy.py                 Local identity placeholders and output restoration
   policy.py                  Load and validate the editable policy resource
   tools.py                   Read-only studio tools and their argument schemas
   telemetry.py               Structured logging
