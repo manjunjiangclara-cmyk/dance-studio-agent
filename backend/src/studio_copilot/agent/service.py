@@ -1,0 +1,164 @@
+"""Synchronous local run lifecycle, serialized per student; no worker queue required."""
+
+import logging
+from pathlib import Path
+from uuid import UUID
+
+from langgraph.types import Command
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+from yaml import YAMLError
+
+from studio_copilot.administration.service import AdministrationError, conflict, invalid, require
+from studio_copilot.agent.contracts import Review
+from studio_copilot.agent.persistence.checkpoints import postgres_checkpointer
+from studio_copilot.agent.persistence.locking import student_lock
+from studio_copilot.agent.policy import load_policy
+from studio_copilot.agent.workflow import Workflow
+from studio_copilot.persistence.models import AgentRun, Conversation, Message
+
+logger = logging.getLogger(__name__)
+
+
+def latest_email(db, conversation_id):
+    return db.scalar(
+        select(Message)
+        .where(
+            Message.conversation_id == conversation_id,
+            Message.kind == "student_email",
+        )
+        .order_by(Message.occurred_at.desc(), Message.created_at.desc(), Message.id.desc())
+        .limit(1)
+    )
+
+
+def supersede_pending(db, conversation_id):
+    latest = latest_email(db, conversation_id)
+    if latest is None:
+        return
+    for run in db.scalars(
+        select(AgentRun).where(
+            AgentRun.conversation_id == conversation_id,
+            AgentRun.status.in_(["running", "awaiting_review", "failed"]),
+            AgentRun.source_message_id != latest.id,
+        )
+    ):
+        run.status = "superseded"
+
+
+class AgentService:
+    def __init__(self, engine, model, *, checkpoints=None, policy_path: Path | None = None):
+        self.engine, self.model = engine, model
+        self.checkpoints = checkpoints or (lambda: postgres_checkpointer(engine))
+        self.policy_path = policy_path
+
+    def get(self, run_id):
+        with Session(self.engine, expire_on_commit=False) as db:
+            return require(db, AgentRun, run_id)
+
+    def _student(self, conversation_id):
+        with Session(self.engine) as db:
+            return require(db, Conversation, conversation_id).student_id
+
+    def start(self, conversation_id: UUID, source_message_id: UUID):
+        with student_lock(self.engine, self._student(conversation_id)):
+            with Session(self.engine, expire_on_commit=False) as db, db.begin():
+                source = require(db, Message, source_message_id)
+                if source.conversation_id != conversation_id or source.kind != "student_email":
+                    invalid("Source must be a student email in this conversation.")
+                existing = db.scalar(
+                    select(AgentRun).where(AgentRun.source_message_id == source.id)
+                )
+                if existing is not None:
+                    return existing
+                if latest_email(db, conversation_id).id != source.id:
+                    conflict("Start the agent from the latest student email in this conversation.")
+                try:
+                    policy = load_policy(self.policy_path)
+                except (OSError, ValueError, YAMLError) as error:
+                    raise AdministrationError(
+                        503, "policy_unavailable", "The policy resource is invalid or unavailable."
+                    ) from error
+                supersede_pending(db, conversation_id)
+                run = AgentRun(
+                    conversation_id=conversation_id,
+                    source_message_id=source.id,
+                    policy_snapshot=policy,
+                )
+                db.add(run)
+                db.flush()
+                run_id = run.id
+            self._drive(run_id, {"run_id": str(run_id)})
+            return self.get(run_id)
+
+    def review(self, run_id: UUID, review: Review):
+        run = self.get(run_id)
+        with student_lock(self.engine, self._student(run.conversation_id)):
+            run = self.get(run_id)
+            if run.status == "approved" and review.action == "approve":
+                with Session(self.engine) as db:
+                    body = require(db, Message, run.approved_response_id).body
+                if review.expected_revision == run.revision and (
+                    review.body is None or review.body == body
+                ):
+                    return run
+            if run.status != "awaiting_review" or review.expected_revision != run.revision:
+                conflict("This draft is no longer awaiting this review revision.")
+            with Session(self.engine) as db:
+                if latest_email(db, run.conversation_id).id != run.source_message_id:
+                    conflict("A newer student email has superseded this draft.")
+            if review.action == "revise" and not review.feedback:
+                invalid("Revision requires teacher feedback.")
+            if review.action == "reject":
+                # Do not checkpoint the rejection payload or create a rejection audit/message.
+                with self.checkpoints() as saver:
+                    saver.delete_thread(str(run_id))
+                with Session(self.engine) as db, db.begin():
+                    require(db, AgentRun, run_id, lock=True).status = "closed"
+                return self.get(run_id)
+            self._drive(run_id, Command(resume=review.model_dump()))
+            return self.get(run_id)
+
+    def retry(self, run_id: UUID):
+        run = self.get(run_id)
+        with student_lock(self.engine, self._student(run.conversation_id)):
+            run = self.get(run_id)
+            if run.status not in {"failed", "running", "finalizing"}:
+                conflict("Only interrupted or failed processing can be retried.")
+            with Session(self.engine) as db:
+                if latest_email(db, run.conversation_id).id != run.source_message_id:
+                    conflict("A newer email has superseded this run.")
+            self._drive(run_id, None)
+            return self.get(run_id)
+
+    def _drive(self, run_id, input_value):
+        config = {"configurable": {"thread_id": str(run_id)}, "recursion_limit": 30}
+        try:
+            with Session(self.engine) as db, db.begin():
+                run = require(db, AgentRun, run_id, lock=True)
+                run.status = "finalizing" if run.approved_response_id else "running"
+                run.error = None
+            with self.checkpoints() as saver:
+                graph = Workflow(self.engine, self.model).compile(saver)
+                snapshot = graph.get_state(config)
+                if input_value is None and not snapshot.values:
+                    input_value = {"run_id": str(run_id)}
+                # Recover a crash between persisting the draft and reaching its interrupt.
+                if isinstance(input_value, Command) and not any(
+                    t.interrupts for t in snapshot.tasks
+                ):
+                    graph.invoke(None, config)
+                graph.invoke(input_value, config)
+        except AdministrationError:
+            raise
+        except Exception as error:
+            # No provider exception strings, prompts, or credentials in logs/API errors.
+            logger.error(
+                "agent_run_failed",
+                extra={"run_id": str(run_id), "error_type": type(error).__name__},
+            )
+            with Session(self.engine) as db, db.begin():
+                run = require(db, AgentRun, run_id, lock=True)
+                if run.status not in {"approved", "closed", "superseded"}:
+                    run.status = "failed"
+                    run.error = "Processing failed. Check configuration and retry this run."

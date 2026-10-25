@@ -4,11 +4,11 @@ An independent portfolio project for teacher-reviewed ballet studio administrati
 
 ## Current scope
 
-The MVP prepares drafts for teacher review. It will load student context, consult editable policies, interpret consecutive emails, and query classes. Approval means a draft has been reviewed; it does not book classes or send email.
+The MVP prepares drafts for teacher review. It loads student context, routes enquiries by intent, interprets consecutive makeup emails, and queries classes. Other or unclear request types receive a teacher-handoff draft until their flows are implemented. Approval means a draft has been reviewed; it does not book classes or send email.
 
-The traditional administration backend is implemented with FastAPI, PostgreSQL, SQLAlchemy, and Alembic. It manages students, timetables, enrolments/history, and manually recorded conversations through a staff API. The eight-table schema is unchanged. The agent, review UI, and automatic memory updates are not implemented yet.
+The backend implements staff administration and a LangGraph makeup-enquiry workflow using the OpenAI Responses API. It manages studio records, conversation history, bounded read-only tool use, automatic student memory, and teacher review through the API. Approval stores the final teacher response and reconciles memory; it does not send email or execute bookings. A browser review UI is not implemented.
 
-Students have an optional `highest_level`, conversational `context`, an `enrolment_history` relationship, and a read-only `current_enrolments` field derived from that history. Classes belong to terms; dated sessions expose their regular student roster through enrolments.
+Students have an optional `highest_level`, nullable `ai_summary`, source-linked conversational `context`, an `enrolment_history` relationship, and a read-only `current_enrolments` field derived from that history. Classes belong to terms; dated sessions expose their regular student roster through enrolments.
 
 ## Local setup
 
@@ -41,6 +41,16 @@ The seed command prints useful IDs. It creates fictional February–March 2027 d
 
 See the [API guide and walkthrough](docs/07-api.md) for endpoints, filters, enrolment operations, and current limitations.
 
+## Agent setup
+
+After applying the application migration, provision LangGraph checkpoints from `backend/`:
+
+```sh
+uv run --env-file .env.example python -m studio_copilot.agent.persistence.checkpoints
+```
+
+Set `OPENAI_API_KEY` and `OPENAI_MODEL` in an ignored `.env` or your shell, then start the server using that environment. Studio policy is editable in `backend/policies/studio.yaml`. See the [agent API walkthrough](docs/08-agent-api.md) for starting runs, teacher review, memory updates, retries, and optional live evaluation. The normal test suite uses a fake model and makes no OpenAI requests.
+
 ## Verification
 
 Create the separate test database once, from the project directory:
@@ -57,7 +67,24 @@ uv run ruff check .
 uv run ruff format --check .
 ```
 
-Integration tests require `TEST_DATABASE_URL` with a database name ending in `_test`. Each test creates and removes its own temporary schema there. Without that variable, PostgreSQL tests are explicitly skipped. Test downgrade/re-upgrade operations affect those temporary schemas, not the application database. Tests cover persistence and constraints; they do not establish agent understanding or booking reliability.
+Tests are grouped by execution requirements and behavior:
+
+- `backend/tests/unit/`: enrolment rules and the OpenAI SDK adapter with mocked HTTP; no database or live OpenAI calls.
+- `backend/tests/integration/persistence/`: fresh schema/model parity, database constraints, enrolment history, and student memory.
+- `backend/tests/integration/api/`: students, enrolments, timetable, conversations, validation, access, and demo seeding.
+- `backend/tests/integration/agent/`: routing, review, memory, recovery, access, policy, tools, and tool limits, using scripted model responses.
+- `backend/evaluations/`: optional paid live-model checks, outside normal pytest discovery.
+
+Run an individual group from `backend/`, for example:
+
+```sh
+uv run pytest tests/unit
+uv run --env-file .env.example pytest tests/integration/agent
+```
+
+Integration tests require `TEST_DATABASE_URL` with a database name ending in `_test`. Each test creates and removes its own temporary schema there. Without that variable, PostgreSQL tests are explicitly skipped. The schema check verifies that a fresh installation matches the models. Fake-model tests do not establish live model understanding or booking reliability.
+
+The pre-release migration history is consolidated into one initial migration containing the current nine-table application schema. Existing disposable development databases stamped with an earlier revision need to be recreated before applying this baseline; the consolidated revision is for fresh installations and does not upgrade the old revisions. LangGraph checkpoint setup remains separate.
 
 ## Design documents
 
@@ -68,5 +95,6 @@ Integration tests require `TEST_DATABASE_URL` with a database name ending in `_t
 - [Incremental backlog](docs/05-backlog.md)
 - [Accepted direction and open decisions](docs/06-decisions.md)
 - [Administration API guide](docs/07-api.md)
+- [Agent setup, APIs, and evaluation](docs/08-agent-api.md)
 
 The original detailed booking design is superseded by this simpler direction. Policies remain external resources; financial rules, credit ledgers, booking execution, and production infrastructure will be designed when those capabilities are introduced.

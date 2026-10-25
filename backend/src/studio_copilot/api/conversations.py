@@ -4,9 +4,11 @@ from fastapi import APIRouter
 from sqlalchemy import select
 
 from studio_copilot.administration.service import conflict, require
+from studio_copilot.agent.persistence.locking import guard_message
+from studio_copilot.agent.service import supersede_pending
 from studio_copilot.api import schemas as s
 from studio_copilot.api.common import Db, Paging, page, save
-from studio_copilot.persistence.models import Conversation, Message, Student
+from studio_copilot.persistence.models import AgentRun, Conversation, Message, Student
 
 router = APIRouter(tags=["Conversations"])
 
@@ -42,8 +44,14 @@ def update_conversation(conversation_id: UUID, body: s.ConversationPatch, db: Db
     "/conversations/{conversation_id}/messages", response_model=s.MessageRead, status_code=201
 )
 def create_message(conversation_id: UUID, body: s.MessageCreate, db: Db):
-    require(db, Conversation, conversation_id)
-    return save(db, Message(conversation_id=conversation_id, **body.model_dump(exclude_none=True)))
+    conversation = require(db, Conversation, conversation_id)
+    guard_message(db, conversation.student_id)
+    message = Message(conversation_id=conversation_id, **body.model_dump(exclude_none=True))
+    db.add(message)
+    db.flush()
+    if body.kind == "student_email":
+        supersede_pending(db, conversation_id)
+    return save(db, message)
 
 
 @router.get("/conversations/{conversation_id}/messages", response_model=s.Page[s.MessageRead])
@@ -68,5 +76,7 @@ def edit_draft(message_id: UUID, body: s.DraftPatch, db: Db):
     record = require(db, Message, message_id, lock=True)
     if record.kind != "assistant_draft":
         conflict("Only drafts can be edited; add a staff note to correct received information.")
+    if db.scalar(select(AgentRun.id).where(AgentRun.draft_message_id == record.id)):
+        conflict("Edit an agent draft through its review endpoint with the expected revision.")
     record.body = body.body
     return save(db, record)

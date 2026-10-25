@@ -1,3 +1,5 @@
+"""In-memory tests for derived persistence model behavior."""
+
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 

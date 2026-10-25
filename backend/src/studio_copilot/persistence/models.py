@@ -62,6 +62,7 @@ class Student(Record, Base):
     email: Mapped[str] = mapped_column(String(320))
     # A staff-maintained label, not an inferred rank or a blanket eligibility grant.
     highest_level: Mapped[str | None] = mapped_column(String(100))
+    ai_summary: Mapped[str | None] = mapped_column(Text)
     context: Mapped[dict[str, Any]] = mapped_column(
         MutableDict.as_mutable(JSONB), default=dict, server_default=text("'{}'::jsonb")
     )
@@ -210,7 +211,8 @@ class Message(Record, Base):
     __tablename__ = "messages"
     __table_args__ = (
         CheckConstraint(
-            "kind IN ('student_email', 'assistant_draft', 'staff_note')", name="valid_kind"
+            "kind IN ('student_email', 'assistant_draft', 'staff_note', 'teacher_response')",
+            name="valid_kind",
         ),
         Index("ix_messages_conversation_id_occurred_at", "conversation_id", "occurred_at"),
     )
@@ -225,3 +227,35 @@ class Message(Record, Base):
     )
 
     conversation: Mapped[Conversation] = relationship(back_populates="messages")
+
+
+class AgentRun(Record, Base):
+    __tablename__ = "agent_runs"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('running', 'awaiting_review', 'finalizing', 'approved', "
+            "'closed', 'superseded', 'failed')",
+            name="valid_status",
+        ),
+        CheckConstraint("revision >= 0", name="positive_revision"),
+    )
+
+    conversation_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("conversations.id", ondelete="RESTRICT"), index=True
+    )
+    source_message_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("messages.id", ondelete="RESTRICT"), unique=True
+    )
+    draft_message_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("messages.id", ondelete="RESTRICT")
+    )
+    approved_response_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("messages.id", ondelete="RESTRICT"), unique=True
+    )
+    status: Mapped[str] = mapped_column(String(30), default="running")
+    revision: Mapped[int] = mapped_column(Integer, default=0)
+    interpretation: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    evidence: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
+    draft_details: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    policy_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    error: Mapped[str | None] = mapped_column(String(200))

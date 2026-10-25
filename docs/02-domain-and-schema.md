@@ -2,7 +2,7 @@
 
 ## Student profile and enrolment history
 
-`Student` stores `highest_level` and conversational `context`. It exposes `enrolment_history`, containing all enrolment records, and `current_enrolments`, a read-only Python property selecting the periods valid today in Melbourne. For an explicit date, use `active_enrolments_on(date)`.
+`Student` stores `highest_level`, nullable `ai_summary`, and conversational `context`. It exposes `enrolment_history`, containing all enrolment records, and `current_enrolments`, a read-only Python property selecting the periods valid today in Melbourne. For an explicit date, use `active_enrolments_on(date)`.
 
 `Enrolment` is the history entity. Each row connects a student to a term-specific regular class with attendance start/end dates and status. The administration service changes classes by ending the old period and adding a new one atomically. The database does not implement an event ledger or prevent direct SQL edits to old rows. Term information comes through the class, so it is not duplicated on the enrolment or student.
 
@@ -16,14 +16,16 @@ Every table has a UUID primary key and timezone-aware creation/update timestamps
 
 | Table | Main fields |
 | --- | --- |
-| `students` | `display_name`, case-insensitive unique `email`, nullable `highest_level`, `context` JSONB object. |
+| `students` | `display_name`, case-insensitive unique `email`, nullable `highest_level` and `ai_summary`, `context` JSONB object. |
 | `terms` | Unique `name`, inclusive `starts_on`, `ends_on`. |
 | `locations` | Unique `name`, `address`, `timezone` (Melbourne by default). |
 | `classes` | `term_id`, `location_id`, `name`, `level`, optional `prerequisites` text. Each class belongs to one term and location. |
 | `class_sessions` | `class_id`, `starts_at`, `ends_at`, positive `capacity`; unique class/start time. |
 | `enrolments` | `student_id`, `class_id`, `starts_on`, optional `ends_on`, `status`. This is the retained enrolment history. |
 | `conversations` | `student_id`, optional `subject`; multiple discussions can belong to a student. |
-| `messages` | `conversation_id`, `kind`, `body`, `occurred_at`; kinds: `student_email`, `assistant_draft`, `staff_note`. |
+| `messages` | `conversation_id`, `kind`, `body`, `occurred_at`; kinds: `student_email`, `assistant_draft`, `staff_note`, `teacher_response`. |
+
+| `agent_runs` | Unique source email, conversation, current draft, approved response, status/revision, interpretation, evidence, draft details, policy snapshot, safe error. |
 
 ```mermaid
 erDiagram
@@ -34,6 +36,9 @@ erDiagram
     CLASS ||--o{ CLASS_SESSION : schedules
     STUDENT ||--o{ CONVERSATION : discusses
     CONVERSATION ||--o{ MESSAGE : contains
+    CONVERSATION ||--o{ AGENT_RUN : processes
+    MESSAGE ||--o| AGENT_RUN : source_email
+    AGENT_RUN o|--o| MESSAGE : approved_response
 ```
 
 ## Session student list
@@ -42,14 +47,14 @@ erDiagram
 
 ## Memory boundaries
 
-`students.context` is a flexible JSON object for student-stated context. The schema stores it but does not summarize conversations automatically. Top-level dictionary updates are tracked by SQLAlchemy; replace an entire top-level value or the whole object when editing nested content. In-place nested list/dictionary mutations are not automatically tracked.
+`students.context` preserves staff data and source-linked agent memory under `_agent_memory`. The graph updates memory after interpretation and after teacher approval; `ai_summary` renders that memory for inspection. Top-level dictionary updates are tracked by SQLAlchemy; replace an entire top-level value or the whole object when editing nested content. In-place nested list/dictionary mutations are not automatically tracked.
 
-Raw messages preserve the source discussion. Retrieve them by occurrence time, then creation time and ID. `assistant_draft` is explicitly distinguished from incoming email; there is no sent-email kind or sending implementation yet. Level labels carry no implicit numeric ordering. Future model-generated context updates must not modify `highest_level` or enrolment records.
+Raw messages preserve the source discussion. Retrieve them by occurrence time, then creation time and ID. `assistant_draft` is explicitly distinguished from incoming email; there is no sent-email kind or sending implementation yet. Level labels carry no implicit numeric ordering. `teacher_response` is approved content with unconfirmed delivery. Model-generated context updates never modify `highest_level` or enrolment records.
 
 ## Database responsibilities
 
-Foreign keys restrict deletion of referenced records. Database constraints cover date ordering, positive capacity, allowed status/kind values, context object type, and uniqueness. The administration service checks attendance-period boundaries, session times within terms, overlapping periods in the same class, and regular roster capacity for existing sessions. Placement, makeup entitlement, and travel rules remain undefined. Policies remain external resources; there are no policy or credit tables. No schema migration was needed for the administration API.
+Foreign keys restrict deletion of referenced records. Database constraints cover date ordering, positive capacity, allowed status/kind values, context object type, and uniqueness. The administration service checks attendance-period boundaries, session times within terms, overlapping periods in the same class, and regular roster capacity for existing sessions. Placement, makeup entitlement, and travel rules remain undefined. Policies remain external resources; there are no policy or credit tables. The single initial migration includes agent runs, student summaries, and teacher responses. LangGraph checkpoint tables are separately provisioned and excluded from Alembic comparison.
 
-SQLAlchemy owns model metadata; Alembic owns schema changes. Models never call `create_all` at application startup. Migration tests compare the applied schema against metadata and exercise a downgrade/re-upgrade in isolated test schemas.
+SQLAlchemy owns model metadata; Alembic owns schema changes. Models never call `create_all` at application startup. The schema test checks a fresh installation's table names, revision, and model parity in an isolated test schema. Historical upgrade and downgrade compatibility is not required for this pre-data baseline.
 
 References: [SQLAlchemy relationships](https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html), [JSON mutation tracking](https://docs.sqlalchemy.org/en/20/orm/extensions/mutable.html), and [Alembic schema comparison](https://alembic.sqlalchemy.org/en/latest/autogenerate.html).

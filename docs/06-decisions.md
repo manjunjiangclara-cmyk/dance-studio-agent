@@ -11,7 +11,7 @@
 
 ## Database implementation choices
 
-- Eight tables: students, terms, locations, classes, class sessions, enrolments, conversations, and messages.
+- Initial foundation - eight tables: students, terms, locations, classes, class sessions, enrolments, conversations, and messages.
 - `highest_level` is an optional staff-maintained label, separate from conversational context.
 - `Enrolment` is the history entity. `Student.current_enrolments` is a read-only field derived from its dated records; it supports multiple regular classes.
 - Changing classes should end an old attendance period and add a new one. Cancelled registrations are distinguished from periods that actually occurred. This is history of attendance periods, not a separate event-sourcing system.
@@ -20,10 +20,16 @@
 
 ## Open for later discussion
 
-Policy resource shape and additional rules; memory extraction/update behavior; model/provider choice; AI interpretation/review APIs; graph persistence; class suitability rules; makeup booking writes; production reliability; frontend and hosting.
+Additional policy rule types; class suitability rules; makeup booking writes; production reliability; frontend and hosting. The agent increment selects the OpenAI Responses API, configurable model, one LangGraph workflow, PostgreSQL checkpoints, YAML policy input, source-linked memory, and API-driven teacher review.
 
 ## Traditional backend increment
 
 The owner selected core administration before AI: students, terms/locations/classes/sessions, explicit enrolment changes/history, and manual conversations. These staff commands can write official records; the earlier rule that AI draft approval does not execute business actions still applies. The API uses one local admin token, retains historical records, and provides no hard-delete endpoints. All existing database tables remain unchanged.
 
 These are deferred decisions, not assumed requirements of the database foundation. The previous credit ledger, conditional-offer protocol, and production job infrastructure are not part of this implementation.
+
+## Agent increment
+
+Student memory updates immediately after interpretation, before queries, then reconciles again after teacher approval. Final edited teacher responses are stored separately from generated drafts; approval does not establish delivery. Read-only tools have fixed call/round limits and terminate on missing data. Rejection closes the run without a rejection message or audit event and deletes its graph checkpoints. See [workflow](03-makeup-workflow.md) and [agent API](08-agent-api.md).
+
+Intent routing precedes flow-specific extraction. Makeup retains its own `MakeupInterpretation`; future enquiry types receive separate interpreters when implemented. Unclear, unsupported, or independently mixed requests use teacher handoff rather than being forced into the makeup schema.
