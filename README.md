@@ -53,7 +53,7 @@ After agent setup and starting the server, open [Swagger](http://127.0.0.1:8000/
 
 The server finds the student, selects their latest conversation (or creates one), records receipt time, saves the email and generates a draft. An unknown sender gets a minimal `New enquirer` profile with no level or enrolments, and their first email enters the new-student teacher-handoff flow. Later emails reuse their history and use normal intent routing.
 
-For a known student, send the same two fields with their registered email address, for example `alex.demo@example.com`. Check `status` for `awaiting_review` and read `draft_details.body`, `interpretation` and `evidence`. HTTP 200 can also contain a `failed` run: inspect `error` and retry that run using `/api/v1/agent-runs/{id}/retry`. Review, edit or approve using the existing run review endpoint. Approval stores a response without sending it or booking a class.
+For a known student, send the same two fields with their registered email address, for example `alex@example.com`. Check `status` for `awaiting_review` and read `draft_details.body`, `interpretation` and `evidence`. HTTP 200 can also contain a `failed` run: inspect `error` and retry that run using `/api/v1/agent-runs/{id}/retry`. Review, edit or approve using the existing run review endpoint. Approval stores a response without sending it or booking a class.
 
 No conversation, message or run IDs are needed as input. Each POST is a new email, even if its content repeats. A busy student returns 409 without saving the submission. Model configuration or policy errors return 503 before records are created.
 
@@ -68,6 +68,8 @@ uv run --env-file .env python -m studio_copilot.demo
 ```
 
 `demo.py` only inserts fictional students, classes, enrolments, and conversation messages into the database. It does not start a server or run a separate demo application. The real app uses these records when you inspect them or start an AI run through the API. You can instead create records through the administration API.
+
+The fictional Merri Ballet demo uses Brunswick and Carlton rooms, adult Level 2 ballet classes, and Term 1 · Summer 2027. Names and addresses are invented; student emails use the reserved `example.com` domain. Existing seeded records keep their original values because rerunning the seed never overwrites staff edits. If an earlier demo seed used `alex@example.test` or `sam@example.test`, update those student emails through the administration API to `alex@example.com` and `sam@example.com` before using email intake; `.test` addresses are rejected by the intake validator.
 
 The seed command prints useful IDs. It creates fictional February–March 2027 data once and preserves edits on subsequent runs. `"created": false` means the demo records already exist and were left untouched; it is not an error. You do not need to rerun it when starting the app. Use `on_date=2027-02-08` when inspecting the seeded student's current-enrolment view; the normal default is today's Melbourne date. Seeded drafts and context are predefined examples, not AI-generated results.
 

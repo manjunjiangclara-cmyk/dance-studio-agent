@@ -45,44 +45,46 @@ def seed_demo(db: Session) -> dict:
 
     term = Term(
         id=ids["term"],
-        name="Synthetic demo term 2027",
+        name="Term 1 · Summer 2027",
         starts_on=date(2027, 2, 1),
         ends_on=date(2027, 3, 31),
     )
     a = Location(
         id=ids["studio_a"],
-        name="Demo Studio A",
-        address="Fictional location A",
+        name="Merri Ballet · Brunswick",
+        address="Studio 2, 18 Wattle Lane, Brunswick VIC 3056",
         timezone="Australia/Melbourne",
     )
     b = Location(
         id=ids["studio_b"],
-        name="Demo Studio B",
-        address="Fictional location B",
+        name="Merri Ballet · Carlton",
+        address="Level 1, 42 Elm Lane, Carlton VIC 3053",
         timezone="Australia/Melbourne",
     )
     alex = Student(
         id=ids["alex"],
-        display_name="Alex Example",
-        email="alex.demo@example.com",
+        display_name="Alex Morgan",
+        email="alex@example.com",
         highest_level="Level 2",
         context={"preferred_day": "Saturday"},
     )
     sam = Student(
         id=ids["sam"],
-        display_name="Sam Example",
-        email="sam.demo@example.com",
+        display_name="Sam Taylor",
+        email="sam@example.com",
         highest_level="Level 2",
     )
     classes = {}
     for key, location, day in [("monday", a, 8), ("thursday", b, 11), ("saturday", a, 13)]:
         regular_class = StudioClass(
             id=ids[key],
-            name=f"Demo {key.title()} Level 2",
+            name=f"Adult Ballet · Level 2 · {key.title()}",
             level="Level 2",
             term=term,
             location=location,
-            prerequisites="Teacher-reviewed placement; synthetic description.",
+            prerequisites=(
+                "For dancers with previous ballet experience; placement confirmed by the teacher."
+            ),
         )
         classes[key] = regular_class
         db.add(
@@ -112,14 +114,25 @@ def seed_demo(db: Session) -> dict:
             ),
         ]
     )
-    conversation = Conversation(id=ids["conversation"], student=alex, subject="Synthetic enquiry")
+    conversation = Conversation(
+        id=ids["conversation"], student=alex, subject="Makeup for Monday 8 February"
+    )
     for index, (kind, body) in enumerate(
         [
-            ("student_email", "Could I attend Thursday instead?"),
-            ("student_email", "Actually, Saturday would be better."),
+            (
+                "student_email",
+                "Hi, I can't make ballet on Monday 8 February. "
+                "Could I join the Thursday class in Carlton instead?",
+            ),
+            (
+                "student_email",
+                "Actually, Saturday 13 February in Brunswick would work better for me. "
+                "Would that be possible?",
+            ),
             (
                 "assistant_draft",
-                "Manually entered draft awaiting staff editing; no booking or send.",
+                "Hi Alex, thanks for letting us know. "
+                "I’ll check the Saturday class in Brunswick and get back to you.",
             ),
         ]
     ):
