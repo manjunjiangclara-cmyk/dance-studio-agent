@@ -32,7 +32,7 @@ Routing is visible in `AgentRun.interpretation.routing`, with the selected branc
 
 The first memory update happens immediately after interpretation, before querying. Follow-up emails such as “Actually, Saturday instead” replace the current conversation's interpretation without becoming lasting preferences. Original emails remain immutable history.
 
-The second update happens after approval. The final edited teacher response is stored as a distinct `teacher_response` message, linked to its run and draft. The model reconciles the conversation summary with that response. A failed reconciliation can be retried without creating another response.
+The second update happens after approval. The final edited teacher response is stored as a distinct `teacher_response` message, linked to its run and draft. The model reconciles the conversation summary with that response. A failed reconciliation can be retried without creating another response, even after a newer student email arrives. Earlier approved outcomes remain source-linked in memory; recovering them preserves newer request summaries and preferences.
 
 `Student.ai_summary` is a readable rendering of source-linked structured memory in `context._agent_memory`. Student statements and teacher-reviewed information are labelled separately. Other context keys survive automatic updates. Staff PATCH of the whole context still replaces it; clients should preserve `_agent_memory` unless deliberately correcting it. Memory cannot change highest level or enrolments.
 

@@ -105,3 +105,77 @@ def test_database_tool_failure_produces_a_draft_instead_of_looping(rig, scenario
     assert rig[1].query_count == 1
     assert run["draft_details"]["warnings"]
     assert "synthetic database failure" not in str(run)
+
+
+@pytest.mark.parametrize("process_followup", [False, True])
+def test_approval_finalization_survives_newer_email(rig, scenario, db_engine, process_followup):
+    from uuid import UUID
+
+    from sqlalchemy import func, select
+
+    from studio_copilot.agent.contracts import Preference
+    from studio_copilot.persistence.models import Message
+
+    client, model, _, _ = rig
+    run = start(rig, scenario)
+    model.fail_reconcile = True
+    failed = review(client, run, "approve", body="Friday options need a teacher check.").json()
+    assert failed["status"] == "failed" and failed["approved_response_id"]
+    model.fail_reconcile = False
+    email = client.post(
+        f"/api/v1/conversations/{scenario['conversation']}/messages",
+        json={
+            "kind": "student_email",
+            "body": "Actually, Saturday instead. I now prefer driving.",
+            "occurred_at": "2027-02-07T11:00:00+11:00",
+        },
+    ).json()
+    assert client.get(f"/api/v1/agent-runs/{run['id']}").json()["status"] == "failed"
+    if process_followup:
+        interpret = model.interpret_makeup
+
+        def interpret_followup(context):
+            result = interpret(context)
+            result.enduring_preferences = [Preference(key="travel", value="driving")]
+            return result
+
+        model.interpret_makeup = interpret_followup
+        start(rig, dict(scenario, source=UUID(email["id"])))
+
+    recovered = client.post(f"/api/v1/agent-runs/{run['id']}/retry").json()
+    assert recovered["status"] == "approved", recovered
+    assert recovered["approved_response_id"] == failed["approved_response_id"]
+    profile = client.get(f"/api/v1/students/{scenario['student']}").json()
+    memory = profile["context"]["_agent_memory"]
+    assert (
+        "Friday" in memory["approved_responses"][failed["approved_response_id"]]["request_summary"]
+    )
+    if process_followup:
+        request = memory["requests"][str(scenario["conversation"])]
+        assert request["source_message_id"] == email["id"]
+        assert request["request_summary"] == "Makeup on Saturday"
+        assert memory["preferences"]["travel"]["value"] == "driving"
+    else:
+        assert memory["requests"][str(scenario["conversation"])]["kind"] == "teacher_reviewed"
+    with Session(db_engine) as db:
+        assert (
+            db.scalar(
+                select(func.count()).select_from(Message).where(Message.kind == "teacher_response")
+            )
+            == 1
+        )
+
+
+def test_retry_restores_review_status_after_crash_before_review_resume(rig, scenario, db_engine):
+    from uuid import UUID
+
+    from studio_copilot.persistence.models import AgentRun
+
+    client = rig[0]
+    run = start(rig, scenario)
+    # Simulate death after _drive persisted running, before consuming the review command.
+    with Session(db_engine) as db, db.begin():
+        db.get(AgentRun, UUID(run["id"])).status = "running"
+    recovered = client.post(f"/api/v1/agent-runs/{run['id']}/retry").json()
+    assert recovered["status"] == "awaiting_review", recovered
+    assert review(client, recovered, "approve").json()["status"] == "approved"

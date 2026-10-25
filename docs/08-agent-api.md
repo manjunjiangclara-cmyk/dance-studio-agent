@@ -38,7 +38,7 @@ The run exposes classification at `interpretation.routing` (intents, summary, cl
 
 Start/review/retry return 200 with the current run. A provider or checkpoint failure is visible as `status=failed`; the HTTP response alone does not establish successful processing. A new message arriving while processing, or a stale review revision, returns 409. Inspect the run after a network interruption before retrying.
 
-`status` is `running`, `awaiting_review`, `finalizing`, `approved`, `closed`, `superseded`, or `failed`. `finalizing` means the teacher response has been stored but memory reconciliation is still running. Retrying failed finalization reuses the same response. Repeating the same completed approval returns its existing response; a conflicting edit is rejected.
+`status` is `running`, `awaiting_review`, `finalizing`, `approved`, `closed`, `superseded`, or `failed`. `finalizing` means the teacher response has been stored but memory reconciliation is still running. Retrying failed finalization reuses the same response and remains available after newer emails. Recovery retains the earlier approved outcome without replacing newer request memory or preferences. Repeating the same completed approval returns its existing response; a conflicting edit is rejected.
 
 Use GET `/messages/{draft_message_id}` or `draft_details.body` to display the generated draft. Edit agent drafts through the review body, not the generic message PATCH. The final response is separately available at `/messages/{approved_response_id}` and in conversation history. The linked draft remains the generated version for comparison.
 

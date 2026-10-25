@@ -40,6 +40,7 @@ def supersede_pending(db, conversation_id):
         select(AgentRun).where(
             AgentRun.conversation_id == conversation_id,
             AgentRun.status.in_(["running", "awaiting_review", "failed"]),
+            AgentRun.approved_response_id.is_(None),
             AgentRun.source_message_id != latest.id,
         )
     ):
@@ -126,7 +127,10 @@ class AgentService:
             if run.status not in {"failed", "running", "finalizing"}:
                 conflict("Only interrupted or failed processing can be retried.")
             with Session(self.engine) as db:
-                if latest_email(db, run.conversation_id).id != run.source_message_id:
+                if (
+                    run.approved_response_id is None
+                    and latest_email(db, run.conversation_id).id != run.source_message_id
+                ):
                     conflict("A newer email has superseded this run.")
             self._drive(run_id, None)
             return self.get(run_id)
@@ -138,10 +142,13 @@ class AgentService:
                 run = require(db, AgentRun, run_id, lock=True)
                 run.status = "finalizing" if run.approved_response_id else "running"
                 run.error = None
+                finalizing = run.approved_response_id is not None
             with self.checkpoints() as saver:
                 graph = Workflow(self.engine, self.model).compile(saver)
                 snapshot = graph.get_state(config)
                 if input_value is None and not snapshot.values:
+                    if finalizing:
+                        raise RuntimeError("The approval checkpoint is unavailable.")
                     input_value = {"run_id": str(run_id)}
                 # Recover a crash between persisting the draft and reaching its interrupt.
                 if isinstance(input_value, Command) and not any(
@@ -149,6 +156,11 @@ class AgentService:
                 ):
                     graph.invoke(None, config)
                 graph.invoke(input_value, config)
+                if any(task.interrupts for task in graph.get_state(config).tasks):
+                    with Session(self.engine) as db, db.begin():
+                        run = require(db, AgentRun, run_id, lock=True)
+                        if run.approved_response_id is None:
+                            run.status = "awaiting_review"
         except AdministrationError:
             raise
         except Exception as error:

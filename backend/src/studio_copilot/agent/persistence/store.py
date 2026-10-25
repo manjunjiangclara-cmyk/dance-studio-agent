@@ -39,28 +39,56 @@ def _memory_summary(memory):
             lines.append(
                 "Teacher response approved; delivery and business actions are unconfirmed."
             )
+    for response_id, item in list(memory.get("approved_responses", {}).items())[-10:]:
+        current = memory.get("requests", {}).get(item["conversation_id"], {})
+        if current.get("source_message_id") != response_id:
+            lines.append(f"Earlier teacher-approved response: {item['request_summary']}")
+            lines.append("Delivery and business actions are unconfirmed.")
     return "\n".join(lines)
 
 
-def _save_memory(db, student, conversation_id, source_id, summary, preferences, *, approved=False):
+def _save_memory(
+    db,
+    student,
+    conversation_id,
+    source_id,
+    summary,
+    preferences,
+    *,
+    approved=False,
+    request_source_id=None,
+):
     # Replace the JSONB object to track nested changes while preserving staff-maintained keys.
     context = dict(student.context)
     memory = dict(context.get("_agent_memory", {}))
     saved_preferences = dict(memory.get("preferences", {}))
     kind = "teacher_reviewed" if approved else "student_stated"
+    response = require(db, Message, source_id) if approved else None
     for preference in preferences:
+        previous_source = saved_preferences.get(preference.key, {}).get("source_message_id")
+        if response is not None and previous_source:
+            previous_message = db.get(Message, UUID(previous_source))
+            if previous_message is not None and previous_message.created_at > response.created_at:
+                continue  # Recovery of an older approval must not replace a newer preference.
         saved_preferences[preference.key] = {
             "value": preference.value,
             "source_message_id": str(source_id),
             "kind": kind,
         }
     requests = dict(memory.get("requests", {}))
-    requests[str(conversation_id)] = {
+    entry = {
         "request_summary": summary,
         "source_message_id": str(source_id),
         "kind": kind,
         **({"approved_response_id": str(source_id)} if approved else {}),
     }
+    current_source = requests.get(str(conversation_id), {}).get("source_message_id")
+    if not approved or current_source in {None, str(request_source_id), str(source_id)}:
+        requests[str(conversation_id)] = entry
+    if approved:
+        responses = dict(memory.get("approved_responses", {}))
+        responses[str(source_id)] = {**entry, "conversation_id": str(conversation_id)}
+        memory["approved_responses"] = responses
     memory.update(preferences=saved_preferences, requests=requests)
     context["_agent_memory"] = memory
     student.context, student.ai_summary = context, _memory_summary(memory)
@@ -179,5 +207,6 @@ class WorkflowStore:
                 memory.request_summary,
                 memory.enduring_preferences,
                 approved=True,
+                request_source_id=run.source_message_id,
             )
             run.status, run.error = "approved", None
