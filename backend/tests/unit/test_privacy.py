@@ -229,3 +229,27 @@ def test_request_masks_names_without_latin_word_boundaries(name, body, identifie
         assert privacy.restore(privacy.redact(body)) == body
     finally:
         model.client.close()
+
+
+def test_known_quoted_email_is_masked_in_actual_request():
+    address = '"billing team"@example.com'
+    captured = []
+
+    def handler(request):
+        captured.append(json.loads(request.content))
+        return httpx.Response(200, json=response_payload([]))
+
+    model = adapter(handler)
+    context = {
+        "student": {"name": "Alice Voss", "email": address},
+        "source": {"body": "Reply to " + address},
+    }
+    try:
+        model.choose_tools(context, [])
+        sent_context = json.loads(captured[0]["input"][0]["content"])
+        assert sent_context["student"]["email"] == "[STUDENT_EMAIL]"
+        assert sent_context["source"]["body"] == "Reply to [STUDENT_EMAIL]"
+        privacy = StudentPrivacy(context["student"])
+        assert privacy.restore(privacy.redact(address)) == address
+    finally:
+        model.client.close()

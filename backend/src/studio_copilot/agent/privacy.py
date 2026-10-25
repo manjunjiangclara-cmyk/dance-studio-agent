@@ -34,7 +34,7 @@ class StudentPrivacy:
         email = _normalized(str(student.get("email") or ""))
         if email:
             self.email_tokens[email.casefold()] = "[STUDENT_EMAIL]"
-            self.originals["[STUDENT_EMAIL]"] = email
+            self._alias(email, "[STUDENT_EMAIL]")
         alternatives = sorted(
             set(self.aliases) | {self.originals[token] for token in self.aliases.values()},
             key=len,
@@ -44,7 +44,7 @@ class StudentPrivacy:
             re.compile(
                 "|".join(
                     re.escape(a)
-                    if self.aliases[a.casefold()] == "[STUDENT_ID]"
+                    if self.aliases[a.casefold()] in {"[STUDENT_ID]", "[STUDENT_EMAIL]"}
                     or any(
                         unicodedata.name(char, "").startswith(
                             ("CJK", "HIRAGANA", "KATAKANA", "HANGUL", "THAI")
