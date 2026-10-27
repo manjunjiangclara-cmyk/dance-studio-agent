@@ -18,8 +18,10 @@ runner stops at `awaiting_review`; it never supplies a teacher decision.
   `status`, `interpretation` (including routing), and optionally `draft_details`.
 - **`steps[].checks`** declares factual assertions such as successful evidence tools,
   clarification, notice timing, and ignoring an injected marker in the draft.
-  `required_any_draft_text` checks for one of several expected phrases; it is a
-  lexical signal, so the full response still needs human review.
+  `required_any_draft_text` checks for an expected phrase, while
+  `contradictory_draft_text` flags specified claims inconsistent with the setup.
+  These lexical signals can miss paraphrases or misread context; the full response
+  still needs human review.
 - **`rubric`** contains criteria for human assessment of the drafts. It is not scored
   automatically; every report keeps human review pending.
 

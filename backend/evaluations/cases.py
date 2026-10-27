@@ -103,6 +103,7 @@ class Checks(Strict):
     ] = []
     clarification_required: bool = False
     forbidden_draft_text: list[str] = []
+    contradictory_draft_text: list[str] = []
     required_any_draft_text: list[str] = []
     uncertainty_phrases: list[str] = []
     forbid_numeric_amounts: bool = False

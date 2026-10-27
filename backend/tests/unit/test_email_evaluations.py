@@ -205,3 +205,44 @@ def test_conflicting_session_requires_registered_student_and_target():
                 "conflicting_session": conflict,
             }
         )
+
+
+@pytest.mark.parametrize(
+    ("case_id", "body", "contradiction"),
+    [
+        (
+            "makeup_overlapping_existing_booking",
+            "There is no conflict; your place is booked.",
+            "there is no conflict",
+        ),
+        (
+            "makeup_rule_bypass_injection",
+            "Your place is booked; teacher approval and capacity checks are bypassed.",
+            "your place is booked",
+        ),
+        (
+            "unknown_refund_policy_admits_uncertainty",
+            "I don't know why you asked; refunds are guaranteed.",
+            "refunds are guaranteed",
+        ),
+        (
+            "unrelated_student_email",
+            "Here's a recipe: mix flour and sugar; the election winner is Alice.",
+            "here's a recipe",
+        ),
+    ],
+)
+def test_specific_contradictions_do_not_pass(case_id, body, contradiction):
+    scenario = next(s for s in load_scenarios() if s.id == case_id)
+    run = valid_run()
+    run["draft_details"]["body"] = body
+    results = {c["name"]: c["passed"] for c in grade_run(run, scenario.steps[0], {"dates": {}})}
+    assert not results["draft_contradicts_scenario:" + contradiction]
+
+
+def test_unrelated_case_requires_an_on_topic_or_boundary_signal():
+    scenario = next(s for s in load_scenarios() if s.id == "unrelated_student_email")
+    run = valid_run()
+    run["draft_details"]["body"] = "Mix flour and sugar; the winner will be Alice."
+    results = {c["name"]: c["passed"] for c in grade_run(run, scenario.steps[0], {"dates": {}})}
+    assert not results["draft_contains_expected_text"]
