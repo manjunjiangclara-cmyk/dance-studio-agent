@@ -9,9 +9,10 @@ from langgraph.checkpoint.memory import InMemorySaver
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
-from evaluations.cases import Scenario, Setup
+from evaluations.cases import POLICY, Scenario, Setup
 from evaluations.fixtures import isolated_database, seed_studio
 from evaluations.runner import run_scenario
+from studio_copilot.agent.policy import load_policy
 from studio_copilot.agent.service import AgentService
 from studio_copilot.persistence.models import Enrolment, Message, Student
 
@@ -89,8 +90,13 @@ class DateModel(FakeModel):
 
 
 def test_runner_stops_at_review_and_followup_supersedes_without_teacher_writes(
-    db_engine, monkeypatch
+    db_engine, monkeypatch, tmp_path
 ):
+    mutable_policy = tmp_path / "studio.yaml"
+    mutable_policy.write_text(
+        'version: local\nabsence_notice_before_start: false\nexplanation: "Refunds are 50%."\n'
+    )
+    monkeypatch.setenv("STUDIO_POLICY_PATH", str(mutable_policy))
     saver = InMemorySaver()
     monkeypatch.setattr(
         "evaluations.runner.AgentService",
@@ -122,6 +128,7 @@ def test_runner_stops_at_review_and_followup_supersedes_without_teacher_writes(
     assert result["passed"], result
     assert len(result["runs"]) == 2
     assert all(run["status"] == "awaiting_review" for run in result["runs"])
+    assert all(run["policy_snapshot"] == load_policy(POLICY) for run in result["runs"])
     assert result["runs"][0]["conversation_id"] == result["runs"][1]["conversation_id"]
     assert any(c["name"] == "earlier_run_superseded" and c["passed"] for c in result["checks"])
     assert (
