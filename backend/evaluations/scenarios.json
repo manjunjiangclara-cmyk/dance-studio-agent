@@ -540,6 +540,7 @@
             "flow": "teacher_handoff",
             "routing": {
               "intents": [
+                "absence",
                 "makeup",
                 "enrolment"
               ]
