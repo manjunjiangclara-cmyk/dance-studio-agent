@@ -82,12 +82,13 @@ uv run --env-file .env.example alembic check
 
 The default suite uses a scripted model, real PostgreSQL in isolated test schemas, an actual PostgreSQL checkpoint restart test, and an HTTP mock exercising the installed OpenAI SDK. It does not make paid API requests or establish live model quality.
 
-An optional, paid routing/interpretation smoke evaluation uses three synthetic cases (explicit dates, a consecutive-email correction, and missing details):
+An optional, paid email evaluation uses twenty synthetic scenarios with explicit student enrolments, email inputs, and expected agent output. It exercises intake, routing, tools, drafting, and PostgreSQL checkpoints, stopping at teacher review:
 
 ```sh
-uv run --env-file .env python evaluations/evaluate.py
+uv run python -m evaluations.evaluate --list
+uv run --env-file .env python -m evaluations.evaluate --live --case clear_makeup
 ```
 
-The script lives in `evaluations/` and is not collected by normal pytest runs. It prints the configured model, typed outputs, and measured case results, exiting nonzero for a failed case. It is a small interpretation baseline, not a full draft-quality or booking-reliability benchmark.
+Live evaluations are outside normal pytest discovery and require explicit opt-in. Reports save resolved setup, expected/actual outputs, evidence, draft text, named checks, latency, and token usage. Human rubrics remain unscored; an automated pass does not establish draft quality. Teacher actions such as repeated approval are separate integration tests. See the [evaluation guide](../backend/evaluations/README.md) for the scenario format, isolation, and run instructions.
 
 Agent logs emit JSON node transitions, run IDs, tool names, latency, token usage, and safe failure types. They omit email bodies, model output text, API keys, and provider exception details. Runtime state and evidence remain inspectable through the staff API; no external tracing service is required.

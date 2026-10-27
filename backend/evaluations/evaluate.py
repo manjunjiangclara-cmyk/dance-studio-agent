@@ -1,83 +1,107 @@
-"""Optional paid live interpretation smoke evaluation using synthetic inputs only."""
+"""Opt-in paid end-to-end email evaluations: python -m evaluations.evaluate --help."""
 
+import argparse
+import hashlib
 import json
-from uuid import uuid4
+import os
+import sys
+from datetime import UTC, datetime
+from pathlib import Path
 
-from studio_copilot.agent.openai_model import OpenAIModel
-from studio_copilot.agent.workflow import select_flow
+# Preserve the original script entry point as well as module invocation.
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from evaluations.cases import CATALOG, DATASET, load_scenarios
+from evaluations.fixtures import isolated_database, validate_database_url
+from evaluations.model import MeasuredModel
+from evaluations.runner import build_report, run_scenario
 
 
-def main():
-    source_id = str(uuid4())
-    context = {
-        "student": {
-            "id": str(uuid4()),
-            "name": "Synthetic Alex",
-            "highest_level": "Level 2",
-            "context": {},
-            "ai_summary": None,
-        },
-        "enrolments": [],
-        "policy": {
-            "absence_notice_before_start": True,
-            "explanation": "Notice must arrive before the session starts; entitlement undefined.",
-        },
-    }
-    first = {
-        "id": source_id,
-        "kind": "student_email",
-        "occurred_at": "2027-02-07T10:00:00+11:00",
-        "body": (
-            "I will miss my class on 8 February 2027. "
-            "Could I make it up on Thursday 11 February 2027?"
-        ),
-    }
-    followup = {
-        **first,
-        "id": str(uuid4()),
-        "occurred_at": "2027-02-07T11:00:00+11:00",
-        "body": "Actually, Saturday 13 February 2027 instead.",
-    }
-    missing = {**first, "id": str(uuid4()), "body": "Could I do a makeup?"}
-    model = OpenAIModel()
-    results = []
-    try:
-        for name, source, history, expected in [
-            ("explicit_dates", first, [first], "2027-02-11"),
-            ("consecutive_correction", followup, [first, followup], "2027-02-13"),
-            ("missing_details", missing, [missing], None),
-        ]:
-            case_context = {**context, "source": source, "history": history}
-            routing = model.route(case_context)
-            if select_flow(routing) != "makeup":
-                results.append({"case": name, "passed": False, "routing": routing.model_dump()})
-                continue
-            result = model.interpret_makeup({**case_context, "routing": routing.model_dump()})
-            passed = result.preferred_date == expected if expected else bool(result.missing_details)
-            results.append(
-                {
-                    "case": name,
-                    "passed": passed,
-                    "routing": routing.model_dump(),
-                    "interpretation": result.model_dump(),
-                }
-            )
-    finally:
-        model.client.close()
-    print(
-        json.dumps(
-            {
-                "model": model.model,
-                "passed": sum(r["passed"] for r in results),
-                "total": len(results),
-                "results": results,
-            },
-            indent=2,
-        )
+def positive_int(value: str) -> int:
+    number = int(value)
+    if number < 1:
+        raise argparse.ArgumentTypeError("Must be at least 1.")
+    return number
+
+
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--list", action="store_true", help="List scenarios without DB or model calls."
     )
-    if not all(r["passed"] for r in results):
-        raise SystemExit(1)
+    parser.add_argument("--live", action="store_true", help="Run paid calls to OPENAI_MODEL.")
+    parser.add_argument(
+        "--case", action="append", default=[], help="Select a scenario ID; repeatable."
+    )
+    parser.add_argument(
+        "--repeat", type=positive_int, default=1, help="Independent runs per scenario."
+    )
+    parser.add_argument(
+        "--max-calls-per-case",
+        type=positive_int,
+        default=24,
+        help="Adapter request budget per scenario, excluding bounded SDK retries.",
+    )
+    parser.add_argument(
+        "--output", type=Path, help="JSON report path; default: evaluations/results/."
+    )
+    args = parser.parse_args(argv)
+    scenarios = load_scenarios()
+    unknown = set(args.case) - {s.id for s in scenarios}
+    if unknown:
+        parser.error("Unknown scenario IDs: " + ", ".join(sorted(unknown)))
+    selected = [s for s in scenarios if not args.case or s.id in args.case]
+    if args.list:
+        for scenario in selected:
+            print(f"{scenario.id}: {scenario.description}")
+        return 0
+    if not args.live:
+        parser.error("Use --list to inspect scenarios, or --live to run paid model evaluations.")
+    try:
+        url = validate_database_url(os.environ.get("TEST_DATABASE_URL"))
+    except ValueError:
+        parser.error(
+            "Set TEST_DATABASE_URL using postgresql+psycopg, a _test database, and no URL options."
+        )
+    if not os.environ.get("OPENAI_API_KEY") or not os.environ.get("OPENAI_MODEL"):
+        parser.error("Set OPENAI_API_KEY and OPENAI_MODEL before running live evaluations.")
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
+    output = args.output or Path(__file__).with_name("results") / f"{stamp}.json"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    dataset_hash = hashlib.sha256(DATASET.read_bytes() + CATALOG.read_bytes()).hexdigest()
+    results = []
+    for repeat in range(1, args.repeat + 1):
+        for scenario in selected:
+            model = None
+            try:
+                # Migrate the isolated schema before constructing a model client.
+                with isolated_database(url) as engine:
+                    model = MeasuredModel(args.max_calls_per_case)
+                    result = run_scenario(engine, scenario, model)
+            except Exception as error:
+                result = {
+                    "case": scenario.id,
+                    "passed": False,
+                    "checks": [],
+                    "error_type": type(error).__name__,
+                    "human_review": "pending",
+                }
+            finally:
+                if model is not None:
+                    model.client.close()
+            result["repeat"] = repeat
+            results.append(result)
+            report = build_report(results, os.environ["OPENAI_MODEL"], dataset_hash)
+            output.write_text(json.dumps(report, indent=2, default=str) + "\n")
+            failed = [c["name"] for c in result["checks"] if not c["passed"]]
+            status = "PASS" if result["passed"] else "FAIL"
+            detail = ", ".join(failed) or result.get("error_type", "")
+            print(f"{status} {scenario.id} (repeat {repeat}) {detail}", flush=True)
+    print(f"{report['passed']}/{report['total']} automated passes. Human draft review pending.")
+    print(f"Report: {output.resolve()}")
+    return 0 if report["passed"] == report["total"] else 1
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
