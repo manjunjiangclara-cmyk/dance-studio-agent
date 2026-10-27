@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from evaluations.cases import EmailStep, Scenario, load_scenarios, render
+from evaluations.cases import POLICY, EmailStep, Scenario, load_scenarios, render
 from evaluations.grading import compare_output, grade_run
 
 
@@ -141,3 +141,15 @@ def test_uncertainty_and_numeric_claims(body, uncertain, no_amount):
     results = {item["name"]: item["passed"] for item in checks}
     assert results["draft_mentions_uncertainty"] is uncertain
     assert results["draft_has_no_numeric_amount"] is no_amount
+
+
+def test_uncertainty_scenario_uses_refund_free_synthetic_policy():
+    from studio_copilot.agent.policy import load_policy
+
+    scenario = next(
+        s for s in load_scenarios() if s.id == "unknown_refund_policy_admits_uncertainty"
+    )
+    policy = load_policy(POLICY)
+    assert "refund" not in str(policy).casefold()
+    assert scenario.steps[0].checks.uncertainty_phrases
+    assert scenario.steps[0].checks.forbid_numeric_amounts

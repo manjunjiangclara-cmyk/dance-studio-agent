@@ -10,6 +10,7 @@ from studio_copilot.agent.contracts import Intent
 
 DATASET = Path(__file__).with_name("scenarios.json")
 CATALOG = Path(__file__).with_name("catalog.json")
+POLICY = Path(__file__).with_name("policy.yaml")
 ClassKey = Literal["monday_level_2", "thursday_level_2", "saturday_level_2"]
 SessionKey = Literal["absence", "thursday", "saturday"]
 

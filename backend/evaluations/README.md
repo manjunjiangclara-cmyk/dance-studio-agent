@@ -104,7 +104,7 @@ expanded, so JSON braces in email text remain literal. This initial dataset does
 evaluate ambiguous relative-date language.
 
 Reports are saved incrementally under ignored `evaluations/results/`. They contain
-the configured model, a hash of scenarios plus catalog, resolved inputs and expected
+the configured model, a hash of scenarios, catalog, and the synthetic evaluation policy, resolved inputs and expected
 outputs, actual runs/drafts/evidence, named comparisons, final memory/database state,
 latency, and available token usage. Provider/database exception messages and
 credentials are omitted. The process exits nonzero when any automated case fails.
@@ -132,3 +132,7 @@ PostgreSQL tests skip without `TEST_DATABASE_URL`; a skip is not a passing DB ch
 The unknown refund policy scenario checks for an explicit uncertainty phrase and flags
 common numeric currency and percentage claims. These narrow string checks cannot catch
 every unsupported claim, so inspect the entire response against the human rubric.
+
+The runner uses `evaluations/policy.yaml`, a fixed synthetic policy independent of
+the editable studio policy. The policy is part of the dataset fingerprint so changes
+to it are visible when comparing reports.

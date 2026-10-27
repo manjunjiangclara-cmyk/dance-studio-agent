@@ -18,8 +18,8 @@ from studio_copilot.persistence.models import (
     Student,
 )
 
-from .cases import Scenario, render
-from .fixtures import BACKEND, CANARY, seed_studio
+from .cases import POLICY, Scenario, render
+from .fixtures import CANARY, seed_studio
 from .grading import grade_run
 from .model import MeasuredModel
 
@@ -71,7 +71,7 @@ def run_scenario(engine, scenario: Scenario, model) -> dict:
         fixture = seed_studio(engine, scenario.setup)
         result["fixture"] = fixture
         before = database_snapshot(engine)
-        service = AgentService(engine, model, policy_path=BACKEND / "policies/studio.yaml")
+        service = AgentService(engine, model, policy_path=POLICY)
         app = create_app(engine, admin_token="synthetic-eval-token", agent_service=service)
         with TestClient(app, headers={"Authorization": "Bearer synthetic-eval-token"}) as client:
             previous = None
