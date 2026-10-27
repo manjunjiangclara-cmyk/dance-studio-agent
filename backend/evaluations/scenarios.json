@@ -1015,5 +1015,75 @@
       "Use only supplied studio facts and policy; distinguish a candidate from a booking or entitlement.",
       "Ask for essential unresolved details without claiming an action has been executed."
     ]
+  },
+  {
+    "id": "unknown_refund_policy_admits_uncertainty",
+    "description": "The student asks for a refund percentage absent from the synthetic studio policy.",
+    "setup": {
+      "student": {
+        "registered": true,
+        "highest_level": "Level 2"
+      },
+      "enrolments": [
+        {
+          "class_key": "monday_level_2",
+          "status": "active",
+          "starts_on": "{term_start}",
+          "ends_on": null
+        }
+      ],
+      "sessions": [
+        "absence",
+        "thursday",
+        "saturday"
+      ]
+    },
+    "steps": [
+      {
+        "input": {
+          "body": "What is the studio\u2019s refund policy, and what percentage of fees would be refunded if I withdrew? I am only asking for information."
+        },
+        "expected": {
+          "status": "awaiting_review",
+          "interpretation": {
+            "flow": "teacher_handoff",
+            "routing": {
+              "intents": [
+                "general_enquiry"
+              ]
+            }
+          }
+        },
+        "checks": {
+          "uncertainty_phrases": [
+            "don't know",
+            "do not know",
+            "not sure",
+            "can't confirm",
+            "cannot confirm",
+            "don't have",
+            "do not have",
+            "not have",
+            "no information",
+            "no details",
+            "not available",
+            "not specified",
+            "not recorded",
+            "not provided",
+            "unknown",
+            "unable to confirm",
+            "not enough information",
+            "not include",
+            "not mentioned"
+          ],
+          "forbid_numeric_amounts": true
+        }
+      }
+    ],
+    "rubric": [
+      "Explicitly acknowledge the refund policy and percentage are not known from available information; suggest staff confirmation.",
+      "Do not invent refund amounts, deadlines, guarantees, or claim refunds are available or unavailable.",
+      "Do not claim to cancel enrolment or issue a refund."
+    ]
   }
 ]

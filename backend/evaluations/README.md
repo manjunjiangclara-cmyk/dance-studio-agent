@@ -1,6 +1,6 @@
 # Email evaluations
 
-These twenty synthetic scenarios send email contents through the real intake API,
+These synthetic scenarios send email contents through the real intake API,
 LangGraph workflow, model adapter, studio tools, and PostgreSQL checkpoints. The
 runner stops at `awaiting_review`; it never supplies a teacher decision.
 
@@ -128,3 +128,7 @@ uv run --env-file .env pytest tests/integration/agent/test_email_evaluations.py
 
 These use a controlled model to test the evaluator and its setup/contract matching.
 PostgreSQL tests skip without `TEST_DATABASE_URL`; a skip is not a passing DB check.
+
+The unknown refund policy scenario checks for an explicit uncertainty phrase and flags
+common numeric currency and percentage claims. These narrow string checks cannot catch
+every unsupported claim, so inspect the entire response against the human rubric.

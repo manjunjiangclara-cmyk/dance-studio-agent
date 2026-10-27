@@ -114,3 +114,30 @@ def test_dataset_declares_setup_and_review_boundary_for_every_email():
     assert any(not s.setup.student.registered for s in scenarios)
     assert any(e.status == "cancelled" for s in scenarios for e in s.setup.enrolments)
     assert all(step.expected.status == "awaiting_review" for s in scenarios for step in s.steps)
+
+
+@pytest.mark.parametrize(
+    ("body", "uncertain", "no_amount"),
+    [
+        ("I don't know the policy; staff can check.", True, True),
+        ("The refund is 50%.", False, False),
+        ("I can't confirm, but the refund is 50 percent.", True, False),
+        ("I don't know, but you get $20 back.", True, False),
+        ("I don't know, but you get AUD 20 back.", True, False),
+        ("The refund policy is unknown.", True, True),
+    ],
+)
+def test_uncertainty_and_numeric_claims(body, uncertain, no_amount):
+    run = valid_run()
+    run["draft_details"]["body"] = body
+    checks = grade_run(
+        run,
+        step(
+            uncertainty_phrases=["don't know", "can't confirm", "unknown"],
+            forbid_numeric_amounts=True,
+        ),
+        {"dates": {}},
+    )
+    results = {item["name"]: item["passed"] for item in checks}
+    assert results["draft_mentions_uncertainty"] is uncertain
+    assert results["draft_has_no_numeric_amount"] is no_amount

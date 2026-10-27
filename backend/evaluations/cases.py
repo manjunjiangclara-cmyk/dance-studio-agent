@@ -89,6 +89,8 @@ class Checks(Strict):
     ] = []
     clarification_required: bool = False
     forbidden_draft_text: list[str] = []
+    uncertainty_phrases: list[str] = []
+    forbid_numeric_amounts: bool = False
     notice_before_start: bool | None = None
 
 
