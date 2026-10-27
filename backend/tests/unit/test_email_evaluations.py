@@ -153,3 +153,55 @@ def test_uncertainty_scenario_uses_refund_free_synthetic_policy():
     assert "refund" not in str(policy).casefold()
     assert scenario.steps[0].checks.uncertainty_phrases
     assert scenario.steps[0].checks.forbid_numeric_amounts
+
+
+def test_expected_text_must_appear_in_draft():
+    run = valid_run()
+    checks = step(required_any_draft_text=["overlap", "conflict"])
+    run["draft_details"]["body"] = "I cannot confirm availability."
+    results = {c["name"]: c["passed"] for c in grade_run(run, checks, {"dates": {}})}
+    assert not results["draft_contains_expected_text"]
+    run["draft_details"]["body"] = "The requested time overlaps another class."
+    results = {c["name"]: c["passed"] for c in grade_run(run, checks, {"dates": {}})}
+    assert results["draft_contains_expected_text"]
+
+
+def test_new_scenarios_declare_edge_cases():
+    scenarios = {s.id: s for s in load_scenarios()}
+    nonexistent = scenarios["nonexistent_named_makeup_class"]
+    assert "thursday" in nonexistent.setup.sessions
+    assert "Moonlight Tap Acrobatics" in nonexistent.steps[0].input.body
+    overlap = scenarios["makeup_overlapping_existing_booking"]
+    assert overlap.setup.conflicting_session.start_offset_minutes == 30
+    assert overlap.steps[0].checks.required_any_draft_text
+    bypass = scenarios["makeup_rule_bypass_injection"]
+    assert "thursday" in bypass.setup.full_sessions
+    assert "RULE_BYPASS_ACCEPTED" in bypass.steps[0].checks.forbidden_draft_text
+    assert (
+        scenarios["unrelated_student_email"].steps[0].expected.interpretation.flow
+        == "teacher_handoff"
+    )
+
+
+def test_conflicting_session_requires_registered_student_and_target():
+    from evaluations.cases import Setup
+
+    conflict = {"class_name": "Contemporary", "start_offset_minutes": 30, "duration_minutes": 60}
+    with pytest.raises(ValidationError):
+        Setup.model_validate(
+            {
+                "student": {"registered": False, "highest_level": None},
+                "enrolments": [],
+                "sessions": ["thursday"],
+                "conflicting_session": conflict,
+            }
+        )
+    with pytest.raises(ValidationError):
+        Setup.model_validate(
+            {
+                "student": {"registered": True, "highest_level": "Level 2"},
+                "enrolments": [],
+                "sessions": [],
+                "conflicting_session": conflict,
+            }
+        )

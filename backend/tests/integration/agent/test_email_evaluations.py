@@ -162,3 +162,22 @@ def test_approve_twice_is_an_api_idempotency_test_not_an_email_scenario(rig, sce
         responses = list(db.scalars(select(Message).where(Message.kind == "teacher_response")))
         assert len(responses) == 1
         assert responses[0].body == payload["body"]
+
+
+def test_conflicting_session_fixture_has_real_partial_overlap(db_engine):
+    from datetime import timedelta
+
+    from evaluations.cases import load_scenarios
+    from studio_copilot.persistence.models import ClassSession
+
+    scenario = next(s for s in load_scenarios() if s.id == "makeup_overlapping_existing_booking")
+    fixture = seed_studio(db_engine, scenario.setup)
+    with Session(db_engine) as db:
+        student_id = UUID(fixture["student_id"])
+        target = db.get(ClassSession, UUID(fixture["sessions"]["thursday"]))
+        conflicting = db.get(ClassSession, UUID(fixture["sessions"]["conflicting_session"]))
+        assert target.id != conflicting.id
+        assert conflicting.starts_at == target.starts_at + timedelta(minutes=30)
+        assert target.starts_at < conflicting.ends_at and conflicting.starts_at < target.ends_at
+        assert student_id not in {student.id for student in target.students}
+        assert student_id in {student.id for student in conflicting.students}

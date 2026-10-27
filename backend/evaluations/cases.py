@@ -37,12 +37,19 @@ class EnrolmentSetup(Strict):
         return self
 
 
+class ConflictingSession(Strict):
+    class_name: str = Field(min_length=1, max_length=200)
+    start_offset_minutes: int = Field(ge=-180, le=180)
+    duration_minutes: int = Field(gt=0, le=240)
+
+
 class Setup(Strict):
     student: StudentSetup
     enrolments: list[EnrolmentSetup]
     sessions: list[SessionKey]
     full_sessions: list[SessionKey] = []
     absence_in_past: bool = False
+    conflicting_session: ConflictingSession | None = None
 
     @model_validator(mode="after")
     def validate_references(self):
@@ -52,6 +59,12 @@ class Setup(Strict):
             raise ValueError("An unregistered sender cannot have existing enrolments.")
         if len(set(self.sessions)) != len(self.sessions):
             raise ValueError("Session keys must be unique.")
+        if self.conflicting_session is not None and (
+            not self.student.registered or "thursday" not in self.sessions
+        ):
+            raise ValueError(
+                "A conflicting session requires a registered student and Thursday session."
+            )
         if not set(self.full_sessions) <= set(self.sessions):
             raise ValueError("Full sessions must be present in sessions.")
         return self
@@ -64,7 +77,7 @@ class ExpectedRouting(Strict):
 
 class ExpectedInterpretation(Strict):
     flow: Literal["makeup", "teacher_handoff"]
-    routing: ExpectedRouting
+    routing: ExpectedRouting | None = None
     absence_date: str | None = None
     preferred_date: str | None = None
     preferred_weekday: str | None = None
@@ -90,6 +103,7 @@ class Checks(Strict):
     ] = []
     clarification_required: bool = False
     forbidden_draft_text: list[str] = []
+    required_any_draft_text: list[str] = []
     uncertainty_phrases: list[str] = []
     forbid_numeric_amounts: bool = False
     notice_before_start: bool | None = None

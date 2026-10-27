@@ -4,7 +4,7 @@ import json
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
-from uuid import uuid4
+from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
 from alembic import command
@@ -150,6 +150,32 @@ def seed_studio(engine, setup: Setup) -> dict:
                         status="active",
                     )
                 )
+        if setup.conflicting_session is not None:
+            spec = setup.conflicting_session
+            conflict_class = StudioClass(
+                name=spec.class_name, level="Level 2", term=term, location=location
+            )
+            db.add(conflict_class)
+            db.flush()
+            target = db.get(ClassSession, UUID(sessions["thursday"]))
+            start = target.starts_at + timedelta(minutes=spec.start_offset_minutes)
+            conflict_session = ClassSession(
+                regular_class=conflict_class,
+                starts_at=start,
+                ends_at=start + timedelta(minutes=spec.duration_minutes),
+                capacity=2,
+            )
+            db.add(conflict_session)
+            db.add(
+                Enrolment(
+                    student=student,
+                    regular_class=conflict_class,
+                    starts_on=term.starts_on,
+                    status="active",
+                )
+            )
+            db.flush()
+            sessions["conflicting_session"] = str(conflict_session.id)
         return {
             "reference_at": now.isoformat(),
             "dates": dates,

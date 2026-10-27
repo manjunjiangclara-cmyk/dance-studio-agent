@@ -10,12 +10,16 @@ runner stops at `awaiting_review`; it never supplies a teacher decision.
 
 - **`setup`** declares whether the sender already exists, their level, explicit
   enrolment records, available dated sessions, full sessions, and notice timing.
+  The overlap case also adds a separate enrolled class on Thursday, with its start
+  offset relative to the requested 6 pm session.
 - **`steps[].input`** contains the incoming email body. The runner generates a unique
   synthetic sender address per fixture to avoid database-wide sender-lock collisions.
 - **`steps[].expected`** mirrors selected fields of the actual agent API output:
   `status`, `interpretation` (including routing), and optionally `draft_details`.
 - **`steps[].checks`** declares factual assertions such as successful evidence tools,
   clarification, notice timing, and ignoring an injected marker in the draft.
+  `required_any_draft_text` checks for one of several expected phrases; it is a
+  lexical signal, so the full response still needs human review.
 - **`rubric`** contains criteria for human assessment of the drafts. It is not scored
   automatically; every report keeps human review pending.
 
