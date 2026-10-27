@@ -1,6 +1,6 @@
 # Makeup enquiry: implemented agent workflow
 
-The local backend now runs one LangGraph graph with the OpenAI Responses API. It accepts stored synthetic emails for known students; teachers review drafts through the staff API. It has no booking or email delivery tools.
+The local backend now runs one LangGraph graph with the OpenAI Responses API. It accepts stored synthetic emails for known students; teachers review drafts through the staff API. Its query tools are read-only; a verified proposal can be booked only on teacher approval. It has no email delivery tool.
 
 ```mermaid
 flowchart TD
@@ -9,11 +9,11 @@ flowchart TD
     R -->|Other or unclear request| X[General summary for teacher handoff]
     B --> C[Save student-stated memory]
     X --> C
-    C --> D[Bounded query loop; skipped for handoff]
+    C --> D[Verify makeup evidence or gather read-only handoff facts]
     D --> E[Draft response and supporting evidence]
     E --> F[Pause for teacher review]
     F -->|Feedback| D
-    F -->|Approve with optional edits| G[Store final teacher response]
+    F -->|Approve with optional edits| G[Recheck and book proposal; store response]
     G --> H[Reconcile and save teacher-reviewed memory]
     F -->|Reject| I[Close run and remove graph checkpoints]
 ```
@@ -24,7 +24,7 @@ A separate structured `Routing` model identifies current intents before extracti
 
 Supported labels are `makeup`, `absence`, `enrolment`, `cancellation`, `new_student_enquiry`, `general_enquiry`, and `unknown`. Only makeup (optionally combined with its absence) has an implemented detailed flow. Python selects that branch only when the intents are clear and all belong to that combination. Independent mixed requests, unsupported flows, and ambiguous cancellation requests go to teacher handoff rather than silently dropping part of the request.
 
-`MakeupInterpretation` contains makeup-specific dates and location preferences. `RequestInterpretation` contains the common summary/memory fields; future flows can define their own detail models. The handoff path uses a general summary, skips makeup interpretation and tools, and prepares an acknowledgement or clarification draft for teacher handling. Memory and approval remain shared. A routing-model failure also creates a neutral handoff.
+`MakeupInterpretation` contains makeup-specific dates and location preferences. `RequestInterpretation` contains the common summary/memory fields; future flows can define their own detail models. The handoff path uses a general summary, skips makeup interpretation, and may use bounded read-only tools to answer or clarify the enquiry. Memory and approval remain shared. A routing-model failure also creates a neutral handoff.
 
 Routing is visible in `AgentRun.interpretation.routing`, with the selected branch in `interpretation.flow`. Adding a later flow requires its detail model, interpreter, tools and graph branch; identifying a label does not implement that workflow. New-student intake still requires a stored student and conversation in this version.
 
@@ -36,11 +36,11 @@ The second update happens after approval. The final edited teacher response is s
 
 `Student.ai_summary` is a readable rendering of source-linked structured memory in `context._agent_memory`. Student statements and teacher-reviewed information are labelled separately. Other context keys survive automatic updates. Staff PATCH of the whole context still replaces it; clients should preserve `_agent_memory` unless deliberately correcting it. Memory cannot change highest level or enrolments.
 
-Teacher-approved response content is not evidence of sending, student acceptance, or a completed booking. No send operation exists. Rejection stores no reason, rejection event, or conversation message; the run becomes neutrally `closed`, its draft remains as an unsent draft, and its checkpoints are deleted. Student-stated memory remains.
+Teacher approval stores the final response and atomically books a validated session when the draft includes a proposal. It does not send the response or establish student acceptance. No send operation exists. Rejection stores no reason, rejection event, or conversation message; the run becomes neutrally `closed`, its draft remains as an unsent draft, and its checkpoints are deleted. Student-stated memory remains.
 
 ## Bounds and policies
 
-Each drafting attempt permits four model/tool rounds, with at most three tool executions per round. Identical calls after argument normalization are blocked. Missing essential details, empty results, invalid calls, query failures, and exhausted limits stop gathering. Drafting then shows uncertainty or asks for clarification; if drafting itself fails, a conservative clarification template is used. Only explicit teacher feedback starts another attempt.
+For non-makeup handoffs, each drafting attempt permits four model/tool rounds, with at most three tool executions per round. Makeup verification and candidate checks run in a fixed sequence. Identical calls after argument normalization are blocked. Missing essential details, empty results, invalid calls, query failures, and exhausted limits stop gathering. Drafting then shows uncertainty or asks for clarification; if drafting itself fails, a conservative clarification template is used. Only explicit teacher feedback starts another attempt.
 
 Tools read the current student's enrolments, timetable sessions, locations, and notice timing. They cannot query another student's messages or accept a replacement student ID. Session candidates are not guaranteed makeup seats or placement approval. Database tool queries have a five-second statement timeout. OpenAI requests have a 20-second SDK timeout and one transient-error retry.
 
@@ -63,3 +63,9 @@ feedback, history and tool results. The mapping stays local and restores model o
 review. This targets known student identity and email addresses; it does not detect every possible
 identifier, such as phone numbers, postal addresses or unknown third-party names. Provider-generated
 encrypted reasoning tokens remain unchanged for replay; their readable summaries are redacted.
+
+## Attendance and makeup safety
+
+The dated roster identifies who is assigned, not who actually attended. Staff record attendance separately; unknown attendance for a completed missed session requires review. The model identifies the claimed absence and any specifically named replacement class; code verifies the matched session, enrolment, notice provenance, and attendance. When the configured policy requires notice before the session, late notice is escalated to the teacher without a booking proposal. Candidates are filtered by configured level order, the student's highest recorded attended level, membership, overlap, capacity, and any explicitly extracted class name. Named-class extraction remains a model interpretation, so teachers must review the evidence and draft.
+
+A proposed booking is rechecked in the approval transaction, including attendance, level, roster, overlap, capacity, and session details. Availability is not reserved before approval. A question asking for options does not itself create a proposal.

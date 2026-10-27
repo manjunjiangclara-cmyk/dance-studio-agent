@@ -15,6 +15,7 @@ from studio_copilot.persistence.models import (
     ClassSession,
     Enrolment,
     Message,
+    SessionAttendance,
     Student,
 )
 
@@ -28,7 +29,7 @@ def database_snapshot(engine) -> dict:
     with Session(engine) as db:
         return {
             "rosters": {
-                str(s.id): sorted(str(student.id) for student in s.students)
+                str(s.id): sorted(str(student) for student in s.students)
                 for s in db.scalars(select(ClassSession))
             },
             "enrolments": sorted(
@@ -41,6 +42,10 @@ def database_snapshot(engine) -> dict:
                     e.status,
                 )
                 for e in db.scalars(select(Enrolment))
+            ),
+            "attendance": sorted(
+                (str(row.session_id), str(row.student_id), row.status, row.level_at_attendance)
+                for row in db.scalars(select(SessionAttendance))
             ),
             "responses": {
                 str(m.id): m.body

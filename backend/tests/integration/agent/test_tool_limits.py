@@ -2,6 +2,7 @@ import pytest
 
 from studio_copilot.agent.contracts import (
     ModelError,
+    Routing,
     ToolCall,
     ToolTurn,
 )
@@ -16,6 +17,12 @@ pytestmark = pytest.mark.integration
 )
 def test_information_gathering_always_terminates(rig, scenario, mode):
     client, model, _, _ = rig
+    model.routing = Routing(
+        intents=["general_enquiry"],
+        request_summary="Timetable enquiry",
+        needs_clarification=False,
+        reason="Optional read-only tools",
+    )
     if mode == "missing":
         model.missing = ["Which class date?"]
     elif mode == "duplicate":
@@ -52,7 +59,8 @@ def test_information_gathering_always_terminates(rig, scenario, mode):
     assert len(run["evidence"]) <= 12
     assert run["draft_details"]["warnings"]
     if mode == "missing":
-        assert model.query_count == 0
+        assert model.query_count == 2
+        assert run["evidence"][0]["tool"] == "get_enrolments"
     if mode == "duplicate":
         assert len(run["evidence"]) == 1
     if mode == "excess":

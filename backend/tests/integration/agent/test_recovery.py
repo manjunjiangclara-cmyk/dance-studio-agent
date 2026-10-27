@@ -97,6 +97,15 @@ def test_missing_checkpoint_setup_is_recoverable(db_engine, scenario):
 def test_database_tool_failure_produces_a_draft_instead_of_looping(rig, scenario, monkeypatch):
     from sqlalchemy.exc import SQLAlchemyError
 
+    from studio_copilot.agent.contracts import Routing
+
+    rig[1].routing = Routing(
+        intents=["general_enquiry"],
+        request_summary="Timetable enquiry",
+        needs_clarification=False,
+        reason="Optional tools",
+    )
+
     def unavailable(*args, **kwargs):
         raise SQLAlchemyError("synthetic database failure")
 

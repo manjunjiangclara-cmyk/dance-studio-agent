@@ -49,12 +49,15 @@ class Setup(Strict):
     sessions: list[SessionKey]
     full_sessions: list[SessionKey] = []
     absence_in_past: bool = False
+    attended_level: str | None = Field(default=None, min_length=1, max_length=100)
     conflicting_session: ConflictingSession | None = None
 
     @model_validator(mode="after")
     def validate_references(self):
         if not self.student.registered and self.student.highest_level is not None:
             raise ValueError("An unregistered sender cannot have a pre-existing level.")
+        if not self.student.registered and self.attended_level is not None:
+            raise ValueError("An unregistered sender cannot have recorded attendance.")
         if not self.student.registered and self.enrolments:
             raise ValueError("An unregistered sender cannot have existing enrolments.")
         if len(set(self.sessions)) != len(self.sessions):

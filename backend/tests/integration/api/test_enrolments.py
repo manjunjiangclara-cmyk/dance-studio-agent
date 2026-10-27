@@ -5,7 +5,7 @@ from .helpers import post
 pytestmark = pytest.mark.integration
 
 
-def test_class_change_preserves_history_and_updates_rosters(client, records):
+def test_class_change_preserves_history_and_independent_rosters(client, records):
     r = records
     changed = client.post(
         f"/api/v1/enrolments/{r['enrolment']['id']}/change",
@@ -24,32 +24,24 @@ def test_class_change_preserves_history_and_updates_rosters(client, records):
         assert profile["as_of"] == day
     for key in ["source_session", "target_session"]:
         roster = client.get(f"/api/v1/sessions/{r[key]['id']}/students").json()
-        assert roster["items"][0]["id"] == r["student"]["id"]
+        assert roster["items"] == []
     history = client.get(
         "/api/v1/enrolments", params={"student_id": r["student"]["id"], "status": "ended"}
     ).json()
     assert history["total"] == 1
 
 
-def test_failed_transfer_rolls_back_old_period_and_new_registration(client, records):
+def test_transfer_into_class_with_full_session_keeps_session_membership(client, records):
     r = records
     second = post(client, "/students", {"display_name": "Sam", "email": "sam@example.com"})
-    post(
-        client,
-        "/enrolments",
-        {"student_id": second["id"], "class_id": r["target"]["id"], "starts_on": "2027-02-01"},
-    )
+    session_url = f"/api/v1/sessions/{r['target_session']['id']}"
+    assert client.patch(session_url, json={"students": [second["id"]]}).status_code == 200
     response = client.post(
         f"/api/v1/enrolments/{r['enrolment']['id']}/change",
         json={"new_class_id": r["target"]["id"], "effective_on": "2027-02-10"},
     )
-    assert response.status_code == 409
-    old = client.get(f"/api/v1/enrolments/{r['enrolment']['id']}").json()
-    assert old["status"] == "active" and old["ends_on"] is None
-    assert (
-        client.get("/api/v1/enrolments", params={"student_id": r["student"]["id"]}).json()["total"]
-        == 1
-    )
+    assert response.status_code == 200, response.text
+    assert client.get(session_url).json()["students"] == [second["id"]]
 
 
 def test_enrolment_end_is_inclusive_and_repeatable(client, records):
@@ -84,42 +76,42 @@ def test_rejoining_cannot_overlap_a_previous_attendance_period(client, records):
     assert client.get("/api/v1/enrolments").json()["total"] == 2
 
 
-def test_cancellation_retains_record_and_removes_regular_membership(client, records):
+def test_cancellation_retains_record_and_session_membership(client, records):
+    session_url = f"/api/v1/sessions/{records['source_session']['id']}"
+    assert (
+        client.patch(session_url, json={"students": [records["student"]["id"]]}).status_code == 200
+    )
     url = f"/api/v1/enrolments/{records['enrolment']['id']}/cancel"
     assert client.post(url).json()["status"] == "cancelled"
     assert client.post(url).status_code == 200
     assert (
         client.get(f"/api/v1/sessions/{records['source_session']['id']}/students").json()["total"]
-        == 0
+        == 1
     )
     assert client.get("/api/v1/enrolments").json()["total"] == 1
 
 
-def test_capacity_checks_enrolments_session_creation_and_capacity_reduction(client, records):
+def test_enrolments_and_new_sessions_have_independent_capacity(client, records):
     r = records
-    second = post(client, "/students", {"display_name": "Sam", "email": "sam@example.com"})
-    post(
-        client,
-        "/enrolments",
-        {"student_id": second["id"], "class_id": r["source"]["id"], "starts_on": "2027-02-01"},
-    )
-    third = post(client, "/students", {"display_name": "Pat", "email": "pat@example.com"})
-    response = client.post(
-        "/api/v1/enrolments",
-        json={"student_id": third["id"], "class_id": r["source"]["id"], "starts_on": "2027-02-01"},
-    )
-    assert response.status_code == 409
     url = f"/api/v1/sessions/{r['source_session']['id']}"
-    assert client.patch(url, json={"capacity": 1}).status_code == 409
-    assert client.get(url).json()["capacity"] == 2
-    response = client.post(
-        "/api/v1/sessions",
-        json={
+    assert client.patch(url, json={"students": [r["student"]["id"]]}).status_code == 200
+    for name in ["Sam", "Pat"]:
+        student = post(client, "/students", {"display_name": name, "email": f"{name}@example.com"})
+        post(
+            client,
+            "/enrolments",
+            {"student_id": student["id"], "class_id": r["source"]["id"], "starts_on": "2027-02-01"},
+        )
+    assert client.patch(url, json={"capacity": 1}).status_code == 200
+    assert client.get(url).json()["students"] == [r["student"]["id"]]
+    new_session = post(
+        client,
+        "/sessions",
+        {
             "class_id": r["source"]["id"],
             "starts_at": "2027-02-15T18:00:00+11:00",
             "ends_at": "2027-02-15T19:00:00+11:00",
             "capacity": 1,
         },
     )
-    assert response.status_code == 409
-    assert client.get("/api/v1/sessions").json()["total"] == 2
+    assert new_session["students"] == []

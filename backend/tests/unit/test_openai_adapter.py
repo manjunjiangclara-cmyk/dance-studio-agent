@@ -78,10 +78,17 @@ def test_sdk_parses_typed_interpretation_and_keeps_state_local():
         model.client.close()
 
 
-def test_sdk_native_tool_calls_preserve_reasoning_and_results():
+@pytest.mark.parametrize("reasoning_fields", [{}, {"status": None}])
+def test_sdk_native_tool_calls_preserve_reasoning_and_results(reasoning_fields):
     captured = []
     output = [
-        {"id": "rs_mock", "type": "reasoning", "summary": [], "encrypted_content": "opaque"},
+        {
+            "id": "rs_mock",
+            "type": "reasoning",
+            "summary": [],
+            "encrypted_content": "opaque",
+            **reasoning_fields,
+        },
         {
             "id": "fc_mock",
             "type": "function_call",
@@ -105,8 +112,22 @@ def test_sdk_native_tool_calls_preserve_reasoning_and_results():
             {"type": "function_call_output", "call_id": "call_mock", "output": "{}"},
         ]
         model.choose_tools({"source": "email"}, transcript)
-        assert captured[-1]["input"][1]["encrypted_content"] == "opaque"
-        assert captured[-1]["input"][-1]["call_id"] == "call_mock"
+        replayed = captured[-1]["input"][1:]
+        assert replayed[0] == {
+            "id": "rs_mock",
+            "type": "reasoning",
+            "summary": [],
+            "encrypted_content": "opaque",
+        }
+        assert replayed[1] == {
+            **output[1],
+            "arguments": json.dumps({"on_date": "2027-02-08"}),
+        }
+        assert replayed[2] == {
+            "type": "function_call_output",
+            "call_id": "call_mock",
+            "output": "{}",
+        }
     finally:
         model.client.close()
 
@@ -149,6 +170,7 @@ def test_sdk_errors_do_not_leak_provider_details(kind):
 def test_tool_schemas_are_strict_and_have_no_write_tools():
     definitions = tool_definitions()
     assert {tool["name"] for tool in definitions} == {
+        "get_timetable",
         "get_enrolments",
         "search_sessions",
         "get_locations",

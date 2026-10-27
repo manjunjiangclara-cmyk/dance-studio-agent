@@ -46,6 +46,10 @@ class FakeModel:
             preferred_date="2027-02-13" if saturday else "2027-02-11",
             preferred_weekday="Saturday" if saturday else "Thursday",
             location_preference=None,
+            absence_message_id=next(
+                (m["id"] for m in context["history"] if m["kind"] == "student_email"),
+                context["source"]["id"],
+            ),
             missing_details=self.missing,
             enduring_preferences=[],
         )

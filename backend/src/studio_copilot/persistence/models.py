@@ -1,8 +1,7 @@
 """Studio data, enrolment history, and conversation memory.
 
 Business rules and policy values do not belong in these models. Enrolment rows
-describe attendance periods; current enrolments and session rosters are views of
-that history, not additional stored copies.
+describe attendance periods. Each dated session owns an independent student list.
 """
 
 from __future__ import annotations
@@ -26,8 +25,8 @@ from sqlalchemy import (
     func,
     text,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
+from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, validates
 
 NAMING_CONVENTION = {
@@ -144,15 +143,28 @@ class ClassSession(Record, Base):
 
     regular_class: Mapped[StudioClass] = relationship(back_populates="sessions")
 
-    @property
-    def students(self) -> list[Student]:
-        """Regular roster only; absence/makeup participation is a later feature."""
-        on_date = self.starts_at.astimezone(ZoneInfo(self.regular_class.location.timezone)).date()
-        return [
-            record.student
-            for record in self.regular_class.enrolments
-            if record.is_active_on(on_date)
-        ]
+    students: Mapped[list[uuid.UUID]] = mapped_column(
+        MutableList.as_mutable(ARRAY(UUID(as_uuid=True))),
+        default=list,
+        server_default=text("'{}'::uuid[]"),
+    )
+
+
+class SessionAttendance(Record, Base):
+    """Staff-recorded participation; no row means attendance is unknown."""
+
+    __tablename__ = "session_attendance"
+    __table_args__ = (
+        UniqueConstraint("session_id", "student_id"),
+        CheckConstraint("status IN ('attended', 'absent')", name="valid_status"),
+        Index("ix_session_attendance_student_id", "student_id"),
+    )
+    session_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("class_sessions.id", ondelete="RESTRICT")
+    )
+    student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("students.id", ondelete="RESTRICT"))
+    status: Mapped[str] = mapped_column(String(20))
+    level_at_attendance: Mapped[str] = mapped_column(String(100))
 
 
 class Enrolment(Record, Base):
@@ -221,6 +233,7 @@ class Message(Record, Base):
         ForeignKey("conversations.id", ondelete="RESTRICT")
     )
     kind: Mapped[str] = mapped_column(String(30))
+    review_managed: Mapped[bool] = mapped_column(server_default="false", default=False)
     body: Mapped[str] = mapped_column(Text)
     occurred_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

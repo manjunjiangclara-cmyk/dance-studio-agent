@@ -1,1 +1,1 @@
-"""Ballet Studio AI Copilot."""
+"""Dance Studio AI Copilot."""

@@ -19,7 +19,8 @@
         "absence",
         "thursday",
         "saturday"
-      ]
+      ],
+      "attended_level": "Level 2"
     },
     "steps": [
       {
@@ -72,7 +73,8 @@
         "absence",
         "thursday",
         "saturday"
-      ]
+      ],
+      "attended_level": "Level 2"
     },
     "steps": [
       {
@@ -125,7 +127,8 @@
         "absence",
         "thursday",
         "saturday"
-      ]
+      ],
+      "attended_level": "Level 2"
     },
     "steps": [
       {
@@ -202,7 +205,8 @@
         "absence",
         "thursday",
         "saturday"
-      ]
+      ],
+      "attended_level": "Level 2"
     },
     "steps": [
       {
@@ -251,7 +255,8 @@
         "absence",
         "thursday",
         "saturday"
-      ]
+      ],
+      "attended_level": "Level 2"
     },
     "steps": [
       {
@@ -301,7 +306,8 @@
         "absence",
         "thursday",
         "saturday"
-      ]
+      ],
+      "attended_level": "Level 2"
     },
     "steps": [
       {
@@ -343,7 +349,8 @@
         "absence",
         "thursday",
         "saturday"
-      ]
+      ],
+      "attended_level": null
     },
     "steps": [
       {
@@ -389,7 +396,8 @@
         "absence",
         "thursday",
         "saturday"
-      ]
+      ],
+      "attended_level": "Level 2"
     },
     "steps": [
       {
@@ -435,7 +443,8 @@
         "absence",
         "thursday",
         "saturday"
-      ]
+      ],
+      "attended_level": "Level 2"
     },
     "steps": [
       {
@@ -481,7 +490,8 @@
         "absence",
         "thursday",
         "saturday"
-      ]
+      ],
+      "attended_level": "Level 2"
     },
     "steps": [
       {
@@ -527,7 +537,8 @@
         "absence",
         "thursday",
         "saturday"
-      ]
+      ],
+      "attended_level": "Level 2"
     },
     "steps": [
       {
@@ -573,7 +584,8 @@
       ],
       "sessions": [
         "absence"
-      ]
+      ],
+      "attended_level": "Level 2"
     },
     "steps": [
       {
@@ -618,7 +630,8 @@
         "absence",
         "thursday",
         "saturday"
-      ]
+      ],
+      "attended_level": "Level 2"
     },
     "steps": [
       {
@@ -671,7 +684,8 @@
         "thursday",
         "saturday"
       ],
-      "absence_in_past": true
+      "absence_in_past": true,
+      "attended_level": "Level 2"
     },
     "steps": [
       {
@@ -727,7 +741,8 @@
       ],
       "full_sessions": [
         "thursday"
-      ]
+      ],
+      "attended_level": "Level 2"
     },
     "steps": [
       {
@@ -779,7 +794,8 @@
         "absence",
         "thursday",
         "saturday"
-      ]
+      ],
+      "attended_level": "Level 2"
     },
     "steps": [
       {
@@ -832,7 +848,8 @@
         "absence",
         "thursday",
         "saturday"
-      ]
+      ],
+      "attended_level": "Level 2"
     },
     "steps": [
       {
@@ -885,7 +902,8 @@
         "absence",
         "thursday",
         "saturday"
-      ]
+      ],
+      "attended_level": "Level 2"
     },
     "steps": [
       {
@@ -934,7 +952,8 @@
         "absence",
         "thursday",
         "saturday"
-      ]
+      ],
+      "attended_level": "Level 2"
     },
     "steps": [
       {
@@ -986,7 +1005,8 @@
         "absence",
         "thursday",
         "saturday"
-      ]
+      ],
+      "attended_level": "Level 2"
     },
     "steps": [
       {
@@ -1036,7 +1056,8 @@
         "absence",
         "thursday",
         "saturday"
-      ]
+      ],
+      "attended_level": "Level 2"
     },
     "steps": [
       {
@@ -1114,7 +1135,8 @@
         "absence",
         "thursday",
         "saturday"
-      ]
+      ],
+      "attended_level": "Level 2"
     },
     "steps": [
       {
@@ -1190,7 +1212,8 @@
         "class_name": "Thursday Contemporary",
         "start_offset_minutes": 30,
         "duration_minutes": 60
-      }
+      },
+      "attended_level": "Level 2"
     },
     "steps": [
       {
@@ -1218,7 +1241,8 @@
             "clash",
             "same time",
             "already scheduled",
-            "already have a class"
+            "already have a class",
+            "another class at that time"
           ],
           "forbidden_draft_text": [
             "already list you in the requested session"
@@ -1271,7 +1295,8 @@
       ],
       "full_sessions": [
         "thursday"
-      ]
+      ],
+      "attended_level": "Level 2"
     },
     "steps": [
       {
@@ -1340,7 +1365,8 @@
         "absence",
         "thursday",
         "saturday"
-      ]
+      ],
+      "attended_level": "Level 2"
     },
     "steps": [
       {

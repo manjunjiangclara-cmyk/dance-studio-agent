@@ -6,7 +6,7 @@
 
 `Enrolment` is the history entity. Each row connects a student to a term-specific regular class with attendance start/end dates and status. The administration service changes classes by ending the old period and adding a new one atomically. The database does not implement an event ledger or prevent direct SQL edits to old rows. Term information comes through the class, so it is not duplicated on the enrolment or student.
 
-An enrolment can be `active`, `ended`, or `cancelled`. `ended` means attendance occurred through its inclusive end date; `cancelled` means the registration should not count as an attendance period. Historical roster queries include ended periods on the dates they covered. Enrolments cannot extend the current view beyond the class's term dates.
+An enrolment can be `active`, `ended`, or `cancelled`. `ended` means attendance occurred through its inclusive end date; `cancelled` means the registration should not count as an attendance period. Enrolment history includes ended periods on the dates they covered; it does not define session membership. Enrolments cannot extend the current view beyond the class's term dates.
 
 A student may take multiple regular classes. Only one active registration for the same student/class is allowed, but an ended period can be followed by a new registration in that class. The unique student/class/start-date constraint distinguishes periods.
 
@@ -43,7 +43,7 @@ erDiagram
 
 ## Session student list
 
-`ClassSession.students` exposes a list of regular students by checking the class enrolments against the session date in its location timezone. It does not store a second roster or generate regular `session_booking` rows. Absences and makeup participation will need session-specific records later; this property currently represents regular enrolment only, not final attendance or remaining capacity.
+`ClassSession.students` stores an independent list of student UUIDs for that dated session. Names are resolved from student profiles. Enrolments do not automatically add, remove, or change these assignments.
 
 ## Memory boundaries
 
@@ -53,8 +53,14 @@ Raw messages preserve the source discussion. Retrieve them by occurrence time, t
 
 ## Database responsibilities
 
-Foreign keys restrict deletion of referenced records. Database constraints cover date ordering, positive capacity, allowed status/kind values, context object type, and uniqueness. The administration service checks attendance-period boundaries, session times within terms, overlapping periods in the same class, and regular roster capacity for existing sessions. Placement, makeup entitlement, and travel rules remain undefined. Policies remain external resources; there are no policy or credit tables. The single initial migration includes agent runs, student summaries, and teacher responses. LangGraph checkpoint tables are separately provisioned and excluded from Alembic comparison.
+Foreign keys restrict deletion of referenced records. Database constraints cover date ordering, positive capacity, allowed status/kind values, context object type, and uniqueness. The administration service checks attendance-period boundaries, session times within terms, overlapping periods in the same class, and explicit session list capacity. Placement, makeup entitlement, and travel rules remain undefined. Policies remain external resources; there are no policy or credit tables. The initial migration includes agent runs, student summaries, and teacher responses; a subsequent migration adds persistent review management for generated draft revisions. LangGraph checkpoint tables are separately provisioned and excluded from Alembic comparison.
 
 SQLAlchemy owns model metadata; Alembic owns schema changes. Models never call `create_all` at application startup. The schema test checks a fresh installation's table names, revision, and model parity in an isolated test schema. Historical upgrade and downgrade compatibility is not required for this pre-data baseline.
 
 References: [SQLAlchemy relationships](https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html), [JSON mutation tracking](https://docs.sqlalchemy.org/en/20/orm/extensions/mutable.html), and [Alembic schema comparison](https://alembic.sqlalchemy.org/en/latest/autogenerate.html).
+
+## Approved session bookings
+
+`class_sessions.students` is the authoritative, independent list of student UUIDs for a dated session. The UI resolves IDs to names from student profiles. New sessions default to an empty list; staff may supply or replace the list explicitly. Enrolment changes do not change session students. Teacher approval appends the student and saves the response atomically, with duplicate and capacity checks. There is no separate booking entity.
+
+Migration `b7e2190c4a63` snapshots existing dated regular rosters and approved makeup participants into the session list, deduplicates them, then removes `session_bookings`. Approved runs retain their session proposal and reviewed response. Downgrading is unsupported because independent assignments cannot be represented by approval-only bookings without losing data.

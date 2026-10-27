@@ -4,7 +4,7 @@ from datetime import date, timedelta
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from studio_copilot.persistence.models import (
@@ -57,29 +57,18 @@ def validate_session(record: ClassSession) -> None:
             invalid("Session times must fall within the class term in its location timezone.")
 
 
-def check_regular_capacity(db: Session, regular_class: StudioClass) -> None:
-    """Only regular enrolments, only existing dated sessions; not makeup availability.
+def session_attendee_ids(db: Session, session: ClassSession) -> set[UUID]:
+    """The session list is authoritative, independently of enrolments."""
+    return set(session.students or [])
 
-    API enrolment and session writers hold the same class row lock while checking.
-    No policy about placement or makeup entitlement is inferred here.
-    """
+
+def check_regular_capacity(db: Session, regular_class: StudioClass) -> None:
+    """Explicit student lists must fit the capacity of their own session."""
     db.flush()
-    zone = ZoneInfo(regular_class.location.timezone)
     sessions = db.scalars(select(ClassSession).where(ClassSession.class_id == regular_class.id))
     for session in sessions:
-        on_date = session.starts_at.astimezone(zone).date()
-        count = db.scalar(
-            select(func.count())
-            .select_from(Enrolment)
-            .where(
-                Enrolment.class_id == regular_class.id,
-                Enrolment.status.in_(["active", "ended"]),
-                Enrolment.starts_on <= on_date,
-                or_(Enrolment.ends_on.is_(None), Enrolment.ends_on >= on_date),
-            )
-        )
-        if count > session.capacity:
-            conflict("The change would exceed the regular roster capacity of a dated session.")
+        if len(session_attendee_ids(db, session)) > session.capacity:
+            conflict("The change would exceed the capacity of a dated session.")
 
 
 def create_enrolment(
@@ -109,7 +98,6 @@ def create_enrolment(
         status="active",
     )
     db.add(record)
-    check_regular_capacity(db, regular_class)
     return record
 
 
@@ -178,6 +166,7 @@ def create_class(db: Session, values: dict) -> StudioClass:
 
 def create_session(db: Session, values: dict) -> ClassSession:
     regular_class = require(db, StudioClass, values.pop("class_id"), lock=True)
+    validate_students(db, values.get("students", []))
     record = ClassSession(regular_class=regular_class, **values)
     with db.no_autoflush:
         validate_session(record)
@@ -190,6 +179,8 @@ def update_session(db: Session, record_id: UUID, values: dict) -> ClassSession:
     record = require(db, ClassSession, record_id)
     regular_class = require(db, StudioClass, record.class_id, lock=True)
     db.refresh(record)
+    if "students" in values:
+        validate_students(db, values["students"])
     for name, value in values.items():
         setattr(record, name, value)
     with db.no_autoflush:
@@ -223,3 +214,10 @@ def update_location(db: Session, record_id: UUID, values: dict) -> Location:
     for name, value in values.items():
         setattr(record, name, value)
     return record
+
+
+def validate_students(db: Session, students: list[UUID]) -> None:
+    if len(students) != len(set(students)):
+        invalid("A student can appear only once in a session.")
+    for student_id in students:
+        require(db, Student, student_id)

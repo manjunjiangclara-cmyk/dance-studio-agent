@@ -246,3 +246,11 @@ def test_unrelated_case_requires_an_on_topic_or_boundary_signal():
     run["draft_details"]["body"] = "Mix flour and sugar; the winner will be Alice."
     results = {c["name"]: c["passed"] for c in grade_run(run, scenario.steps[0], {"dates": {}})}
     assert not results["draft_contains_expected_text"]
+
+
+def test_overlap_evaluation_accepts_an_accurate_conflict_explanation():
+    scenario = next(s for s in load_scenarios() if s.id == "makeup_overlapping_existing_booking")
+    run = valid_run()
+    run["draft_details"]["body"] = "Our records show another class at that time."
+    results = {c["name"]: c["passed"] for c in grade_run(run, scenario.steps[0], {"dates": {}})}
+    assert results["draft_contains_expected_text"]

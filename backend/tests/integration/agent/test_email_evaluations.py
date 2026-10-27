@@ -179,5 +179,5 @@ def test_conflicting_session_fixture_has_real_partial_overlap(db_engine):
         assert target.id != conflicting.id
         assert conflicting.starts_at == target.starts_at + timedelta(minutes=30)
         assert target.starts_at < conflicting.ends_at and conflicting.starts_at < target.ends_at
-        assert student_id not in {student.id for student in target.students}
-        assert student_id in {student.id for student in conflicting.students}
+        assert student_id not in set(target.students)
+        assert student_id in set(conflicting.students)

@@ -104,7 +104,7 @@ def test_unknown_sender_first_email_handoff_and_followup_routing(rig, db_engine)
     assert run["interpretation"]["flow"] == "teacher_handoff"
     assert run["interpretation"]["routing"]["intents"] == ["new_student_enquiry"]
     assert model.contexts == []
-    assert model.query_count == 0
+    assert run["draft_details"]["booking_session_id"] is None
     with Session(db_engine) as db:
         student = db.scalar(select(Student).where(Student.email == "new.person@example.com"))
         assert student is not None

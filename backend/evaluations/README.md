@@ -9,7 +9,8 @@ runner stops at `awaiting_review`; it never supplies a teacher decision.
 `scenarios.json` separates four concerns:
 
 - **`setup`** declares whether the sender already exists, their level, explicit
-  enrolment records, available dated sessions, full sessions, and notice timing.
+  enrolment records, actual attended level, available dated sessions, full sessions,
+  and notice timing.
   The overlap case also adds a separate enrolled class on Thursday, with its start
   offset relative to the requested 6 pm session.
 - **`steps[].input`** contains the incoming email body. The runner generates a unique
@@ -57,8 +58,10 @@ This excerpt omits the scenario's required ID, description and rubric. Shared cl
 names, levels, local times and locations are in `catalog.json`. The class keys in
 each enrolment refer directly to that catalog. A baseline report saves the complete
 resolved setup, catalog, dates, and session UUIDs so the comparison is inspectable.
-On current `master`, dated-session rosters derive from regular enrolments; there is
-no booking-proposal output field or independent session-roster write in this suite.
+Synthetic rosters are explicitly seeded from each scenario's enrolments. Historical
+attendance is seeded separately from the staff-maintained level label. This suite
+stops at teacher review; the richer `workflow_evaluations` suite also exercises
+booking proposals and review actions.
 
 Expected dictionaries are partial matches: omitted fields are not compared; explicit
 `null` requires a present field whose value is null. Intent lists compare as sets;
@@ -118,7 +121,7 @@ Keep prior report filenames when comparing prompt/code/model changes; running wi
 the same explicit `--output` path replaces that report. No report from a different
 checkout or agent contract is included in this PR.
 
-The workflow checks that drafting preserves enrolments, rosters, and teacher responses.
+The workflow checks that drafting preserves enrolments, rosters, attendance, and teacher responses.
 The suite does not access a mailbox, send email, or drive a browser. Synthetic privacy
 canaries and marker checks are limited checks, not comprehensive privacy or semantic
 quality guarantees. Human review against the rubric remains necessary.

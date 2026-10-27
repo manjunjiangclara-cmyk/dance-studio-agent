@@ -22,6 +22,7 @@ from studio_copilot.persistence.models import (
     Enrolment,
     Location,
     Message,
+    SessionAttendance,
     Student,
     StudioClass,
     Term,
@@ -137,6 +138,7 @@ def seed_studio(engine, setup: Setup) -> dict:
                     tzinfo=zone
                 ),
                 capacity=details["capacity"],
+                students=[],
             )
             db.add(session)
             db.flush()
@@ -161,6 +163,7 @@ def seed_studio(engine, setup: Setup) -> dict:
             start = target.starts_at + timedelta(minutes=spec.start_offset_minutes)
             conflict_session = ClassSession(
                 regular_class=conflict_class,
+                students=[student.id],
                 starts_at=start,
                 ends_at=start + timedelta(minutes=spec.duration_minutes),
                 capacity=2,
@@ -176,6 +179,46 @@ def seed_studio(engine, setup: Setup) -> dict:
             )
             db.flush()
             sessions["conflicting_session"] = str(conflict_session.id)
+        if setup.attended_level is not None:
+            history_class = StudioClass(
+                name="Historical attended class",
+                level=setup.attended_level,
+                term=term,
+                location=location,
+            )
+            db.add(history_class)
+            db.flush()
+            historical_start = now - timedelta(days=14)
+            historical = ClassSession(
+                regular_class=history_class,
+                starts_at=historical_start,
+                ends_at=historical_start + timedelta(hours=1),
+                capacity=2,
+                students=[student.id],
+            )
+            db.add(historical)
+            db.flush()
+            db.add(
+                SessionAttendance(
+                    session_id=historical.id,
+                    student_id=student.id,
+                    status="attended",
+                    level_at_attendance=setup.attended_level,
+                )
+            )
+            sessions["attended_history"] = str(historical.id)
+        # Reload DATE values before applying date-specific enrolment rules.
+        db.flush()
+        db.expire_all()
+        for key in setup.sessions:
+            session = db.get(ClassSession, UUID(sessions[key]))
+            on_date = session.starts_at.astimezone(zone).date()
+            session.students = [
+                enrolment.student_id
+                for enrolment in session.regular_class.enrolments
+                if enrolment.is_active_on(on_date)
+            ]
+        db.flush()
         return {
             "reference_at": now.isoformat(),
             "dates": dates,

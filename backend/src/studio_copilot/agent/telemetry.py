@@ -14,6 +14,9 @@ FIELDS = (
     "input_tokens",
     "output_tokens",
     "error_type",
+    "intents",
+    "flow",
+    "needs_clarification",
 )
 
 
