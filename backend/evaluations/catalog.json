@@ -1,0 +1,17 @@
+{
+  "location": {
+    "name": "Synthetic Studio A",
+    "address": "100 Fictional Lane",
+    "timezone": "Australia/Melbourne"
+  },
+  "classes": {
+    "monday_level_2": {"name": "Monday Level 2", "level": "Level 2"},
+    "thursday_level_2": {"name": "Thursday Level 2", "level": "Level 2"},
+    "saturday_level_2": {"name": "Saturday Level 2", "level": "Level 2"}
+  },
+  "sessions": {
+    "absence": {"class_key": "monday_level_2", "date": "{absence_date}", "starts_at": "18:00", "ends_at": "19:00", "capacity": 1},
+    "thursday": {"class_key": "thursday_level_2", "date": "{thursday_date}", "starts_at": "18:00", "ends_at": "19:00", "capacity": 1},
+    "saturday": {"class_key": "saturday_level_2", "date": "{saturday_date}", "starts_at": "18:00", "ends_at": "19:00", "capacity": 1}
+  }
+}
