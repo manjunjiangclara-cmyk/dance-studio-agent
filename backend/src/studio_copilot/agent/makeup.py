@@ -141,11 +141,19 @@ def gather_makeup(engine, state: dict) -> dict:
 
     with Session(engine) as db:
 
-        def tool(name, arguments):
+        def tool(name, arguments, *, session_cursor=None):
             return record(
                 name,
                 arguments,
-                execute_tool(db, student_id, source_id, context["policy"], name, arguments),
+                execute_tool(
+                    db,
+                    student_id,
+                    source_id,
+                    context["policy"],
+                    name,
+                    arguments,
+                    **({"session_cursor": session_cursor} if session_cursor else {}),
+                ),
             )
 
         require(db, Student, student_id)
@@ -321,61 +329,72 @@ def gather_makeup(engine, state: dict) -> dict:
             if inconsistent_day:
                 warnings.append("Confirm the preferred date and weekday; they do not match.")
             elif not preference or location_id:
-                result = tool(
-                    "search_sessions",
-                    {
-                        "from_date": (preferred or datetime.now(UTC).date()).isoformat(),
-                        "to_date": (
-                            preferred or (datetime.now(UTC).date() + timedelta(days=60))
-                        ).isoformat(),
-                        "weekday": preferred.weekday()
-                        if preferred
-                        else weekdays.index(weekday.casefold())
-                        if weekday
-                        else None,
-                        "level": None,
-                        "location_id": location_id,
-                    },
-                )
-                for item in result["items"]:
-                    session = require(db, ClassSession, UUID(item["id"]))
-                    item["student_already_in_session"] = student_id in session.students
-                    item["location_name"] = session.regular_class.location.name
-                    reason = None
-                    if requested_class and (
-                        " ".join(requested_class.casefold().split())
-                        != " ".join(session.regular_class.name.casefold().split())
-                    ):
-                        reason = "requested_class_mismatch"
-                    elif requested_time is not None and (
-                        session.starts_at.astimezone(
-                            ZoneInfo(session.regular_class.location.timezone)
-                        ).time()
-                        != requested_time
-                    ):
-                        reason = "requested_time_mismatch"
-                    elif session.starts_at <= datetime.now(UTC):
-                        reason = "past"
-                    elif item["student_already_in_session"]:
-                        reason = "already_in_session"
-                    elif len(session.students) >= session.capacity:
-                        reason = "full"
-                    elif overlapping_session(db, student_id, session):
-                        reason = "overlapping_session"
-                    elif session.regular_class.level.casefold() not in [
-                        x.casefold() for x in level_order
-                    ]:
-                        reason = "unknown_level"
-                    elif [x.casefold() for x in level_order].index(
-                        session.regular_class.level.casefold()
-                    ) > max_level:
-                        reason = "above_attended_level"
-                    if reason:
-                        validated["excluded"].append({"session_id": item["id"], "reason": reason})
-                    else:
-                        validated["valid_session_ids"].append(item["id"])
-                        validated["references"].append("session:" + item["id"])
-                if not validated["valid_session_ids"]:
+                search_args = {
+                    "from_date": (preferred or datetime.now(UTC).date()).isoformat(),
+                    "to_date": (
+                        preferred or (datetime.now(UTC).date() + timedelta(days=60))
+                    ).isoformat(),
+                    "weekday": preferred.weekday()
+                    if preferred
+                    else weekdays.index(weekday.casefold())
+                    if weekday
+                    else None,
+                    "level": None,
+                    "location_id": location_id,
+                }
+                cursor = None
+                for _ in range(20):
+                    result = tool("search_sessions", search_args, session_cursor=cursor)
+                    for item in result["items"]:
+                        session = require(db, ClassSession, UUID(item["id"]))
+                        item["student_already_in_session"] = student_id in session.students
+                        item["location_name"] = session.regular_class.location.name
+                        reason = None
+                        if requested_class and (
+                            " ".join(requested_class.casefold().split())
+                            != " ".join(session.regular_class.name.casefold().split())
+                        ):
+                            reason = "requested_class_mismatch"
+                        elif requested_time is not None and (
+                            session.starts_at.astimezone(
+                                ZoneInfo(session.regular_class.location.timezone)
+                            ).time()
+                            != requested_time
+                        ):
+                            reason = "requested_time_mismatch"
+                        elif session.starts_at <= datetime.now(UTC):
+                            reason = "past"
+                        elif item["student_already_in_session"]:
+                            reason = "already_in_session"
+                        elif len(session.students) >= session.capacity:
+                            reason = "full"
+                        elif overlapping_session(db, student_id, session):
+                            reason = "overlapping_session"
+                        elif session.regular_class.level.casefold() not in [
+                            x.casefold() for x in level_order
+                        ]:
+                            reason = "unknown_level"
+                        elif [x.casefold() for x in level_order].index(
+                            session.regular_class.level.casefold()
+                        ) > max_level:
+                            reason = "above_attended_level"
+                        if reason:
+                            validated["excluded"].append(
+                                {"session_id": item["id"], "reason": reason}
+                            )
+                        else:
+                            validated["valid_session_ids"].append(item["id"])
+                            validated["references"].append("session:" + item["id"])
+                    next_cursor = result.get("next_cursor")
+                    if not next_cursor or len(validated["valid_session_ids"]) >= 30:
+                        break
+                    cursor = (datetime.fromisoformat(next_cursor[0]), UUID(next_cursor[1]))
+                else:
+                    validated["search_incomplete"] = True
+                    warnings.append(
+                        "The session search was incomplete; please review further options."
+                    )
+                if not validated["valid_session_ids"] and not validated.get("search_incomplete"):
                     warnings.append(
                         "No available replacement session matches the verified request."
                     )
@@ -409,6 +428,8 @@ def clarification_body(evidence: list[dict]) -> str:
             "We'll review your request and let you know."
         )
     validation = evidence_result(evidence, "validate_makeup_candidates")
+    if validation.get("search_incomplete") and not validation.get("valid_session_ids"):
+        return "We need to review more sessions before we can confirm the available options."
     if validation.get("invalid_requested_time"):
         return "Could you confirm the requested makeup start time?"
     if validation.get("max_attended_level") is None:

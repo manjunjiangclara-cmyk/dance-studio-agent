@@ -626,3 +626,82 @@ def test_late_notice_requires_review_without_a_booking_proposal(
     assert verification["notice_acceptable"] is False
     assert run["draft_details"]["booking_session_id"] is None
     assert "after the class started" in run["draft_details"]["body"]
+
+
+def test_options_search_continues_past_ineligible_first_page(
+    rig, scenario, verified_makeup, db_engine, monkeypatch
+):
+    with Session(db_engine) as db, db.begin():
+        target = db.get(ClassSession, verified_makeup)
+        first = datetime.now(UTC) + timedelta(days=2)
+        target.starts_at = first + timedelta(hours=8)
+        target.ends_at = target.starts_at + timedelta(hours=1)
+        for index in range(31):
+            starts = first + timedelta(minutes=index * 10)
+            db.add(
+                ClassSession(
+                    class_id=target.class_id,
+                    starts_at=starts,
+                    ends_at=starts + timedelta(hours=1),
+                    capacity=1,
+                    students=[scenario["student"]],
+                )
+            )
+    model = rig[1]
+    interpret = model.interpret_makeup
+    monkeypatch.setattr(
+        model,
+        "interpret_makeup",
+        lambda context: interpret(context).model_copy(
+            update={"preferred_date": None, "preferred_weekday": None}
+        ),
+    )
+    run = start(rig, scenario)
+    searches = [e["result"] for e in run["evidence"] if e["tool"] == "search_sessions"]
+    validation = next(
+        e["result"] for e in run["evidence"] if e["tool"] == "validate_makeup_candidates"
+    )
+    assert len(searches) >= 2
+    assert any(item["id"] == str(verified_makeup) for page in searches for item in page["items"])
+    assert str(verified_makeup) in validation["valid_session_ids"]
+    assert "could not find" not in run["draft_details"]["body"].lower()
+
+
+def test_weekday_search_continues_after_500_nonmatching_rows(
+    rig, scenario, verified_makeup, db_engine, monkeypatch
+):
+    with Session(db_engine) as db, db.begin():
+        target = db.get(ClassSession, verified_makeup)
+        first = datetime.now(UTC) + timedelta(days=2)
+        target.starts_at = first + timedelta(days=2)
+        target.ends_at = target.starts_at + timedelta(hours=1)
+        weekday = target.starts_at.astimezone(
+            ZoneInfo(target.regular_class.location.timezone)
+        ).strftime("%A")
+        db.add_all(
+            [
+                ClassSession(
+                    class_id=target.class_id,
+                    starts_at=first + timedelta(seconds=index),
+                    ends_at=first + timedelta(hours=1, seconds=index),
+                    capacity=1,
+                )
+                for index in range(501)
+            ]
+        )
+    model = rig[1]
+    interpret = model.interpret_makeup
+    monkeypatch.setattr(
+        model,
+        "interpret_makeup",
+        lambda context: interpret(context).model_copy(
+            update={"preferred_date": None, "preferred_weekday": weekday}
+        ),
+    )
+    run = start(rig, scenario)
+    searches = [e["result"] for e in run["evidence"] if e["tool"] == "search_sessions"]
+    validation = next(
+        e["result"] for e in run["evidence"] if e["tool"] == "validate_makeup_candidates"
+    )
+    assert len(searches) >= 2
+    assert str(verified_makeup) in validation["valid_session_ids"]

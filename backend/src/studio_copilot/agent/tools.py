@@ -182,6 +182,8 @@ def execute_tool(
     policy: dict,
     name: str,
     args: dict,
+    *,
+    session_cursor: tuple[datetime, UUID] | None = None,
 ) -> dict[str, Any]:
     schema = TOOL_TYPES[name][0]
     query = schema.model_validate(args)
@@ -226,8 +228,18 @@ def execute_tool(
             statement = statement.where(StudioClass.level == query.level)
         if query.location_id:
             statement = statement.where(StudioClass.location_id == query.location_id)
+        if session_cursor is not None:
+            from sqlalchemy import tuple_
+
+            statement = statement.where(
+                tuple_(ClassSession.starts_at, ClassSession.id) > session_cursor
+            )
         items = []
-        for session in db.scalars(statement.limit(501)):
+        scanned = 0
+        last_session = None
+        for session in db.scalars(statement.limit(500)):
+            scanned += 1
+            last_session = session
             local = session.starts_at.astimezone(ZoneInfo(session.regular_class.location.timezone))
             if not query.from_date <= local.date() <= query.to_date:
                 continue
@@ -255,7 +267,17 @@ def execute_tool(
             )
             if len(items) == 30:
                 break
-        return {"items": items, "limit": 30, "references": ["session:" + s["id"] for s in items]}
+        next_cursor = (
+            [last_session.starts_at.isoformat(), str(last_session.id)]
+            if last_session is not None and (scanned == 500 or len(items) == 30)
+            else None
+        )
+        return {
+            "items": items,
+            "limit": 30,
+            "next_cursor": next_cursor,
+            "references": ["session:" + s["id"] for s in items],
+        }
     session = db.get(ClassSession, query.session_id)
     if session is None:
         return {"error": "Session not found.", "references": []}
