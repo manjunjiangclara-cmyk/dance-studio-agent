@@ -108,9 +108,15 @@ def test_export_failure_does_not_interrupt_workflow_or_log_exception(
     tracing_env, operation, caplog
 ):
     tracing_env.fail_at = operation
-    with tracing.workflow_trace(RUN_ID, "start"):
-        with tracing.span("route"):
-            result = 42
+    # Application logging deliberately does not propagate to the root logger.
+    # Capture on the emitting logger so this also works after app startup.
+    tracing.logger.addHandler(caplog.handler)
+    try:
+        with tracing.workflow_trace(RUN_ID, "start"):
+            with tracing.span("route"):
+                result = 42
+    finally:
+        tracing.logger.removeHandler(caplog.handler)
     assert result == 42
     assert "trace_export_failed" in caplog.text
     assert SECRET not in caplog.text
