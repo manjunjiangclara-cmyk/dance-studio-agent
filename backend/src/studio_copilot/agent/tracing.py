@@ -102,9 +102,37 @@ def span(name, *, kind="chain", metadata=None):
 
 
 @contextmanager
+def _suppress_automatic_tracing():
+    # Snapshot SDK ContextVars so a partially failed setup or teardown cannot
+    # leave the caller's tracing context altered.
+    from langsmith.run_helpers import _CONTEXT_KEYS
+
+    tokens = [(var, var.set(var.get())) for var in _CONTEXT_KEYS.values()]
+    try:
+        try:
+            context = tracing_context(enabled=False, parent=False)
+            context.__enter__()
+        except Exception:
+            # The version-bounded SDK fallback keeps automatic tracing disabled.
+            _CONTEXT_KEYS["enabled"].set(False)
+            context = None
+            logger.warning("trace_context_failed")
+        yield
+    finally:
+        try:
+            if context is not None:
+                context.__exit__(None, None, None)
+        except Exception:
+            logger.warning("trace_context_failed")
+        finally:
+            for var, token in reversed(tokens):
+                var.reset(token)
+
+
+@contextmanager
 def workflow_trace(run_id, phase):
     # Never permit LangGraph's automatic callbacks to export graph inputs or state.
-    with tracing_context(enabled=False, parent=False):
+    with _suppress_automatic_tracing():
         root = None
         enabled = os.environ.get("STUDIO_LANGSMITH_TRACING", "").lower() == "true"
         key = os.environ.get("LANGSMITH_API_KEY", "").strip()

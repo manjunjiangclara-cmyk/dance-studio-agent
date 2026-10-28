@@ -129,6 +129,38 @@ def test_disabled_and_missing_key_do_not_export(monkeypatch, tracing_env):
     assert not tracing_env.instances
 
 
+@pytest.mark.parametrize("failure", ["factory", "enter", "exit"])
+def test_context_failure_does_not_interrupt_or_enable_automatic_tracing(
+    monkeypatch, tracing_env, failure
+):
+    real_context = tracing.tracing_context
+
+    class BrokenContext:
+        def __init__(self):
+            self.context = real_context(enabled=False, parent=False)
+
+        def __enter__(self):
+            if failure == "enter":
+                raise RuntimeError(SECRET)
+            return self.context.__enter__()
+
+        def __exit__(self, *args):
+            raise RuntimeError(SECRET)
+
+    def make_context(**kwargs):
+        if failure == "factory":
+            raise RuntimeError(SECRET)
+        return BrokenContext()
+
+    monkeypatch.setattr(tracing, "tracing_context", make_context)
+    with real_context(enabled=True, metadata={"caller": "preserved"}):
+        with tracing.workflow_trace(RUN_ID, "start"):
+            assert get_tracing_context()["enabled"] is False
+        assert get_tracing_context()["enabled"] is True
+        assert get_tracing_context()["metadata"] == {"caller": "preserved"}
+    assert SECRET not in json.dumps([run.events for run in tracing_env.instances])
+
+
 def test_graph_workers_inherit_parent_and_disable_automatic_tracing(tracing_env):
     class State(TypedDict):
         secret: str
