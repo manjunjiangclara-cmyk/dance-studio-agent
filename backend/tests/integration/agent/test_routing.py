@@ -21,10 +21,9 @@ pytestmark = pytest.mark.integration
         (["absence"], False),
         (["unknown"], True),
         (["makeup", "enrolment"], False),
-        (["makeup"], True),
     ],
 )
-def test_other_or_ambiguous_intents_bypass_makeup_interpreter_and_tools(
+def test_other_or_ambiguous_intents_bypass_makeup_interpreter_but_allow_read_only_tools(
     rig, scenario, intents, unclear
 ):
     client, model, _, _ = rig
@@ -40,8 +39,8 @@ def test_other_or_ambiguous_intents_bypass_makeup_interpreter_and_tools(
     assert "absence_date" not in run["interpretation"]
     assert "preferred_weekday" not in run["interpretation"]
     assert model.contexts == []  # Makeup interpreter was never called.
-    assert model.query_count == 0
-    assert run["evidence"] == []
+    assert model.query_count == 2
+    assert run["evidence"][0]["tool"] == "get_enrolments"
     assert "makeup" not in run["draft_details"]["body"].lower()
     profile = client.get(f"/api/v1/students/{scenario['student']}").json()
     assert "regular enrolment" in profile["ai_summary"]
@@ -76,7 +75,7 @@ def test_router_failure_creates_teacher_handoff_without_makeup_queries(rig, scen
     run = start(rig, scenario)
     assert run["interpretation"]["flow"] == "teacher_handoff"
     assert run["interpretation"]["routing"]["intents"] == ["unknown"]
-    assert model.query_count == 0
+    assert model.query_count == 2
     assert model.contexts == []
 
 
@@ -92,4 +91,4 @@ def test_handoff_draft_failure_never_uses_makeup_clarification_template(rig, sce
     run = start(rig, scenario)
     assert run["interpretation"]["flow"] == "teacher_handoff"
     assert "makeup" not in run["draft_details"]["body"].lower()
-    assert model.query_count == 0
+    assert model.query_count == 2

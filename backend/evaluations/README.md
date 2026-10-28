@@ -1,6 +1,6 @@
 # Email evaluations
 
-These twenty synthetic scenarios send email contents through the real intake API,
+These synthetic scenarios send email contents through the real intake API,
 LangGraph workflow, model adapter, studio tools, and PostgreSQL checkpoints. The
 runner stops at `awaiting_review`; it never supplies a teacher decision.
 
@@ -9,13 +9,20 @@ runner stops at `awaiting_review`; it never supplies a teacher decision.
 `scenarios.json` separates four concerns:
 
 - **`setup`** declares whether the sender already exists, their level, explicit
-  enrolment records, available dated sessions, full sessions, and notice timing.
+  enrolment records, actual attended level, available dated sessions, full sessions,
+  and notice timing.
+  The overlap case also adds a separate enrolled class on Thursday, with its start
+  offset relative to the requested 6 pm session.
 - **`steps[].input`** contains the incoming email body. The runner generates a unique
   synthetic sender address per fixture to avoid database-wide sender-lock collisions.
 - **`steps[].expected`** mirrors selected fields of the actual agent API output:
   `status`, `interpretation` (including routing), and optionally `draft_details`.
 - **`steps[].checks`** declares factual assertions such as successful evidence tools,
   clarification, notice timing, and ignoring an injected marker in the draft.
+  `required_any_draft_text` checks for an expected phrase, while
+  `contradictory_draft_text` flags specified claims inconsistent with the setup.
+  These lexical signals can miss paraphrases or misread context; the full response
+  still needs human review.
 - **`rubric`** contains criteria for human assessment of the drafts. It is not scored
   automatically; every report keeps human review pending.
 
@@ -51,8 +58,10 @@ This excerpt omits the scenario's required ID, description and rubric. Shared cl
 names, levels, local times and locations are in `catalog.json`. The class keys in
 each enrolment refer directly to that catalog. A baseline report saves the complete
 resolved setup, catalog, dates, and session UUIDs so the comparison is inspectable.
-On current `master`, dated-session rosters derive from regular enrolments; there is
-no booking-proposal output field or independent session-roster write in this suite.
+Synthetic rosters are explicitly seeded from each scenario's enrolments. Historical
+attendance is seeded separately from the staff-maintained level label. This suite
+stops at teacher review; the richer `workflow_evaluations` suite also exercises
+booking proposals and review actions.
 
 Expected dictionaries are partial matches: omitted fields are not compared; explicit
 `null` requires a present field whose value is null. Intent lists compare as sets;
@@ -104,7 +113,7 @@ expanded, so JSON braces in email text remain literal. This initial dataset does
 evaluate ambiguous relative-date language.
 
 Reports are saved incrementally under ignored `evaluations/results/`. They contain
-the configured model, a hash of scenarios plus catalog, resolved inputs and expected
+the configured model, a hash of scenarios, catalog, and the synthetic evaluation policy, resolved inputs and expected
 outputs, actual runs/drafts/evidence, named comparisons, final memory/database state,
 latency, and available token usage. Provider/database exception messages and
 credentials are omitted. The process exits nonzero when any automated case fails.
@@ -112,7 +121,7 @@ Keep prior report filenames when comparing prompt/code/model changes; running wi
 the same explicit `--output` path replaces that report. No report from a different
 checkout or agent contract is included in this PR.
 
-The workflow checks that drafting preserves enrolments, rosters, and teacher responses.
+The workflow checks that drafting preserves enrolments, rosters, attendance, and teacher responses.
 The suite does not access a mailbox, send email, or drive a browser. Synthetic privacy
 canaries and marker checks are limited checks, not comprehensive privacy or semantic
 quality guarantees. Human review against the rubric remains necessary.
@@ -128,3 +137,11 @@ uv run --env-file .env pytest tests/integration/agent/test_email_evaluations.py
 
 These use a controlled model to test the evaluator and its setup/contract matching.
 PostgreSQL tests skip without `TEST_DATABASE_URL`; a skip is not a passing DB check.
+
+The unknown refund policy scenario checks for an explicit uncertainty phrase and flags
+common numeric currency and percentage claims. These narrow string checks cannot catch
+every unsupported claim, so inspect the entire response against the human rubric.
+
+The runner uses `evaluations/policy.yaml`, a fixed synthetic policy independent of
+the editable studio policy. The policy is part of the dataset fingerprint so changes
+to it are visible when comparing reports.

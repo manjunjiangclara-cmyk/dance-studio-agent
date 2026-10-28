@@ -3,15 +3,28 @@
 No model calls happen here. LangGraph checkpoint storage is managed separately.
 """
 
+from datetime import datetime
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from studio_copilot.administration.service import conflict, require
 from studio_copilot.agent.contracts import RequestInterpretation, ReviewedMemory
+from studio_copilot.agent.proposals import candidate_session_ids, confirmation_body
 from studio_copilot.agent.tools import enrolments
-from studio_copilot.persistence.models import AgentRun, Conversation, Message, Student
+from studio_copilot.bookings.service import create_booking
+from studio_copilot.persistence.models import (
+    AgentRun,
+    ClassSession,
+    Conversation,
+    Location,
+    Message,
+    Student,
+)
+
+HISTORY_LIMIT = 3
 
 HISTORY_LIMIT = 3
 
@@ -40,13 +53,14 @@ def _memory_summary(memory):
         lines.append(f"Request: {item['request_summary']} ({item['kind']}).")
         if item.get("approved_response_id"):
             lines.append(
-                "Teacher response approved; delivery and business actions are unconfirmed."
+                "Teacher response approved; delivery is unconfirmed. "
+                "Check official booking records."
             )
     for response_id, item in list(memory.get("approved_responses", {}).items())[-10:]:
         current = memory.get("requests", {}).get(item["conversation_id"], {})
         if current.get("source_message_id") != response_id:
             lines.append(f"Earlier teacher-approved response: {item['request_summary']}")
-            lines.append("Delivery and business actions are unconfirmed.")
+            lines.append("Delivery is unconfirmed. Check official booking records.")
     return "\n".join(lines)
 
 
@@ -164,10 +178,18 @@ class WorkflowStore:
             )
             run.interpretation = {
                 **run.interpretation,
-                **interpretation.model_dump(),
+                **interpretation.model_dump(mode="json"),
                 "routing": routing,
                 "flow": flow,
             }
+
+    def save_revision_interpretation(
+        self, run_id: str, interpretation: RequestInterpretation
+    ) -> None:
+        """Keep staff corrections inspectable without relabelling them as new student memory."""
+        with Session(self.engine) as db, db.begin():
+            run = _active_run(db, run_id)
+            run.interpretation = {**run.interpretation, **interpretation.model_dump(mode="json")}
 
     def save_draft(
         self,
@@ -179,10 +201,13 @@ class WorkflowStore:
     ) -> None:
         with Session(self.engine) as db, db.begin():
             run = _active_run(db, run_id)
+            if run.approved_response_id is not None:
+                return  # Checkpoint replay must not replace an already committed approval.
             # Replaying this node after a checkpoint failure must not create a second draft.
             if run.revision < attempt:
                 message = Message(
                     conversation_id=run.conversation_id,
+                    review_managed=True,
                     kind="assistant_draft",
                     body=draft["body"],
                 )
@@ -198,6 +223,63 @@ class WorkflowStore:
             run = _active_run(db, run_id)
             # A retry after storing the response reuses it before reconciling memory.
             if run.approved_response_id is None:
+                proposal = run.draft_details.get("booking_session_id")
+                if proposal:
+                    draft = require(db, Message, run.draft_message_id)
+                    if body is not None and body != draft.body:
+                        conflict(
+                            "Regenerate the draft before approving an edited booking response."
+                        )
+                    session_id = UUID(str(proposal))
+                    if run.interpretation.get(
+                        "flow"
+                    ) != "makeup" or session_id not in candidate_session_ids(run.evidence):
+                        conflict(
+                            "Regenerate the draft: its booking proposal has no session evidence."
+                        )
+                    create_booking(db, run, session_id)
+                    # The locks acquired by create_booking are still held. Bind the
+                    # confirmation to the evidenced schedule, not just a mutable row ID.
+                    target = require(db, ClassSession, session_id)
+                    location = require(db, Location, target.regular_class.location_id, lock=True)
+                    expected_body = confirmation_body(
+                        target.regular_class.name,
+                        location.name,
+                        target.starts_at.astimezone(ZoneInfo(location.timezone)),
+                    )
+                    if draft.body != expected_body:
+                        conflict("Session details changed. Request a new draft before booking.")
+                    snapshots = [
+                        item
+                        for evidence in run.evidence
+                        if evidence.get("tool") == "search_sessions"
+                        for item in evidence.get("result", {}).get("items", [])
+                        if str(item.get("id")) == str(session_id)
+                    ]
+                    if snapshots:
+                        snapshot = snapshots[-1]
+                        for field in ("starts_at", "ends_at"):
+                            if field in snapshot and datetime.fromisoformat(
+                                snapshot[field]
+                            ) != getattr(target, field):
+                                conflict(
+                                    "The session time changed. Request a new draft before booking."
+                                )
+                        if snapshot.get("class_id") and str(target.class_id) != str(
+                            snapshot["class_id"]
+                        ):
+                            conflict(
+                                "The session class changed. Request a new draft before booking."
+                            )
+                        for field, attribute in (
+                            ("class_name", "name"),
+                            ("level", "level"),
+                            ("prerequisites", "prerequisites"),
+                        ):
+                            if field in snapshot and snapshot[field] != getattr(
+                                target.regular_class, attribute
+                            ):
+                                conflict("The class details changed. Request a new draft first.")
                 draft = require(db, Message, run.draft_message_id)
                 response = Message(
                     conversation_id=run.conversation_id,
@@ -209,6 +291,23 @@ class WorkflowStore:
                 run.approved_response_id = response.id
             run.status = "finalizing"
             return str(run.approved_response_id)
+
+    def approved_booking(self, run_id: str) -> dict | None:
+        with Session(self.engine) as db:
+            run = require(db, AgentRun, UUID(run_id))
+            proposal = run.draft_details.get("booking_session_id")
+            if not run.approved_response_id or not proposal:
+                return None
+            session = require(db, ClassSession, UUID(proposal))
+            conversation = require(db, Conversation, run.conversation_id)
+            if conversation.student_id not in session.students:
+                return None
+            return {
+                "session_id": str(session.id),
+                "class_name": session.regular_class.name,
+                "starts_at": session.starts_at.isoformat(),
+                "status": "confirmed",
+            }
 
     def approved_response(self, run_id: str) -> str:
         with Session(self.engine) as db:

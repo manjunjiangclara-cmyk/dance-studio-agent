@@ -1,0 +1,6 @@
+version: "synthetic-eval-1"
+absence_notice_before_start: true
+level_order: ["Level 1", "Level 2", "Level 3"]
+explanation: >-
+  An absence notice must arrive strictly before the session starts.
+  This check alone does not establish makeup eligibility or reserve a place.

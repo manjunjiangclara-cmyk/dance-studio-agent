@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "tables": [
+    {
+      "name": "students",
+      "label": "Student profiles",
+      "page": "students",
+      "fields": [
+        "display_name",
+        "email",
+        "highest_level",
+        "ai_summary",
+        "context"
+      ]
+    },
+    {
+      "name": "enrolments",
+      "label": "Dated enrolment history",
+      "page": "students",
+      "fields": ["student_id", "class_id", "starts_on", "ends_on", "status"]
+    },
+    {
+      "name": "terms",
+      "label": "Teaching periods",
+      "page": "timetable",
+      "fields": ["name", "starts_on", "ends_on"]
+    },
+    {
+      "name": "locations",
+      "label": "Studios and timezones",
+      "page": "timetable",
+      "fields": ["name", "address", "timezone"]
+    },
+    {
+      "name": "classes",
+      "label": "Regular classes",
+      "page": "timetable",
+      "fields": ["term_id", "location_id", "name", "level", "prerequisites"]
+    },
+    {
+      "name": "class_sessions",
+      "label": "Dated sessions",
+      "page": "timetable",
+      "fields": ["class_id", "starts_at", "ends_at", "capacity", "students"]
+    },
+    {
+      "name": "conversations",
+      "label": "Email threads",
+      "page": "students",
+      "fields": ["student_id", "subject"]
+    },
+    {
+      "name": "messages",
+      "label": "Emails, drafts and responses",
+      "page": "reviews",
+      "fields": [
+        "conversation_id",
+        "kind",
+        "review_managed",
+        "body",
+        "occurred_at"
+      ]
+    },
+    {
+      "name": "agent_runs",
+      "label": "Interpretation and review",
+      "page": "reviews",
+      "fields": [
+        "conversation_id",
+        "source_message_id",
+        "draft_message_id",
+        "approved_response_id",
+        "status",
+        "revision",
+        "interpretation",
+        "evidence",
+        "draft_details",
+        "policy_snapshot",
+        "error"
+      ]
+    },
+    {
+      "name": "session_attendance",
+      "label": "Recorded attendance",
+      "page": "timetable",
+      "fields": ["session_id", "student_id", "status", "level_at_attendance"]
+    }
+  ],
+  "relationships": [
+    {
+      "table": "enrolments",
+      "field": "student_id",
+      "target": "students"
+    },
+    {
+      "table": "enrolments",
+      "field": "class_id",
+      "target": "classes"
+    },
+    {
+      "table": "classes",
+      "field": "term_id",
+      "target": "terms"
+    },
+    {
+      "table": "classes",
+      "field": "location_id",
+      "target": "locations"
+    },
+    {
+      "table": "class_sessions",
+      "field": "class_id",
+      "target": "classes"
+    },
+    {
+      "table": "conversations",
+      "field": "student_id",
+      "target": "students"
+    },
+    {
+      "table": "messages",
+      "field": "conversation_id",
+      "target": "conversations"
+    },
+    {
+      "table": "agent_runs",
+      "field": "conversation_id",
+      "target": "conversations"
+    },
+    {
+      "table": "agent_runs",
+      "field": "source_message_id",
+      "target": "messages"
+    },
+    {
+      "table": "agent_runs",
+      "field": "draft_message_id",
+      "target": "messages"
+    },
+    {
+      "table": "agent_runs",
+      "field": "approved_response_id",
+      "target": "messages"
+    },
+    {
+      "table": "session_attendance",
+      "field": "session_id",
+      "target": "class_sessions"
+    },
+    {
+      "table": "session_attendance",
+      "field": "student_id",
+      "target": "students"
+    }
+  ]
+}

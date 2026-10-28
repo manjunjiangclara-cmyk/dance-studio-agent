@@ -4,11 +4,11 @@ An independent portfolio project for teacher-reviewed ballet studio administrati
 
 ## Current scope
 
-The MVP prepares drafts for teacher review. It loads student context, routes enquiries by intent, interprets consecutive makeup emails, and queries classes. Other or unclear request types receive a teacher-handoff draft until their flows are implemented. Approval means a draft has been reviewed; it does not book classes or send email.
+The app prepares drafts for teacher review and handles makeup requests using a LangGraph workflow. The agent verifies the missed session and notice, checks actual attendance and eligible replacement sessions, and leaves the final decision to a teacher. Approving a draft with a verified booking proposal adds the student to that session atomically; approval never sends email. Other or unclear requests go to teacher handoff.
 
-The backend implements staff administration and a LangGraph makeup-enquiry workflow using the OpenAI Responses API. It manages studio records, conversation history, bounded read-only tool use, automatic student memory, and teacher review through the API. Approval stores the final teacher response and reconciles memory; it does not send email or execute bookings. A browser review UI is not implemented.
+Dated sessions have independent student rosters. Staff separately record attendance as attended, absent, or unknown. The studio policy defines the order of class levels from easiest to hardest; makeup candidates cannot exceed the student's highest recorded attended level. Missing attendance or level order requires staff review. Historical runs retain their policy snapshots.
 
-Students have an optional `highest_level`, nullable `ai_summary`, source-linked conversational `context`, an `enrolment_history` relationship, and a read-only `current_enrolments` field derived from that history. Classes belong to terms; dated sessions expose their regular student roster through enrolments.
+The anonymous public demo uses predefined fictional data and makes no live API or model calls. The owner workspace provides a review queue, policy editor, attendance controls, and database inspection. See [website setup](docs/09-website.md).
 
 ## Local setup
 
@@ -36,7 +36,7 @@ uv run --env-file .env uvicorn studio_copilot.api.app:app --host 127.0.0.1 --por
 
 This command assumes you have created `.env` as described above. If you are using only the example configuration, replace `--env-file .env` with `--env-file .env.example`. AI draft generation also requires the agent setup below and configured `OPENAI_API_KEY` and `OPENAI_MODEL`; it uses the real model and incurs API usage charges.
 
-Leave the terminal running and open [interactive API documentation](http://127.0.0.1:8000/docs). This is the current way to interact with the app; a dedicated staff UI is not implemented. Use **Authorize** with your `ADMIN_API_TOKEN` (the example configuration uses `local-demo-admin-token`). All `/api/v1` endpoints require that bearer token; [health](http://127.0.0.1:8000/health) and documentation are public. A healthy database connection returns `{"status":"ok"}`. This is one local staff credential, not a user-account or role-management system.
+Build the frontend from `frontend/` with a supported Node.js version using `npm ci` and `npm run build`. Leave the server running and open [the public demo](http://127.0.0.1:8000/demo) or [interactive API documentation](http://127.0.0.1:8000/docs). Use **Authorize** with your `ADMIN_API_TOKEN` (the example configuration uses `local-demo-admin-token`). The staff API requires that bearer token or an authorized owner session for its permitted operations; [health](http://127.0.0.1:8000/health) and documentation are public. A healthy database connection returns `{"status":"ok"}`. This is one local staff credential, not a user-account or role-management system.
 
 On subsequent launches, start Docker Desktop, run `docker compose up -d --wait db` from the project directory, and run the server command above from `backend/`. Stop the server with Ctrl+C.
 
@@ -53,11 +53,11 @@ After agent setup and starting the server, open [Swagger](http://127.0.0.1:8000/
 
 The server finds the student, selects their latest conversation (or creates one), records receipt time, saves the email and generates a draft. An unknown sender gets a minimal `New enquirer` profile with no level or enrolments, and their first email enters the new-student teacher-handoff flow. Later emails reuse their history and use normal intent routing.
 
-For a known student, send the same two fields with their registered email address, for example `alex@example.com`. Check `status` for `awaiting_review` and read `draft_details.body`, `interpretation` and `evidence`. HTTP 200 can also contain a `failed` run: inspect `error` and retry that run using `/api/v1/agent-runs/{id}/retry`. Review, edit or approve using the existing run review endpoint. Approval stores a response without sending it or booking a class.
+For a known student, send the same two fields with their registered email address, for example `alex@example.com`. Check `status` for `awaiting_review` and read `draft_details.body`, `interpretation` and `evidence`. HTTP 200 can also contain a `failed` run: inspect `error` and retry that run using `/api/v1/agent-runs/{id}/retry`. Review, edit or approve using the existing run review endpoint. Approval stores a response and, when a validated booking proposal is present, adds the student to that session. It does not send email.
 
 No conversation, message or run IDs are needed as input. Each POST is a new email, even if its content repeats. A busy student returns 409 without saving the submission. Model configuration or policy errors return 503 before records are created.
 
-The existing demo conversation contains February 2027 emails. Before those dates, submitting a current-time email to that conversation returns 409 because a future-dated email is already the latest. To test intake now, use a fresh fictional address such as the example above, or a registered student whose conversation has no future-dated emails. Retrying a failed run uses its ID rather than submitting the email again.
+Retrying a failed run uses its ID rather than submitting the email again. Future-dated existing messages still prevent earlier incoming emails from superseding them.
 
 ## Optional: load sample data
 
@@ -109,7 +109,8 @@ Tests are grouped by execution requirements and behavior:
 - `backend/tests/integration/persistence/`: fresh schema/model parity, database constraints, enrolment history, and student memory.
 - `backend/tests/integration/api/`: students, enrolments, timetable, conversations, validation, access, and demo seeding.
 - `backend/tests/integration/agent/`: routing, review, memory, recovery, access, policy, tools, and tool limits, using scripted model responses.
-- `backend/evaluations/`: optional paid live-model checks, outside normal pytest discovery.
+- `backend/evaluations/`: optional paid email-drafting evaluations, outside normal pytest discovery.
+- `backend/workflow_evaluations/`: optional paid scenarios covering attendance, booking proposals, teacher review, and idempotency.
 
 Run an individual group from `backend/`, for example:
 
@@ -120,7 +121,7 @@ uv run --env-file .env.example pytest tests/integration/agent
 
 Integration tests require `TEST_DATABASE_URL` with a database name ending in `_test`. Each test creates and removes its own temporary schema there. Without that variable, PostgreSQL tests are explicitly skipped. The schema check verifies that a fresh installation matches the models. Fake-model tests do not establish live model understanding or booking reliability.
 
-The pre-release migration history is consolidated into one initial migration containing the current nine-table application schema. Existing disposable development databases stamped with an earlier revision need to be recreated before applying this baseline; the consolidated revision is for fresh installations and does not upgrade the old revisions. LangGraph checkpoint setup remains separate.
+Alembic upgrades the consolidated initial schema through the independent-session roster and attendance migrations. The roster migration snapshots historical participants and has no automatic downgrade because that would lose data. LangGraph checkpoint setup remains separate.
 
 ## Design documents
 
@@ -132,5 +133,6 @@ The pre-release migration history is consolidated into one initial migration con
 - [Accepted direction and open decisions](docs/06-decisions.md)
 - [Administration API guide](docs/07-api.md)
 - [Agent setup, APIs, and evaluation](docs/08-agent-api.md)
+- [Website and owner workspace](docs/09-website.md)
 
-The original detailed booking design is superseded by this simpler direction. Policies remain external resources; financial rules, credit ledgers, booking execution, and production infrastructure will be designed when those capabilities are introduced.
+Policies remain external resources. Financial rules, credit ledgers, email delivery, and production infrastructure remain outside the implemented workflow.

@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import UTC, date, datetime
 from uuid import UUID
 
 from fastapi import APIRouter
@@ -7,7 +7,14 @@ from sqlalchemy import Date, cast, func, select
 from studio_copilot.administration import service
 from studio_copilot.api import schemas as s
 from studio_copilot.api.common import Db, Paging, page, save
-from studio_copilot.persistence.models import ClassSession, Location, StudioClass, Term
+from studio_copilot.persistence.models import (
+    ClassSession,
+    Location,
+    SessionAttendance,
+    Student,
+    StudioClass,
+    Term,
+)
 
 router = APIRouter(tags=["Timetable"])
 
@@ -144,7 +151,13 @@ def update_session(session_id: UUID, body: s.SessionPatch, db: Db):
 @router.get("/sessions/{session_id}/students", response_model=s.Page[s.StudentRead])
 def session_roster(session_id: UUID, db: Db, paging: Paging):
     record = service.require(db, ClassSession, session_id)
-    students = sorted(record.students, key=lambda student: (student.display_name, str(student.id)))
+    students = list(
+        db.scalars(
+            select(Student)
+            .where(Student.id.in_(record.students))
+            .order_by(Student.display_name, Student.id)
+        )
+    )
     limit, offset = paging
     return {
         "items": students[offset : offset + limit],
@@ -152,3 +165,42 @@ def session_roster(session_id: UUID, db: Db, paging: Paging):
         "limit": limit,
         "offset": offset,
     }
+
+
+@router.get("/sessions/{session_id}/attendance")
+def list_attendance(session_id: UUID, db: Db):
+    session = service.require(db, ClassSession, session_id)
+    rows = db.scalars(select(SessionAttendance).where(SessionAttendance.session_id == session.id))
+    return {str(row.student_id): row.status for row in rows}
+
+
+@router.put("/sessions/{session_id}/attendance/{student_id}")
+def update_attendance(session_id: UUID, student_id: UUID, body: s.AttendanceUpdate, db: Db):
+    # Serialize attendance changes with approval's student lock.
+    service.require(db, Student, student_id, lock=True)
+    session = service.require(db, ClassSession, session_id, lock=True)
+    if student_id not in session.students:
+        service.invalid("The student must be on the session roster.")
+    if body.status != "unknown" and session.ends_at > datetime.now(UTC):
+        service.invalid("Attendance can only be recorded after the session ends.")
+    row = db.scalar(
+        select(SessionAttendance).where(
+            SessionAttendance.session_id == session_id, SessionAttendance.student_id == student_id
+        )
+    )
+    if body.status == "unknown":
+        if row is not None:
+            db.delete(row)
+    elif row is None:
+        db.add(
+            SessionAttendance(
+                session_id=session_id,
+                student_id=student_id,
+                status=body.status,
+                level_at_attendance=session.regular_class.level,
+            )
+        )
+    else:
+        row.status = body.status
+    db.commit()
+    return {"student_id": str(student_id), "status": body.status}

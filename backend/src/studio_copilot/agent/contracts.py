@@ -1,6 +1,7 @@
 """Typed boundaries shared by real and deterministic fake model adapters."""
 
 from typing import Any, Literal, Protocol, TypedDict
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -61,7 +62,11 @@ class MakeupInterpretation(RequestInterpretation):
     absence_date: str | None
     preferred_date: str | None
     preferred_weekday: str | None
+    preferred_class_name: str | None = Field(default=None, min_length=1, max_length=200)
+    preferred_time: str | None = Field(default=None, min_length=1, max_length=20)
     location_preference: str | None
+    absence_message_id: UUID | None = None
+    absence_class_id: UUID | None = None
 
 
 class ReviewedMemory(StrictModel):
@@ -74,6 +79,7 @@ class Draft(StrictModel):
     rationale: str = Field(max_length=4000)
     questions: list[str] = Field(max_length=20)
     references: list[str] = Field(max_length=40)
+    booking_session_id: UUID | None = None
 
 
 class ToolCall(StrictModel):

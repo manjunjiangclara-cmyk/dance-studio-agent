@@ -80,3 +80,12 @@ def test_failed_case_closes_client_cleans_context_and_writes_safe_report(
     assert report["total"] == 1
     assert report["results"][0]["error_type"] == "RuntimeError"
     assert "synthetic-provider-secret" not in output.read_text() + capsys.readouterr().out
+
+
+def test_dataset_fingerprint_includes_policy(monkeypatch, tmp_path):
+    policy = tmp_path / "policy.yaml"
+    policy.write_text("version: first")
+    monkeypatch.setattr(evaluate, "POLICY", policy)
+    first = evaluate.dataset_fingerprint()
+    policy.write_text("version: second")
+    assert evaluate.dataset_fingerprint() != first

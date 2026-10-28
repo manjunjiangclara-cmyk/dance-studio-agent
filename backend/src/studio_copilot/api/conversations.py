@@ -76,7 +76,9 @@ def edit_draft(message_id: UUID, body: s.DraftPatch, db: Db):
     record = require(db, Message, message_id, lock=True)
     if record.kind != "assistant_draft":
         conflict("Only drafts can be edited; add a staff note to correct received information.")
-    if db.scalar(select(AgentRun.id).where(AgentRun.draft_message_id == record.id)):
+    if record.review_managed or db.scalar(
+        select(AgentRun.id).where(AgentRun.draft_message_id == record.id)
+    ):
         conflict("Edit an agent draft through its review endpoint with the expected revision.")
     record.body = body.body
     return save(db, record)

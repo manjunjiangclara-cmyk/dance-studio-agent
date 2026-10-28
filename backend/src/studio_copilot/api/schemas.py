@@ -167,13 +167,15 @@ class SessionCreate(Input):
     starts_at: AwareDatetime
     ends_at: AwareDatetime
     capacity: Capacity
+    students: list[UUID] = Field(default_factory=list)
 
 
 class SessionPatch(Patch):
-    required_values = frozenset({"starts_at", "ends_at", "capacity"})
+    required_values = frozenset({"starts_at", "ends_at", "capacity", "students"})
     starts_at: AwareDatetime | None = None
     ends_at: AwareDatetime | None = None
     capacity: Capacity | None = None
+    students: list[UUID] | None = None
 
 
 class SessionRead(Record):
@@ -181,6 +183,7 @@ class SessionRead(Record):
     starts_at: datetime
     ends_at: datetime
     capacity: int
+    students: list[UUID]
 
 
 class EnrolmentCreate(Input):
@@ -258,3 +261,21 @@ class AgentRunRead(Record):
 class IncomingEmail(Input):
     sender: EmailStr = Field(alias="from")
     body: Body
+
+
+class AgentRunSummary(Record):
+    student_id: UUID
+    student_name: str
+    student_email: str
+    conversation_id: UUID
+    source_message_id: UUID
+    status: str
+    revision: int
+    request_summary: str
+    routing: dict[str, Any] | None = None
+    flow: str | None = None
+    error: str | None
+
+
+class AttendanceUpdate(Input):
+    status: Literal["attended", "absent", "unknown"]

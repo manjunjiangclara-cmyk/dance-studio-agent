@@ -1,6 +1,7 @@
 """Run with uvicorn studio_copilot.api.app:app --host 127.0.0.1."""
 
 import os
+import secrets
 from contextlib import asynccontextmanager
 from hmac import compare_digest
 from typing import Annotated
@@ -12,11 +13,22 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import Engine, text
 from sqlalchemy.exc import IntegrityError, OperationalError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.sessions import SessionMiddleware
 
 from studio_copilot.administration.service import AdministrationError
 from studio_copilot.agent.telemetry import configure_logging
-from studio_copilot.api import agents, conversations, enrolments, students, timetable
+from studio_copilot.api import (
+    agents,
+    auth,
+    conversations,
+    database,
+    enrolments,
+    policy,
+    students,
+    timetable,
+)
 from studio_copilot.api.common import Db
+from studio_copilot.api.website import install_website
 from studio_copilot.persistence.database import make_engine, make_session_factory
 
 bearer = HTTPBearer(auto_error=False)
@@ -26,12 +38,11 @@ def require_admin(
     request: Request,
     credential: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
 ) -> None:
-    if credential is None or not compare_digest(
-        credential.credentials.encode(), request.app.state.admin_token.encode()
-    ):
-        raise HTTPException(
-            401, "A valid admin bearer token is required.", headers={"WWW-Authenticate": "Bearer"}
-        )
+    if credential is not None:
+        if compare_digest(credential.credentials.encode(), request.app.state.admin_token.encode()):
+            return
+        raise HTTPException(401, "A valid admin bearer token is required.")
+    auth.require_browser_access(request)
 
 
 def create_app(
@@ -55,11 +66,32 @@ def create_app(
                 database.dispose()
 
     application = FastAPI(
-        title="Ballet Studio Administration API",
+        title="Dance Studio Administration API",
         version="0.3.0",
         description="Staff administration and teacher-reviewed AI drafts. No email delivery.",
         lifespan=lifespan,
     )
+    owner_settings = auth.OwnerSettings.from_env()
+    auth.configure_oauth(application, owner_settings)
+    application.add_middleware(
+        SessionMiddleware,
+        secret_key=owner_settings.session_secret or secrets.token_urlsafe(32),
+        session_cookie="studio_owner",
+        max_age=8 * 60 * 60,
+        same_site="lax",
+        https_only=owner_settings.base_url.startswith("https://"),
+    )
+    application.include_router(auth.router)
+
+    @application.middleware("http")
+    async def browser_headers(request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Referrer-Policy"] = "same-origin"
+        response.headers["X-Frame-Options"] = "DENY"
+        if request.url.path.startswith(("/api/", "/auth/")):
+            response.headers["Cache-Control"] = "no-store"
+        return response
 
     @application.exception_handler(AdministrationError)
     async def administration_error(_request: Request, error: AdministrationError):
@@ -136,8 +168,11 @@ def create_app(
         enrolments.router,
         conversations.router,
         agents.router,
+        database.router,
+        policy.router,
     ]:
         application.include_router(router, prefix="/api/v1", dependencies=[Depends(require_admin)])
+    install_website(application)
     return application
 
 

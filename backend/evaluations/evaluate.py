@@ -12,10 +12,16 @@ from pathlib import Path
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from evaluations.cases import CATALOG, DATASET, load_scenarios
+from evaluations.cases import CATALOG, DATASET, POLICY, load_scenarios
 from evaluations.fixtures import isolated_database, validate_database_url
 from evaluations.model import MeasuredModel
 from evaluations.runner import build_report, run_scenario
+
+
+def dataset_fingerprint() -> str:
+    return hashlib.sha256(
+        DATASET.read_bytes() + CATALOG.read_bytes() + POLICY.read_bytes()
+    ).hexdigest()
 
 
 def positive_int(value: str) -> int:
@@ -69,7 +75,7 @@ def main(argv=None) -> int:
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
     output = args.output or Path(__file__).with_name("results") / f"{stamp}.json"
     output.parent.mkdir(parents=True, exist_ok=True)
-    dataset_hash = hashlib.sha256(DATASET.read_bytes() + CATALOG.read_bytes()).hexdigest()
+    dataset_hash = dataset_fingerprint()
     results = []
     for repeat in range(1, args.repeat + 1):
         for scenario in selected:

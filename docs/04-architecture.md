@@ -2,7 +2,7 @@
 
 ## Runtime
 
-One Python codebase uses FastAPI, PostgreSQL, SQLAlchemy, Alembic, LangGraph, and the OpenAI Python SDK. The staff API handles ordinary administration; the graph handles a teacher-reviewed makeup enquiry. There is no worker queue, browser UI, real inbox, or email delivery.
+One Python codebase uses FastAPI, PostgreSQL, SQLAlchemy, Alembic, LangGraph, and the OpenAI Python SDK. The staff API handles ordinary administration; the graph handles a teacher-reviewed makeup enquiry. The React website serves a public fictional walkthrough and a Google-authenticated owner review workspace from the same FastAPI origin. Public pages read versioned fixtures; owner pages use the authenticated API. There is no worker queue, real inbox, or email delivery.
 
 ```mermaid
 flowchart LR
@@ -28,7 +28,7 @@ Shared contracts, `openai_model.py`, policy loading, query tools, and run lifecy
 
 ## Two kinds of persistence
 
-Application tables store official studio records, messages, run results, and student memory. Alembic manages these nine tables. `AgentRun` connects a source email to its interpretation, policy snapshot, evidence, current draft, revision, and approved response.
+Application tables store official studio records, messages, run results, and student memory. Alembic manages nine application tables. Each class session owns its independent student UUID list; names resolve from student profiles. `AgentRun` connects a source email to its interpretation, policy snapshot, evidence, current draft, revision, and approved response.
 
 LangGraph's PostgreSQL saver manages checkpoint tables separately. Each run's UUID is its graph thread ID. Framework setup is explicit; startup performs no automatic migration. Review interrupts survive restarts. Conversation continuity comes from application messages and student memory, rather than reusing one student's entire graph state indefinitely.
 
@@ -36,11 +36,11 @@ The first memory update follows interpretation and precedes queries. The second 
 
 ## Execution boundaries
 
-Model-selected tools are read-only, student-scoped, validated, and bounded to four rounds and three calls per round. Unsupported policy or missing data becomes visible uncertainty. No graph node executes bookings, financial changes, or message delivery.
+Model-selected tools are read-only, student-scoped, validated, and bounded to four rounds and three calls per round. Unsupported policy or missing data becomes visible uncertainty. Model tools never write. Explicit teacher approval can reserve an evidenced session and save the reviewed reply atomically. No financial changes or message delivery occur.
 
 A session-level advisory lock serializes agent work per student. Incoming messages use the matching transaction lock and return a conflict if processing is active. Database row locks are limited to short persistence transactions rather than model calls. Identical source starts and approval retries reuse existing records; edited draft revisions require a matching version.
 
-The existing enrolment service retains its transaction and regular-roster capacity checks. Those checks do not establish makeup inventory. The existing local admin bearer token protects both administration and agent endpoints; user accounts and role management remain deferred.
+The existing enrolment service retains its transaction and regular-roster capacity checks. Capacity checks now count distinct regular attendees and approved session bookings. The existing local admin bearer token protects administration clients. Google owner sessions grant read access and explicit agent actions with CSRF protection; they cannot directly write studio records. Public fixtures are separate from workspace data. See [website setup](09-website.md).
 
 ## Operation
 

@@ -11,7 +11,9 @@ from .helpers import review, start
 pytestmark = pytest.mark.integration
 
 
-def test_memory_before_query_and_approval_stores_final_response(rig, scenario, db_engine):
+def test_memory_before_query_and_approval_stores_final_response(
+    rig, scenario, db_engine, monkeypatch
+):
     client, model, service, saver = rig
 
     def memory_exists(context):
@@ -23,11 +25,19 @@ def test_memory_before_query_and_approval_stores_final_response(rig, scenario, d
             assert request["source_message_id"] == str(scenario["source"])
             assert request["kind"] == "student_stated"
 
-    model.before_query = memory_exists
+    from studio_copilot.agent.workflow import queries
+
+    gather = queries.gather_makeup
+
+    def gather_after_memory(engine, state):
+        memory_exists(state["context"])
+        return gather(engine, state)
+
+    monkeypatch.setattr(queries, "gather_makeup", gather_after_memory)
     run = start(rig, scenario)
     repeated = service.start(scenario["conversation"], scenario["source"])
     assert str(repeated.id) == run["id"]
-    assert model.query_count == 2
+    assert model.query_count == 0
     result = review(client, run, "approve", body="Friday instead; I will check suitable options.")
     assert result.status_code == 200, result.text
     approved = result.json()

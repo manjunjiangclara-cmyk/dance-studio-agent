@@ -2,7 +2,6 @@
 
 import json
 import logging
-from datetime import datetime
 from uuid import UUID
 
 from pydantic import ValidationError
@@ -10,6 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from studio_copilot.agent.contracts import Model, ModelError, State, ToolCall
+from studio_copilot.agent.makeup import gather_makeup
 from studio_copilot.agent.tools import TOOL_TYPES, execute_tool
 
 logger = logging.getLogger(__name__)
@@ -22,18 +22,28 @@ class QueryRunner:
         self.engine, self.model = engine, model
 
     def gather(self, state: State) -> dict:
-        missing_details = state["interpretation"]["missing_details"]
-        if state.get("flow", "makeup") != "makeup" or (
-            missing_details and not state.get("feedback")
-        ):
-            return {"evidence": [], "warnings": missing_details}
-
+        if state.get("flow", state["context"].get("flow")) == "makeup":
+            try:
+                return gather_makeup(self.engine, state)
+            except SQLAlchemyError:
+                warning = "Studio records could not be verified; teacher clarification is needed."
+                return {
+                    "evidence": [
+                        {
+                            "tool": "verify_makeup_request",
+                            "arguments": {},
+                            "result": {"verified": False, "issues": [warning], "references": []},
+                        }
+                    ],
+                    "warnings": [warning],
+                }
         context = {
             **state["context"],
             "interpretation": state["interpretation"],
             "teacher_feedback": state.get("feedback", ""),
         }
-        warnings, evidence, transcript, seen = [], [], [], set()
+        warnings = list(state["interpretation"]["missing_details"])
+        evidence, transcript, seen = [], [], set()
         with Session(self.engine) as db:
             for round_number in range(1, MAX_ROUNDS + 1):
                 try:
@@ -62,6 +72,8 @@ class QueryRunner:
                     evidence.append(
                         {"tool": call.name, "arguments": call.arguments, "result": output}
                     )
+                    if output.get("timing_unknown_reason"):
+                        warnings.append(output["timing_unknown_reason"])
                     transcript.append(
                         {
                             "type": "function_call_output",
@@ -77,12 +89,14 @@ class QueryRunner:
                             "round": round_number,
                         },
                     )
-                    if "error" in output or output.get("items") == []:
+                    if "error" in output:
                         warnings.append(
                             "Requested information unavailable; teacher clarification needed."
                         )
                         stop = True
                         break
+                    if output.get("items") == []:
+                        warnings.append("This lookup returned no matching records.")
                 if stop:
                     break
             else:
@@ -102,7 +116,7 @@ class QueryRunner:
             output = execute_tool(
                 db,
                 UUID(context["student"]["id"]),
-                datetime.fromisoformat(context["source"]["occurred_at"]),
+                UUID(context["source"]["id"]),
                 context["policy"],
                 call.name,
                 arguments,

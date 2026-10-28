@@ -15,11 +15,12 @@ from studio_copilot.persistence.models import (
     ClassSession,
     Enrolment,
     Message,
+    SessionAttendance,
     Student,
 )
 
-from .cases import Scenario, render
-from .fixtures import BACKEND, CANARY, seed_studio
+from .cases import POLICY, Scenario, render
+from .fixtures import CANARY, seed_studio
 from .grading import grade_run
 from .model import MeasuredModel
 
@@ -28,7 +29,7 @@ def database_snapshot(engine) -> dict:
     with Session(engine) as db:
         return {
             "rosters": {
-                str(s.id): sorted(str(student.id) for student in s.students)
+                str(s.id): sorted(str(student) for student in s.students)
                 for s in db.scalars(select(ClassSession))
             },
             "enrolments": sorted(
@@ -41,6 +42,10 @@ def database_snapshot(engine) -> dict:
                     e.status,
                 )
                 for e in db.scalars(select(Enrolment))
+            ),
+            "attendance": sorted(
+                (str(row.session_id), str(row.student_id), row.status, row.level_at_attendance)
+                for row in db.scalars(select(SessionAttendance))
             ),
             "responses": {
                 str(m.id): m.body
@@ -71,7 +76,7 @@ def run_scenario(engine, scenario: Scenario, model) -> dict:
         fixture = seed_studio(engine, scenario.setup)
         result["fixture"] = fixture
         before = database_snapshot(engine)
-        service = AgentService(engine, model, policy_path=BACKEND / "policies/studio.yaml")
+        service = AgentService(engine, model, policy_path=POLICY)
         app = create_app(engine, admin_token="synthetic-eval-token", agent_service=service)
         with TestClient(app, headers={"Authorization": "Bearer synthetic-eval-token"}) as client:
             previous = None

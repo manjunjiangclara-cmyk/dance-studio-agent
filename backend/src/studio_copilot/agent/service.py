@@ -14,6 +14,7 @@ from studio_copilot.administration.service import AdministrationError, conflict,
 from studio_copilot.agent.contracts import Review
 from studio_copilot.agent.persistence.checkpoints import postgres_checkpointer
 from studio_copilot.agent.persistence.locking import student_lock
+from studio_copilot.agent.persistence.store import WorkflowStore
 from studio_copilot.agent.policy import load_policy
 from studio_copilot.agent.workflow import Workflow
 from studio_copilot.persistence.models import AgentRun, Conversation, Message, Student
@@ -172,6 +173,10 @@ class AgentService:
                 with Session(self.engine) as db, db.begin():
                     require(db, AgentRun, run_id, lock=True).status = "closed"
                 return self.get(run_id)
+            if review.action == "approve":
+                # Capacity conflicts leave the review/checkpoint untouched. Booking and
+                # teacher response commit together before asynchronous memory recovery.
+                WorkflowStore(self.engine).approve(str(run_id), review.body)
             self._drive(run_id, Command(resume=review.model_dump()))
             return self.get(run_id)
 
@@ -198,9 +203,31 @@ class AgentService:
                 run.status = "finalizing" if run.approved_response_id else "running"
                 run.error = None
                 finalizing = run.approved_response_id is not None
+                approved_revision = run.revision
             with self.checkpoints() as saver:
                 graph = Workflow(self.engine, self.model).compile(saver)
                 snapshot = graph.get_state(config)
+                if (
+                    input_value is None
+                    and finalizing
+                    and snapshot.values
+                    and not any(t.interrupts for t in snapshot.tasks)
+                ):
+                    # A draft may have committed before its initial review interrupt
+                    # was checkpointed. Advance safely to the interrupt (or finish an
+                    # already resumed approval), then restore its durable decision.
+                    graph.invoke(None, config)
+                    snapshot = graph.get_state(config)
+                if input_value is None and finalizing and any(t.interrupts for t in snapshot.tasks):
+                    # A crash may occur after committing the booking/response but before
+                    # the review interrupt consumes the approval command.
+                    input_value = Command(
+                        resume={
+                            "action": "approve",
+                            "expected_revision": approved_revision,
+                            "body": WorkflowStore(self.engine).approved_response(str(run_id)),
+                        }
+                    )
                 if input_value is None and not snapshot.values:
                     if finalizing:
                         raise RuntimeError("The approval checkpoint is unavailable.")

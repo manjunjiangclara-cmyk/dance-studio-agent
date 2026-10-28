@@ -9,9 +9,10 @@ from langgraph.checkpoint.memory import InMemorySaver
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
-from evaluations.cases import Scenario, Setup
+from evaluations.cases import POLICY, Scenario, Setup
 from evaluations.fixtures import isolated_database, seed_studio
 from evaluations.runner import run_scenario
+from studio_copilot.agent.policy import load_policy
 from studio_copilot.agent.service import AgentService
 from studio_copilot.persistence.models import Enrolment, Message, Student
 
@@ -89,8 +90,13 @@ class DateModel(FakeModel):
 
 
 def test_runner_stops_at_review_and_followup_supersedes_without_teacher_writes(
-    db_engine, monkeypatch
+    db_engine, monkeypatch, tmp_path
 ):
+    mutable_policy = tmp_path / "studio.yaml"
+    mutable_policy.write_text(
+        'version: local\nabsence_notice_before_start: false\nexplanation: "Refunds are 50%."\n'
+    )
+    monkeypatch.setenv("STUDIO_POLICY_PATH", str(mutable_policy))
     saver = InMemorySaver()
     monkeypatch.setattr(
         "evaluations.runner.AgentService",
@@ -122,6 +128,7 @@ def test_runner_stops_at_review_and_followup_supersedes_without_teacher_writes(
     assert result["passed"], result
     assert len(result["runs"]) == 2
     assert all(run["status"] == "awaiting_review" for run in result["runs"])
+    assert all(run["policy_snapshot"] == load_policy(POLICY) for run in result["runs"])
     assert result["runs"][0]["conversation_id"] == result["runs"][1]["conversation_id"]
     assert any(c["name"] == "earlier_run_superseded" and c["passed"] for c in result["checks"])
     assert (
@@ -155,3 +162,22 @@ def test_approve_twice_is_an_api_idempotency_test_not_an_email_scenario(rig, sce
         responses = list(db.scalars(select(Message).where(Message.kind == "teacher_response")))
         assert len(responses) == 1
         assert responses[0].body == payload["body"]
+
+
+def test_conflicting_session_fixture_has_real_partial_overlap(db_engine):
+    from datetime import timedelta
+
+    from evaluations.cases import load_scenarios
+    from studio_copilot.persistence.models import ClassSession
+
+    scenario = next(s for s in load_scenarios() if s.id == "makeup_overlapping_existing_booking")
+    fixture = seed_studio(db_engine, scenario.setup)
+    with Session(db_engine) as db:
+        student_id = UUID(fixture["student_id"])
+        target = db.get(ClassSession, UUID(fixture["sessions"]["thursday"]))
+        conflicting = db.get(ClassSession, UUID(fixture["sessions"]["conflicting_session"]))
+        assert target.id != conflicting.id
+        assert conflicting.starts_at == target.starts_at + timedelta(minutes=30)
+        assert target.starts_at < conflicting.ends_at and conflicting.starts_at < target.ends_at
+        assert student_id not in set(target.students)
+        assert student_id in set(conflicting.students)

@@ -1,7 +1,8 @@
 """Add a small synthetic walkthrough once; never reset or overwrite existing data."""
 
+import argparse
 import json
-from datetime import date, datetime
+from datetime import UTC, date, datetime, timedelta
 from uuid import NAMESPACE_URL, uuid5
 from zoneinfo import ZoneInfo
 
@@ -22,6 +23,24 @@ from studio_copilot.persistence.models import (
 
 def demo_id(name: str):
     return uuid5(NAMESPACE_URL, f"studio-copilot-synthetic-demo/v1/{name}")
+
+
+def repair_demo_message_dates(db: Session) -> int:
+    """Move only original fixture timestamps into the past; preserve other edits."""
+    history_start = datetime.now(UTC) - timedelta(days=1)
+    repaired = 0
+    for index in range(3):
+        message = db.get(Message, demo_id(f"message_{index}"))
+        legacy_date = datetime(2027, 2, 7, 10, index, tzinfo=ZoneInfo("Australia/Melbourne"))
+        if (
+            message is not None
+            and message.conversation_id == demo_id("conversation")
+            and message.occurred_at == legacy_date
+            and message.occurred_at > history_start
+        ):
+            message.occurred_at = history_start + timedelta(minutes=index)
+            repaired += 1
+    return repaired
 
 
 def seed_demo(db: Session) -> dict:
@@ -94,6 +113,11 @@ def seed_demo(db: Session) -> dict:
                 starts_at=datetime(2027, 2, day, 18, tzinfo=ZoneInfo(location.timezone)),
                 ends_at=datetime(2027, 2, day, 19, tzinfo=ZoneInfo(location.timezone)),
                 capacity=12,
+                students=[ids["alex"]]
+                if key == "monday"
+                else [ids["sam"]]
+                if key == "thursday"
+                else [],
             )
         )
     db.add_all(
@@ -117,6 +141,7 @@ def seed_demo(db: Session) -> dict:
     conversation = Conversation(
         id=ids["conversation"], student=alex, subject="Makeup for Monday 8 February"
     )
+    history_start = datetime.now(UTC) - timedelta(days=1)
     for index, (kind, body) in enumerate(
         [
             (
@@ -142,7 +167,7 @@ def seed_demo(db: Session) -> dict:
                 conversation=conversation,
                 kind=kind,
                 body=body,
-                occurred_at=datetime(2027, 2, 7, 10, index, tzinfo=ZoneInfo("Australia/Melbourne")),
+                occurred_at=history_start + timedelta(minutes=index),
             )
         )
     db.flush()
@@ -150,10 +175,19 @@ def seed_demo(db: Session) -> dict:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--repair-message-dates",
+        action="store_true",
+        help="Move original February 2027 demo message timestamps into the past.",
+    )
+    args = parser.parse_args()
     engine = make_engine()
     try:
         with Session(engine) as db, db.begin():
             result = seed_demo(db)
+            if args.repair_message_dates:
+                result["repaired_message_dates"] = repair_demo_message_dates(db)
         print(json.dumps(result, indent=2))
     finally:
         engine.dispose()

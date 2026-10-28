@@ -47,7 +47,7 @@ def test_enrolment_changes_preserve_history_and_allow_rejoining(db, catalog):
     assert student.enrolment_history[0].status == "ended"
 
 
-def test_session_roster_uses_period_dates_in_location_timezone(db, catalog):
+def test_session_roster_is_stored_independently_of_enrolment_dates(db, catalog):
     catalog.enrolment.ends_on = date(2027, 2, 8)
     catalog.enrolment.status = "ended"
     # This session is on Feb 8 in Melbourne but Feb 7 in UTC.
@@ -61,8 +61,14 @@ def test_session_roster_uses_period_dates_in_location_timezone(db, catalog):
         ends_at=datetime(2027, 2, 15, 19, tzinfo=ZoneInfo("UTC")),
         capacity=12,
     )
+    catalog.class_session.students = [catalog.student.id]
+    later.students = [catalog.student.id]
     db.add(later)
     db.commit()
     db.expire_all()
-    assert catalog.class_session.students == [catalog.student]
-    assert later.students == []
+    assert catalog.class_session.students == [catalog.student.id]
+    assert later.students == [catalog.student.id]
+    catalog.enrolment.status = "cancelled"
+    db.commit()
+    db.expire_all()
+    assert catalog.class_session.students == later.students == [catalog.student.id]
