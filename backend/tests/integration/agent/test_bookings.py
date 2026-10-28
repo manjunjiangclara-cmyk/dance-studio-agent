@@ -30,6 +30,9 @@ pytestmark = pytest.mark.integration
 def booking_target(rig, scenario, db_engine):
     with Session(db_engine) as db, db.begin():
         original = db.get(ClassSession, scenario["session"])
+        db.get(
+            Message, scenario["source"]
+        ).body = "I will miss my class on 2027-02-08. Could I attend 2027-02-11 instead?"
         target_class = StudioClass(
             name="Thursday makeup candidate",
             level="Level 2",
@@ -289,7 +292,7 @@ def test_last_seat_is_serialized_between_two_students(rig, scenario, booking_tar
         source = Message(
             conversation=conversation,
             kind="student_email",
-            body="Thursday please",
+            body="I will miss my class on 2027-02-08. Could I attend 2027-02-11 instead?",
             occurred_at=datetime.fromisoformat("2027-02-07T10:00:00+11:00"),
         )
         db.add(source)

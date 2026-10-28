@@ -121,7 +121,7 @@ def test_followup_uses_original_absence_email_timestamp(rig, scenario, db_engine
     client, model, _, _ = rig
     with Session(db_engine) as db, db.begin():
         notice = db.get(Message, scenario["source"])
-        notice.body = "I cannot attend Monday's class. Can I make it up Thursday?"
+        notice.body = "I cannot attend my Monday class on 2027-02-08. Can I make it up Thursday?"
     followup = client.post(
         f"/api/v1/conversations/{scenario['conversation']}/messages",
         json={

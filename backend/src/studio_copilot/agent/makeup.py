@@ -5,6 +5,7 @@ Verification and candidate results are retained as evidence in existing run/chec
 """
 
 import hashlib
+import re
 from datetime import UTC, date, datetime, time, timedelta
 from uuid import UUID
 from zoneinfo import ZoneInfo
@@ -69,6 +70,65 @@ def _notice_digest(message: Message) -> str:
     return hashlib.sha256(
         (message.body + "\n" + message.occurred_at.isoformat()).encode()
     ).hexdigest()
+
+
+def _explicit_absence_notice(message: Message, day: date) -> bool:
+    """Accept only bounded statements; unfamiliar or conflicting text needs review."""
+    date_text = re.escape(day.isoformat())
+    weekday = day.strftime("%A")
+    statement = (
+        r"i\s+(?:will\s+miss|missed|cannot\s+attend|can't\s+attend)\s+"
+        rf"(?:my\s+(?:{weekday}\s+)?class\s+on\s+{date_text}|{weekday}\s+{date_text})"
+    )
+    question = (
+        r"(?:can|could)\s+i\s+(?:make\s+it\s+up"
+        r"(?:\s+(?:(?:on|in)\s+)?(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)"
+        r"(?:\s+level\s+\d+\s+on)?(?:\s+\d{4}-\d{2}-\d{2})?"
+        r"(?:\s+at\s+\d{1,2}(?::\d{2})?\s*(?:am|pm))?"
+        r"|\s+on\s+\d{4}-\d{2}-\d{2})?"
+        r"|attend\s+\d{4}-\d{2}-\d{2}(?:\s+instead)?)"
+    )
+    return (
+        re.fullmatch(
+            rf"\s*{statement}\s*[.!]?(?:\s+{question}\s*[?]?)?\s*",
+            message.body,
+            flags=re.IGNORECASE,
+        )
+        is not None
+    )
+
+
+def _notice_context_unambiguous(db: Session, notice: Message, source: Message, day: date) -> bool:
+    if not _explicit_absence_notice(notice, day):
+        return False
+    if notice.id != source.id and notice.created_at >= source.created_at:
+        return False
+    intervening = db.scalar(
+        select(Message.id)
+        .where(
+            Message.conversation_id == notice.conversation_id,
+            Message.kind == "student_email",
+            Message.created_at >= notice.created_at,
+            Message.id != notice.id,
+            Message.id != source.id,
+        )
+        .limit(1)
+    )
+    if intervening:
+        return False
+    if notice.id == source.id:
+        return True
+    if _explicit_absence_notice(source, day):
+        return True
+    return (
+        re.fullmatch(
+            r"\s*(?:actually,?\s+)?(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)"
+            r"(?:\s+\d{4}-\d{2}-\d{2})?\s+instead(?:,?\s+please)?[.!]?\s*",
+            source.body,
+            flags=re.IGNORECASE,
+        )
+        is not None
+    )
 
 
 def _snapshot(session: ClassSession) -> dict:
@@ -190,16 +250,16 @@ def gather_makeup(engine, state: dict) -> dict:
                 if (
                     session.starts_at.astimezone(zone).date() == absence_date
                     and str(session.class_id) in active_classes
-                    and (
-                        not parsed.get("absence_class_id")
-                        or str(session.class_id) == str(parsed["absence_class_id"])
-                    )
                 ):
                     matches.append(session)
             if len(matches) != 1:
                 issues.append(
                     "The missed class/date must match one enrolled session in your student list."
                 )
+            elif parsed.get("absence_class_id") and str(matches[0].class_id) != str(
+                parsed["absence_class_id"]
+            ):
+                issues.append("The selected class does not match the missed session.")
         missed = matches[0] if len(matches) == 1 else None
         try:
             notice_id = UUID(str(parsed.get("absence_message_id")))
@@ -219,6 +279,10 @@ def gather_makeup(engine, state: dict) -> dict:
             or notice.created_at > source.created_at
         ):
             issues.append("Confirm the student email that reported this absence.")
+        elif missed is not None and not _notice_context_unambiguous(
+            db, notice, source, absence_date
+        ):
+            issues.append("Staff must confirm that the selected email reports this absence.")
         elif missed is not None:
             result = tool(
                 "check_absence_notice",
@@ -417,6 +481,8 @@ def clarification_body(evidence: list[dict]) -> str:
         "Attendance" in x for x in verification.get("issues", [])
     ):
         return "We need to check the attendance record for that session before arranging a makeup."
+    if any("selected email reports this absence" in x for x in verification.get("issues", [])):
+        return "We need to review the absence notice for that class before arranging a makeup."
     if not verified:
         return (
             "Thanks for your message. Could you confirm which class you missed and its date? "
@@ -544,6 +610,7 @@ def revalidate_makeup(db: Session, run, target_id: UUID) -> None:
         or notice.occurred_at > source.occurred_at
         or notice.created_at > source.created_at
         or _notice_digest(notice) != verified.get("notice_digest")
+        or not _notice_context_unambiguous(db, notice, source, day)
     ):
         conflict(
             "The missed-session or absence records changed. Request a new draft before booking."
@@ -554,6 +621,29 @@ def revalidate_makeup(db: Session, run, target_id: UUID) -> None:
         and notice.occurred_at >= missed.starts_at
     ):
         conflict("The absence notice was late. Review the request before arranging a makeup.")
+    active_classes = {
+        row.class_id
+        for row in db.scalars(
+            select(Enrolment).where(Enrolment.student_id == conversation.student_id)
+        )
+        if row.is_active_on(day)
+    }
+    nearby_sessions = db.scalars(
+        select(ClassSession).where(
+            ClassSession.starts_at >= datetime.combine(day - timedelta(days=1), time.min, UTC),
+            ClassSession.starts_at < datetime.combine(day + timedelta(days=2), time.min, UTC),
+            ClassSession.students.any(conversation.student_id),
+        )
+    )
+    matches = [
+        session.id
+        for session in nearby_sessions
+        if session.class_id in active_classes
+        and session.starts_at.astimezone(ZoneInfo(session.regular_class.location.timezone)).date()
+        == day
+    ]
+    if matches != [missed.id]:
+        conflict("The absence notice no longer identifies one session. Request a new draft.")
     status = attendance_status(db, conversation.student_id, missed.id)
     if status == "attended" or (status == "unknown" and missed.ends_at <= datetime.now(UTC)):
         conflict("Attendance no longer supports this makeup. Request a new draft before booking.")

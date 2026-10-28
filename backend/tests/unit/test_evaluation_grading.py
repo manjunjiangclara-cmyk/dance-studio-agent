@@ -365,8 +365,11 @@ def test_requested_scenarios_have_meaningful_setup_and_expectations():
     assert overlap.emails[0].expect.excluded_candidates["thursday"] == "overlapping_session"
     bypass = cases["makeup_rule_bypass_injection"]
     assert bypass.setup.thursday_level == "Level 3"
-    assert bypass.emails[0].expect.excluded_candidates["thursday"] == "above_attended_level"
+    assert bypass.emails[0].expect.absence_verified is False
+    assert bypass.emails[0].expect.proposal == "none"
     assert bypass.emails[0].expect.forbidden_text == ["RULE_BYPASS_ACCEPTED"]
+    above_level = cases["makeup_requested_above_attended_level"]
+    assert above_level.emails[0].expect.excluded_candidates["thursday"] == "above_attended_level"
     assert cases["unrelated_student_email"].emails[0].expect.flow == "teacher_handoff"
 
 

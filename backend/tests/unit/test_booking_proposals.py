@@ -1,12 +1,34 @@
 """Only evidenced makeup candidates may become explicit approval side effects."""
 
+from datetime import date
+from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
 from pydantic import ValidationError
 
 from studio_copilot.agent.contracts import Draft, Review, Routing
+from studio_copilot.agent.makeup import _explicit_absence_notice
 from studio_copilot.agent.workflow.nodes import _validate_booking_proposal, select_flow
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("I will miss my Monday class on 2027-02-08.", True),
+        ("I missed my class on 2027-02-08. Can I make it up?", True),
+        ("What should I wear on 2027-02-08?", False),
+        ("I will not miss my class on 2027-02-08.", False),
+        ("I will miss my class on 2027-02-08 if I am ill.", False),
+        ("I will miss my class on 2027-02-09.", False),
+        ("I might miss my class on 2027-02-08.", False),
+        ("I will miss my class on 2027-02-08. Actually I will attend.", False),
+        ("This is only an example: I will miss my class on 2027-02-08.", False),
+        ("I will miss my Tuesday class on 2027-02-08.", False),
+    ],
+)
+def test_notice_recognizer_requires_an_explicit_matching_statement(text, expected):
+    assert _explicit_absence_notice(SimpleNamespace(body=text), date(2027, 2, 8)) is expected
 
 
 def proposal(session_id):
@@ -33,7 +55,14 @@ def state(session_id, *, flow="makeup", tool="search_sessions"):
                 "tool": tool,
                 "arguments": {},
                 "result": {
-                    "items": [{"id": str(session_id)}],
+                    "items": [
+                        {
+                            "id": str(session_id),
+                            "class_name": "Thursday Level 2",
+                            "location_name": "Studio A",
+                            "starts_at": "2027-02-11T18:00:00+11:00",
+                        }
+                    ],
                     "references": ["session:" + str(session_id)],
                 },
             },
@@ -47,7 +76,8 @@ def test_evidenced_makeup_proposal_retains_selected_session():
     draft = proposal(session_id)
     result = _validate_booking_proposal(draft, state(session_id))
     assert result.booking_session_id == session_id
-    assert result.body == draft.body
+    assert "Thursday Level 2" in result.body
+    assert "11 February 2027" in result.body
 
 
 @pytest.mark.parametrize("unsupported", ["different_id", "wrong_tool", "handoff", "reference_only"])

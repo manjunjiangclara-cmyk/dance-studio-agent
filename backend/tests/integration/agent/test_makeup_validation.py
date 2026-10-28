@@ -188,6 +188,21 @@ def test_approval_rechecks_requested_weekday(rig, scenario, verified_makeup, db_
     assert_no_approval_side_effects(db_engine, run, verified_makeup, [])
 
 
+@pytest.mark.parametrize("changed", ["notice", "location_name"])
+def test_approval_rechecks_notice_and_confirmation_details(
+    rig, scenario, verified_makeup, db_engine, changed
+):
+    run = start(rig, scenario)
+    assert run["draft_details"]["booking_session_id"] == str(verified_makeup)
+    with Session(db_engine) as db, db.begin():
+        if changed == "notice":
+            db.get(Message, scenario["source"]).body = "What should I wear?"
+        else:
+            db.get(ClassSession, verified_makeup).regular_class.location.name = "New studio name"
+    assert review(rig[0], run, "approve").status_code == 409
+    assert_no_approval_side_effects(db_engine, run, verified_makeup, [])
+
+
 def test_makeup_database_lookup_failure_produces_safe_clarification(
     rig, scenario, verified_makeup, monkeypatch
 ):
@@ -329,6 +344,66 @@ def test_multiple_enrolled_sessions_on_absence_date_need_clarification(
         )
     run = start(rig, scenario)
     assert run["draft_details"]["booking_session_id"] is None
+
+
+def test_model_class_selection_cannot_resolve_ambiguous_generic_notice(
+    rig, scenario, verified_makeup, db_engine, monkeypatch
+):
+    with Session(db_engine) as db, db.begin():
+        original = db.get(ClassSession, scenario["session"])
+        other_class = StudioClass(
+            name="Another Monday class",
+            level="Level 2",
+            term_id=original.regular_class.term_id,
+            location_id=original.regular_class.location_id,
+        )
+        db.add(other_class)
+        db.flush()
+        db.add(
+            Enrolment(
+                student_id=scenario["student"],
+                class_id=other_class.id,
+                starts_on=date(2027, 2, 1),
+                status="active",
+            )
+        )
+        db.add(
+            ClassSession(
+                class_id=other_class.id,
+                starts_at=datetime.fromisoformat("2027-02-08T20:00:00+11:00"),
+                ends_at=datetime.fromisoformat("2027-02-08T21:00:00+11:00"),
+                capacity=12,
+                students=[scenario["student"]],
+            )
+        )
+        original_class = original.class_id
+    model = rig[1]
+    interpret = model.interpret_makeup
+    monkeypatch.setattr(
+        model,
+        "interpret_makeup",
+        lambda context: interpret(context).model_copy(update={"absence_class_id": original_class}),
+    )
+    run = start(rig, scenario)
+    assert run["draft_details"]["booking_session_id"] is None
+
+
+def test_approval_rejects_new_ambiguous_same_day_session(rig, scenario, verified_makeup, db_engine):
+    run = start(rig, scenario)
+    assert run["draft_details"]["booking_session_id"] == str(verified_makeup)
+    with Session(db_engine) as db, db.begin():
+        original = db.get(ClassSession, scenario["session"])
+        db.add(
+            ClassSession(
+                class_id=original.class_id,
+                starts_at=datetime.fromisoformat("2027-02-08T20:00:00+11:00"),
+                ends_at=datetime.fromisoformat("2027-02-08T21:00:00+11:00"),
+                capacity=12,
+                students=[scenario["student"]],
+            )
+        )
+    assert review(rig[0], run, "approve").status_code == 409
+    assert_no_approval_side_effects(db_engine, run, verified_makeup, [])
 
 
 @pytest.mark.parametrize("invalid", ["missing_roster", "full"])

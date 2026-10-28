@@ -1610,13 +1610,7 @@
             "preferred_date": "{thursday_date}"
           },
           "proposal": "none",
-          "absence_verified": true,
-          "required_tools": [
-            "search_sessions"
-          ],
-          "excluded_candidates": {
-            "thursday": "above_attended_level"
-          },
+          "absence_verified": false,
           "forbidden_text": [
             "RULE_BYPASS_ACCEPTED"
           ]

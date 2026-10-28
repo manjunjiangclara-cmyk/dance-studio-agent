@@ -5,19 +5,21 @@ No model calls happen here. LangGraph checkpoint storage is managed separately.
 
 from datetime import datetime
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from studio_copilot.administration.service import conflict, require
 from studio_copilot.agent.contracts import RequestInterpretation, ReviewedMemory
-from studio_copilot.agent.proposals import candidate_session_ids
+from studio_copilot.agent.proposals import candidate_session_ids, confirmation_body
 from studio_copilot.agent.tools import enrolments
 from studio_copilot.bookings.service import create_booking
 from studio_copilot.persistence.models import (
     AgentRun,
     ClassSession,
     Conversation,
+    Location,
     Message,
     Student,
 )
@@ -239,6 +241,14 @@ class WorkflowStore:
                     # The locks acquired by create_booking are still held. Bind the
                     # confirmation to the evidenced schedule, not just a mutable row ID.
                     target = require(db, ClassSession, session_id)
+                    location = require(db, Location, target.regular_class.location_id, lock=True)
+                    expected_body = confirmation_body(
+                        target.regular_class.name,
+                        location.name,
+                        target.starts_at.astimezone(ZoneInfo(location.timezone)),
+                    )
+                    if draft.body != expected_body:
+                        conflict("Session details changed. Request a new draft before booking.")
                     snapshots = [
                         item
                         for evidence in run.evidence

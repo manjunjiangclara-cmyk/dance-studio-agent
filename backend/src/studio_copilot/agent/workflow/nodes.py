@@ -1,6 +1,7 @@
 """Workflow steps: model decisions and state updates, with persistence delegated to the store."""
 
 import logging
+from datetime import datetime
 
 from langgraph.types import interrupt
 
@@ -17,6 +18,7 @@ from studio_copilot.agent.contracts import (
 )
 from studio_copilot.agent.makeup import clarification_body, validated_candidate_ids
 from studio_copilot.agent.persistence.store import WorkflowStore
+from studio_copilot.agent.proposals import confirmation_body
 from studio_copilot.agent.workflow.queries import QueryRunner
 
 logger = logging.getLogger(__name__)
@@ -79,6 +81,22 @@ def _validate_booking_proposal(draft: Draft, state: State) -> Draft:
         draft.booking_session_id = None
         draft.body = clarification_body(state.get("evidence", []))
         draft.rationale += " Unsupported booking proposal removed; teacher clarification is needed."
+    else:
+        candidates = [
+            item
+            for evidence in state.get("evidence", [])
+            if evidence.get("tool") == "search_sessions"
+            for item in evidence.get("result", {}).get("items", [])
+            if item.get("id") == str(draft.booking_session_id)
+        ]
+        item = candidates[-1] if candidates else {}
+        try:
+            start = datetime.fromisoformat(item["starts_at"])
+            draft.body = confirmation_body(item["class_name"], item["location_name"], start)
+        except (KeyError, TypeError, ValueError):
+            draft.booking_session_id = None
+            draft.body = "We need to verify the session details before arranging your makeup."
+            return draft
     return draft
 
 

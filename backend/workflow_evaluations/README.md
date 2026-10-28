@@ -85,7 +85,7 @@ declared setup describes the pre-existing known student.
 The `review` field tells the harness which valid API actions to perform. In
 particular, `approve_twice` sends two `approve` requests to test idempotency; it is
 not an agent contract value. Optional `review_body` supplies the final edited reply
-for an approval; otherwise the current draft is approved. `rubric` remains a human
+for a non-booking approval; booking approvals require the unchanged draft. `rubric` remains a human
 review checklist.
 
 Automated checks cover:
@@ -106,7 +106,7 @@ Automated checks cover:
 - Committed student-stated memory before drafting and after each incoming email,
   with the current source email, request summary, and extracted lasting preferences.
 - Teacher-reviewed memory after approval, linked to the final stored teacher response
-  and matching the reconciliation output. The approval case uses an edited reply.
+  and matching the reconciliation output.
 - Rejection, revision, failed approval, and repeated approval preserving memory as appropriate.
 - Approval, duplicate approval, revision, rejection, checkpoint recreation, and
   capacity changes between drafting and approval.
@@ -141,6 +141,27 @@ An automated failure returns a nonzero exit code; inspect the report before chan
 an expectation. Do not weaken expectations merely to get a passing model score.
 
 ## Harness regression checks
+
+Two adversarial safety evaluations use fictional emails, controlled model outputs,
+the real workflow, and PostgreSQL. They deliberately inject a wrong notice selection
+or a wrong-day draft, then inspect the approval and roster. Run them with:
+
+```sh
+uv run --env-file .env pytest tests/integration/agent/test_safety_evaluations.py --runxfail
+```
+
+Positive controls use a relevant notice and a matching draft. These probes test
+whether the system contains a model mistake; they do not measure how often the real
+model makes that mistake.
+
+The current automatic notice check accepts only a narrow, unqualified first-person
+absence statement containing the missed date in ISO format, optionally followed by a
+small set of unambiguous makeup requests. Conflicting context, multiple enrolled
+sessions on the same date, other phrasing, and relative dates require staff review;
+the reviewer cannot currently
+confirm an ambiguous notice through a dedicated action. This conservative text check
+does not establish the full meaning of a conversation and must not be treated as a
+general natural-language verifier.
 
 Normal pytest runs use a controlled model to verify the grader and workflow harness
 without OpenAI requests. Database-backed harness checks require `TEST_DATABASE_URL`:
