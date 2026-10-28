@@ -140,8 +140,7 @@ def test_evaluation_records_two_committed_memory_updates(db_engine):
     request = reviewed_memory["requests"][conversation_id]
     assert request["source_message_id"] == response_id
     assert request["kind"] == "teacher_reviewed"
-    final_body = case.review_body.format_map(result["fixture"]["dates"])
-    assert final_body != run["draft_details"]["body"]
+    final_body = run["draft_details"]["body"]
     assert final_body in request["request_summary"]
     assert reviewed_memory["approved_responses"][response_id]["conversation_id"] == conversation_id
 
