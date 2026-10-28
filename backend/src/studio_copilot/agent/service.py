@@ -16,6 +16,7 @@ from studio_copilot.agent.persistence.checkpoints import postgres_checkpointer
 from studio_copilot.agent.persistence.locking import student_lock
 from studio_copilot.agent.persistence.store import WorkflowStore
 from studio_copilot.agent.policy import load_policy
+from studio_copilot.agent.tracing import workflow_trace
 from studio_copilot.agent.workflow import Workflow
 from studio_copilot.persistence.models import AgentRun, Conversation, Message, Student
 
@@ -177,7 +178,11 @@ class AgentService:
                 # Capacity conflicts leave the review/checkpoint untouched. Booking and
                 # teacher response commit together before asynchronous memory recovery.
                 WorkflowStore(self.engine).approve(str(run_id), review.body)
-            self._drive(run_id, Command(resume=review.model_dump()))
+            self._drive(
+                run_id,
+                Command(resume=review.model_dump()),
+                phase="revision" if review.action == "revise" else "review",
+            )
             return self.get(run_id)
 
     def retry(self, run_id: UUID):
@@ -192,10 +197,14 @@ class AgentService:
                     and latest_email(db, run.conversation_id).id != run.source_message_id
                 ):
                     conflict("A newer email has superseded this run.")
-            self._drive(run_id, None)
+            self._drive(run_id, None, phase="retry")
             return self.get(run_id)
 
-    def _drive(self, run_id, input_value):
+    def _drive(self, run_id, input_value, *, phase="start"):
+        with workflow_trace(run_id, phase) as trace:
+            self._drive_traced(run_id, input_value, trace)
+
+    def _drive_traced(self, run_id, input_value, trace):
         config = {"configurable": {"thread_id": str(run_id)}, "recursion_limit": 30}
         try:
             with Session(self.engine) as db, db.begin():
@@ -244,8 +253,10 @@ class AgentService:
                         if run.approved_response_id is None:
                             run.status = "awaiting_review"
         except AdministrationError:
+            trace.fail()
             raise
         except Exception as error:
+            trace.fail()
             # No provider exception strings, prompts, or credentials in logs/API errors.
             logger.error(
                 "agent_run_failed",
