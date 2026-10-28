@@ -108,7 +108,7 @@ def test_approval_adds_student_once_without_changing_regular_enrolment(
     assert run["draft_details"]["booking_session_id"] == str(booking_target["id"])
     assert booking_counts(db_engine) == (0, 0)
     for _ in range(2):
-        approved = review(client, run, "approve", body="Thursday is confirmed.")
+        approved = review(client, run, "approve", body=run["draft_details"]["body"])
         assert approved.status_code == 200, approved.text
         assert approved.json()["status"] == "approved"
     assert booking_counts(db_engine) == (1, 1)
@@ -227,7 +227,7 @@ def test_retry_recovers_crash_after_booking_commit_before_graph_resume(
 
     monkeypatch.setattr(service, "_drive", crash_before_graph_resume)
     with pytest.raises(RuntimeError, match="Synthetic process crash"):
-        review(client, run, "approve", body="Your Thursday booking is confirmed.")
+        review(client, run, "approve", body=run["draft_details"]["body"])
     assert booking_counts(db_engine) == (1, 1)
     saved = client.get(f"/api/v1/agent-runs/{run['id']}").json()
     assert saved["approved_response_id"]

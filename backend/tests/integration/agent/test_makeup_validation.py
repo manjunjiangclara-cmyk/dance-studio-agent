@@ -2,6 +2,7 @@
 
 from datetime import UTC, date, datetime, timedelta
 from uuid import UUID, uuid4
+from zoneinfo import ZoneInfo
 
 import pytest
 from sqlalchemy import func, select
@@ -110,6 +111,81 @@ def test_makeup_verifies_and_searches_without_model_tool_selection(
             )
             == 1
         )
+
+
+@pytest.mark.parametrize("edited", ["We cannot offer this makeup.", "Please attend another class."])
+def test_edited_approval_cannot_book_original_proposal(
+    rig, scenario, verified_makeup, db_engine, edited
+):
+    run = start(rig, scenario)
+    assert run["draft_details"]["booking_session_id"] == str(verified_makeup)
+    assert review(rig[0], run, "approve", body=edited).status_code == 409
+    assert_no_approval_side_effects(db_engine, run, verified_makeup, [])
+    assert review(rig[0], run, "approve", body=run["draft_details"]["body"]).status_code == 200
+
+
+def test_weekday_only_search_excludes_other_days(
+    rig, scenario, verified_makeup, db_engine, monkeypatch
+):
+    with Session(db_engine) as db, db.begin():
+        target = db.get(ClassSession, verified_makeup)
+        start_at = datetime.now(UTC) + timedelta(days=3)
+        target.starts_at = start_at
+        target.ends_at = start_at + timedelta(hours=1)
+        other = ClassSession(
+            class_id=target.class_id,
+            starts_at=start_at + timedelta(days=1),
+            ends_at=start_at + timedelta(days=1, hours=1),
+            capacity=1,
+        )
+        db.add(other)
+        db.flush()
+        other_id = other.id
+        weekday = (
+            start_at.astimezone(ZoneInfo(target.regular_class.location.timezone))
+            .strftime("%A")
+            .swapcase()
+        )
+    model = rig[1]
+    interpret = model.interpret_makeup
+    monkeypatch.setattr(
+        model,
+        "interpret_makeup",
+        lambda context: interpret(context).model_copy(
+            update={"preferred_date": None, "preferred_weekday": weekday}
+        ),
+    )
+    run = start(rig, scenario)
+    result = next(e["result"] for e in run["evidence"] if e["tool"] == "search_sessions")
+    ids = {item["id"] for item in result["items"]}
+    assert str(verified_makeup) in ids
+    assert str(other_id) not in ids
+    assert run["draft_details"]["booking_session_id"] is None
+
+
+def test_invalid_weekday_does_not_search_or_propose(rig, scenario, verified_makeup, monkeypatch):
+    model = rig[1]
+    interpret = model.interpret_makeup
+    monkeypatch.setattr(
+        model,
+        "interpret_makeup",
+        lambda context: interpret(context).model_copy(
+            update={"preferred_date": None, "preferred_weekday": "Someday"}
+        ),
+    )
+    run = start(rig, scenario)
+    assert not any(e["tool"] == "search_sessions" for e in run["evidence"])
+    assert run["draft_details"]["booking_session_id"] is None
+
+
+def test_approval_rechecks_requested_weekday(rig, scenario, verified_makeup, db_engine):
+    run = start(rig, scenario)
+    assert run["draft_details"]["booking_session_id"] == str(verified_makeup)
+    with Session(db_engine) as db, db.begin():
+        record = db.get(AgentRun, UUID(run["id"]))
+        record.interpretation = {**record.interpretation, "preferred_weekday": "Monday"}
+    assert review(rig[0], run, "approve").status_code == 409
+    assert_no_approval_side_effects(db_engine, run, verified_makeup, [])
 
 
 def test_makeup_database_lookup_failure_produces_safe_clarification(

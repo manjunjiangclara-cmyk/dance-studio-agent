@@ -316,6 +316,8 @@ def gather_makeup(engine, state: dict) -> dict:
                 and weekday
                 and weekday.casefold() != weekdays[preferred.weekday()]
             )
+            if weekday and weekday.casefold() not in weekdays:
+                inconsistent_day = True
             if inconsistent_day:
                 warnings.append("Confirm the preferred date and weekday; they do not match.")
             elif not preference or location_id:
@@ -326,7 +328,11 @@ def gather_makeup(engine, state: dict) -> dict:
                         "to_date": (
                             preferred or (datetime.now(UTC).date() + timedelta(days=60))
                         ).isoformat(),
-                        "weekday": preferred.weekday() if preferred else None,
+                        "weekday": preferred.weekday()
+                        if preferred
+                        else weekdays.index(weekday.casefold())
+                        if weekday
+                        else None,
                         "level": None,
                         "location_id": location_id,
                     },
@@ -546,6 +552,13 @@ def revalidate_makeup(db: Session, run, target_id: UUID) -> None:
         != requested_time
     ):
         conflict("The requested start time no longer matches this session. Request a new draft.")
+    requested_weekday = run.interpretation.get("preferred_weekday")
+    if requested_weekday:
+        weekdays = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+        if requested_weekday.casefold() not in weekdays or target.starts_at.astimezone(
+            ZoneInfo(target.regular_class.location.timezone)
+        ).weekday() != weekdays.index(requested_weekday.casefold()):
+            conflict("The requested weekday no longer matches this session. Request a new draft.")
     target_level = target.regular_class.level.casefold()
     if rank is None or target_level not in order or order.index(target_level) > rank:
         conflict("The student's recorded attendance does not support this class level.")

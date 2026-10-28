@@ -223,6 +223,11 @@ class WorkflowStore:
             if run.approved_response_id is None:
                 proposal = run.draft_details.get("booking_session_id")
                 if proposal:
+                    draft = require(db, Message, run.draft_message_id)
+                    if body is not None and body != draft.body:
+                        conflict(
+                            "Regenerate the draft before approving an edited booking response."
+                        )
                     session_id = UUID(str(proposal))
                     if run.interpretation.get(
                         "flow"
