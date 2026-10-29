@@ -36,7 +36,7 @@ These are deferred decisions, not assumed requirements of the database foundatio
 
 Student memory updates immediately after interpretation, before queries, then reconciles again after teacher approval. Final edited teacher responses are stored separately from generated drafts; approval does not establish delivery. Read-only tools have fixed call/round limits and terminate on missing data. Rejection closes the run without a rejection message or audit event and deletes its graph checkpoints. See [workflow](03-makeup-workflow.md) and [agent API](08-agent-api.md).
 
-Intent routing precedes flow-specific extraction. Makeup retains its own `MakeupInterpretation`; future enquiry types receive separate interpreters when implemented. Unclear, unsupported, or independently mixed requests use teacher handoff rather than being forced into the makeup schema.
+Intent labels describe topics; requested business actions select workflows. Information-only messages use enquiry for new and existing students, supported makeup bookings retain `MakeupInterpretation` and deterministic validation, and unsupported or unclear actions use teacher handoff. `EnquiryInterpretation` tracks questions and requested actions without introducing document retrieval or new business writes.
 
 ## Teacher-approved booking increment
 

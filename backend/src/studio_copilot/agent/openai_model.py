@@ -10,6 +10,7 @@ from pydantic import ValidationError
 
 from studio_copilot.agent.contracts import (
     Draft,
+    EnquiryInterpretation,
     MakeupInterpretation,
     ModelError,
     ReviewedMemory,
@@ -120,6 +121,35 @@ Time/location questions about the requested makeup session belong to makeup, not
 If 'cancel my class' is unclear between missing one session and ending enrolment, use unknown and
 needs_clarification=true. Do not guess. A missing date alone does not make a clear intent ambiguous.
 The flow-specific interpreter resolves details. A summary is not a claim of completed action.
+Classify the requested business action independently of intent and whether the sender is new.
+action=information_only for information/advice, makeup options, policy questions, or an absence
+notice that only reports non-attendance. Saving messages/drafts/memory is not a business action.
+action=makeup_booking only when the student requests arranging a replacement session, including
+a follow-up changing the requested replacement. Missing dates do not change a clear booking intent.
+action=other_action for cancellation/enrolment updates or any other requested business-record
+change. Independent mixed actions, or a makeup booking combined with an independent general
+question, require human handling: use other_action and preserve all intents.
+action=unclear if it is unclear whether or what business change is requested. A new sender's
+request must be classified from its content, never forced into an informational category.
+""",
+        )
+
+    def interpret_enquiry(self, context):
+        return self._parse(
+            context,
+            EnquiryInterpretation,
+            """
+Extract every current question and requested action from the actual source email and history,
+not just the routing summary. Resolve short follow-ups against the ongoing discussion; omit
+withdrawn requests. questions contains distinct, self-contained questions (at most 20). An
+action-only message may have no questions; preserve its action in requested_actions. Do not
+turn a teacher task into a question for the student. missing_details contains only genuinely
+missing student facts, not unknown studio fees, policies, or workflow support messages.
+Include explicitly stated experience/preferences in request_summary. enduring_preferences
+contains only lasting changes explicitly stated in the latest student email, never inferred
+placement or one-off requests. Teacher feedback can correct the proposed response and supply
+studio facts, but is not a new student statement or enduring preference. On revision, use
+previous_interpretation and teacher_feedback without losing unanswered questions/actions.
 """,
         )
 
@@ -172,7 +202,7 @@ when evidence is sufficient or only the student/teacher can supply the remaining
                 {"role": "user", "content": json.dumps(privacy.redact(context), default=str)},
                 *privacy.transcript(transcript),
             ],
-            tools=tool_definitions(),
+            tools=tool_definitions(context.get("flow")),
             parallel_tool_calls=True,
         )
         try:
@@ -202,7 +232,7 @@ when evidence is sufficient or only the student/teacher can supply the remaining
 Write the email body as the teacher speaking directly to the student in first person: warm,
 concise, natural, and helpful. Never refer to 'your teacher' as a third party or mention an AI.
 Keep reasoning, caveats about system capabilities, and staff tasks in the staff-facing rationale.
-For teacher_handoff, use retrieved timetable facts to answer the enquiry as far as possible;
+For enquiry and teacher_handoff, use retrieved timetable facts to answer as far as possible;
 teacher handling limits actions, not read-only answers about classes and their schedules.
 If exactly one class matches the requested weekday in complete evidence, name it and its local
 time/location rather than asking which class. Multiple dates of the same class are one class
@@ -230,6 +260,20 @@ and ask for clarification; do not say a booking has been made. Only the makeup f
 a booking. Teacher approval confirms suitability; do not invent entitlement or placement rules.
 Respect teacher revision feedback without inventing facts. references may contain ONLY reference
 strings provided in context evidence or policy. Never invent a session, date, seat, or entitlement.
+For non-makeup flows, return one answers item for each interpretation.questions entry using
+the exact question string. Use answered only with supplied factual support and its references;
+needs_student for missing student details, and needs_teacher for unknown studio facts or staff
+decisions. Each answer contains the proposed response or the precise clarification needed.
+The student_context evidence snapshots supplied records and messages: use those references for
+facts about this student's enrolments, level or explicit statements. Student statements are not
+authoritative studio fees/policies or proof that a requested business action was completed.
+Do not ask students to supply studio fees, trial rules, clothing rules, or other studio facts.
+Teacher feedback may supply facts: cite teacher_feedback only when such feedback is present.
+The email body must cover the supported answers naturally; keep missing studio facts and action
+tasks visible for the teacher. Acknowledge requested actions as awaiting review, never completed.
+Enquiry and teacher_handoff cannot book, cancel, enrol, remove session membership, or send email.
+Informational makeup options are candidates only, without eligibility promises or reservations.
+For makeup, answers is empty; retain the existing deterministic booking behavior.
 """,
         )
 

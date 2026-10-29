@@ -76,6 +76,12 @@ export type RunStatus =
   | "closed"
   | "superseded"
   | "failed";
+export interface EnquiryAnswer {
+  question: string;
+  status: "answered" | "needs_student" | "needs_teacher";
+  answer: string;
+  references: string[];
+}
 export interface Run extends RecordBase {
   conversation_id: string;
   source_message_id: string;
@@ -91,6 +97,7 @@ export interface Run extends RecordBase {
     questions?: string[];
     references?: string[];
     booking_session_id?: string | null;
+    answers?: EnquiryAnswer[];
   };
   policy_snapshot: Record<string, unknown>;
   error: string | null;

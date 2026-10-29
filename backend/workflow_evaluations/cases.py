@@ -14,7 +14,7 @@ DATASET = Path(__file__).with_name("scenarios.json")
 class Expectation(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    flow: Literal["makeup", "teacher_handoff"]
+    flow: Literal["makeup", "enquiry", "teacher_handoff"]
     intents: list[Intent] = Field(min_length=1)
     fields: dict[
         Literal["absence_date", "preferred_date", "preferred_weekday", "preferred_class_name"],

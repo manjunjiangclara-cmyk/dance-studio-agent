@@ -1,5 +1,6 @@
 from studio_copilot.agent.contracts import (
     Draft,
+    EnquiryInterpretation,
     MakeupInterpretation,
     ModelError,
     Preference,
@@ -23,6 +24,7 @@ class FakeModel:
         self.routing = None
         self.routing_contexts = []
         self.fail_route = False
+        self.enquiry_contexts = []
 
     def route(self, context):
         self.routing_contexts.append(context)
@@ -30,9 +32,24 @@ class FakeModel:
             raise ModelError("Unavailable")
         return self.routing or Routing(
             intents=["makeup", "absence"],
+            action="makeup_booking",
             request_summary="Student asks about a makeup class.",
             needs_clarification=False,
             reason="A makeup enquiry related to an absence.",
+        )
+
+    def interpret_enquiry(self, context):
+        self.enquiry_contexts.append(context)
+        return EnquiryInterpretation(
+            request_summary=context["routing"]["request_summary"],
+            missing_details=self.missing,
+            enduring_preferences=[],
+            questions=[],
+            requested_actions=(
+                [context["routing"]["request_summary"]]
+                if context["routing"].get("action") in {"other_action", "unclear"}
+                else []
+            ),
         )
 
     def interpret_makeup(self, context):
@@ -70,7 +87,7 @@ class FakeModel:
         return Draft(
             body=(
                 "Your teacher will review your enquiry."
-                if context.get("flow") == "teacher_handoff"
+                if context.get("flow") != "makeup"
                 else "Your teacher will review the makeup options."
             ),
             rationale="Teacher review needed.",

@@ -15,7 +15,7 @@ flowchart LR
     P[Editable policy YAML] --> G
 ```
 
-A structured intent-routing step precedes flow-specific interpretation. The makeup branch uses `MakeupInterpretation`; other or unclear requests use a teacher-handoff branch with no makeup queries. Shared memory, drafting, and review follow the selected interpretation. Enrolment, cancellation, and new-student flows can be added as separate branches later.
+Structured routing separates intent labels from the requested business action. Information-only requests use an enquiry branch; supported makeup bookings use the deterministic makeup branch; other or unclear actions use teacher handoff. Both new and existing senders follow this rule. `EnquiryInterpretation` tracks questions and requested human actions, while `MakeupInterpretation` retains booking details. Memory, drafting and review are shared. Enquiry/handoff approval saves the reply; only makeup can execute a booking.
 
 The agent package keeps responsibilities separate:
 

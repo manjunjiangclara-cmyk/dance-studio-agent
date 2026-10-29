@@ -17,6 +17,7 @@ FIELDS = (
     "intents",
     "flow",
     "needs_clarification",
+    "action",
 )
 
 

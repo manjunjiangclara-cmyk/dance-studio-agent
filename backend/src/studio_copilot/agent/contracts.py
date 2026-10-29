@@ -1,6 +1,6 @@
 """Typed boundaries shared by real and deterministic fake model adapters."""
 
-from typing import Any, Literal, Protocol, TypedDict
+from typing import Annotated, Any, Literal, Protocol, TypedDict
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -48,6 +48,7 @@ class Routing(StrictModel):
     request_summary: str = Field(min_length=1, max_length=2000)
     needs_clarification: bool
     reason: str = Field(min_length=1, max_length=1000)
+    action: Literal["information_only", "makeup_booking", "other_action", "unclear"] = "unclear"
 
 
 class RequestInterpretation(StrictModel):
@@ -69,6 +70,21 @@ class MakeupInterpretation(RequestInterpretation):
     absence_class_id: UUID | None = None
 
 
+EnquiryText = Annotated[str, Field(min_length=1, max_length=2000)]
+
+
+class EnquiryInterpretation(RequestInterpretation):
+    questions: list[EnquiryText] = Field(default_factory=list, max_length=20)
+    requested_actions: list[EnquiryText] = Field(default_factory=list, max_length=20)
+
+
+class EnquiryAnswer(StrictModel):
+    question: str = Field(min_length=1, max_length=2000)
+    status: Literal["answered", "needs_student", "needs_teacher"]
+    answer: str = Field(max_length=4000)
+    references: list[str] = Field(max_length=40)
+
+
 class ReviewedMemory(StrictModel):
     request_summary: str = Field(min_length=1, max_length=2000)
     enduring_preferences: list[Preference] = Field(max_length=20)
@@ -80,6 +96,7 @@ class Draft(StrictModel):
     questions: list[str] = Field(max_length=20)
     references: list[str] = Field(max_length=40)
     booking_session_id: UUID | None = None
+    answers: list[EnquiryAnswer] = Field(default_factory=list, max_length=20)
 
 
 class ToolCall(StrictModel):
@@ -107,6 +124,7 @@ class ModelError(Exception):
 class Model(Protocol):
     def route(self, context: dict) -> Routing: ...
     def interpret_makeup(self, context: dict) -> MakeupInterpretation: ...
+    def interpret_enquiry(self, context: dict) -> EnquiryInterpretation: ...
     def choose_tools(self, context: dict, transcript: list[dict]) -> ToolTurn: ...
     def draft(self, context: dict) -> Draft: ...
     def reconcile(self, context: dict) -> ReviewedMemory: ...

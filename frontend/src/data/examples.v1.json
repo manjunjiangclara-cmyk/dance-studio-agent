@@ -246,7 +246,7 @@
       "created_at": "2027-02-07T00:00:00Z",
       "updated_at": "2027-02-07T00:00:00Z",
       "student_id": "153dbe65-4865-5343-93a0-f9fa60a4f6e2",
-      "subject": "Returning to ballet as an adult"
+      "subject": "Questions about starting ballet"
     },
     {
       "id": "761d3067-777c-5844-8163-9ac42301741d",
@@ -353,7 +353,7 @@
       "updated_at": "2027-02-07T00:00:00Z",
       "conversation_id": "f6574588-1747-5532-99aa-9adedffd94ad",
       "kind": "student_email",
-      "body": "I have never danced before. Where should I start?",
+      "body": "I have never danced before. When and where is the Thursday class? What does a trial cost, and what should I wear?",
       "occurred_at": "2027-02-07T10:00:00+11:00",
       "review_managed": false
     },
@@ -363,7 +363,7 @@
       "updated_at": "2027-02-07T00:00:00Z",
       "conversation_id": "f6574588-1747-5532-99aa-9adedffd94ad",
       "kind": "assistant_draft",
-      "body": "Hi Jules, thanks for getting in touch. I'd be happy to help you find a suitable starting class. Which days and location would work best for you?",
+      "body": "Hi Jules, thanks for getting in touch. Thursday's Level 2 class runs from 6 to 7 pm at our Carlton studio. It is intended for dancers with previous ballet experience, so I will help you find a suitable starting class and confirm the trial fees and clothing details.",
       "occurred_at": "2027-02-07T10:06:00+11:00",
       "review_managed": true
     },
@@ -576,22 +576,90 @@
       "status": "awaiting_review",
       "revision": 1,
       "interpretation": {
-        "request_summary": "New student enquiry requires teacher guidance.",
-        "flow": "teacher_handoff",
+        "request_summary": "New dancer asks about Thursday classes, trial fees and clothing.",
+        "flow": "enquiry",
         "missing_details": [],
         "routing": {
           "intents": ["new_student_enquiry"],
           "needs_clarification": false,
-          "reason": "Follow the current email in conversation context."
-        }
+          "reason": "The student asks for information; no booking or enrolment change is requested.",
+          "action": "information_only",
+          "request_summary": "New dancer asks about Thursday classes, trial fees and clothing."
+        },
+        "enduring_preferences": [],
+        "questions": [
+          "When and where is the Thursday class?",
+          "What does a trial cost?",
+          "What should I wear?"
+        ],
+        "requested_actions": []
       },
-      "evidence": [],
+      "evidence": [
+        {
+          "tool": "get_timetable",
+          "arguments": {},
+          "result": {
+            "items": [
+              {
+                "id": "8cb0d988-fc35-5ed4-8d34-7e02e00d0464",
+                "name": "Adult Ballet \u00b7 Level 2 \u00b7 Thursday",
+                "prerequisites": "For dancers with previous ballet experience; placement confirmed by the teacher.",
+                "location": {
+                  "id": "31503400-74bd-5783-afe1-eb1e69f321a4",
+                  "name": "Merri Ballet \u00b7 Carlton"
+                },
+                "upcoming_sessions": [
+                  {
+                    "id": "a4ad2f4b-29e9-5a3b-9e78-e77026e88576",
+                    "starts_at": "2027-02-11T18:00:00+11:00",
+                    "ends_at": "2027-02-11T19:00:00+11:00"
+                  }
+                ]
+              }
+            ],
+            "references": [
+              "class:8cb0d988-fc35-5ed4-8d34-7e02e00d0464",
+              "session:a4ad2f4b-29e9-5a3b-9e78-e77026e88576",
+              "location:31503400-74bd-5783-afe1-eb1e69f321a4"
+            ],
+            "truncated": false
+          }
+        }
+      ],
       "draft_details": {
-        "body": "Hi Jules, thanks for getting in touch. I'd be happy to help you find a suitable starting class. Which days and location would work best for you?",
-        "rationale": "New student enquiry requires teacher guidance.",
+        "body": "Hi Jules, thanks for getting in touch. Thursday's Level 2 class runs from 6 to 7 pm at our Carlton studio. It is intended for dancers with previous ballet experience, so I will help you find a suitable starting class and confirm the trial fees and clothing details.",
+        "rationale": "The timetable supports the schedule and location. Beginner placement, trial fees and clothing need teacher input.",
         "questions": [],
-        "references": ["3a067002-bcaf-57b7-a336-a1e6dbe29914"],
-        "booking_session_id": null
+        "references": [
+          "class:8cb0d988-fc35-5ed4-8d34-7e02e00d0464",
+          "session:a4ad2f4b-29e9-5a3b-9e78-e77026e88576",
+          "location:31503400-74bd-5783-afe1-eb1e69f321a4"
+        ],
+        "booking_session_id": null,
+        "answers": [
+          {
+            "question": "When and where is the Thursday class?",
+            "status": "answered",
+            "answer": "Thursday Level 2 runs from 6 to 7 pm at Merri Ballet \u00b7 Carlton. Placement needs teacher confirmation.",
+            "references": [
+              "class:8cb0d988-fc35-5ed4-8d34-7e02e00d0464",
+              "session:a4ad2f4b-29e9-5a3b-9e78-e77026e88576",
+              "location:31503400-74bd-5783-afe1-eb1e69f321a4"
+            ]
+          },
+          {
+            "question": "What does a trial cost?",
+            "status": "needs_teacher",
+            "answer": "The teacher needs to confirm this studio information.",
+            "references": []
+          },
+          {
+            "question": "What should I wear?",
+            "status": "needs_teacher",
+            "answer": "The teacher needs to confirm this studio information.",
+            "references": []
+          }
+        ]
       },
       "policy_snapshot": {
         "source": "Illustrative policy snapshot",

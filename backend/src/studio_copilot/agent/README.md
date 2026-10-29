@@ -11,12 +11,13 @@ agent/
   policy.py                  Load and validate the editable policy resource
   tools.py                   Read-only studio tools and their argument schemas
   makeup.py                  Mandatory source verification, candidate checks, approval revalidation
+  enquiry.py                 Retained context evidence and question/citation validation
   telemetry.py               Structured logging
   tracing.py                 Optional content-free LangSmith spans
   workflow/
     graph.py                 Node registration, edges, and tracing
     nodes.py                 Interpretation, memory, drafting, and review steps
-    queries.py               Deterministic makeup dispatch; bounded optional handoff tools
+    queries.py               Deterministic makeup dispatch; bounded enquiry/handoff tools
   persistence/
     store.py                 Load context; save memory, drafts, and approved responses
     checkpoints.py           PostgreSQL checkpointer and its setup command

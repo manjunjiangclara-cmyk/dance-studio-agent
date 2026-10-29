@@ -15,6 +15,7 @@ from studio_copilot.agent.workflow.nodes import WorkflowNodes
 def test_route_emits_safe_classification_metadata(new_sender, monkeypatch):
     routing = Routing(
         intents=["enrolment"],
+        action="other_action",
         request_summary="Private email summary",
         needs_clarification=False,
         reason="Private student request details",
@@ -51,7 +52,8 @@ def test_route_emits_safe_classification_metadata(new_sender, monkeypatch):
         logger.setLevel(previous_level)
     event = json.loads(EventFormatter().format(next(r for r in records if r.msg == "agent_routed")))
     assert event["run_id"] == "test-run"
-    assert event["intents"] == (["new_student_enquiry"] if new_sender else ["enrolment"])
+    assert event["intents"] == ["enrolment"]
+    assert event["action"] == "other_action"
     assert event["flow"] == "teacher_handoff"
     assert event["needs_clarification"] is False
     assert saved[0][1] == result["routing"]
