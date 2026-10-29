@@ -10,6 +10,7 @@ from sqlalchemy import select, text
 
 from studio_copilot.administration.service import session_attendee_ids
 from studio_copilot.agent.contracts import StrictModel
+from studio_copilot.agent.tracing import span
 from studio_copilot.persistence.models import (
     ClassSession,
     Location,
@@ -185,6 +186,16 @@ def execute_tool(
     *,
     session_cursor: tuple[datetime, UUID] | None = None,
 ) -> dict[str, Any]:
+    with span("tool_call", kind="tool", metadata={"tool": name}) as trace:
+        result = _execute_tool(
+            db, student_id, source_message_id, policy, name, args, session_cursor=session_cursor
+        )
+        if "error" in result:
+            trace.fail()
+        return result
+
+
+def _execute_tool(db, student_id, source_message_id, policy, name, args, *, session_cursor=None):
     schema = TOOL_TYPES[name][0]
     query = schema.model_validate(args)
     # Applies to all DB queries in this tool transaction.

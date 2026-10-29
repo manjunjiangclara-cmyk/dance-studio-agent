@@ -11,6 +11,7 @@ from langgraph.graph import END, START, StateGraph
 
 from studio_copilot.agent.contracts import State
 from studio_copilot.agent.persistence.store import WorkflowStore
+from studio_copilot.agent.tracing import span
 from studio_copilot.agent.workflow.nodes import WorkflowNodes
 from studio_copilot.agent.workflow.nodes import select_flow as select_flow
 
@@ -20,7 +21,8 @@ logger = logging.getLogger(__name__)
 def _traced(name: str, handler: Callable):
     def execute(state: State):
         logger.info("node_started", extra={"run_id": state["run_id"], "node": name})
-        result = handler(state)
+        with span(name):
+            result = handler(state)
         logger.info("node_completed", extra={"run_id": state["run_id"], "node": name})
         return result
 

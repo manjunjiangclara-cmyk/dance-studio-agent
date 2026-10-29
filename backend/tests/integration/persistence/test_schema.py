@@ -1,5 +1,7 @@
 """Fresh installations must match the complete application schema."""
 
+import logging
+
 import pytest
 from alembic import command
 from alembic.runtime.migration import MigrationContext
@@ -12,7 +14,7 @@ from tests.support import migration_config
 pytestmark = pytest.mark.integration
 
 
-def test_fresh_schema_matches_models(db_engine):
+def test_fresh_schema_matches_models(db_engine, monkeypatch):
     # db_engine has applied the initial migration to a new, empty test schema.
     with db_engine.begin() as connection:
         config = migration_config()
@@ -25,7 +27,11 @@ def test_fresh_schema_matches_models(db_engine):
             MigrationContext.configure(connection).get_current_revision()
             == script.get_current_head()
         )
+        # Programmatic migrations must not silence pre-existing application loggers.
+        logger = logging.getLogger("studio_copilot.agent.tracing")
+        monkeypatch.setattr(logger, "disabled", False)
         command.check(config)
+        assert not logger.disabled
 
 
 def test_migration_preserves_legacy_regular_and_approved_session_students(db_engine):

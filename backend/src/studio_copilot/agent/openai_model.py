@@ -19,6 +19,7 @@ from studio_copilot.agent.contracts import (
 )
 from studio_copilot.agent.privacy import StudentPrivacy
 from studio_copilot.agent.tools import tool_definitions
+from studio_copilot.agent.tracing import span
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,16 @@ class OpenAIModel:
         return self._privacy
 
     def _request(self, operation, **kwargs):
+        with span("model_call", kind="llm", metadata={"model": self.model}) as trace:
+            response = self._request_traced(operation, **kwargs)
+            if response.usage:
+                trace.update(
+                    input_tokens=response.usage.input_tokens,
+                    output_tokens=response.usage.output_tokens,
+                )
+            return response
+
+    def _request_traced(self, operation, **kwargs):
         started = time.monotonic()
         try:
             response = operation(
