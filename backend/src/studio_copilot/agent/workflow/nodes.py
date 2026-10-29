@@ -239,6 +239,12 @@ class WorkflowNodes:
 
     def revision(self, state: State) -> dict:
         feedback = state["decision"]["feedback"]
+        if state.get("flow") != "makeup" and state.get("feedback"):
+            feedback = (
+                state["feedback"]
+                + "\n\nLatest teacher feedback (supersedes conflicting earlier feedback):\n"
+                + feedback
+            )
         update = {"attempt": state["attempt"] + 1, "feedback": feedback}
         if state.get("flow") == "makeup":
             # Refresh extracted preferences/provenance before the fixed checks. This also

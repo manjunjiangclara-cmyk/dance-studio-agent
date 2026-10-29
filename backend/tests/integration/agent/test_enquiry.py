@@ -477,9 +477,12 @@ def test_legacy_handoff_checkpoint_can_be_revised_then_approved(rig, scenario, d
     assert business_records(db_engine) == before
 
 
-def test_enquiry_can_answer_from_retained_student_context(rig, scenario):
+@pytest.mark.parametrize("flow", ["enquiry", "teacher_handoff"])
+def test_non_makeup_can_answer_from_retained_student_context(rig, scenario, flow):
     model = rig[1]
     configure_enquiry(model)
+    if flow == "teacher_handoff":
+        model.routing.action = "other_action"
     question = "Which regular class am I enrolled in?"
     original_interpret = model.interpret_enquiry
 
@@ -513,9 +516,50 @@ def test_enquiry_can_answer_from_retained_student_context(rig, scenario):
     model.choose_tools = lambda context, transcript: ToolTurn(calls=[], output=[])
     model.draft = draft
     run = start(rig, scenario)
+    assert run["interpretation"]["flow"] == flow
     answer = run["draft_details"]["answers"][0]
     assert answer["status"] == "answered"
     assert answer["references"][0].startswith("enrolment:")
     assert "Monday Level 2" in run["draft_details"]["body"]
     assert run["evidence"][0]["tool"] == "student_context"
     assert run["draft_details"]["references"] == answer["references"]
+
+
+@pytest.mark.parametrize("flow", ["enquiry", "teacher_handoff"])
+def test_successive_revisions_retain_teacher_facts_and_latest_corrections(rig, scenario, flow):
+    client, model, _, _ = rig
+    captured = configure_enquiry(model)
+    if flow == "teacher_handoff":
+        model.routing.action = "other_action"
+    original = model.draft
+
+    def draft(context):
+        result = original(context)
+        feedback = context.get("teacher_feedback", "")
+        amount = "$30" if "$30" in feedback else "$25" if "$25" in feedback else None
+        if amount:
+            result.answers[2] = EnquiryAnswer(
+                question=QUESTIONS[2],
+                status="answered",
+                answer=f"The confirmed fee is {amount}.",
+                references=["teacher_feedback"],
+            )
+            result.body = f"The Monday class is at 6 pm. The confirmed fee is {amount}."
+        return result
+
+    model.draft = draft
+    run = start(rig, scenario)
+    first = review(client, run, "revise", feedback="The confirmed fee is $25.").json()
+    second = review(client, first, "revise", feedback="Make the wording warmer.").json()
+    assert second["status"] == "awaiting_review", second
+    assert second["draft_details"]["answers"][2]["status"] == "answered"
+    assert "$25" in second["draft_details"]["body"]
+    assert "$25" in captured["interpretations"][-1]["teacher_feedback"]
+    assert "warmer" in captured["drafts"][-1]["teacher_feedback"]
+    evidence = next(item for item in second["evidence"] if item["tool"] == "teacher_feedback")
+    assert "$25" in evidence["result"]["text"]
+    assert "warmer" in evidence["result"]["text"]
+    corrected = review(client, second, "revise", feedback="Correction: the fee is $30.").json()
+    assert corrected["status"] == "awaiting_review", corrected
+    assert "$30" in corrected["draft_details"]["body"]
+    assert captured["drafts"][-1]["teacher_feedback"].endswith("Correction: the fee is $30.")

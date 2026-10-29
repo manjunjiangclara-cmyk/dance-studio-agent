@@ -102,8 +102,7 @@ class QueryRunner:
                     break
             else:
                 warnings.append("The four-round information gathering limit was reached.")
-        if context.get("flow") == "enquiry":
-            evidence.append(context_evidence(context))
+        evidence.append(context_evidence(context))
         if context["teacher_feedback"].strip():
             evidence.append(
                 {

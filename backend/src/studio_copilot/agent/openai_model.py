@@ -150,6 +150,7 @@ contains only lasting changes explicitly stated in the latest student email, nev
 placement or one-off requests. Teacher feedback can correct the proposed response and supply
 studio facts, but is not a new student statement or enduring preference. On revision, use
 previous_interpretation and teacher_feedback without losing unanswered questions/actions.
+Retain facts from earlier teacher feedback unless the latest feedback explicitly supersedes them.
 """,
         )
 
@@ -269,6 +270,8 @@ facts about this student's enrolments, level or explicit statements. Student sta
 authoritative studio fees/policies or proof that a requested business action was completed.
 Do not ask students to supply studio fees, trial rules, clothing rules, or other studio facts.
 Teacher feedback may supply facts: cite teacher_feedback only when such feedback is present.
+Retain prior teacher-supplied facts across revisions; the latest conflicting correction
+takes priority.
 The email body must cover the supported answers naturally; keep missing studio facts and action
 tasks visible for the teacher. Acknowledge requested actions as awaiting review, never completed.
 Enquiry and teacher_handoff cannot book, cancel, enrol, remove session membership, or send email.
