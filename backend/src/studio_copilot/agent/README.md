@@ -42,12 +42,28 @@ ignored environment file or shell to export operational traces. Optionally set
 `LANGSMITH_PROJECT` (default `studio-copilot`). Restart the backend after changing
 its environment. Tracing is off by default; a missing key leaves it disabled.
 
-Each workflow execution is correlated by its agent run ID, including review,
-revision, and retry. Spans cover workflow nodes, model calls, and read-only tools;
-they include timing, status, configured model, token counts, and known tool names
-when available. They omit graph state, student messages, model content, tool
-arguments and results, teacher feedback, and exception messages. The run ID is
-still a linkable identifier; protect access and configure retention in LangSmith.
+#### What is tracked
+
+Each graph execution produces an `agent_workflow` trace with nested spans. Initial
+processing, approval review, revision, and retry are separate traces linked by the
+same application `run_id`. The root metadata includes that UUID and a `phase` of
+`start`, `review`, `revision`, or `retry`. Rejecting a draft does not invoke the
+graph and therefore does not create one of these traces.
+
+| Span | Recorded details |
+| --- | --- |
+| Workflow and graph nodes | Span name, parent relationship, start/end times, and `status`: `success`, `failure`, or `paused` for a review interrupt. |
+| Model calls | The above, plus the configured model name and input/output token counts when the provider returns usage. |
+| Read-only tool calls | The above, plus the tool name for `get_timetable`, `get_enrolments`, `search_sessions`, `get_locations`, or `check_absence_notice`. |
+
+Failed spans use the generic error `operation_failed`; they do not include the
+exception text. Timing comes from the span's start and end timestamps. Fields are
+allowlisted and may be absent if unavailable or if tracing fails. The run ID is a
+linkable identifier, so protect project access and configure retention in LangSmith.
+
+Graph state, emails, conversation history, student details, prompts, model responses,
+tool arguments and results, teacher feedback, and provider reasoning are not exported.
+The traces do not include evaluation scores or detailed explanations of decisions.
 Automatic LangGraph tracing is suppressed within the workflow even when
 `LANGSMITH_TRACING=true`. Trace export failures do not stop the agent.
 
