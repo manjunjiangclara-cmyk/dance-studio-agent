@@ -12,6 +12,8 @@ The anonymous public demo uses predefined fictional data and makes no live API o
 
 ## Local setup
 
+In Codex, use `$run-dance-studio-app` to start the local app with the portal origin matched to the configured Google callback.
+
 Start Docker Desktop first. From this project directory:
 
 ```sh

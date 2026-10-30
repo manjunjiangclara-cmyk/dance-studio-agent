@@ -1,0 +1,29 @@
+---
+name: run-dance-studio-app
+description: Start the Dance Studio Copilot frontend and backend locally and report their URLs and startup blockers.
+---
+
+# Run Dance Studio App
+
+Start the app from this repository and leave its services running. Preserve the existing environment and database data.
+
+1. Read `backend/.env` if present, otherwise `backend/.env.example`. Use the selected file for the backend. Identify `PUBLIC_BASE_URL` and `DATABASE_URL` without printing secrets. Google sign-in and owner writes require the browser's exact configured origin, including scheme, hostname and port. The Google callback must be registered as `<PUBLIC_BASE_URL>/auth/callback`.
+2. Check the configured database and existing listeners before starting services. Reuse a running service only after identifying it as this app and checking its health. If the configured database is the local Compose database and it is unavailable, start it with `docker compose up -d --wait db` from the repository root. Do not reset its data or start Compose as a substitute for a different configured database.
+3. Start the backend in a persistent terminal from `backend/`, using the selected environment file:
+
+   ```sh
+   uv run --env-file .env uvicorn studio_copilot.api.app:app --host 127.0.0.1 --port 8000
+   ```
+
+   Replace `.env` with `.env.example` when appropriate. If port 8000 is occupied by another service, report the conflict instead of stopping it or silently changing the backend port: the frontend proxy targets port 8000.
+4. Serve the frontend at the exact configured origin:
+
+   - For an HTTP origin on `localhost` or `127.0.0.1` with a port other than 8000, start Vite in a separate persistent terminal from `frontend/` with `npm run dev -- --host <hostname> --port <port> --strictPort`. Use the hostname and port from `PUBLIC_BASE_URL`. If the port is occupied, identify the listener and report the conflict unless it is this app's frontend.
+   - For the local HTTP origin on port 8000, build the frontend with `npm run build` in `frontend/` and use the backend to serve it on that origin. This supports the example configuration, `http://localhost:8000`.
+   - If the configured origin cannot be served by these local commands, explain the conflict and the configuration needed; do not silently use a different origin or modify Google or environment settings.
+
+   The project requires Node.js 22.12 or newer. If frontend dependencies are missing or incomplete, run `npm ci` from `frontend/` first. Vite proxies `/auth` and `/api` to the backend on port 8000.
+5. Check `http://127.0.0.1:8000/health`, load the frontend at the exact configured origin, and check `/auth/me` through that origin. A healthy endpoint and `login_available: true` confirm the local service is ready for a login attempt; they do not prove Google sign-in succeeds.
+6. Report the portal URL, backend URL, whether the local database was started, and any concrete blocker. Keep the app running.
+
+Do not seed demo data, run migrations, or configure the AI agent merely to start the app. If required setup is missing, report the blocker and the setup needed.
