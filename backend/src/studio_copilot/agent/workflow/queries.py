@@ -9,8 +9,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from studio_copilot.agent.contracts import Model, ModelError, State, ToolCall
+from studio_copilot.agent.enquiry import context_evidence
 from studio_copilot.agent.makeup import gather_makeup
-from studio_copilot.agent.tools import TOOL_TYPES, execute_tool
+from studio_copilot.agent.tools import ENQUIRY_TOOLS, TOOL_TYPES, execute_tool
 
 logger = logging.getLogger(__name__)
 MAX_ROUNDS = 4
@@ -101,12 +102,27 @@ class QueryRunner:
                     break
             else:
                 warnings.append("The four-round information gathering limit was reached.")
+        evidence.append(context_evidence(context))
+        if context["teacher_feedback"].strip():
+            evidence.append(
+                {
+                    "tool": "teacher_feedback",
+                    "arguments": {},
+                    "finding": "Teacher feedback for this revision.",
+                    "result": {
+                        "text": context["teacher_feedback"],
+                        "references": ["teacher_feedback"],
+                    },
+                }
+            )
         return {"evidence": evidence, "warnings": warnings}
 
     @staticmethod
     def _execute_call(db, context: dict, call: ToolCall, seen: set[str]) -> dict | None:
         """Return None for a duplicate, or a safe result/error for an attempted call."""
         try:
+            if context.get("flow") == "enquiry" and call.name not in ENQUIRY_TOOLS:
+                return {"error": "This tool is not available for enquiries.", "references": []}
             schema = TOOL_TYPES[call.name][0]
             arguments = schema.model_validate(call.arguments).model_dump(mode="json")
             fingerprint = call.name + ":" + json.dumps(arguments, sort_keys=True)

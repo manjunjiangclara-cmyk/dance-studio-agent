@@ -128,6 +128,7 @@ def test_corrupt_candidate_evidence_cannot_authorize_a_proposal():
 def test_missing_dates_do_not_bypass_makeup_verification(intents):
     routing = Routing(
         intents=intents,
+        action="makeup_booking",
         request_summary="Could I do a makeup?",
         needs_clarification=True,
         reason="Missing class dates",

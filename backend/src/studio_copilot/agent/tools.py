@@ -77,7 +77,10 @@ TOOL_TYPES = {
 }
 
 
-def tool_definitions():
+ENQUIRY_TOOLS = frozenset({"get_timetable", "search_sessions", "get_locations"})
+
+
+def tool_definitions(flow: str | None = None):
     return [
         {
             "type": "function",
@@ -87,6 +90,7 @@ def tool_definitions():
             "strict": True,
         }
         for name, (schema, description) in TOOL_TYPES.items()
+        if flow != "enquiry" or name in ENQUIRY_TOOLS
     ]
 
 

@@ -370,7 +370,7 @@ def test_requested_scenarios_have_meaningful_setup_and_expectations():
     assert bypass.emails[0].expect.forbidden_text == ["RULE_BYPASS_ACCEPTED"]
     above_level = cases["makeup_requested_above_attended_level"]
     assert above_level.emails[0].expect.excluded_candidates["thursday"] == "above_attended_level"
-    assert cases["unrelated_student_email"].emails[0].expect.flow == "teacher_handoff"
+    assert cases["unrelated_student_email"].emails[0].expect.flow == "enquiry"
 
 
 def test_contradictory_draft_text_fails_the_scenario(valid_run, expectation, fixture_data):

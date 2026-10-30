@@ -56,12 +56,13 @@ def test_information_gathering_always_terminates(rig, scenario, mode):
         model.fail_draft = True
     run = start(rig, scenario)
     assert model.query_count <= 4
-    assert len(run["evidence"]) <= 12
+    tool_evidence = [item for item in run["evidence"] if item["tool"] != "student_context"]
+    assert len(tool_evidence) <= 12
     assert run["draft_details"]["warnings"]
     if mode == "missing":
         assert model.query_count == 2
         assert run["evidence"][0]["tool"] == "get_enrolments"
     if mode == "duplicate":
-        assert len(run["evidence"]) == 1
+        assert len(tool_evidence) == 1
     if mode == "excess":
-        assert len(run["evidence"]) == 3
+        assert len(tool_evidence) == 3

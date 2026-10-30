@@ -132,8 +132,9 @@ def test_sdk_native_tool_calls_preserve_reasoning_and_results(reasoning_fields):
         model.client.close()
 
 
+@pytest.mark.parametrize("operation", ["interpret_makeup", "interpret_enquiry"])
 @pytest.mark.parametrize("kind", ["refusal", "incomplete", "invalid", "provider_error"])
-def test_sdk_errors_do_not_leak_provider_details(kind):
+def test_sdk_errors_do_not_leak_provider_details(kind, operation):
     def handler(request):
         if kind == "provider_error":
             return httpx.Response(
@@ -161,7 +162,7 @@ def test_sdk_errors_do_not_leak_provider_details(kind):
     model = adapter(handler)
     try:
         with pytest.raises(ModelError) as caught:
-            model.interpret_makeup({})
+            getattr(model, operation)({})
         assert "sensitive-provider-detail" not in str(caught.value)
     finally:
         model.client.close()
@@ -197,6 +198,7 @@ def test_sdk_parses_router_independently_of_makeup_fields():
     captured = []
     routing = {
         "intents": ["enrolment"],
+        "action": "other_action",
         "request_summary": "Change regular classes next term.",
         "needs_clarification": False,
         "reason": "A regular enrolment change, not a makeup.",
@@ -221,8 +223,49 @@ def test_sdk_parses_router_independently_of_makeup_fields():
     try:
         result = model.route({"source": {"body": "Change classes next term"}, "history": []})
         assert result.intents == ["enrolment"]
+        assert result.action == "other_action"
         properties = captured[0]["text"]["format"]["schema"]["properties"]
         assert "absence_date" not in properties
         assert "intents" in properties
+    finally:
+        model.client.close()
+
+
+def test_sdk_extracts_enquiry_questions_and_actions_with_strict_schema():
+    captured = []
+    interpretation = {
+        "request_summary": "Thursday times and a cancellation request",
+        "missing_details": [],
+        "enduring_preferences": [],
+        "questions": ["What time is Thursday's class?"],
+        "requested_actions": ["Cancel my regular enrolment"],
+    }
+
+    def handler(request):
+        captured.append(json.loads(request.content))
+        output = [
+            {
+                "id": "msg_mock",
+                "type": "message",
+                "role": "assistant",
+                "status": "completed",
+                "content": [
+                    {"type": "output_text", "text": json.dumps(interpretation), "annotations": []}
+                ],
+            }
+        ]
+        return httpx.Response(200, json=response_payload(output))
+
+    model = adapter(handler)
+    try:
+        result = model.interpret_enquiry(
+            {"source": {"body": "What time is Thursday? Cancel my enrolment."}}
+        )
+        assert result.questions == interpretation["questions"]
+        assert result.requested_actions == interpretation["requested_actions"]
+        schema = captured[0]["text"]["format"]
+        assert schema["strict"] is True
+        assert "requested_actions" in schema["schema"]["required"]
+        assert captured[0]["store"] is False
     finally:
         model.client.close()

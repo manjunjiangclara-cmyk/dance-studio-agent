@@ -46,6 +46,7 @@ import { all, ApiError, examples, get, post, request } from "./data";
 import { confirmedSessions } from "./attendance";
 import { PolicyPage } from "./PolicyPage";
 import { ClassificationPanel, IntentBadges } from "./Classification";
+import { EnquiryPanel } from "./EnquiryPanel";
 import type {
   Conversation,
   DatabaseRecord,
@@ -1205,13 +1206,15 @@ function ReviewDetail({ id }: { id: string }) {
             <div className="review-explanation">
               <ShieldCheck size={18} />
               <p>
-                A teacher can edit this draft, request a revision, or approve
-                the proposed booking and response in the owner workspace.
+                {proposal
+                  ? "A teacher can edit this draft, request a revision, or approve the proposed booking and response in the owner workspace."
+                  : "A teacher can edit this draft, request a revision, or approve and save the response in the owner workspace."}
               </p>
             </div>
           )}
         </section>
         <aside className="context-stack">
+          <EnquiryPanel run={run} base={base} />
           <section className="panel context-card">
             <div className="eyebrow">THE STUDENT</div>
             <Link
@@ -1277,7 +1280,7 @@ function ReviewDetail({ id }: { id: string }) {
               ))
             ) : (
               <p className="muted">
-                No timetable evidence was collected for this run.
+                No supporting evidence was collected for this run.
               </p>
             )}
           </section>

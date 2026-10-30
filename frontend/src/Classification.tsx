@@ -65,11 +65,26 @@ export function ClassificationPanel({
                 <dd>
                   {flow === "makeup"
                     ? "Makeup workflow"
-                    : flow === "teacher_handoff"
-                      ? "Teacher handling"
-                      : "Not recorded"}
+                    : flow === "enquiry"
+                      ? "Enquiry workflow"
+                      : flow === "teacher_handoff"
+                        ? "Teacher handling"
+                        : "Not recorded"}
                 </dd>
               </div>
+              {typeof routing?.action === "string" && (
+                <div>
+                  <dt>Requested action</dt>
+                  <dd>
+                    {{
+                      information_only: "Information only",
+                      makeup_booking: "Makeup booking",
+                      other_action: "Human action required",
+                      unclear: "Needs human clarification",
+                    }[routing.action] || "Not recorded"}
+                  </dd>
+                </div>
+              )}
               <div>
                 <dt>Clarification</dt>
                 <dd>
@@ -90,8 +105,8 @@ export function ClassificationPanel({
           )}
           {flow === "teacher_handoff" && (
             <p className="muted classification-note">
-              The agent prepares a draft for teacher handling. No dedicated
-              workflow executes this request.
+              A teacher must handle the requested action or clarify what is
+              needed. Approving this reply saves the response only.
             </p>
           )}
         </>

@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from studio_copilot.agent.contracts import Routing
 from studio_copilot.agent.persistence.locking import student_lock
 from studio_copilot.api.app import create_app
 from studio_copilot.persistence.models import AgentRun, Conversation, Message, Student
@@ -96,12 +97,19 @@ def test_latest_conversation_is_selected(rig, scenario, current_history, db_engi
 
 def test_unknown_sender_first_email_handoff_and_followup_routing(rig, db_engine):
     client, model, _, _ = rig
+    model.routing = Routing(
+        intents=["new_student_enquiry"],
+        action="information_only",
+        request_summary="New dancer asks where to start.",
+        needs_clarification=False,
+        reason="Information without a booking request.",
+    )
     before = counts(db_engine)
     first = submit(client, "New.Person@example.com", "I have never danced before.")
     assert first.status_code == 200, first.text
     run = first.json()
     assert run["status"] == "awaiting_review", run
-    assert run["interpretation"]["flow"] == "teacher_handoff"
+    assert run["interpretation"]["flow"] == "enquiry"
     assert run["interpretation"]["routing"]["intents"] == ["new_student_enquiry"]
     assert model.contexts == []
     assert run["draft_details"]["booking_session_id"] is None
@@ -111,6 +119,9 @@ def test_unknown_sender_first_email_handoff_and_followup_routing(rig, db_engine)
         assert student.display_name == "New enquirer"
         assert student.highest_level is None
         assert student.enrolment_history == []
+    assert len(model.routing_contexts) == 1
+    assert model.enquiry_contexts[0]["source"]["body"] == "I have never danced before."
+    model.routing = None
     second = submit(client, "NEW.PERSON@example.com", "Would Saturday work for a beginner?")
     assert second.status_code == 200, second.text
     followup = second.json()
@@ -204,6 +215,13 @@ def test_processing_failure_keeps_email_and_retry_reuses_run(rig, current_histor
 
 def test_new_sender_marker_survives_failed_checkpoint_startup(rig, db_engine):
     client, model, service, _ = rig
+    model.routing = Routing(
+        intents=["new_student_enquiry"],
+        action="information_only",
+        request_summary="New dancer enquiry",
+        needs_clarification=False,
+        reason="Information only",
+    )
     original = service.checkpoints
 
     def unavailable():
@@ -224,7 +242,8 @@ def test_new_sender_marker_survives_failed_checkpoint_startup(rig, db_engine):
     run = retried.json()
     assert run["status"] == "awaiting_review", run
     assert run["interpretation"]["routing"]["intents"] == ["new_student_enquiry"]
-    assert model.routing_contexts == []
+    assert len(model.routing_contexts) == 1
+    assert run["interpretation"]["flow"] == "enquiry"
     assert model.contexts == []
     assert counts(db_engine)[:2] == before[:2]
     assert counts(db_engine)[3] == before[3]

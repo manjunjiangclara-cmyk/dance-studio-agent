@@ -4,7 +4,7 @@ An independent portfolio project for teacher-reviewed ballet studio administrati
 
 ## Current scope
 
-The app prepares drafts for teacher review and handles makeup requests using a LangGraph workflow. The agent verifies the missed session and notice, checks actual attendance and eligible replacement sessions, and leaves the final decision to a teacher. Approving a draft with a verified booking proposal adds the student to that session atomically; approval never sends email. Other or unclear requests go to teacher handoff.
+The app prepares drafts for teacher review and handles makeup requests using a LangGraph workflow. The agent verifies the missed session and notice, checks actual attendance and eligible replacement sessions, and leaves the final decision to a teacher. Approving a draft with a verified booking proposal adds the student to that session atomically; approval never sends email. Information-only requests use an enquiry workflow with a question-by-question review checklist. Other business actions or unclear requests go to teacher handoff.
 
 Dated sessions have independent student rosters. Staff separately record attendance as attended, absent, or unknown. The studio policy defines the order of class levels from easiest to hardest; makeup candidates cannot exceed the student's highest recorded attended level. Missing attendance or level order requires staff review. Historical runs retain their policy snapshots.
 
@@ -51,7 +51,7 @@ After agent setup and starting the server, open [Swagger](http://127.0.0.1:8000/
 }
 ```
 
-The server finds the student, selects their latest conversation (or creates one), records receipt time, saves the email and generates a draft. An unknown sender gets a minimal `New enquirer` profile with no level or enrolments, and their first email enters the new-student teacher-handoff flow. Later emails reuse their history and use normal intent routing.
+The server finds the student, selects their latest conversation (or creates one), records receipt time, saves the email and generates a draft. An unknown sender gets a minimal `New enquirer` profile with no level or enrolments, and their first email uses the same action-based routing as existing students. Later emails reuse their history.
 
 For a known student, send the same two fields with their registered email address, for example `alex@example.com`. Check `status` for `awaiting_review` and read `draft_details.body`, `interpretation` and `evidence`. HTTP 200 can also contain a `failed` run: inspect `error` and retry that run using `/api/v1/agent-runs/{id}/retry`. Review, edit or approve using the existing run review endpoint. Approval stores a response and, when a validated booking proposal is present, adds the student to that session. It does not send email.
 

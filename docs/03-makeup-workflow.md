@@ -4,12 +4,13 @@ The local backend now runs one LangGraph graph with the OpenAI Responses API. It
 
 ```mermaid
 flowchart TD
-    A[Load student, email history, memory and policy] --> R[Identify intents and select flow]
-    R -->|Makeup and related absence| B[Makeup-specific interpretation]
-    R -->|Other or unclear request| X[General summary for teacher handoff]
+    A[Load student, email history, memory and policy] --> R[Identify intents and requested business action]
+    R -->|Makeup booking and related absence| B[Makeup-specific interpretation]
+    R -->|Information only| X[Enquiry questions and context]
+    R -->|Other or unclear action| X
     B --> C[Save student-stated memory]
     X --> C
-    C --> D[Verify makeup evidence or gather read-only handoff facts]
+    C --> D[Verify makeup evidence or gather read-only enquiry facts]
     D --> E[Draft response and supporting evidence]
     E --> F[Pause for teacher review]
     F -->|Feedback| D
@@ -22,11 +23,17 @@ flowchart TD
 
 A separate structured `Routing` model identifies current intents before extracting flow-specific details. It uses the latest email, conversation history, and student memory so a short follow-up can remain in its existing discussion. The model reports intent labels, a request summary, whether the intent itself needs clarification, and a routing reason.
 
-Supported labels are `makeup`, `absence`, `enrolment`, `cancellation`, `new_student_enquiry`, `general_enquiry`, and `unknown`. Only makeup (optionally combined with its absence) has an implemented detailed flow. Python selects that branch only when the intents are clear and all belong to that combination. Independent mixed requests, unsupported flows, and ambiguous cancellation requests go to teacher handoff rather than silently dropping part of the request.
+Supported labels are `makeup`, `absence`, `enrolment`, `cancellation`, `new_student_enquiry`, `general_enquiry`, and `unknown`. Labels describe the topic; `routing.action` selects the workflow:
 
-`MakeupInterpretation` contains makeup-specific dates and location preferences. `RequestInterpretation` contains the common summary/memory fields; future flows can define their own detail models. The handoff path uses a general summary, skips makeup interpretation, and may use bounded read-only tools to answer or clarify the enquiry. Memory and approval remain shared. A routing-model failure also creates a neutral handoff.
+- `information_only` → `enquiry`, including informational makeup options and cancellation/enrolment policy questions.
+- `makeup_booking` → `makeup` only when the intents contain makeup and optionally its related absence.
+- `other_action` or `unclear`, including unsupported or independent mixed requests → `teacher_handoff`.
 
-Routing is visible in `AgentRun.interpretation.routing`, with the selected branch in `interpretation.flow`. Adding a later flow requires its detail model, interpreter, tools and graph branch; identifying a label does not implement that workflow. New-student intake still requires a stored student and conversation in this version.
+New and existing senders use the same router. Intake still creates a minimal profile for an unknown sender. Saving emails, drafts and memory is not a business action. A routing failure produces a neutral handoff.
+
+`MakeupInterpretation` contains booking-specific dates and preferences. `EnquiryInterpretation` extends the shared summary/memory fields with individual questions and requested actions; both enquiry and handoff use it. Each draft records `answers` with the exact question, `answered`/`needs_student`/`needs_teacher` status, proposed response and evidence references. Missing, duplicate or unsupported answers become teacher tasks; unsupported factual claims trigger a conservative draft rebuild. Citation validation checks identifiers, not semantic correctness, so teacher review remains required.
+
+Enquiry tool dispatch allows only timetable, session and location lookups. Already-loaded student records and non-draft conversation messages are retained as context evidence so personal facts can be cited; student statements do not establish studio policy or completed actions. Revision feedback is retained with the draft evidence across successive reviews; the latest correction supersedes conflicting earlier feedback. Information-only makeup results cannot establish eligibility or reserve a place. Human handoff may gather bounded read-only facts but cannot execute actions. Only makeup approval can book a validated replacement. Revisions refresh enquiry interpretation and evidence; teacher-supplied facts may use the `teacher_feedback` reference when feedback exists. Old graph nodes and missing metadata remain compatible with pending reviews.
 
 ## Memory and review
 
@@ -40,7 +47,7 @@ Teacher approval stores the final response and atomically books a validated sess
 
 ## Bounds and policies
 
-For non-makeup handoffs, each drafting attempt permits four model/tool rounds, with at most three tool executions per round. Makeup verification and candidate checks run in a fixed sequence. Identical calls after argument normalization are blocked. Missing essential details, empty results, invalid calls, query failures, and exhausted limits stop gathering. Drafting then shows uncertainty or asks for clarification; if drafting itself fails, a conservative clarification template is used. Only explicit teacher feedback starts another attempt.
+For enquiries and non-makeup handoffs, each drafting attempt permits four model/tool rounds, with at most three tool executions per round. Makeup verification and candidate checks run in a fixed sequence. Identical calls after argument normalization are blocked. Missing essential details, empty results, invalid calls, query failures, and exhausted limits stop gathering. Drafting then shows uncertainty or asks for clarification; if drafting itself fails, a conservative clarification template is used. Only explicit teacher feedback starts another attempt.
 
 Tools read the current student's enrolments, timetable sessions, locations, and notice timing. They cannot query another student's messages or accept a replacement student ID. Session candidates are not guaranteed makeup seats or placement approval. Database tool queries have a five-second statement timeout. OpenAI requests have a 20-second SDK timeout and one transient-error retry.
 

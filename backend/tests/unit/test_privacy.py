@@ -50,7 +50,8 @@ def message_output(value):
 
 
 @pytest.mark.parametrize(
-    "operation", ["route", "interpret_makeup", "draft", "reconcile", "choose_tools"]
+    "operation",
+    ["route", "interpret_makeup", "interpret_enquiry", "draft", "reconcile", "choose_tools"],
 )
 def test_all_model_operations_hide_identity_and_restore_local_outputs(operation):
     captured = []
@@ -67,6 +68,13 @@ def test_all_model_operations_hide_identity_and_restore_local_outputs(operation)
             "preferred_date": None,
             "preferred_weekday": None,
             "location_preference": None,
+            "missing_details": [],
+            "enduring_preferences": [],
+        },
+        "interpret_enquiry": {
+            "request_summary": "Request by [STUDENT_NAME]",
+            "questions": ["What classes can [STUDENT_NAME] attend?"],
+            "requested_actions": [],
             "missing_details": [],
             "enduring_preferences": [],
         },

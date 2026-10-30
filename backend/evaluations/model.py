@@ -29,6 +29,9 @@ class MeasuredModel(OpenAIModel):
     def interpret_makeup(self, context):
         return self._step("interpret_makeup", super().interpret_makeup, context)
 
+    def interpret_enquiry(self, context):
+        return self._step("interpret_enquiry", super().interpret_enquiry, context)
+
     def choose_tools(self, context, transcript):
         return self._step("choose_tools", super().choose_tools, context, transcript)
 

@@ -4,18 +4,20 @@ import logging
 from datetime import datetime
 
 from langgraph.types import interrupt
+from pydantic import ValidationError
 
 from studio_copilot.administration.service import conflict
 from studio_copilot.agent.contracts import (
     Draft,
+    EnquiryInterpretation,
     MakeupInterpretation,
     Model,
     ModelError,
-    RequestInterpretation,
     Review,
     Routing,
     State,
 )
+from studio_copilot.agent.enquiry import safe_body, validate_answers
 from studio_copilot.agent.makeup import clarification_body, validated_candidate_ids
 from studio_copilot.agent.persistence.store import WorkflowStore
 from studio_copilot.agent.proposals import confirmation_body
@@ -25,9 +27,15 @@ logger = logging.getLogger(__name__)
 
 
 def select_flow(routing: Routing) -> str:
-    """Only the implemented makeup+absence combination may enter the makeup flow."""
+    """Business actions select the workflow; topic labels alone never authorize a booking."""
     intents = set(routing.intents)
-    if "makeup" in intents and intents <= {"makeup", "absence"}:
+    if routing.action == "information_only":
+        return "enquiry"
+    if (
+        routing.action == "makeup_booking"
+        and "makeup" in intents
+        and intents <= {"makeup", "absence"}
+    ):
         return "makeup"
     return "teacher_handoff"
 
@@ -36,7 +44,7 @@ def _fallback_draft(state: State) -> Draft:
     if state.get("flow", "makeup") != "makeup":
         return Draft(
             body="Thanks for your message. I'll review your enquiry and get back to you.",
-            rationale=state["routing"]["reason"] + " " + state["warnings"][0],
+            rationale=state["routing"]["reason"] + " The model was unavailable.",
             questions=state["warnings"],
             references=[],
         )
@@ -56,6 +64,8 @@ def _validate_references(draft: Draft, state: State) -> Draft:
     references = {"policy:" + state["context"]["policy"]["version"]}
     for item in state["evidence"]:
         references.update(item["result"].get("references", []))
+    if state.get("feedback", "").strip():
+        references.add("teacher_feedback")
     if any(reference not in references for reference in draft.references):
         draft.references = [reference for reference in draft.references if reference in references]
         draft.rationale += " Unsupported model references were removed; verify the draft's claims."
@@ -79,7 +89,13 @@ def _validate_booking_proposal(draft: Draft, state: State) -> Draft:
         state.get("evidence", [])
     ):
         draft.booking_session_id = None
-        draft.body = clarification_body(state.get("evidence", []))
+        draft.body = (
+            clarification_body(state.get("evidence", []))
+            if state.get("flow", state.get("context", {}).get("flow")) == "makeup"
+            else safe_body(
+                draft.answers, state.get("interpretation", {}).get("requested_actions", [])
+            )
+        )
         draft.rationale += " Unsupported booking proposal removed; teacher clarification is needed."
     else:
         candidates = [
@@ -110,15 +126,7 @@ class WorkflowNodes:
 
     def route(self, state: State) -> dict:
         try:
-            if state["context"].get("intake", {}).get("new_sender"):
-                routing = Routing(
-                    intents=["new_student_enquiry"],
-                    request_summary="First email from a new enquirer; teacher assessment required.",
-                    needs_clarification=False,
-                    reason="The sender had no student profile when this email was received.",
-                )
-            else:
-                routing = self.model.route(state["context"])
+            routing = self.model.route(state["context"])
         except ModelError:
             routing = Routing(
                 intents=["unknown"],
@@ -135,6 +143,7 @@ class WorkflowNodes:
                 "intents": routing.intents,
                 "flow": flow,
                 "needs_clarification": routing.needs_clarification,
+                "action": routing.action,
             },
         )
         return {
@@ -149,23 +158,41 @@ class WorkflowNodes:
             "interpretation": self.model.interpret_makeup(state["context"]).model_dump(mode="json")
         }
 
+    def _enquiry_interpretation(self, state: State, feedback: str = "") -> EnquiryInterpretation:
+        try:
+            parsed = self.model.interpret_enquiry(
+                {
+                    **state["context"],
+                    "previous_interpretation": state.get("interpretation", {}),
+                    "teacher_feedback": feedback,
+                }
+            )
+        except (ModelError, ValidationError):
+            parsed = EnquiryInterpretation(
+                request_summary=state["routing"]["request_summary"],
+                missing_details=["The enquiry could not be interpreted; teacher review is needed."],
+                enduring_preferences=[],
+                questions=[state["context"]["source"]["body"][:2000]],
+                requested_actions=(
+                    [state["routing"]["request_summary"]]
+                    if state["routing"].get("action", "unclear") != "information_only"
+                    else []
+                ),
+            )
+        if not parsed.requested_actions and state["routing"].get("action") in {
+            "other_action",
+            "unclear",
+        }:
+            parsed.requested_actions = [state["routing"]["request_summary"]]
+        return parsed
+
     def interpret_general(self, state: State) -> dict:
-        routing = state["routing"]
-        explanation = (
-            "The request type needs clarification by the teacher."
-            if routing["needs_clarification"]
-            else "This workflow is not implemented; teacher handling is required."
-        )
-        parsed = RequestInterpretation(
-            request_summary=routing["request_summary"],
-            missing_details=[explanation],
-            enduring_preferences=[],
-        )
-        return {"interpretation": parsed.model_dump()}
+        parsed = self._enquiry_interpretation(state)
+        return {"interpretation": parsed.model_dump(mode="json")}
 
     def remember_student(self, state: State) -> dict:
         flow = state.get("flow", "makeup")
-        schema = MakeupInterpretation if flow == "makeup" else RequestInterpretation
+        schema = MakeupInterpretation if flow == "makeup" else EnquiryInterpretation
         interpretation = schema.model_validate(state["interpretation"])
         self.store.remember_student(state["run_id"], interpretation, state.get("routing", {}), flow)
         logger.info("student_memory_updated", extra={"run_id": state["run_id"]})
@@ -186,7 +213,9 @@ class WorkflowNodes:
             draft = self.model.draft(context)
         except ModelError:
             draft = _fallback_draft(state)
-        draft = _validate_booking_proposal(_validate_references(draft, state), state)
+        draft = _validate_booking_proposal(
+            _validate_references(validate_answers(draft, state), state), state
+        )
         return {"draft": draft.model_dump(mode="json")}
 
     def persist_draft(self, state: State) -> dict:
@@ -210,6 +239,12 @@ class WorkflowNodes:
 
     def revision(self, state: State) -> dict:
         feedback = state["decision"]["feedback"]
+        if state.get("flow") != "makeup" and state.get("feedback"):
+            feedback = (
+                state["feedback"]
+                + "\n\nLatest teacher feedback (supersedes conflicting earlier feedback):\n"
+                + feedback
+            )
         update = {"attempt": state["attempt"] + 1, "feedback": feedback}
         if state.get("flow") == "makeup":
             # Refresh extracted preferences/provenance before the fixed checks. This also
@@ -221,6 +256,10 @@ class WorkflowNodes:
                     "teacher_feedback": feedback,
                 }
             )
+            self.store.save_revision_interpretation(state["run_id"], interpretation)
+            update["interpretation"] = interpretation.model_dump(mode="json")
+        else:
+            interpretation = self._enquiry_interpretation(state, feedback)
             self.store.save_revision_interpretation(state["run_id"], interpretation)
             update["interpretation"] = interpretation.model_dump(mode="json")
         return update

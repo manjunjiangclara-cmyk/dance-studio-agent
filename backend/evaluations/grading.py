@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from studio_copilot.agent.contracts import (
     Draft,
+    EnquiryInterpretation,
     MakeupInterpretation,
     RequestInterpretation,
     Routing,
@@ -51,6 +52,8 @@ def grade_run(run: dict, step: EmailStep, fixture: dict) -> list[dict]:
             "interpretation_contract",
             MakeupInterpretation
             if interpretation.get("flow") == "makeup"
+            else EnquiryInterpretation
+            if interpretation.get("flow") == "enquiry" or "questions" in interpretation
             else RequestInterpretation,
             interpretation,
         ),

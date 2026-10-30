@@ -2895,3 +2895,34 @@ h3 {
 .confirmed-session > .session-source-tags {
   width: 100%;
 }
+.enquiry-question {
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border, #e4e1da);
+  overflow-wrap: anywhere;
+}
+.enquiry-question h3 {
+  margin: 0 0 0.5rem;
+}
+.enquiry-panel .reference-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+.enquiry-status {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.3rem;
+  background: #f4eddc;
+  color: #71531e;
+}
+.enquiry-status.answered {
+  background: #e6f0e8;
+  color: #28553b;
+}
+.enquiry-actions {
+  margin-top: 1rem;
+  overflow-wrap: anywhere;
+}

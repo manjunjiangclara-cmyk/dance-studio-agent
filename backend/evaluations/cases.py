@@ -76,10 +76,11 @@ class Setup(Strict):
 class ExpectedRouting(Strict):
     intents: list[Intent] = Field(min_length=1)
     needs_clarification: bool | None = None
+    action: Literal["information_only", "makeup_booking", "other_action", "unclear"] | None = None
 
 
 class ExpectedInterpretation(Strict):
-    flow: Literal["makeup", "teacher_handoff"]
+    flow: Literal["makeup", "enquiry", "teacher_handoff"]
     routing: ExpectedRouting | None = None
     absence_date: str | None = None
     preferred_date: str | None = None
@@ -102,7 +103,13 @@ class ExpectedOutput(Strict):
 
 class Checks(Strict):
     required_tools: list[
-        Literal["get_enrolments", "search_sessions", "get_locations", "check_absence_notice"]
+        Literal[
+            "get_timetable",
+            "get_enrolments",
+            "search_sessions",
+            "get_locations",
+            "check_absence_notice",
+        ]
     ] = []
     clarification_required: bool = False
     forbidden_draft_text: list[str] = []

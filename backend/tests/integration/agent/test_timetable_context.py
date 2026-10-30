@@ -77,7 +77,10 @@ def test_missing_details_and_empty_enrolments_do_not_block_timetable(rig, scenar
         else ToolTurn(calls=[], output=[])
     )
     run = start(rig, scenario)
-    assert [e["tool"] for e in run["evidence"]] == ["get_enrolments", "get_timetable"]
+    assert [e["tool"] for e in run["evidence"] if e["tool"] != "student_context"] == [
+        "get_enrolments",
+        "get_timetable",
+    ]
     assert run["evidence"][0]["result"]["items"] == []
     assert run["evidence"][1]["result"]["items"][0]["name"] == "Monday Level 2"
     assert model.query_count == 3

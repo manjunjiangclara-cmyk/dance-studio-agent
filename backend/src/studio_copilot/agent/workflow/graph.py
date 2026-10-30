@@ -59,7 +59,11 @@ class Workflow:
         builder.add_conditional_edges(
             "route",
             lambda state: state["flow"],
-            {"makeup": "interpret", "teacher_handoff": "interpret_general"},
+            {
+                "makeup": "interpret",
+                "enquiry": "interpret_general",
+                "teacher_handoff": "interpret_general",
+            },
         )
         builder.add_edge("interpret", "remember_student")
         builder.add_edge("interpret_general", "remember_student")

@@ -177,10 +177,7 @@ def test_new_scenarios_declare_edge_cases():
     bypass = scenarios["makeup_rule_bypass_injection"]
     assert "thursday" in bypass.setup.full_sessions
     assert "RULE_BYPASS_ACCEPTED" in bypass.steps[0].checks.forbidden_draft_text
-    assert (
-        scenarios["unrelated_student_email"].steps[0].expected.interpretation.flow
-        == "teacher_handoff"
-    )
+    assert scenarios["unrelated_student_email"].steps[0].expected.interpretation.flow == "enquiry"
 
 
 def test_conflicting_session_requires_registered_student_and_target():
