@@ -1,6 +1,8 @@
-# Makeup enquiry: implemented agent workflow
+# Email enquiry and makeup workflow
 
-The local backend now runs one LangGraph graph with the OpenAI Responses API. It accepts stored synthetic emails for known students; teachers review drafts through the staff API. Its query tools are read-only; a verified proposal can be booked only on teacher approval. It has no email delivery tool.
+The local backend runs one LangGraph graph with the OpenAI Responses API for new and existing students. Teachers review drafts through the staff API. Query tools are read-only; a verified makeup proposal can be booked only on teacher approval. The system has no email delivery tool.
+
+This diagram shows the user-facing workflow, including teacher review actions outside the graph. The question statuses describe the draft checklist; they are not separate graph nodes.
 
 ```mermaid
 flowchart TD
@@ -12,12 +14,18 @@ flowchart TD
     X --> C
     C --> D[Verify makeup evidence or gather read-only enquiry facts]
     D --> E[Draft response and supporting evidence]
-    E --> F[Pause for teacher review]
-    F -->|Feedback| D
-    F -->|Approve with optional edits| G[Recheck and book proposal; store response]
+    E -->|Enquiry or handoff| K["Enquiry checklist: answered, needs student clarification, or needs teacher input"]
+    K --> F[Pause for teacher review]
+    E -->|Makeup draft| F
+    F -->|Feedback or teacher answer / confirm later| V[Update draft and retain teacher decisions]
+    V --> D
+    F -->|Approve after required teacher decisions| G[Store response; recheck and book only a valid makeup proposal]
     G --> H[Reconcile and save teacher-reviewed memory]
+    H --> J[Approved response saved; no email sent]
     F -->|Reject| I[Close run and remove graph checkpoints]
 ```
+
+For `needs_student`, the draft asks the student for clarification; no separate teacher answer is required for that question. For `needs_teacher`, the teacher supplies an answer or explicitly chooses **Confirm later**, then updates the draft before approval. Confirming later does not create a reminder or send a follow-up. A later student email starts a new run using the conversation history.
 
 ## Routing before interpretation
 
@@ -47,7 +55,7 @@ Teacher approval stores the final response and atomically books a validated sess
 
 ## Bounds and policies
 
-For enquiries and non-makeup handoffs, each drafting attempt permits four model/tool rounds, with at most three tool executions per round. Makeup verification and candidate checks run in a fixed sequence. Identical calls after argument normalization are blocked. Missing essential details, empty results, invalid calls, query failures, and exhausted limits stop gathering. Drafting then shows uncertainty or asks for clarification; if drafting itself fails, a conservative clarification template is used. Only explicit teacher feedback starts another attempt.
+For enquiries and non-makeup handoffs, each drafting attempt permits four model/tool rounds, with at most three tool executions per round. Makeup verification and candidate checks run in a fixed sequence. Identical calls after argument normalization are blocked. Missing essential details, empty results, invalid calls, query failures, and exhausted limits stop gathering. Drafting then shows uncertainty or asks for clarification; if drafting itself fails, a conservative clarification template is used. A teacher revision with feedback or question decisions starts another attempt.
 
 Tools read the current student's enrolments, timetable sessions, locations, and notice timing. They cannot query another student's messages or accept a replacement student ID. Session candidates are not guaranteed makeup seats or placement approval. Database tool queries have a five-second statement timeout. OpenAI requests have a 20-second SDK timeout and one transient-error retry.
 

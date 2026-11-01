@@ -46,7 +46,8 @@ import { all, ApiError, examples, get, post, request } from "./data";
 import { confirmedSessions } from "./attendance";
 import { PolicyPage } from "./PolicyPage";
 import { ClassificationPanel, IntentBadges } from "./Classification";
-import { EnquiryPanel } from "./EnquiryPanel";
+import { EnquiryPanel, missingTeacherDecisions } from "./EnquiryPanel";
+import type { QuestionResolution } from "./types";
 import type {
   Conversation,
   DatabaseRecord,
@@ -780,6 +781,9 @@ function ReviewDetail({ id }: { id: string }) {
     [busy, setBusy] = useState(false),
     [actionError, setActionError] = useState<Error>();
   const [message, setMessage] = useState("");
+  const [resolutionEdits, setResolutionEdits] = useState<
+    Record<string, QuestionResolution>
+  >({});
   const revision = useRef(-1);
   const [pollingStatus, setPollingStatus] = useState<RunStatus>();
   const state = useLoad(
@@ -846,15 +850,44 @@ function ReviewDetail({ id }: { id: string }) {
               ...(action === "approve"
                 ? { body: draft }
                 : action === "revise"
-                  ? { feedback }
+                  ? {
+                      ...(feedback.trim() ? { feedback } : {}),
+                      ...(Object.keys(resolutionEdits).length
+                        ? {
+                            question_resolutions:
+                              Object.values(resolutionEdits),
+                          }
+                        : {}),
+                      ...(!feedback.trim() &&
+                      !Object.keys(resolutionEdits).length
+                        ? {
+                            feedback:
+                              "Regenerate the question checklist for this older review.",
+                          }
+                        : {}),
+                    }
                   : {}),
             },
       );
       setPollingStatus(result.status);
-      setDirty(false);
-      setFeedback("");
-      setDraft(result.draft_details.body || "");
-      revision.current = result.revision;
+      if (result.status !== "failed") {
+        const applied = result.draft_details.question_resolutions || [];
+        const choicesApplied = Object.values(resolutionEdits).every((choice) =>
+          applied.some(
+            (item) =>
+              item.question_id === choice.question_id &&
+              item.decision === choice.decision &&
+              item.answer === choice.answer,
+          ),
+        );
+        if (action !== "retry" || choicesApplied) {
+          setDirty(false);
+          setFeedback("");
+          setResolutionEdits({});
+        }
+        setDraft(result.draft_details.body || "");
+        revision.current = result.revision;
+      }
       setMessage(
         result.status === "approved"
           ? result.draft_details.booking_session_id
@@ -887,8 +920,21 @@ function ReviewDetail({ id }: { id: string }) {
     );
   const { run, student, messages, classes } = value;
   const canReview = workspace && run.status === "awaiting_review";
+  const missingDecisions = missingTeacherDecisions(run);
+  const pendingChoices = Object.keys(resolutionEdits).length > 0;
+  const pendingInvalid = Object.values(resolutionEdits).some(
+    (choice) => choice.decision === "answer" && !choice.answer?.trim(),
+  );
+  const legacyQuestions = missingDecisions.some(
+    (answer) => !answer.question_id,
+  );
+  const enquiryReview =
+    run.interpretation.flow !== "makeup" && !!run.draft_details.answers?.length;
   const retryable =
-    workspace && ["failed", "running", "finalizing"].includes(run.status);
+    workspace &&
+    ["failed", "running", "finalizing"].includes(run.status) &&
+    (run.approved_response_id || run.draft_details.failure_code !== "question_limit_exceeded");
+  const canCloseFailed = workspace && run.status === "failed" && !run.approved_response_id;
   const missing = Array.isArray(run.interpretation.missing_details)
     ? (run.interpretation.missing_details as string[])
     : [];
@@ -966,6 +1012,8 @@ function ReviewDetail({ id }: { id: string }) {
               setDirty(false);
               revision.current = run.revision;
               setDraft(run.draft_details.body || "");
+              setFeedback("");
+              setResolutionEdits({});
               setActionError(undefined);
             }}
           >
@@ -1142,7 +1190,12 @@ function ReviewDetail({ id }: { id: string }) {
               <button
                 className="button primary full-width"
                 disabled={
-                  busy || !draft.trim() || (!!proposal && !bookingSession)
+                  busy ||
+                  !draft.trim() ||
+                  (!!proposal && !bookingSession) ||
+                  missingDecisions.length > 0 ||
+                  pendingChoices ||
+                  !!feedback.trim()
                 }
                 onClick={() => action("approve")}
               >
@@ -1158,6 +1211,17 @@ function ReviewDetail({ id }: { id: string }) {
                   ? "Books the proposed session and saves your reply together. No email is sent."
                   : "Saves reviewed text. No booking is proposed and no email is sent."}
               </p>
+              {(missingDecisions.length > 0 ||
+                pendingChoices ||
+                !!feedback.trim()) && (
+                <p className="notice" role="status">
+                  {legacyQuestions
+                    ? "Update this older draft to enable individual question decisions."
+                    : pendingChoices || feedback.trim()
+                      ? "Update the draft to apply your answers, deferrals and feedback before approval."
+                      : "Provide an answer or choose Confirm later for each question needing teacher input, then update the draft."}
+                </p>
+              )}
               <label>
                 Revision feedback
                 <textarea
@@ -1176,11 +1240,15 @@ function ReviewDetail({ id }: { id: string }) {
               <div className="button-row">
                 <button
                   className="button secondary"
-                  disabled={busy || !feedback.trim()}
+                  disabled={
+                    busy ||
+                    pendingInvalid ||
+                    (!feedback.trim() && !pendingChoices && !legacyQuestions)
+                  }
                   onClick={() => action("revise")}
                 >
                   <RefreshCw size={14} />
-                  Request revision
+                  {enquiryReview ? "Update draft" : "Request revision"}
                 </button>
                 <button
                   className="text-button danger"
@@ -1192,15 +1260,28 @@ function ReviewDetail({ id }: { id: string }) {
               </div>
             </div>
           )}
-          {retryable && (
-            <button
-              className="button secondary"
-              disabled={busy}
-              onClick={() => action("retry")}
-            >
-              <RefreshCw size={15} />
-              {busy ? "Processing…" : "Retry this run"}
-            </button>
+          {(retryable || canCloseFailed) && (
+            <div className="button-row">
+              {retryable && (
+                <button
+                  className="button secondary"
+                  disabled={busy}
+                  onClick={() => action("retry")}
+                >
+                  <RefreshCw size={15} />
+                  {busy ? "Processing…" : "Retry this run"}
+                </button>
+              )}
+              {canCloseFailed && (
+                <button
+                  className="text-button danger"
+                  disabled={busy}
+                  onClick={() => action("reject")}
+                >
+                  Close review
+                </button>
+              )}
+            </div>
           )}
           {!workspace && (
             <div className="review-explanation">
@@ -1214,7 +1295,20 @@ function ReviewDetail({ id }: { id: string }) {
           )}
         </section>
         <aside className="context-stack">
-          <EnquiryPanel run={run} base={base} />
+          <EnquiryPanel
+            run={run}
+            base={base}
+            editable={canReview}
+            busy={busy}
+            edits={resolutionEdits}
+            onChange={(choice) => {
+              setResolutionEdits((previous) => ({
+                ...previous,
+                [choice.question_id]: choice,
+              }));
+              setDirty(true);
+            }}
+          />
           <section className="panel context-card">
             <div className="eyebrow">THE STUDENT</div>
             <Link

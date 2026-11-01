@@ -126,6 +126,38 @@ def test_answers_require_current_policy_or_actual_teacher_feedback(reference, fe
     assert result.answers[0].status == status
 
 
+@pytest.mark.parametrize("prefix", ["teacher_answer:", "teacher_deferral:"])
+def test_model_cannot_reuse_a_different_questions_teacher_decision(prefix):
+    question = "What shoes are required?"
+    reference = prefix + "different-question"
+    draft = Draft(
+        body="An unsupported claim about shoes.",
+        rationale="Synthetic evidence test",
+        questions=[],
+        references=[reference],
+        answers=[
+            EnquiryAnswer(
+                question=question,
+                status="answered",
+                answer="Shoes are required.",
+                references=[reference],
+            )
+        ],
+    )
+    result = validate_answers(
+        draft,
+        {
+            "flow": "enquiry",
+            "context": {"policy": {"version": "test"}},
+            "interpretation": {"questions": [question], "requested_actions": []},
+            "evidence": [{"result": {"references": [reference]}}],
+        },
+    )
+    assert result.answers[0].status == "needs_teacher"
+    assert result.answers[0].references == []
+    assert "unsupported claim" not in result.body
+
+
 @pytest.mark.parametrize("question", ["", "   ", "x" * 2001])
 def test_extracted_questions_cannot_break_answer_validation(question):
     try:

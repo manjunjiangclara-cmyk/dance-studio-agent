@@ -16,6 +16,12 @@ from studio_copilot.agent.persistence.checkpoints import postgres_checkpointer
 from studio_copilot.agent.persistence.locking import student_lock
 from studio_copilot.agent.persistence.store import WorkflowStore
 from studio_copilot.agent.policy import load_policy
+from studio_copilot.agent.question_resolutions import (
+    QUESTION_LIMIT_FAILURE,
+    QuestionLimitError,
+    RevisionExtractionError,
+    validate_resolution_update,
+)
 from studio_copilot.agent.tracing import workflow_trace
 from studio_copilot.agent.workflow import Workflow
 from studio_copilot.persistence.models import AgentRun, Conversation, Message, Student
@@ -160,13 +166,26 @@ class AgentService:
                     review.body is None or review.body == body
                 ):
                     return run
-            if run.status != "awaiting_review" or review.expected_revision != run.revision:
+            close_failed = (
+                run.status == "failed"
+                and run.approved_response_id is None
+                and review.action == "reject"
+            )
+            if (
+                run.status != "awaiting_review" and not close_failed
+            ) or review.expected_revision != run.revision:
                 conflict("This draft is no longer awaiting this review revision.")
             with Session(self.engine) as db:
                 if latest_email(db, run.conversation_id).id != run.source_message_id:
                     conflict("A newer student email has superseded this draft.")
-            if review.action == "revise" and not review.feedback:
-                invalid("Revision requires teacher feedback.")
+            if review.action == "revise":
+                if not review.feedback and not review.question_resolutions:
+                    invalid("Revision requires teacher feedback or a question answer/deferral.")
+                validate_resolution_update(
+                    run.interpretation,
+                    run.draft_details,
+                    [item.model_dump(mode="json") for item in review.question_resolutions],
+                )
             if review.action == "reject":
                 # Do not checkpoint the rejection payload or create a rejection audit/message.
                 with self.checkpoints() as saver:
@@ -191,6 +210,13 @@ class AgentService:
             run = self.get(run_id)
             if run.status not in {"failed", "running", "finalizing"}:
                 conflict("Only interrupted or failed processing can be retried.")
+            if (
+                run.approved_response_id is None
+                and run.draft_details.get("failure_code") == QUESTION_LIMIT_FAILURE
+            ):
+                conflict(
+                    "This enquiry exceeds the question limit. Close it and review it manually."
+                )
             with Session(self.engine) as db:
                 if (
                     run.approved_response_id is None
@@ -255,6 +281,24 @@ class AgentService:
         except AdministrationError:
             trace.fail()
             raise
+        except (QuestionLimitError, RevisionExtractionError) as error:
+            trace.fail()
+            with Session(self.engine) as db, db.begin():
+                run = require(db, AgentRun, run_id, lock=True)
+                if run.status not in {"approved", "closed", "superseded"}:
+                    run.status = "failed"
+                    if isinstance(error, QuestionLimitError):
+                        run.draft_details = {
+                            **run.draft_details,
+                            "failure_code": QUESTION_LIMIT_FAILURE,
+                        }
+                    run.error = (
+                        "The combined question checklist exceeds 20 questions. "
+                        "Close this review and handle the enquiry manually."
+                        if isinstance(error, QuestionLimitError)
+                        else "The revised enquiry could not be interpreted. "
+                        "Review the enquiry manually or retry extraction."
+                    )
         except Exception as error:
             trace.fail()
             # No provider exception strings, prompts, or credentials in logs/API errors.

@@ -163,3 +163,10 @@ source relevance. Review the full checklist, requested actions, and draft; a val
 reference does not establish that it supports the answer. The fixture contains
 no Wednesday beginner class, clothing rules, or enrolment process. These cases
 do not establish real-world studio policy or availability.
+
+`unknown_clothing_requirements` and `known_timetable_unknown_clothing` test
+unavailable clothing rules for new and existing students. These questions must
+remain `needs_teacher` without unrelated citations; the mixed case must also
+answer the supported timetable question. Phrase and topic checks are limited:
+review the complete reply and relevance of every cited source. These scenarios
+stop before teacher answers or deferrals, which integration tests cover.

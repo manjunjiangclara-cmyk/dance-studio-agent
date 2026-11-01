@@ -2,7 +2,7 @@
 
 ## Runtime
 
-One Python codebase uses FastAPI, PostgreSQL, SQLAlchemy, Alembic, LangGraph, and the OpenAI Python SDK. The staff API handles ordinary administration; the graph handles a teacher-reviewed makeup enquiry. The React website serves a public fictional walkthrough and a Google-authenticated owner review workspace from the same FastAPI origin. Public pages read versioned fixtures; owner pages use the authenticated API. There is no worker queue, real inbox, or email delivery.
+One Python codebase uses FastAPI, PostgreSQL, SQLAlchemy, Alembic, LangGraph, and the OpenAI Python SDK. The staff API handles ordinary administration; the graph handles teacher-reviewed enquiries, makeup requests, and handoffs. The React website serves a public fictional walkthrough and a Google-authenticated owner review workspace from the same FastAPI origin. Public pages read versioned fixtures; owner pages use the authenticated API. There is no worker queue, real inbox, or email delivery.
 
 ```mermaid
 flowchart LR

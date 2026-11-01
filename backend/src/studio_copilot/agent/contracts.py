@@ -3,7 +3,7 @@
 from typing import Annotated, Any, Literal, Protocol, TypedDict
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class State(TypedDict, total=False):
@@ -21,6 +21,7 @@ class State(TypedDict, total=False):
     response_id: str
     routing: dict
     flow: str
+    question_resolutions: list[dict]
 
 
 class StrictModel(BaseModel):
@@ -73,9 +74,13 @@ class MakeupInterpretation(RequestInterpretation):
 EnquiryText = Annotated[str, Field(min_length=1, max_length=2000)]
 
 
-class EnquiryInterpretation(RequestInterpretation):
+class EnquiryExtraction(RequestInterpretation):
     questions: list[EnquiryText] = Field(default_factory=list, max_length=20)
     requested_actions: list[EnquiryText] = Field(default_factory=list, max_length=20)
+
+
+class EnquiryInterpretation(EnquiryExtraction):
+    question_ids: dict[str, str] = Field(default_factory=dict)
 
 
 class EnquiryAnswer(StrictModel):
@@ -83,6 +88,21 @@ class EnquiryAnswer(StrictModel):
     status: Literal["answered", "needs_student", "needs_teacher"]
     answer: str = Field(max_length=4000)
     references: list[str] = Field(max_length=40)
+    question_id: str | None = None
+
+
+class QuestionResolution(StrictModel):
+    question_id: UUID
+    decision: Literal["answer", "defer"]
+    answer: str | None = Field(default=None, min_length=1, max_length=4000)
+
+    @model_validator(mode="after")
+    def valid_answer(self):
+        if self.decision == "answer" and not self.answer:
+            raise ValueError("Provide an answer for this question.")
+        if self.decision == "defer" and self.answer is not None:
+            raise ValueError("A deferred question cannot contain an answer.")
+        return self
 
 
 class ReviewedMemory(StrictModel):
@@ -97,6 +117,8 @@ class Draft(StrictModel):
     references: list[str] = Field(max_length=40)
     booking_session_id: UUID | None = None
     answers: list[EnquiryAnswer] = Field(default_factory=list, max_length=20)
+    question_resolutions: list[QuestionResolution] = Field(default_factory=list, max_length=20)
+    required_question_ids: list[str] = Field(default_factory=list, max_length=20)
 
 
 class ToolCall(StrictModel):
@@ -115,6 +137,16 @@ class Review(StrictModel):
     expected_revision: int = Field(ge=1)
     body: str | None = Field(default=None, min_length=1, max_length=20_000)
     feedback: str | None = Field(default=None, min_length=1, max_length=4000)
+    question_resolutions: list[QuestionResolution] = Field(default_factory=list, max_length=20)
+
+    @model_validator(mode="after")
+    def revision_resolutions(self):
+        if self.question_resolutions and self.action != "revise":
+            raise ValueError("Question resolutions must be applied by updating the draft first.")
+        ids = [item.question_id for item in self.question_resolutions]
+        if len(ids) != len(set(ids)):
+            raise ValueError("Resolve each question only once per update.")
+        return self
 
 
 class ModelError(Exception):

@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from studio_copilot.administration.service import conflict, require
 from studio_copilot.agent.contracts import RequestInterpretation, ReviewedMemory
 from studio_copilot.agent.proposals import candidate_session_ids, confirmation_body
+from studio_copilot.agent.question_resolutions import require_resolved_questions
 from studio_copilot.agent.tools import enrolments
 from studio_copilot.bookings.service import create_booking
 from studio_copilot.persistence.models import (
@@ -223,6 +224,7 @@ class WorkflowStore:
             run = _active_run(db, run_id)
             # A retry after storing the response reuses it before reconciling memory.
             if run.approved_response_id is None:
+                require_resolved_questions(run)
                 proposal = run.draft_details.get("booking_session_id")
                 if proposal:
                     draft = require(db, Message, run.draft_message_id)

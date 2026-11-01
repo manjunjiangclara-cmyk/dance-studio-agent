@@ -21,6 +21,12 @@ from studio_copilot.agent.enquiry import safe_body, validate_answers
 from studio_copilot.agent.makeup import clarification_body, validated_candidate_ids
 from studio_copilot.agent.persistence.store import WorkflowStore
 from studio_copilot.agent.proposals import confirmation_body
+from studio_copilot.agent.question_resolutions import (
+    RevisionExtractionError,
+    identify_questions,
+    merge_resolutions,
+    validate_resolution_update,
+)
 from studio_copilot.agent.workflow.queries import QueryRunner
 
 logger = logging.getLogger(__name__)
@@ -93,7 +99,9 @@ def _validate_booking_proposal(draft: Draft, state: State) -> Draft:
             clarification_body(state.get("evidence", []))
             if state.get("flow", state.get("context", {}).get("flow")) == "makeup"
             else safe_body(
-                draft.answers, state.get("interpretation", {}).get("requested_actions", [])
+                draft.answers,
+                state.get("interpretation", {}).get("requested_actions", []),
+                draft.question_resolutions,
             )
         )
         draft.rationale += " Unsupported booking proposal removed; teacher clarification is needed."
@@ -167,7 +175,11 @@ class WorkflowNodes:
                     "teacher_feedback": feedback,
                 }
             )
-        except (ModelError, ValidationError):
+        except (ModelError, ValidationError) as error:
+            if state.get("interpretation"):
+                raise RevisionExtractionError(
+                    "The revised enquiry could not be interpreted."
+                ) from error
             parsed = EnquiryInterpretation(
                 request_summary=state["routing"]["request_summary"],
                 missing_details=["The enquiry could not be interpreted; teacher review is needed."],
@@ -188,6 +200,7 @@ class WorkflowNodes:
 
     def interpret_general(self, state: State) -> dict:
         parsed = self._enquiry_interpretation(state)
+        identify_questions(parsed, state["run_id"], {})
         return {"interpretation": parsed.model_dump(mode="json")}
 
     def remember_student(self, state: State) -> dict:
@@ -208,6 +221,7 @@ class WorkflowNodes:
             "evidence": state["evidence"],
             "warnings": state["warnings"],
             "teacher_feedback": state.get("feedback", ""),
+            "question_resolutions": state.get("question_resolutions", []),
         }
         try:
             draft = self.model.draft(context)
@@ -235,10 +249,10 @@ class WorkflowNodes:
             or review.expected_revision != state["attempt"]
         ):
             conflict("Review does not match this draft revision.")
-        return {"decision": review.model_dump()}
+        return {"decision": review.model_dump(mode="json")}
 
     def revision(self, state: State) -> dict:
-        feedback = state["decision"]["feedback"]
+        feedback = state["decision"].get("feedback") or ""
         if state.get("flow") != "makeup" and state.get("feedback"):
             feedback = (
                 state["feedback"]
@@ -259,7 +273,14 @@ class WorkflowNodes:
             self.store.save_revision_interpretation(state["run_id"], interpretation)
             update["interpretation"] = interpretation.model_dump(mode="json")
         else:
+            decisions = state["decision"].get("question_resolutions", [])
+            validate_resolution_update(state["interpretation"], state["draft"], decisions)
+            update["question_resolutions"] = merge_resolutions(
+                state.get("question_resolutions", state["draft"].get("question_resolutions", [])),
+                decisions,
+            )
             interpretation = self._enquiry_interpretation(state, feedback)
+            identify_questions(interpretation, state["run_id"], state["interpretation"])
             self.store.save_revision_interpretation(state["run_id"], interpretation)
             update["interpretation"] = interpretation.model_dump(mode="json")
         return update
