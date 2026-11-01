@@ -1,0 +1,3 @@
+interface:
+  display_name: "Run Dance Studio App"
+  short_description: "Start the local frontend and backend"
