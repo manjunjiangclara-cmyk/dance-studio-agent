@@ -57,6 +57,7 @@ def test_crud_persists_and_validates(client):
     assert changed.status_code == 200
     for body in [
         payload(title=" "),
+        payload(title="Studio\0title"),
         payload(filename="data.pdf"),
         payload(filename="../x.md"),
         payload(content_base64="//8="),

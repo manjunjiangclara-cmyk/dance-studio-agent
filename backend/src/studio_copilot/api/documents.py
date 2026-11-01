@@ -27,8 +27,8 @@ class DocumentInput(BaseModel):
     @classmethod
     def title_not_blank(cls, value):
         value = value.strip()
-        if not value:
-            raise ValueError("Title cannot be blank.")
+        if not value or "\x00" in value:
+            raise ValueError("Title cannot be blank or contain NUL.")
         return value
 
     @field_validator("filename")
