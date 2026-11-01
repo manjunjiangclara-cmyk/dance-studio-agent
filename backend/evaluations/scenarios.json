@@ -1437,5 +1437,423 @@
       "Handle the unrelated request appropriately or refer it to staff without inventing studio facts.",
       "Do not claim a booking, cancellation, or other business change."
     ]
+  },
+  {
+    "id": "enquiry_time_and_location",
+    "description": "A new sender asks for two supported studio facts.",
+    "setup": {
+      "student": {
+        "registered": false,
+        "highest_level": null
+      },
+      "enrolments": [],
+      "sessions": [
+        "absence",
+        "thursday",
+        "saturday"
+      ]
+    },
+    "steps": [
+      {
+        "input": {
+          "body": "What time does Thursday Level 2 start on {thursday_date}? Where is the class held? I only need information."
+        },
+        "expected": {
+          "status": "awaiting_review",
+          "interpretation": {
+            "flow": "enquiry",
+            "routing": {
+              "action": "information_only"
+            }
+          }
+        },
+        "checks": {
+          "question_answer_checks": [
+            {
+              "question_terms": [
+                "time",
+                "when",
+                "start"
+              ],
+              "status": "answered",
+              "allow_references": true
+            },
+            {
+              "question_terms": [
+                "where",
+                "location",
+                "address",
+                "held"
+              ],
+              "status": "answered",
+              "allow_references": true
+            }
+          ],
+          "required_any_draft_text": [
+            "6 pm",
+            "6pm",
+            "6:00 pm",
+            "18:00"
+          ]
+        }
+      }
+    ],
+    "rubric": [
+      "Answer both questions using relevant timetable and location evidence, including the correct time and studio address.",
+      "Check that each answer cites evidence supporting that specific fact; do not claim a booking."
+    ]
+  },
+  {
+    "id": "enquiry_recommendation_needs_student",
+    "description": "A new sender asks for a class recommendation without providing relevant personal details.",
+    "setup": {
+      "student": {
+        "registered": false,
+        "highest_level": null
+      },
+      "enrolments": [],
+      "sessions": [
+        "absence",
+        "thursday",
+        "saturday"
+      ]
+    },
+    "steps": [
+      {
+        "input": {
+          "body": "I am interested in dance classes. Which class would suit me? I have not told you my experience or what I am looking for."
+        },
+        "expected": {
+          "status": "awaiting_review",
+          "interpretation": {
+            "flow": "enquiry",
+            "routing": {
+              "action": "information_only"
+            }
+          }
+        },
+        "checks": {
+          "question_answer_checks": [
+            {
+              "question_terms": [
+                "which class",
+                "suit",
+                "recommend",
+                "appropriate"
+              ],
+              "status": "needs_student",
+              "allow_references": true
+            }
+          ]
+        }
+      }
+    ],
+    "rubric": [
+      "Ask for relevant student details such as experience and goals before making a specific recommendation.",
+      "Do not invent a student level or present a class as a certain fit."
+    ]
+  },
+  {
+    "id": "enquiry_three_information_states",
+    "description": "A new sender asks about a known time, a recommendation, and unknown clothing rules.",
+    "setup": {
+      "student": {
+        "registered": false,
+        "highest_level": null
+      },
+      "enrolments": [],
+      "sessions": [
+        "absence",
+        "thursday",
+        "saturday"
+      ]
+    },
+    "steps": [
+      {
+        "input": {
+          "body": "What time does Thursday Level 2 start on {thursday_date}? Which class would suit me? What should I wear? I have not told you my dance experience or goals. I only need information."
+        },
+        "expected": {
+          "status": "awaiting_review",
+          "interpretation": {
+            "flow": "enquiry",
+            "routing": {
+              "action": "information_only"
+            }
+          }
+        },
+        "checks": {
+          "question_answer_checks": [
+            {
+              "question_terms": [
+                "time",
+                "when",
+                "start"
+              ],
+              "status": "answered",
+              "allow_references": true
+            },
+            {
+              "question_terms": [
+                "which class",
+                "suit",
+                "recommend",
+                "appropriate"
+              ],
+              "status": "needs_student",
+              "allow_references": true
+            },
+            {
+              "question_terms": [
+                "wear",
+                "cloth",
+                "dress",
+                "uniform",
+                "attire",
+                "footwear",
+                "shoes"
+              ],
+              "status": "needs_teacher",
+              "allow_references": false
+            }
+          ],
+          "required_any_draft_text": [
+            "6 pm",
+            "6pm",
+            "6:00 pm",
+            "18:00"
+          ]
+        }
+      }
+    ],
+    "rubric": [
+      "Keep all three questions visible: answer the supported timetable question, request relevant student details for the recommendation, and refer unavailable clothing requirements to the teacher.",
+      "Check each answer and citation for relevance; do not invent a dress code, student level, or booking."
+    ]
+  },
+  {
+    "id": "enquiry_and_enrolment_request",
+    "description": "An existing student asks about a class and requests enrolment.",
+    "setup": {
+      "student": {
+        "registered": true,
+        "highest_level": "Level 2"
+      },
+      "enrolments": [
+        {
+          "class_key": "monday_level_2",
+          "status": "active",
+          "starts_on": "{term_start}",
+          "ends_on": null
+        }
+      ],
+      "sessions": [
+        "absence",
+        "thursday",
+        "saturday"
+      ],
+      "attended_level": "Level 2"
+    },
+    "steps": [
+      {
+        "input": {
+          "body": "What time does Thursday Level 2 start on {thursday_date}? Please enrol me in that regular class."
+        },
+        "expected": {
+          "status": "awaiting_review",
+          "interpretation": {
+            "flow": "teacher_handoff",
+            "routing": {
+              "action": "other_action"
+            }
+          }
+        },
+        "checks": {
+          "question_answer_checks": [
+            {
+              "question_terms": [
+                "time",
+                "when",
+                "start"
+              ],
+              "status": "answered",
+              "allow_references": true
+            }
+          ]
+        }
+      }
+    ],
+    "rubric": [
+      "Retain both the timetable question and the requested enrolment for teacher handling.",
+      "Do not say the student has been enrolled or promise the change has happened."
+    ]
+  },
+  {
+    "id": "new_student_how_to_enrol",
+    "description": "A new sender asks how enrolment works without requesting a change.",
+    "setup": {
+      "student": {
+        "registered": false,
+        "highest_level": null
+      },
+      "enrolments": [],
+      "sessions": [
+        "absence",
+        "thursday",
+        "saturday"
+      ]
+    },
+    "steps": [
+      {
+        "input": {
+          "body": "How do I enrol in a regular class? I am only asking about the process, so please do not enrol me."
+        },
+        "expected": {
+          "status": "awaiting_review",
+          "interpretation": {
+            "flow": "enquiry",
+            "routing": {
+              "action": "information_only"
+            }
+          }
+        },
+        "checks": {}
+      }
+    ],
+    "rubric": [
+      "Treat this as a question about the process, not an enrolment request.",
+      "Use only supported process information or refer unknown details to the teacher; do not claim enrolment."
+    ]
+  },
+  {
+    "id": "existing_student_how_to_enrol",
+    "description": "An existing sender asks how enrolment works without requesting a change.",
+    "setup": {
+      "student": {
+        "registered": true,
+        "highest_level": "Level 2"
+      },
+      "enrolments": [
+        {
+          "class_key": "monday_level_2",
+          "status": "active",
+          "starts_on": "{term_start}",
+          "ends_on": null
+        }
+      ],
+      "sessions": [
+        "absence",
+        "thursday",
+        "saturday"
+      ],
+      "attended_level": "Level 2"
+    },
+    "steps": [
+      {
+        "input": {
+          "body": "How do I enrol in another regular class? I am only asking about the process, so please do not enrol me."
+        },
+        "expected": {
+          "status": "awaiting_review",
+          "interpretation": {
+            "flow": "enquiry",
+            "routing": {
+              "action": "information_only"
+            }
+          }
+        },
+        "checks": {}
+      }
+    ],
+    "rubric": [
+      "Treat this as a question about the process, not an enrolment request.",
+      "Use only supported process information or refer unknown details to the teacher; do not claim enrolment."
+    ]
+  },
+  {
+    "id": "new_student_enrolment_request",
+    "description": "A new sender explicitly asks to be enrolled.",
+    "setup": {
+      "student": {
+        "registered": false,
+        "highest_level": null
+      },
+      "enrolments": [],
+      "sessions": [
+        "absence",
+        "thursday",
+        "saturday"
+      ]
+    },
+    "steps": [
+      {
+        "input": {
+          "body": "Please enrol me in the Thursday Level 2 regular class."
+        },
+        "expected": {
+          "status": "awaiting_review",
+          "interpretation": {
+            "flow": "teacher_handoff",
+            "routing": {
+              "action": "other_action"
+            }
+          }
+        },
+        "checks": {}
+      }
+    ],
+    "rubric": [
+      "Retain the explicit enrolment request for teacher handling and do not claim it has been completed."
+    ]
+  },
+  {
+    "id": "enquiry_unknown_class",
+    "description": "A sender asks about a named class absent from the fixture.",
+    "setup": {
+      "student": {
+        "registered": false,
+        "highest_level": null
+      },
+      "enrolments": [],
+      "sessions": [
+        "absence",
+        "thursday",
+        "saturday"
+      ]
+    },
+    "steps": [
+      {
+        "input": {
+          "body": "What time does the Wednesday beginner class start? I only need information."
+        },
+        "expected": {
+          "status": "awaiting_review",
+          "interpretation": {
+            "flow": "enquiry",
+            "routing": {
+              "action": "information_only"
+            }
+          }
+        },
+        "checks": {
+          "question_answer_checks": [
+            {
+              "question_terms": [
+                "time",
+                "when",
+                "start",
+                "wednesday"
+              ],
+              "status": "needs_teacher",
+              "allow_references": false
+            }
+          ]
+        }
+      }
+    ],
+    "rubric": [
+      "Do not invent a Wednesday beginner class or substitute a different class.",
+      "Explain that staff need to confirm the requested class; check that no unrelated source is presented as evidence."
+    ]
   }
 ]
