@@ -22,6 +22,7 @@ from studio_copilot.agent.makeup import clarification_body, validated_candidate_
 from studio_copilot.agent.persistence.store import WorkflowStore
 from studio_copilot.agent.proposals import confirmation_body
 from studio_copilot.agent.question_resolutions import (
+    RevisionExtractionError,
     identify_questions,
     merge_resolutions,
     validate_resolution_update,
@@ -174,7 +175,11 @@ class WorkflowNodes:
                     "teacher_feedback": feedback,
                 }
             )
-        except (ModelError, ValidationError):
+        except (ModelError, ValidationError) as error:
+            if state.get("interpretation"):
+                raise RevisionExtractionError(
+                    "The revised enquiry could not be interpreted."
+                ) from error
             parsed = EnquiryInterpretation(
                 request_summary=state["routing"]["request_summary"],
                 missing_details=["The enquiry could not be interpreted; teacher review is needed."],

@@ -10,7 +10,7 @@ const clothingQuestion = "What should I wear?";
 const feeAnswer = "A trial costs $20.";
 
 interface ReviewRequest {
-  action: "revise" | "approve";
+  action: "revise" | "approve" | "reject";
   expected_revision: number;
   body?: string;
   feedback?: string;
@@ -56,6 +56,8 @@ async function mockOwner(
       else if (body?.action === "approve") {
         run.status = "approved";
         run.approved_response_id = "teacher-response";
+      } else if (body?.action === "reject") {
+        run.status = "closed";
       }
       return route.fulfill({ json: run });
     }
@@ -398,6 +400,31 @@ test("failed generation keeps pending decisions through a retry that has not app
     reviews[0].question_resolutions,
   );
   expect(writes).toContain(`/agent-runs/${run.id}/retry`);
+});
+
+test("failed unapproved review can be closed without a response", async ({ page }) => {
+  const run = structuredClone(example);
+  run.status = "failed";
+  run.error = "The combined question checklist exceeds 20 questions.";
+  run.draft_details.failure_code = "question_limit_exceeded";
+  const { reviews } = await mockOwner(page, run);
+  await page.goto(`/workspace/reviews/${run.id}`);
+  await expect(page.getByText(run.error)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Retry this run" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Close review", exact: true }).click();
+  await expect(page.getByText("Review closed without approving a response.")).toBeVisible();
+  expect(reviews).toEqual([{ action: "reject", expected_revision: run.revision }]);
+});
+
+test("failed finalization retains retry without a close control", async ({ page }) => {
+  const run = structuredClone(example);
+  run.status = "failed";
+  run.approved_response_id = "teacher-response";
+  run.draft_details.failure_code = "question_limit_exceeded";
+  await mockOwner(page, run);
+  await page.goto(`/workspace/reviews/${run.id}`);
+  await expect(page.getByRole("button", { name: "Retry this run" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Close review" })).toHaveCount(0);
 });
 
 test("legacy questions require regeneration before individual decisions or approval", async ({

@@ -106,6 +106,7 @@ export interface Run extends RecordBase {
     answers?: EnquiryAnswer[];
     question_resolutions?: QuestionResolution[];
     required_question_ids?: string[];
+    failure_code?: string;
   };
   policy_snapshot: Record<string, unknown>;
   error: string | null;

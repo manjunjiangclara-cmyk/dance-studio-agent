@@ -5,19 +5,36 @@ from uuid import UUID, uuid5
 from pydantic import ValidationError
 
 from studio_copilot.administration.service import conflict, invalid
-from studio_copilot.agent.contracts import EnquiryInterpretation, QuestionResolution
+from studio_copilot.agent.contracts import EnquiryInterpretation, ModelError, QuestionResolution
+
+QUESTION_LIMIT_FAILURE = "question_limit_exceeded"
+
+
+class QuestionLimitError(ModelError):
+    """A revised extraction cannot fit without losing checklist questions."""
+
+
+class RevisionExtractionError(ModelError):
+    """The revised checklist could not be verified."""
 
 
 def identify_questions(parsed: EnquiryInterpretation, run_id: str, previous: dict) -> None:
-    # Revisions concern the same immutable source email. Preserve its questions even
-    # if extraction reorders, paraphrases or drops them while incorporating staff facts.
-    questions = previous.get("questions", parsed.questions)
+    # Keep the original checklist and add recovered questions. Only normalize case
+    # and whitespace: assuming two paraphrases are equivalent could hide a distinct
+    # question. Potential duplicates remain visible for teacher review.
+    questions = [*previous.get("questions", []), *parsed.questions]
     distinct = {}
     for question in questions:
         distinct.setdefault(" ".join(question.split()).casefold(), question)
+    if len(distinct) > 20:
+        raise QuestionLimitError(
+            "The combined question checklist exceeds 20 questions; review the enquiry manually."
+        )
     parsed.questions = list(distinct.values())
+    existing_ids = previous.get("question_ids", {})
     parsed.question_ids = {
-        question: str(uuid5(UUID(run_id), normalized)) for normalized, question in distinct.items()
+        question: existing_ids.get(question) or str(uuid5(UUID(run_id), normalized))
+        for normalized, question in distinct.items()
     }
 
 

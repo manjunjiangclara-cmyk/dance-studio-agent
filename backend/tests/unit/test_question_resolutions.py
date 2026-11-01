@@ -5,7 +5,8 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from studio_copilot.agent.contracts import Review
+from studio_copilot.agent.contracts import EnquiryInterpretation, ModelError, Review
+from studio_copilot.agent.question_resolutions import identify_questions
 
 
 def resolution(**changes):
@@ -69,3 +70,36 @@ def test_resolution_count_is_bounded():
             expected_revision=1,
             question_resolutions=[resolution() for _ in range(21)],
         )
+
+
+def test_recovered_questions_preserve_existing_ids_and_do_not_guess_paraphrase_equivalence():
+    run_id = str(uuid4())
+    existing_id = str(uuid4())
+    previous = {
+        "questions": ["What should I wear?"],
+        "question_ids": {"What should I wear?": existing_id},
+    }
+    parsed = EnquiryInterpretation(
+        request_summary="Questions",
+        missing_details=[],
+        enduring_preferences=[],
+        questions=["  WHAT should I wear? ", "Is there a dress code?", "Where is class?"],
+    )
+    identify_questions(parsed, run_id, previous)
+    assert parsed.questions == ["What should I wear?", "Is there a dress code?", "Where is class?"]
+    assert parsed.question_ids["What should I wear?"] == existing_id
+    assert len(set(parsed.question_ids.values())) == 3
+
+
+def test_combined_question_limit_does_not_silently_drop_recovered_question():
+    questions = [f"Question {index}?" for index in range(20)]
+    previous = {"questions": questions}
+    parsed = EnquiryInterpretation(
+        request_summary="Questions",
+        missing_details=[],
+        enduring_preferences=[],
+        questions=["Another question?"],
+    )
+    with pytest.raises(ModelError, match="20 questions"):
+        identify_questions(parsed, str(uuid4()), previous)
+    assert parsed.questions == ["Another question?"]

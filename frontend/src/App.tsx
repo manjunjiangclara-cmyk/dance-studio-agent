@@ -931,7 +931,10 @@ function ReviewDetail({ id }: { id: string }) {
   const enquiryReview =
     run.interpretation.flow !== "makeup" && !!run.draft_details.answers?.length;
   const retryable =
-    workspace && ["failed", "running", "finalizing"].includes(run.status);
+    workspace &&
+    ["failed", "running", "finalizing"].includes(run.status) &&
+    (run.approved_response_id || run.draft_details.failure_code !== "question_limit_exceeded");
+  const canCloseFailed = workspace && run.status === "failed" && !run.approved_response_id;
   const missing = Array.isArray(run.interpretation.missing_details)
     ? (run.interpretation.missing_details as string[])
     : [];
@@ -1257,15 +1260,28 @@ function ReviewDetail({ id }: { id: string }) {
               </div>
             </div>
           )}
-          {retryable && (
-            <button
-              className="button secondary"
-              disabled={busy}
-              onClick={() => action("retry")}
-            >
-              <RefreshCw size={15} />
-              {busy ? "Processing…" : "Retry this run"}
-            </button>
+          {(retryable || canCloseFailed) && (
+            <div className="button-row">
+              {retryable && (
+                <button
+                  className="button secondary"
+                  disabled={busy}
+                  onClick={() => action("retry")}
+                >
+                  <RefreshCw size={15} />
+                  {busy ? "Processing…" : "Retry this run"}
+                </button>
+              )}
+              {canCloseFailed && (
+                <button
+                  className="text-button danger"
+                  disabled={busy}
+                  onClick={() => action("reject")}
+                >
+                  Close review
+                </button>
+              )}
+            </div>
           )}
           {!workspace && (
             <div className="review-explanation">

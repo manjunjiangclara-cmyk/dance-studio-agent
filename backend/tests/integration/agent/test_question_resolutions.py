@@ -227,6 +227,130 @@ def test_stable_question_identity_and_teacher_corrections_survive_revisions(rig,
     assert corrected["draft_details"]["question_resolutions"] == [corrected_choice]
 
 
+def test_revision_recovers_omitted_question_and_retains_teacher_decision(rig, scenario):
+    client, model, _, _ = rig
+    configure_clothing(model)
+    run = start(rig, scenario)
+    selected = choice(run)
+    first = review(client, run, "revise", question_resolutions=[selected]).json()
+    interpretation = model.interpret_enquiry
+    recovered = "Are special shoes required?"
+
+    def add_missing_question(context):
+        parsed = interpretation(context)
+        parsed.questions.append(recovered)
+        return parsed
+
+    model.interpret_enquiry = add_missing_question
+    response = review(client, first, "revise", feedback="Also address my question about shoes.")
+    assert response.status_code == 200, response.text
+    revised = response.json()
+    assert revised["interpretation"]["questions"] == [CLOTHING, recovered]
+    assert revised["interpretation"]["question_ids"][CLOTHING] == selected["question_id"]
+    assert revised["draft_details"]["question_resolutions"] == [selected]
+    answers = {item["question"]: item for item in revised["draft_details"]["answers"]}
+    assert answers[CLOTHING]["answer"] == selected["answer"]
+    assert answers[recovered]["status"] == "needs_teacher"
+    assert review(client, revised, "approve").status_code == 409
+    deferred = review(
+        client,
+        revised,
+        "revise",
+        question_resolutions=[choice(revised, "defer", question=recovered)],
+    )
+    assert deferred.status_code == 200, deferred.text
+    assert review(client, deferred.json(), "approve").status_code == 200
+
+
+def test_failed_revision_extraction_blocks_approval_until_successful_retry(rig, scenario):
+    client, model, _, _ = rig
+    configure_clothing(model)
+    run = start(rig, scenario)
+    selected = choice(run)
+    first = review(client, run, "revise", question_resolutions=[selected]).json()
+
+    def unavailable(context):
+        raise ModelError("Synthetic extraction failure")
+
+    interpret = model.interpret_enquiry
+    model.interpret_enquiry = unavailable
+    response = review(client, first, "revise", feedback="Make the reply warmer.")
+    assert response.status_code == 200, response.text
+    revised = response.json()
+    assert revised["status"] == "failed"
+    assert "could not be interpreted" in revised["error"]
+    assert revised["interpretation"]["questions"] == [CLOTHING]
+    assert revised["interpretation"]["question_ids"] == first["interpretation"]["question_ids"]
+    assert revised["draft_details"]["question_resolutions"] == [selected]
+    assert revised["draft_details"]["answers"][0]["answer"] == selected["answer"]
+    assert review(client, revised, "approve").status_code == 409
+    model.interpret_enquiry = interpret
+    retried = client.post(f"/api/v1/agent-runs/{run['id']}/retry").json()
+    assert retried["status"] == "awaiting_review"
+    assert retried["interpretation"]["questions"] == [CLOTHING]
+    assert retried["draft_details"]["question_resolutions"] == [selected]
+
+
+def test_overflow_cannot_retry_and_discard_the_recovered_question(rig, scenario):
+    client, model, _, _ = rig
+    configure_clothing(model)
+    interpret = model.interpret_enquiry
+    questions = [f"What is requirement {index}?" for index in range(20)]
+    overflow = False
+
+    def extract(context):
+        parsed = interpret(context)
+        parsed.questions = ["One more question?"] if overflow else questions
+        return parsed
+
+    model.interpret_enquiry = extract
+    run = start(rig, scenario)
+    overflow = True
+    failed = review(client, run, "revise", feedback="Check for omitted questions.").json()
+    assert failed["status"] == "failed"
+    assert "20 questions" in failed["error"]
+    assert failed["draft_details"]["failure_code"] == "question_limit_exceeded"
+    assert failed["interpretation"]["questions"] == questions
+    assert review(client, failed, "approve").status_code == 409
+
+    overflow = False
+    retried = client.post(f"/api/v1/agent-runs/{run['id']}/retry")
+    assert retried.status_code == 409
+    saved = client.get(f"/api/v1/agent-runs/{run['id']}").json()
+    assert saved["status"] == "failed"
+    assert saved["draft_details"]["failure_code"] == "question_limit_exceeded"
+
+
+def test_persistent_overflow_can_be_closed_without_response_or_business_writes(
+    rig, scenario, db_engine
+):
+    client, model, _, _ = rig
+    configure_clothing(model)
+    interpret = model.interpret_enquiry
+    questions = [f"What is requirement {index}?" for index in range(20)]
+    overflow = False
+
+    def extract(context):
+        parsed = interpret(context)
+        parsed.questions = ["One more question?"] if overflow else questions
+        return parsed
+
+    model.interpret_enquiry = extract
+    before = business_records(db_engine)
+    run = start(rig, scenario)
+    overflow = True
+    failed = review(client, run, "revise", feedback="Check for omitted questions.").json()
+    assert failed["status"] == "failed"
+    assert client.post(f"/api/v1/agent-runs/{run['id']}/retry").status_code == 409
+    stale = review(client, {**failed, "revision": failed["revision"] + 1}, "reject")
+    assert stale.status_code == 409
+    closed = review(client, failed, "reject")
+    assert closed.status_code == 200, closed.text
+    assert closed.json()["status"] == "closed"
+    assert response_count(db_engine) == 0
+    assert business_records(db_engine) == before
+
+
 def test_multiple_questions_can_be_resolved_and_replaced_across_revisions(rig, scenario):
     client, model, _, _ = rig
     configure_clothing(model)
@@ -446,6 +570,7 @@ def test_model_failure_still_applies_teacher_answer_and_approval_recovers_once(
     failed = review(client, revised, "approve").json()
     assert failed["status"] == "failed", failed
     assert failed["approved_response_id"]
+    assert review(client, failed, "reject").status_code == 409
     model.fail_reconcile = False
     retried = client.post(f"/api/v1/agent-runs/{run['id']}/retry").json()
     assert retried["status"] == "approved", retried

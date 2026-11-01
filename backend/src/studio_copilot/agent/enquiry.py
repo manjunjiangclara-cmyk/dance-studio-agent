@@ -54,7 +54,13 @@ def validate_answers(draft: Draft, state: dict) -> Draft:
     allowed = {"policy:" + state["context"]["policy"]["version"]}
     for item in state.get("evidence", []):
         if "error" not in item["result"]:
-            allowed.update(item["result"].get("references", []))
+            # Structured teacher decisions apply only to their own question below;
+            # the model must not reuse one decision as evidence for another.
+            allowed.update(
+                ref
+                for ref in item["result"].get("references", [])
+                if not ref.startswith(("teacher_answer:", "teacher_deferral:"))
+            )
     if state.get("feedback", "").strip():
         allowed.add("teacher_feedback")
     grouped: dict[str, list[EnquiryAnswer]] = {}
