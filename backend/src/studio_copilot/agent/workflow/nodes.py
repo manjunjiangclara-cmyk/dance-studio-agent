@@ -25,6 +25,7 @@ from studio_copilot.agent.question_resolutions import (
     RevisionExtractionError,
     identify_questions,
     merge_resolutions,
+    resolved_question_context,
     validate_resolution_update,
 )
 from studio_copilot.agent.workflow.queries import QueryRunner
@@ -221,7 +222,9 @@ class WorkflowNodes:
             "evidence": state["evidence"],
             "warnings": state["warnings"],
             "teacher_feedback": state.get("feedback", ""),
-            "question_resolutions": state.get("question_resolutions", []),
+            "question_resolutions": resolved_question_context(
+                state["interpretation"], state.get("question_resolutions", [])
+            ),
         }
         try:
             draft = self.model.draft(context)

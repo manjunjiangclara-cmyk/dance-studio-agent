@@ -214,6 +214,9 @@ test("owner applies a trial fee and clothing deferral before approving the gener
     exact: true,
   });
   const checklist = page.getByRole("region", { name: "Enquiry checklist" });
+  await expect(checklist).toContainText(
+    "select Update draft to have the agent create a new draft",
+  );
   await expect(approval).toBeDisabled();
   await expect(update).toBeDisabled();
   await page
@@ -227,9 +230,12 @@ test("owner applies a trial fee and clothing deferral before approving the gener
   await expect(update).toBeEnabled();
   await expect(approval).toBeDisabled();
   await expect(
-    checklist.getByText("Unapplied choice — update the draft to apply it.", {
-      exact: true,
-    }),
+    checklist.getByText(
+      "Unapplied choice — update the draft to send it to the agent.",
+      {
+        exact: true,
+      },
+    ),
   ).toHaveCount(2);
   expect(reviews).toEqual([]);
   const decisions = expectedDecisions(run);
@@ -257,9 +263,12 @@ test("owner applies a trial fee and clothing deferral before approving the gener
     checklist.getByText("Needs teacher input", { exact: true }),
   ).toHaveCount(1);
   await expect(
-    checklist.getByText("Unapplied choice — update the draft to apply it.", {
-      exact: true,
-    }),
+    checklist.getByText(
+      "Unapplied choice — update the draft to send it to the agent.",
+      {
+        exact: true,
+      },
+    ),
   ).toHaveCount(0);
   await expect(approval).toBeEnabled();
   await page
@@ -402,7 +411,9 @@ test("failed generation keeps pending decisions through a retry that has not app
   expect(writes).toContain(`/agent-runs/${run.id}/retry`);
 });
 
-test("failed unapproved review can be closed without a response", async ({ page }) => {
+test("failed unapproved review can be closed without a response", async ({
+  page,
+}) => {
   const run = structuredClone(example);
   run.status = "failed";
   run.error = "The combined question checklist exceeds 20 questions.";
@@ -410,21 +421,33 @@ test("failed unapproved review can be closed without a response", async ({ page 
   const { reviews } = await mockOwner(page, run);
   await page.goto(`/workspace/reviews/${run.id}`);
   await expect(page.getByText(run.error)).toBeVisible();
-  await expect(page.getByRole("button", { name: "Retry this run" })).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Retry this run" }),
+  ).toHaveCount(0);
   await page.getByRole("button", { name: "Close review", exact: true }).click();
-  await expect(page.getByText("Review closed without approving a response.")).toBeVisible();
-  expect(reviews).toEqual([{ action: "reject", expected_revision: run.revision }]);
+  await expect(
+    page.getByText("Review closed without approving a response."),
+  ).toBeVisible();
+  expect(reviews).toEqual([
+    { action: "reject", expected_revision: run.revision },
+  ]);
 });
 
-test("failed finalization retains retry without a close control", async ({ page }) => {
+test("failed finalization retains retry without a close control", async ({
+  page,
+}) => {
   const run = structuredClone(example);
   run.status = "failed";
   run.approved_response_id = "teacher-response";
   run.draft_details.failure_code = "question_limit_exceeded";
   await mockOwner(page, run);
   await page.goto(`/workspace/reviews/${run.id}`);
-  await expect(page.getByRole("button", { name: "Retry this run" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Close review" })).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Retry this run" }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Close review" })).toHaveCount(
+    0,
+  );
 });
 
 test("legacy questions require regeneration before individual decisions or approval", async ({

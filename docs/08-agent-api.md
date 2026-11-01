@@ -56,7 +56,7 @@ Routes have prefix `/api/v1` and require the admin bearer token, or an authorize
 
 The run exposes topic labels and `action` at `interpretation.routing`. `information_only` selects `enquiry`; a supported `makeup_booking` selects `makeup`; `other_action` and `unclear` select `teacher_handoff`. New and existing senders use the same router. Only makeup can propose a booking. The non-makeup interpretation includes `questions` and `requested_actions`; `draft_details.answers` contains each question's `status` (`answered`, `needs_student`, `needs_teacher`), proposed `answer`, and `references`. Unknown studio facts need teacher input rather than asking students to supply them. These fields are additive; older runs can omit them.
 
-For missing studio facts, the review UI offers **Provide answer** and **Confirm later** per question. **Update draft** applies those choices and regenerates the combined reply. The existing revision endpoint also accepts optional structured decisions:
+For missing studio facts, the review UI offers **Provide answer** and **Confirm later** per question. **Update draft** sends each choice and its original question back to the agent, which gathers information and drafts again. The resulting reply remains awaiting teacher review; deterministic checks retain the supplied answers and deferrals in the combined reply. The existing revision endpoint also accepts optional structured decisions:
 
 ```json
 {

@@ -274,7 +274,8 @@ Do not ask students to supply studio fees, trial rules, clothing rules, or other
 Teacher feedback may supply facts: cite teacher_feedback only when such feedback is present.
 Retain prior teacher-supplied facts across revisions; the latest conflicting correction
 takes priority. Structured question_resolutions are explicit teacher decisions scoped to this
-conversation. For answer decisions, use the supplied text and matching teacher_answer reference;
+conversation, with each decision paired with its original question. For answer decisions, use
+the supplied text for that question and the matching teacher_answer reference;
 for defer decisions, keep needs_teacher and acknowledge that I will confirm those details later,
 using the matching teacher_deferral reference. Do not turn a deferral into a studio rule.
 For unanswered clothing/fee questions, mark needs_teacher rather than guessing common practices.
