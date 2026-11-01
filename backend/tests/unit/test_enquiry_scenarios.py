@@ -67,12 +67,12 @@ def test_question_checks_detect_a_dropped_or_misclassified_answer(scenarios):
 
 
 def test_unknown_question_rejects_unrelated_reference_and_missing_match(scenarios):
-    step = scenarios["enquiry_unknown_class"].steps[0]
+    step = scenarios["enquiry_three_information_states"].steps[0]
     run = {
         "draft_details": {
             "answers": [
                 {
-                    "question": "When does the Wednesday beginner class start?",
+                    "question": "What should I wear?",
                     "status": "needs_teacher",
                     "references": [],
                 }
@@ -83,12 +83,12 @@ def test_unknown_question_rejects_unrelated_reference_and_missing_match(scenario
     def results(value):
         return {item["name"]: item["passed"] for item in grade_run(value, step, {"dates": {}})}
 
-    assert results(run)["question_answer:0:no_unrelated_references"]
+    assert results(run)["question_answer:2:no_unrelated_references"]
     run["draft_details"]["answers"][0]["references"] = ["class:unrelated"]
-    assert not results(run)["question_answer:0:no_unrelated_references"]
+    assert not results(run)["question_answer:2:no_unrelated_references"]
     run["draft_details"]["answers"] = []
-    assert not results(run)["question_answer:0:present"]
-    assert not results(run)["question_answer:0:no_unrelated_references"]
+    assert not results(run)["question_answer:2:present"]
+    assert not results(run)["question_answer:2:no_unrelated_references"]
 
 
 def test_question_selectors_cannot_be_blank():

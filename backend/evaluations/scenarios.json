@@ -1858,7 +1858,7 @@
                 "wednesday"
               ],
               "status": "needs_teacher",
-              "allow_references": false
+              "allow_references": true
             }
           ]
         }
@@ -1866,7 +1866,7 @@
     ],
     "rubric": [
       "Do not invent a Wednesday beginner class or substitute a different class.",
-      "Explain that staff need to confirm the requested class; check that no unrelated source is presented as evidence."
+      "Explain that staff need to confirm the requested class; check that evidence supports the uncertainty rather than a different class time."
     ]
   }
 ]
