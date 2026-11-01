@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -74,7 +74,7 @@ class Setup(Strict):
 
 
 class ExpectedRouting(Strict):
-    intents: list[Intent] = Field(min_length=1)
+    intents: list[Intent] | None = Field(default=None, min_length=1)
     needs_clarification: bool | None = None
     action: Literal["information_only", "makeup_booking", "other_action", "unclear"] | None = None
 
@@ -101,6 +101,14 @@ class ExpectedOutput(Strict):
     draft_details: ExpectedDraft | None = None
 
 
+class QuestionAnswerCheck(Strict):
+    question_terms: list[Annotated[str, Field(min_length=1, pattern=r"\S")]] = Field(
+        min_length=1, max_length=10
+    )
+    status: Literal["answered", "needs_student", "needs_teacher"]
+    allow_references: bool = True
+
+
 class Checks(Strict):
     required_tools: list[
         Literal[
@@ -118,6 +126,10 @@ class Checks(Strict):
     uncertainty_phrases: list[str] = []
     forbid_numeric_amounts: bool = False
     notice_before_start: bool | None = None
+    question_answer_checks: list[QuestionAnswerCheck] = Field(default_factory=list, max_length=20)
+    required_action_terms: list[Annotated[str, Field(min_length=1, pattern=r"\S")]] = Field(
+        default_factory=list, max_length=20
+    )
 
 
 class EmailInput(Strict):

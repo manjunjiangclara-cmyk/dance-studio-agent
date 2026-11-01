@@ -145,3 +145,21 @@ every unsupported claim, so inspect the entire response against the human rubric
 The runner uses `evaluations/policy.yaml`, a fixed synthetic policy independent of
 the editable studio policy. The policy is part of the dataset fingerprint so changes
 to it are visible when comparing reports.
+
+## Enquiry coverage
+
+The enquiry cases cover multiple supported questions, a recommendation that needs
+student details, all three answer statuses in one email, information versus
+enrolment requests for new and existing senders, and a class absent from the
+fixture. `question_answer_checks` matches checklist question topics by substring
+and requires the declared status. When `allow_references` is false, matching
+answers must have no references. A missing match fails the check.
+Different question checks must match distinct checklist entries.
+`required_action_terms` checks that at least one declared term appears in a
+reviewable requested action.
+
+Topic and action matching are lexical and do not guarantee semantic coverage or
+source relevance. Review the full checklist, requested actions, and draft; a valid
+reference does not establish that it supports the answer. The fixture contains
+no Wednesday beginner class, clothing rules, or enrolment process. These cases
+do not establish real-world studio policy or availability.
