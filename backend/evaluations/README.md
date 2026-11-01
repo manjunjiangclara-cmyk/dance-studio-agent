@@ -154,9 +154,12 @@ enrolment requests for new and existing senders, and a class absent from the
 fixture. `question_answer_checks` matches checklist question topics by substring
 and requires the declared status. When `allow_references` is false, matching
 answers must have no references. A missing match fails the check.
+Different question checks must match distinct checklist entries.
+`required_action_terms` checks that at least one declared term appears in a
+reviewable requested action.
 
-Topic matching is lexical and does not guarantee distinct questions or source
-relevance. Review the full checklist, requested actions, and draft; a valid
+Topic and action matching are lexical and do not guarantee semantic coverage or
+source relevance. Review the full checklist, requested actions, and draft; a valid
 reference does not establish that it supports the answer. The fixture contains
 no Wednesday beginner class, clothing rules, or enrolment process. These cases
 do not establish real-world studio policy or availability.

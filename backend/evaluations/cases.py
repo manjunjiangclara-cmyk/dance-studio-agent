@@ -127,6 +127,9 @@ class Checks(Strict):
     forbid_numeric_amounts: bool = False
     notice_before_start: bool | None = None
     question_answer_checks: list[QuestionAnswerCheck] = Field(default_factory=list, max_length=20)
+    required_action_terms: list[Annotated[str, Field(min_length=1, pattern=r"\S")]] = Field(
+        default_factory=list, max_length=20
+    )
 
 
 class EmailInput(Strict):

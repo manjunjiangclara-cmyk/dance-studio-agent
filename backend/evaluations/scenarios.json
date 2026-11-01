@@ -1679,6 +1679,12 @@
               "status": "answered",
               "allow_references": true
             }
+          ],
+          "required_action_terms": [
+            "enrol",
+            "enroll",
+            "register",
+            "join"
           ]
         }
       }
@@ -1799,7 +1805,14 @@
             }
           }
         },
-        "checks": {}
+        "checks": {
+          "required_action_terms": [
+            "enrol",
+            "enroll",
+            "register",
+            "join"
+          ]
+        }
       }
     ],
     "rubric": [

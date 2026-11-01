@@ -99,3 +99,31 @@ def test_question_selectors_cannot_be_blank():
     for terms in ([], [""], ["   "]):
         with pytest.raises(ValidationError):
             QuestionAnswerCheck(question_terms=terms, status="needs_teacher")
+
+
+def test_one_answer_cannot_satisfy_two_question_checks(scenarios):
+    step = scenarios["enquiry_time_and_location"].steps[0]
+    run = {
+        "draft_details": {
+            "answers": [
+                {"question": "What time and where is the class held?", "status": "answered"}
+            ]
+        }
+    }
+    checks = {c["name"]: c["passed"] for c in grade_run(run, step, {"dates": {}})}
+    assert checks["question_answer:0:status"]
+    assert checks["question_answer:1:status"]
+    assert not checks["distinct_question_answers"]
+    run["draft_details"]["answers"].append({"question": "Where is it held?", "status": "answered"})
+    checks = {c["name"]: c["passed"] for c in grade_run(run, step, {"dates": {}})}
+    assert checks["distinct_question_answers"]
+
+
+def test_handoff_requires_preserving_enrolment_action(scenarios):
+    step = scenarios["enquiry_and_enrolment_request"].steps[0]
+    run = {"interpretation": {"requested_actions": ["Enrol the student in Thursday Level 2"]}}
+    checks = {c["name"]: c["passed"] for c in grade_run(run, step, {"dates": {}})}
+    assert checks["requested_action_present"]
+    run["interpretation"]["requested_actions"] = []
+    checks = {c["name"]: c["passed"] for c in grade_run(run, step, {"dates": {}})}
+    assert not checks["requested_action_present"]
