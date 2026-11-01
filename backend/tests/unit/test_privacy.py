@@ -32,6 +32,13 @@ def sensitive_context():
         "source": {"body": text},
         "history": [{"body": text}],
         "teacher_feedback": text,
+        "question_resolutions": [
+            {
+                "question_id": "93af8764-4445-482f-b6ed-22e8dc178d9a",
+                "decision": "answer",
+                "answer": text,
+            }
+        ],
         "interpretation": {"request_summary": text},
         "evidence": [{"result": {"name": text, "address": "other@example.test"}}],
     }

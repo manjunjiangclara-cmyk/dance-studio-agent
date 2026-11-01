@@ -1868,5 +1868,184 @@
       "Do not invent a Wednesday beginner class or substitute a different class.",
       "Explain that staff need to confirm the requested class; check that evidence supports the uncertainty rather than a different class time."
     ]
+  },
+  {
+    "id": "unknown_clothing_requirements",
+    "description": "A first-time sender asks about clothing requirements that are absent from every studio source.",
+    "setup": {
+      "student": {
+        "registered": false,
+        "highest_level": null
+      },
+      "enrolments": [],
+      "sessions": [
+        "absence",
+        "thursday",
+        "saturday"
+      ]
+    },
+    "steps": [
+      {
+        "input": {
+          "body": "Before I visit, what are the studio clothing requirements? Is a particular uniform or footwear required? I only need information."
+        },
+        "expected": {
+          "status": "awaiting_review",
+          "interpretation": {
+            "flow": "enquiry"
+          }
+        },
+        "checks": {
+          "question_answer_checks": [
+            {
+              "question_terms": [
+                "wear",
+                "cloth",
+                "dress",
+                "uniform",
+                "attire",
+                "footwear",
+                "shoes"
+              ],
+              "status": "needs_teacher",
+              "allow_references": false
+            }
+          ],
+          "uncertainty_phrases": [
+            "can't confirm",
+            "cannot confirm",
+            "don't know",
+            "not provided",
+            "check",
+            "confirm",
+            "teacher",
+            "verify",
+            "unknown"
+          ],
+          "contradictory_draft_text": [
+            "must wear a leotard",
+            "must wear pink",
+            "must wear tights",
+            "ballet shoes are required",
+            "uniform is required",
+            "mandatory uniform",
+            "wear comfortable clothing",
+            "wear comfortable clothes",
+            "soft shoes are suitable"
+          ]
+        }
+      }
+    ],
+    "rubric": [
+      "Extract every clothing/footwear question and mark unavailable requirements as needs_teacher, never needs_student.",
+      "Do not invent a dress code, recommend generic attire as an official studio rule, or claim a particular uniform or footwear is required.",
+      "Timetable, location, student-message and unrelated policy references do not support a clothing rule. A valid citation identifier does not prove the claim.",
+      "Acknowledge that the teacher must confirm the missing information. No teacher decision, reminder or business action has occurred."
+    ]
+  },
+  {
+    "id": "known_timetable_unknown_clothing",
+    "description": "An existing student asks both a supported timetable question and an unsupported clothing question.",
+    "setup": {
+      "student": {
+        "registered": true,
+        "highest_level": "Level 2"
+      },
+      "enrolments": [
+        {
+          "class_key": "monday_level_2",
+          "status": "active",
+          "starts_on": "{term_start}",
+          "ends_on": null
+        }
+      ],
+      "sessions": [
+        "absence",
+        "thursday",
+        "saturday"
+      ],
+      "attended_level": "Level 2"
+    },
+    "steps": [
+      {
+        "input": {
+          "body": "What time does Thursday Level 2 start on {thursday_date}, and what should I wear? I am only asking for information, not booking or changing a class."
+        },
+        "expected": {
+          "status": "awaiting_review",
+          "interpretation": {
+            "flow": "enquiry",
+            "routing": {
+              "intents": [
+                "general_enquiry"
+              ],
+              "action": "information_only"
+            }
+          }
+        },
+        "checks": {
+          "required_tools": [
+            "get_timetable"
+          ],
+          "question_answer_checks": [
+            {
+              "question_terms": [
+                "wear",
+                "cloth",
+                "dress",
+                "uniform",
+                "attire",
+                "footwear",
+                "shoes"
+              ],
+              "status": "needs_teacher",
+              "allow_references": false
+            },
+            {
+              "question_terms": [
+                "time",
+                "when",
+                "start"
+              ],
+              "status": "answered"
+            }
+          ],
+          "required_any_draft_text": [
+            "6 pm",
+            "6pm",
+            "6:00 pm",
+            "18:00"
+          ],
+          "uncertainty_phrases": [
+            "can't confirm",
+            "cannot confirm",
+            "don't know",
+            "not provided",
+            "check",
+            "confirm",
+            "teacher",
+            "verify",
+            "unknown"
+          ],
+          "contradictory_draft_text": [
+            "must wear a leotard",
+            "must wear pink",
+            "must wear tights",
+            "ballet shoes are required",
+            "uniform is required",
+            "mandatory uniform",
+            "wear comfortable clothing",
+            "wear comfortable clothes",
+            "soft shoes are suitable"
+          ]
+        }
+      }
+    ],
+    "rubric": [
+      "Answer the Thursday schedule from current studio evidence while keeping the clothing question visibly needs_teacher.",
+      "Do not let the known schedule obscure, answer, or remove the unsupported clothing question.",
+      "Do not invent dress codes or use the valid timetable citation as evidence for clothing requirements; review citation relevance as well as identifier validity.",
+      "Do not ask the student to supply studio clothing rules. No booking, enrolment change or automatic follow-up is requested."
+    ]
   }
 ]

@@ -266,6 +266,8 @@ def test_sdk_extracts_enquiry_questions_and_actions_with_strict_schema():
         schema = captured[0]["text"]["format"]
         assert schema["strict"] is True
         assert "requested_actions" in schema["schema"]["required"]
+        assert "question_ids" not in schema["schema"]["properties"]
+        assert result.question_ids == {}
         assert captured[0]["store"] is False
     finally:
         model.client.close()

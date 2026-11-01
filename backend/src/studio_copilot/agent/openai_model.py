@@ -10,6 +10,7 @@ from pydantic import ValidationError
 
 from studio_copilot.agent.contracts import (
     Draft,
+    EnquiryExtraction,
     EnquiryInterpretation,
     MakeupInterpretation,
     ModelError,
@@ -135,9 +136,9 @@ request must be classified from its content, never forced into an informational 
         )
 
     def interpret_enquiry(self, context):
-        return self._parse(
+        parsed = self._parse(
             context,
-            EnquiryInterpretation,
+            EnquiryExtraction,
             """
 Extract every current question and requested action from the actual source email and history,
 not just the routing summary. Resolve short follow-ups against the ongoing discussion; omit
@@ -153,6 +154,7 @@ previous_interpretation and teacher_feedback without losing unanswered questions
 Retain facts from earlier teacher feedback unless the latest feedback explicitly supersedes them.
 """,
         )
+        return EnquiryInterpretation.model_validate(parsed.model_dump())
 
     def interpret_makeup(self, context):
         return self._parse(
@@ -271,7 +273,15 @@ authoritative studio fees/policies or proof that a requested business action was
 Do not ask students to supply studio fees, trial rules, clothing rules, or other studio facts.
 Teacher feedback may supply facts: cite teacher_feedback only when such feedback is present.
 Retain prior teacher-supplied facts across revisions; the latest conflicting correction
-takes priority.
+takes priority. Structured question_resolutions are explicit teacher decisions scoped to this
+conversation. For answer decisions, use the supplied text and matching teacher_answer reference;
+for defer decisions, keep needs_teacher and acknowledge that I will confirm those details later,
+using the matching teacher_deferral reference. Do not turn a deferral into a studio rule.
+For unanswered clothing/fee questions, mark needs_teacher rather than guessing common practices.
+A timetable citation supports schedules, not dress codes or fees. A reference identifier alone
+does not establish support: verify that the cited evidence actually states the answer.
+question_id may echo interpretation.question_ids; leave question_resolutions and
+required_question_ids empty in your output because the application assigns review metadata.
 The email body must cover the supported answers naturally; keep missing studio facts and action
 tasks visible for the teacher. Acknowledge requested actions as awaiting review, never completed.
 Enquiry and teacher_handoff cannot book, cancel, enrol, remove session membership, or send email.

@@ -81,6 +81,12 @@ export interface EnquiryAnswer {
   status: "answered" | "needs_student" | "needs_teacher";
   answer: string;
   references: string[];
+  question_id?: string | null;
+}
+export interface QuestionResolution {
+  question_id: string;
+  decision: "answer" | "defer";
+  answer: string | null;
 }
 export interface Run extends RecordBase {
   conversation_id: string;
@@ -98,6 +104,8 @@ export interface Run extends RecordBase {
     references?: string[];
     booking_session_id?: string | null;
     answers?: EnquiryAnswer[];
+    question_resolutions?: QuestionResolution[];
+    required_question_ids?: string[];
   };
   policy_snapshot: Record<string, unknown>;
   error: string | null;

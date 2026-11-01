@@ -117,6 +117,17 @@ def business_records(engine):
         }
 
 
+def defer_teacher_questions(client, run):
+    choices = [
+        {"question_id": item["question_id"], "decision": "defer", "answer": None}
+        for item in run["draft_details"]["answers"]
+        if item["status"] == "needs_teacher"
+    ]
+    response = review(client, run, "revise", question_resolutions=choices)
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
 def test_multiquestion_enquiry_persists_review_and_memory_without_business_writes(
     rig, scenario, db_engine
 ):
@@ -148,6 +159,7 @@ def test_multiquestion_enquiry_persists_review_and_memory_without_business_write
     assert revised["revision"] == run["revision"] + 1
     assert captured["drafts"][-1]["teacher_feedback"] == "Say the teacher will confirm fees."
     assert len(revised["draft_details"]["answers"]) == len(QUESTIONS)
+    revised = defer_teacher_questions(client, revised)
 
     final_body = "Monday is at 6 pm. Please tell me your experience; I will confirm fees."
     approved_response = review(client, revised, "approve", body=final_body)
@@ -402,6 +414,7 @@ def test_informational_makeup_cannot_propose_or_approve_a_booking(rig, scenario,
     assert model.contexts == []
     assert run["draft_details"]["booking_session_id"] is None
     assert "I've booked" not in run["draft_details"]["body"]
+    run = defer_teacher_questions(client, run)
     approved = review(client, run, "approve")
     assert approved.status_code == 200, approved.text
     assert approved.json()["status"] == "approved"
@@ -471,6 +484,7 @@ def test_legacy_handoff_checkpoint_can_be_revised_then_approved(rig, scenario, d
     assert revised["status"] == "awaiting_review", revised
     assert revised["interpretation"]["flow"] == "teacher_handoff"
     assert len(revised["draft_details"]["answers"]) == len(QUESTIONS)
+    revised = defer_teacher_questions(client, revised)
     approved = review(client, revised, "approve", body="I will confirm these details.")
     assert approved.status_code == 200, approved.text
     assert approved.json()["status"] == "approved"
@@ -549,7 +563,19 @@ def test_successive_revisions_retain_teacher_facts_and_latest_corrections(rig, s
 
     model.draft = draft
     run = start(rig, scenario)
-    first = review(client, run, "revise", feedback="The confirmed fee is $25.").json()
+    question_id = run["draft_details"]["answers"][2]["question_id"]
+    fee_answer = {
+        "question_id": question_id,
+        "decision": "answer",
+        "answer": "The confirmed fee is $25.",
+    }
+    first = review(
+        client,
+        run,
+        "revise",
+        feedback="The confirmed fee is $25.",
+        question_resolutions=[fee_answer],
+    ).json()
     second = review(client, first, "revise", feedback="Make the wording warmer.").json()
     assert second["status"] == "awaiting_review", second
     assert second["draft_details"]["answers"][2]["status"] == "answered"
@@ -559,7 +585,13 @@ def test_successive_revisions_retain_teacher_facts_and_latest_corrections(rig, s
     evidence = next(item for item in second["evidence"] if item["tool"] == "teacher_feedback")
     assert "$25" in evidence["result"]["text"]
     assert "warmer" in evidence["result"]["text"]
-    corrected = review(client, second, "revise", feedback="Correction: the fee is $30.").json()
+    corrected = review(
+        client,
+        second,
+        "revise",
+        feedback="Correction: the fee is $30.",
+        question_resolutions=[{**fee_answer, "answer": "The confirmed fee is $30."}],
+    ).json()
     assert corrected["status"] == "awaiting_review", corrected
     assert "$30" in corrected["draft_details"]["body"]
     assert captured["drafts"][-1]["teacher_feedback"].endswith("Correction: the fee is $30.")

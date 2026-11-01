@@ -50,11 +50,28 @@ Routes have prefix `/api/v1` and require the admin bearer token, or an authorize
 | POST `/conversations/{id}/agent-runs` | `{"source_message_id":"UUID"}`. Source must be the latest student email in that conversation. Runs synchronously to review or failure; repeat starts return the existing run. |
 | GET `/agent-runs/{id}` | Returns status, revision, interpretation, evidence, policy snapshot, draft details, linked message IDs, and a safe error if processing failed. |
 | POST `/agent-runs/{id}/review` | `{"action":"approve","expected_revision":1,"body":"Final teacher response"}`. Body is optional; defaults to the current draft. Rechecks and books any validated proposal, stores a teacher response, then updates memory. |
-| POST `/agent-runs/{id}/review` | `{"action":"revise","expected_revision":1,"feedback":"Please ask which location they prefer."}`. Feedback is required; generates a new draft revision with a fresh bounded query budget. |
+| POST `/agent-runs/{id}/review` | `{"action":"revise","expected_revision":1,"feedback":"Please ask which location they prefer."}`. Provide feedback or structured question resolutions; generates a new draft revision with a fresh bounded query budget. |
 | POST `/agent-runs/{id}/review` | `{"action":"reject","expected_revision":1}`. Closes review without a rejection message/event and removes checkpoints. |
 | POST `/agent-runs/{id}/retry` | No body. Resumes failed or interrupted processing from its checkpoint. Cannot restart a closed, approved, or superseded run. |
 
 The run exposes topic labels and `action` at `interpretation.routing`. `information_only` selects `enquiry`; a supported `makeup_booking` selects `makeup`; `other_action` and `unclear` select `teacher_handoff`. New and existing senders use the same router. Only makeup can propose a booking. The non-makeup interpretation includes `questions` and `requested_actions`; `draft_details.answers` contains each question's `status` (`answered`, `needs_student`, `needs_teacher`), proposed `answer`, and `references`. Unknown studio facts need teacher input rather than asking students to supply them. These fields are additive; older runs can omit them.
+
+For missing studio facts, the review UI offers **Provide answer** and **Confirm later** per question. **Update draft** applies those choices and regenerates the combined reply. The existing revision endpoint also accepts optional structured decisions:
+
+```json
+{
+  "action": "revise",
+  "expected_revision": 1,
+  "question_resolutions": [
+    {"question_id": "UUID from draft_details.answers", "decision": "answer", "answer": "Wear comfortable clothes and ballet shoes."},
+    {"question_id": "another question UUID", "decision": "defer"}
+  ]
+}
+```
+
+Question IDs are assigned by the server and remain stable across revisions of the same source email. Only questions requiring teacher input can receive decisions. Applied decisions live in `draft_details.question_resolutions`, with supporting `teacher_question_resolutions` evidence. Supplied answers are cited as `teacher_answer:<question_id>`; explicit deferrals as `teacher_deferral:<question_id>`. Deferrals retain `needs_teacher` and acknowledge that the teacher will confirm the details later. Subsequent revisions retain decisions, and a later structured correction replaces the earlier answer. Facts remain scoped to this conversation, never automatically becoming shared studio policy.
+
+Approval transactionally rejects missing or unapplied decisions before saving a response or executing any business action. Stale revisions return 409; unknown question IDs return 422. Resolution payloads belong to revision requests, not approvals. Older reviews without question IDs remain readable but must regenerate before individual decisions or approval of missing teacher facts. The UI preserves entered choices after failed generation or network requests. Confirm later creates no reminder, automatic follow-up, or email delivery. Missing-fact detection is model-assisted; an existing citation ID alone does not prove that evidence supports a claim. RAG remains deferred.
 
 Start/review/retry return 200 with the current run. A provider or checkpoint failure is visible as `status=failed`; the HTTP response alone does not establish successful processing. A new message arriving while processing, or a stale review revision, returns 409. Inspect the run after a network interruption before retrying.
 

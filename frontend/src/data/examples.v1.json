@@ -7,7 +7,7 @@
       "id": "a426e71d-144f-5191-af5a-6f5c18180bb4",
       "created_at": "2027-02-07T00:00:00Z",
       "updated_at": "2027-02-07T00:00:00Z",
-      "name": "Term 1 \u00b7 Summer 2027",
+      "name": "Term 1 · Summer 2027",
       "starts_on": "2027-02-01",
       "ends_on": "2027-03-31"
     }
@@ -17,7 +17,7 @@
       "id": "a00ef043-20ab-5d87-8223-1130e62e2a17",
       "created_at": "2027-02-07T00:00:00Z",
       "updated_at": "2027-02-07T00:00:00Z",
-      "name": "Merri Ballet \u00b7 Brunswick",
+      "name": "Merri Ballet · Brunswick",
       "address": "Studio 2, 18 Wattle Lane, Brunswick VIC 3056",
       "timezone": "Australia/Melbourne"
     },
@@ -25,7 +25,7 @@
       "id": "31503400-74bd-5783-afe1-eb1e69f321a4",
       "created_at": "2027-02-07T00:00:00Z",
       "updated_at": "2027-02-07T00:00:00Z",
-      "name": "Merri Ballet \u00b7 Carlton",
+      "name": "Merri Ballet · Carlton",
       "address": "Level 1, 42 Elm Lane, Carlton VIC 3053",
       "timezone": "Australia/Melbourne"
     }
@@ -35,7 +35,7 @@
       "id": "ec2e2a4e-818e-590c-ad6d-bb4c1505a2ef",
       "created_at": "2027-02-07T00:00:00Z",
       "updated_at": "2027-02-07T00:00:00Z",
-      "name": "Adult Ballet \u00b7 Level 2 \u00b7 Monday",
+      "name": "Adult Ballet · Level 2 · Monday",
       "level": "Level 2",
       "term_id": "a426e71d-144f-5191-af5a-6f5c18180bb4",
       "location_id": "a00ef043-20ab-5d87-8223-1130e62e2a17",
@@ -45,7 +45,7 @@
       "id": "8cb0d988-fc35-5ed4-8d34-7e02e00d0464",
       "created_at": "2027-02-07T00:00:00Z",
       "updated_at": "2027-02-07T00:00:00Z",
-      "name": "Adult Ballet \u00b7 Level 2 \u00b7 Thursday",
+      "name": "Adult Ballet · Level 2 · Thursday",
       "level": "Level 2",
       "term_id": "a426e71d-144f-5191-af5a-6f5c18180bb4",
       "location_id": "31503400-74bd-5783-afe1-eb1e69f321a4",
@@ -55,7 +55,7 @@
       "id": "32a31f49-1129-5f13-a391-ec6ecb638326",
       "created_at": "2027-02-07T00:00:00Z",
       "updated_at": "2027-02-07T00:00:00Z",
-      "name": "Adult Ballet \u00b7 Level 2 \u00b7 Saturday",
+      "name": "Adult Ballet · Level 2 · Saturday",
       "level": "Level 2",
       "term_id": "a426e71d-144f-5191-af5a-6f5c18180bb4",
       "location_id": "a00ef043-20ab-5d87-8223-1130e62e2a17",
@@ -415,7 +415,7 @@
       "draft_details": {
         "body": "Thanks for letting me know, Alex. I've booked Thursday 11 February at 6 pm for you. See you then!",
         "questions": [],
-        "rationale": "Proposed confirmation in the teacher\u2019s voice. Approval will reserve the evidenced session, recheck capacity, and save the reply together. The draft itself does not reserve a place.",
+        "rationale": "Proposed confirmation in the teacher’s voice. Approval will reserve the evidenced session, recheck capacity, and save the reply together. The draft itself does not reserve a place.",
         "booking_session_id": "a4ad2f4b-29e9-5a3b-9e78-e77026e88576"
       },
       "policy_snapshot": {},
@@ -464,7 +464,7 @@
       ],
       "draft_details": {
         "body": "Thanks for letting me know, Alex. I've booked Saturday 13 February at 6 pm for you. See you then!",
-        "rationale": "Proposed confirmation in the teacher\u2019s voice. Approval will reserve the evidenced session, recheck capacity, and save the reply together. The draft itself does not reserve a place.",
+        "rationale": "Proposed confirmation in the teacher’s voice. Approval will reserve the evidenced session, recheck capacity, and save the reply together. The draft itself does not reserve a place.",
         "questions": [],
         "references": ["97aa529c-2ca7-5ee9-86c6-0d7c9da03752"],
         "booking_session_id": "df96032d-5ce8-561e-948f-bda79b05887e"
@@ -592,7 +592,12 @@
           "What does a trial cost?",
           "What should I wear?"
         ],
-        "requested_actions": []
+        "requested_actions": [],
+        "question_ids": {
+          "When and where is the Thursday class?": "c7b515bb-a9af-5891-952b-56e6eb819c3a",
+          "What does a trial cost?": "2a2feaf0-08ca-5cab-bb37-6a1e440a9594",
+          "What should I wear?": "fba7a2f4-30c4-5256-808d-58e3c308277d"
+        }
       },
       "evidence": [
         {
@@ -602,11 +607,11 @@
             "items": [
               {
                 "id": "8cb0d988-fc35-5ed4-8d34-7e02e00d0464",
-                "name": "Adult Ballet \u00b7 Level 2 \u00b7 Thursday",
+                "name": "Adult Ballet · Level 2 · Thursday",
                 "prerequisites": "For dancers with previous ballet experience; placement confirmed by the teacher.",
                 "location": {
                   "id": "31503400-74bd-5783-afe1-eb1e69f321a4",
-                  "name": "Merri Ballet \u00b7 Carlton"
+                  "name": "Merri Ballet · Carlton"
                 },
                 "upcoming_sessions": [
                   {
@@ -640,25 +645,33 @@
           {
             "question": "When and where is the Thursday class?",
             "status": "answered",
-            "answer": "Thursday Level 2 runs from 6 to 7 pm at Merri Ballet \u00b7 Carlton. Placement needs teacher confirmation.",
+            "answer": "Thursday Level 2 runs from 6 to 7 pm at Merri Ballet · Carlton. Placement needs teacher confirmation.",
             "references": [
               "class:8cb0d988-fc35-5ed4-8d34-7e02e00d0464",
               "session:a4ad2f4b-29e9-5a3b-9e78-e77026e88576",
               "location:31503400-74bd-5783-afe1-eb1e69f321a4"
-            ]
+            ],
+            "question_id": "c7b515bb-a9af-5891-952b-56e6eb819c3a"
           },
           {
             "question": "What does a trial cost?",
             "status": "needs_teacher",
             "answer": "The teacher needs to confirm this studio information.",
-            "references": []
+            "references": [],
+            "question_id": "2a2feaf0-08ca-5cab-bb37-6a1e440a9594"
           },
           {
             "question": "What should I wear?",
             "status": "needs_teacher",
             "answer": "The teacher needs to confirm this studio information.",
-            "references": []
+            "references": [],
+            "question_id": "fba7a2f4-30c4-5256-808d-58e3c308277d"
           }
+        ],
+        "question_resolutions": [],
+        "required_question_ids": [
+          "2a2feaf0-08ca-5cab-bb37-6a1e440a9594",
+          "fba7a2f4-30c4-5256-808d-58e3c308277d"
         ]
       },
       "policy_snapshot": {

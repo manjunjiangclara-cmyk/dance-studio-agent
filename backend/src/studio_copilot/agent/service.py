@@ -16,6 +16,7 @@ from studio_copilot.agent.persistence.checkpoints import postgres_checkpointer
 from studio_copilot.agent.persistence.locking import student_lock
 from studio_copilot.agent.persistence.store import WorkflowStore
 from studio_copilot.agent.policy import load_policy
+from studio_copilot.agent.question_resolutions import validate_resolution_update
 from studio_copilot.agent.tracing import workflow_trace
 from studio_copilot.agent.workflow import Workflow
 from studio_copilot.persistence.models import AgentRun, Conversation, Message, Student
@@ -165,8 +166,14 @@ class AgentService:
             with Session(self.engine) as db:
                 if latest_email(db, run.conversation_id).id != run.source_message_id:
                     conflict("A newer student email has superseded this draft.")
-            if review.action == "revise" and not review.feedback:
-                invalid("Revision requires teacher feedback.")
+            if review.action == "revise":
+                if not review.feedback and not review.question_resolutions:
+                    invalid("Revision requires teacher feedback or a question answer/deferral.")
+                validate_resolution_update(
+                    run.interpretation,
+                    run.draft_details,
+                    [item.model_dump(mode="json") for item in review.question_resolutions],
+                )
             if review.action == "reject":
                 # Do not checkpoint the rejection payload or create a rejection audit/message.
                 with self.checkpoints() as saver:
