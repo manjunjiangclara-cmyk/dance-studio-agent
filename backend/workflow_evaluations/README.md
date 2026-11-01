@@ -1,6 +1,6 @@
 # Email workflow evaluations
 
-Thirty-one synthetic scenarios exercise email intake through the real FastAPI app,
+Thirty-two synthetic scenarios exercise email intake through the real FastAPI app,
 LangGraph workflow, read-only tools, PostgreSQL persistence/checkpoints, and teacher
 review. The runner uses the existing OpenAI adapter and configured `OPENAI_MODEL`.
 It does not access a mailbox, send email, or exercise browser UI.
@@ -20,6 +20,10 @@ uv run --env-file .env python -m workflow_evaluations.evaluate --live --case mak
 # Repeat selected conversations independently to inspect variability.
 uv run --env-file .env python -m workflow_evaluations.evaluate --live \
   --case followup_correction --case prompt_injection --repeat 3
+
+# Evaluate a teacher answer fed back into an enquiry redraft.
+uv run --env-file .env python -m workflow_evaluations.evaluate --live \
+  --case enquiry_checklist_answer_redraft
 
 # Run all scenarios.
 uv run --env-file .env python -m workflow_evaluations.evaluate --live
@@ -84,7 +88,12 @@ declared setup describes the pre-existing known student.
 
 The `review` field tells the harness which valid API actions to perform. In
 particular, `approve_twice` sends two `approve` requests to test idempotency; it is
-not an agent contract value. Optional `review_body` supplies the final edited reply
+not an agent contract value. `answer_checklist` finds the single teacher-input question
+containing `checklist_answer.question_contains`, submits its answer, and records the
+model input and raw draft before deterministic validation. The automated checks verify
+the association, teacher-answer citation, revised draft, stale-review rejection, and
+unchanged business records; the rubric requires a human to inspect the raw prose.
+Optional `review_body` supplies the final edited reply
 for a non-booking approval; booking approvals require the unchanged draft. `rubric` remains a human
 review checklist.
 

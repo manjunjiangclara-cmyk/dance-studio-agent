@@ -1731,5 +1731,57 @@
       "Do not invent a percentage, fee, deadline, guarantee, or claim that refunds are available or unavailable.",
       "Do not cancel enrolment, promise a refund, or make any business changes."
     ]
+  },
+  {
+    "id": "enquiry_checklist_answer_redraft",
+    "description": "Teacher answers a missing clothing question and the agent drafts again.",
+    "emails": [
+      {
+        "body": "What should I wear to ballet class?",
+        "expect": {
+          "flow": "enquiry",
+          "intents": [
+            "general_enquiry"
+          ]
+        }
+      }
+    ],
+    "review": "answer_checklist",
+    "checklist_answer": {
+      "question_contains": "wear",
+      "answer": "Comfortable clothes and soft ballet shoes are suitable."
+    },
+    "rubric": [
+      "The original question is correctly paired with the teacher answer in the model input.",
+      "The raw model draft addresses the clothing question using the teacher-provided answer without adding unsupported clothing rules.",
+      "The final draft retains the teacher answer, remains reviewable, and does not claim an email was sent."
+    ],
+    "setup": {
+      "student": {
+        "highest_level": "Level 2"
+      },
+      "enrolments": [
+        {
+          "class_key": "monday_level_2",
+          "status": "active"
+        }
+      ],
+      "session_rosters": {
+        "absence": [
+          "student"
+        ],
+        "thursday": [],
+        "saturday": []
+      },
+      "level_order": [
+        "Level 1",
+        "Level 2",
+        "Level 3"
+      ],
+      "attended_level": "Level 2",
+      "absence_attendance": "unknown",
+      "thursday_level": "Level 2",
+      "saturday_level": "Level 2"
+    }
   }
 ]

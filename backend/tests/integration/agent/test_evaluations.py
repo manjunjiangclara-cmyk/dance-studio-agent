@@ -276,3 +276,66 @@ def test_overlap_scenario_catches_incorrect_duplicate_claim(db_engine):
     checks = grade_run(run, case.emails[0].expect, result["fixture"])
     failed = {check["name"] for check in checks if not check["passed"]}
     assert failed == {"draft_contradicts_scenario:already list you in the requested session"}
+
+
+@pytest.mark.parametrize("omit_citation", [False, True])
+def test_checklist_answer_evaluation_checks_model_input_and_raw_draft(db_engine, omit_citation):
+    from studio_copilot.agent.contracts import EnquiryAnswer, EnquiryInterpretation, Routing
+
+    class ChecklistModel(FakeModel):
+        def __init__(self, omit_citation=False):
+            super().__init__()
+            self.omit_citation = omit_citation
+            self.routing = Routing(
+                intents=["general_enquiry"],
+                action="information_only",
+                request_summary="Clothing question",
+                needs_clarification=False,
+                reason="The student requests information.",
+            )
+
+        def interpret_enquiry(self, context):
+            return EnquiryInterpretation(
+                request_summary="Clothing question",
+                missing_details=[],
+                enduring_preferences=[],
+                questions=["What should I wear?"],
+                requested_actions=[],
+            )
+
+        def choose_tools(self, context, transcript):
+            return ToolTurn(calls=[], output=[])
+
+        def draft(self, context):
+            decisions = context.get("question_resolutions", [])
+            decision = decisions[0] if decisions else None
+            return Draft(
+                body=decision["answer"] if decision else "I will check the clothing requirements.",
+                rationale="Synthetic test.",
+                questions=[],
+                references=[],
+                answers=[
+                    EnquiryAnswer(
+                        question="What should I wear?",
+                        status="answered" if decision else "needs_teacher",
+                        answer=decision["answer"] if decision else "The teacher needs to check.",
+                        references=(
+                            ["teacher_answer:" + decision["question_id"]]
+                            if decision and not self.omit_citation
+                            else []
+                        ),
+                    )
+                ],
+            )
+
+    with postgres_checkpointer(db_engine) as saver:
+        saver.setup()
+    scenario = next(s for s in load_scenarios() if s.id == "enquiry_checklist_answer_redraft")
+    result = run_scenario(db_engine, scenario, ChecklistModel(omit_citation=omit_citation))
+    checks = {item["name"]: item["passed"] for item in result["checks"]}
+    assert result["passed"] is not omit_citation, result
+    assert checks["model_cites_teacher_answer_for_question"] is not omit_citation
+    assert checks["teacher_answer_in_final_draft"]
+    assert result["checklist_model_drafts"][0]["question_resolutions"][0]["question"] == (
+        "What should I wear?"
+    )

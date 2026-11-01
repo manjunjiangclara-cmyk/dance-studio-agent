@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from studio_copilot.agent.contracts import Intent
 
@@ -101,6 +101,13 @@ class EmailStep(BaseModel):
     received_before_absence: bool = False
 
 
+class ChecklistAnswer(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    question_contains: str = Field(min_length=1, max_length=200)
+    answer: str = Field(min_length=1, max_length=4000)
+
+
 class Scenario(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -118,12 +125,20 @@ class Scenario(BaseModel):
         "approve_twice",
         "reject",
         "revise",
+        "answer_checklist",
         "restart_approve",
         "capacity_conflict",
     ] = "none"
     review_body: str | None = Field(default=None, min_length=1)
     feedback: str = "Please ask which location I prefer before proposing a booking."
     rubric: list[str] = Field(min_length=1)
+    checklist_answer: ChecklistAnswer | None = None
+
+    @model_validator(mode="after")
+    def validate_checklist_review(self):
+        if (self.review == "answer_checklist") != (self.checklist_answer is not None):
+            raise ValueError("answer_checklist requires checklist_answer, and vice versa")
+        return self
 
 
 def load_scenarios(path: Path = DATASET) -> list[Scenario]:
