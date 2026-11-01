@@ -146,6 +146,24 @@ def test_teacher_choice_is_applied_even_when_model_ignores_it(rig, scenario, db_
     assert business_records(db_engine) == before
 
 
+def test_teacher_answer_and_question_are_sent_to_agent_for_new_draft(rig, scenario):
+    client, model, _, _ = rig
+    captured = configure_clothing(model)
+    run = start(rig, scenario)
+    selected = choice(run)
+
+    response = review(client, run, "revise", question_resolutions=[selected])
+
+    assert response.status_code == 200, response.text
+    revised = response.json()
+    assert len(captured["drafts"]) == 2
+    assert captured["drafts"][-1]["question_resolutions"] == [{**selected, "question": CLOTHING}]
+    assert revised["revision"] == run["revision"] + 1
+    assert revised["status"] == "awaiting_review"
+    assert selected["answer"] in revised["draft_details"]["body"]
+    assert revised["draft_details"]["body"] != run["draft_details"]["body"]
+
+
 def test_mixed_known_and_unknown_questions_need_only_teacher_fact_resolved(rig, scenario):
     client, model, _, _ = rig
     configure_enquiry(model)

@@ -55,6 +55,12 @@ export function EnquiryPanel({
       aria-labelledby="enquiry-title"
     >
       <h2 id="enquiry-title">Enquiry checklist</h2>
+      {editable && (
+        <p>
+          After entering answers, select Update draft to have the agent create a
+          new draft for your review.
+        </p>
+      )}
       {answers.map((answer, index) => {
         const questionId = answer.question_id;
         const applied = (run.draft_details.question_resolutions || []).find(
@@ -137,7 +143,7 @@ export function EnquiryPanel({
                 )}
                 {edits[questionId] && (
                   <small role="status">
-                    Unapplied choice — update the draft to apply it.
+                    Unapplied choice — update the draft to send it to the agent.
                   </small>
                 )}
               </fieldset>

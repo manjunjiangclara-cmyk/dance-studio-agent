@@ -44,6 +44,18 @@ def merge_resolutions(existing: list[dict], updates: list[dict]) -> list[dict]:
     return list(merged.values())
 
 
+def resolved_question_context(interpretation: dict, resolutions: list[dict]) -> list[dict]:
+    """Pair each teacher decision with the original question for the model."""
+    questions = {
+        str(value): question for question, value in interpretation.get("question_ids", {}).items()
+    }
+    return [
+        {**item, "question": questions[str(item["question_id"])]}
+        for item in resolutions
+        if str(item["question_id"]) in questions
+    ]
+
+
 def validate_resolution_update(interpretation: dict, draft: dict, updates: list[dict]) -> None:
     if not updates:
         return

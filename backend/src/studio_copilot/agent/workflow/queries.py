@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from studio_copilot.agent.contracts import Model, ModelError, State, ToolCall
 from studio_copilot.agent.enquiry import context_evidence
 from studio_copilot.agent.makeup import gather_makeup
-from studio_copilot.agent.question_resolutions import resolution_evidence
+from studio_copilot.agent.question_resolutions import resolution_evidence, resolved_question_context
 from studio_copilot.agent.tools import ENQUIRY_TOOLS, TOOL_TYPES, execute_tool
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,9 @@ class QueryRunner:
             **state["context"],
             "interpretation": state["interpretation"],
             "teacher_feedback": state.get("feedback", ""),
-            "question_resolutions": state.get("question_resolutions", []),
+            "question_resolutions": resolved_question_context(
+                state["interpretation"], state.get("question_resolutions", [])
+            ),
         }
         warnings = list(state["interpretation"]["missing_details"])
         evidence, transcript, seen = [], [], set()
