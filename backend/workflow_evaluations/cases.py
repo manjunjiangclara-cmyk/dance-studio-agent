@@ -106,6 +106,8 @@ class ChecklistAnswer(BaseModel):
 
     question_contains: str = Field(min_length=1, max_length=200)
     answer: str = Field(min_length=1, max_length=4000)
+    required_terms: list[str] = Field(min_length=1)
+    forbidden_terms: list[str] = Field(default_factory=list)
 
 
 class Scenario(BaseModel):

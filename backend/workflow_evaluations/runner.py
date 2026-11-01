@@ -663,6 +663,27 @@ def _exercise_review(client, engine, model, scenario, fixture, run, before, resu
                         ),
                         True,
                     )
+                    matching = [
+                        item for item in raw_answers if item["question"] == question["question"]
+                    ]
+                    raw_text = matching[0]["answer"] if len(matching) == 1 else ""
+                    for field, content in (
+                        ("answer", raw_text),
+                        ("body", observation["draft"].get("body", "")),
+                    ):
+                        content = content.casefold()
+                        for term in spec.required_terms:
+                            check(
+                                "raw_" + field + "_contains:" + term,
+                                term.casefold() in content,
+                                True,
+                            )
+                        for term in spec.forbidden_terms:
+                            check(
+                                "raw_" + field + "_excludes:" + term,
+                                term.casefold() in content,
+                                False,
+                            )
                 check(
                     "teacher_decision_persisted",
                     choice in updated["draft_details"].get("question_resolutions", []),

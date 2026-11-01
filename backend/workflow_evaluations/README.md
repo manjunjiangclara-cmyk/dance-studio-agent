@@ -91,8 +91,10 @@ particular, `approve_twice` sends two `approve` requests to test idempotency; it
 not an agent contract value. `answer_checklist` finds the single teacher-input question
 containing `checklist_answer.question_contains`, submits its answer, and records the
 model input and raw draft before deterministic validation. The automated checks verify
-the association, teacher-answer citation, revised draft, stale-review rejection, and
-unchanged business records; the rubric requires a human to inspect the raw prose.
+the association, teacher-answer citation, required and forbidden terms in the raw
+answer and body, revised draft, stale-review rejection, and unchanged business records.
+Term checks are deliberately narrow and may reject valid paraphrases; the rubric
+requires a human to inspect the raw prose for meaning and unsupported claims.
 Optional `review_body` supplies the final edited reply
 for a non-booking approval; booking approvals require the unchanged draft. `rubric` remains a human
 review checklist.

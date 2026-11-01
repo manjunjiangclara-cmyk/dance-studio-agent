@@ -1749,7 +1749,15 @@
     "review": "answer_checklist",
     "checklist_answer": {
       "question_contains": "wear",
-      "answer": "Comfortable clothes and soft ballet shoes are suitable."
+      "answer": "Comfortable clothes and soft ballet shoes are suitable.",
+      "required_terms": [
+        "comfortable",
+        "shoes"
+      ],
+      "forbidden_terms": [
+        "not suitable",
+        "black leotard"
+      ]
     },
     "rubric": [
       "The original question is correctly paired with the teacher answer in the model input.",
