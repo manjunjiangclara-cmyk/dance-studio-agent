@@ -84,6 +84,12 @@
       "label": "Recorded attendance",
       "page": "timetable",
       "fields": ["session_id", "student_id", "status", "level_at_attendance"]
+    },
+    {
+      "name": "documents",
+      "label": "Studio documents",
+      "page": "documents",
+      "fields": ["title", "filename", "content"]
     }
   ],
   "relationships": [

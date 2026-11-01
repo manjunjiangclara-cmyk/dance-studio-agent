@@ -50,6 +50,14 @@ class Record:
     )
 
 
+class Document(Record, Base):
+    __tablename__ = "documents"
+
+    title: Mapped[str] = mapped_column(String(200))
+    filename: Mapped[str] = mapped_column(String(255))
+    content: Mapped[str] = mapped_column(Text)
+
+
 class Student(Record, Base):
     __tablename__ = "students"
     __table_args__ = (
