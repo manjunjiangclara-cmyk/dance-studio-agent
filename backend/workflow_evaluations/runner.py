@@ -190,14 +190,22 @@ class MemoryObserver:
 
     def draft(self, context):
         # A teacher revision changes request details, not the student's original memory.
-        if not context.get("teacher_feedback"):
+        if not context.get("teacher_feedback") and not context.get("question_resolutions"):
             self.inspect(
                 f"email_{len(self.result['inputs'])}:memory_before_draft",
                 context["conversation_id"],
                 context["source"]["id"],
                 context["interpretation"],
             )
-        return self.model.draft(context)
+        draft = self.model.draft(context)
+        if context.get("question_resolutions"):
+            self.result["checklist_model_drafts"].append(
+                {
+                    "question_resolutions": context["question_resolutions"],
+                    "draft": draft.model_dump(mode="json"),
+                }
+            )
+        return draft
 
     def reconcile(self, context):
         with Session(self.engine) as db:
@@ -408,6 +416,7 @@ def run_scenario(engine, scenario: Scenario, model) -> dict:
         "runs": [],
         "reviews": [],
         "memory_snapshots": [],
+        "checklist_model_drafts": [],
         "rubric": scenario.rubric,
         "human_review": "pending",
     }
@@ -575,8 +584,31 @@ def _exercise_review(client, engine, model, scenario, fixture, run, before, resu
             "failed_review_preserves_memory", unchanged["context"], memory_before_review["context"]
         )
         return
-    decision = action if action in {"revise", "reject"} else "approve"
+    decision = (
+        "revise"
+        if action == "answer_checklist"
+        else (action if action in {"revise", "reject"} else "approve")
+    )
     kwargs = {"feedback": scenario.feedback} if action == "revise" else {}
+    if action == "answer_checklist":
+        spec = scenario.checklist_answer
+        matches = [
+            item
+            for item in run["draft_details"].get("answers", [])
+            if spec.question_contains.casefold() in item["question"].casefold()
+            and item["status"] == "needs_teacher"
+            and item.get("question_id")
+        ]
+        check("one_matching_teacher_question", len(matches), 1)
+        if len(matches) != 1:
+            return
+        question = matches[0]
+        choice = {
+            "question_id": question["question_id"],
+            "decision": "answer",
+            "answer": spec.answer,
+        }
+        kwargs["question_resolutions"] = [choice]
     if decision == "approve" and scenario.review_body is not None:
         kwargs["body"] = scenario.review_body.format_map(fixture["dates"])
     response = _review(client, run, decision, **kwargs)
@@ -585,12 +617,16 @@ def _exercise_review(client, engine, model, scenario, fixture, run, before, resu
     if response.status_code != 200:
         return
     updated = response.json()
-    expected_status = {"reject": "closed", "revise": "awaiting_review"}.get(action, "approved")
+    expected_status = {
+        "reject": "closed",
+        "revise": "awaiting_review",
+        "answer_checklist": "awaiting_review",
+    }.get(action, "approved")
     check("review_status", updated["status"], expected_status)
     after = database_snapshot(engine)
     check("regular_enrolments_unchanged", after["enrolments"], before["enrolments"])
     check("attendance_unchanged", after["attendance"], before["attendance"])
-    if action in {"reject", "revise"}:
+    if action in {"reject", "revise", "answer_checklist"}:
         unchanged = model.snapshot("after_teacher_" + action, run["conversation_id"])
         check(
             "unapproved_review_preserves_memory",
@@ -598,7 +634,7 @@ def _exercise_review(client, engine, model, scenario, fixture, run, before, resu
             memory_before_review["context"],
         )
         check("review_does_not_book_or_save_response", after, before)
-        if action == "revise":
+        if action in {"revise", "answer_checklist"}:
             revised_expectation = scenario.emails[-1].expect.model_copy(
                 update={"proposal": "none", "required_tools": []}
             )
@@ -606,6 +642,58 @@ def _exercise_review(client, engine, model, scenario, fixture, run, before, resu
                 {**c, "name": "revision:" + c["name"]}
                 for c in grade_run(updated, revised_expectation, fixture)
             )
+            if action == "answer_checklist":
+                observations = result["checklist_model_drafts"]
+                check("one_checklist_redraft", len(observations), 1)
+                if observations:
+                    observation = observations[-1]
+                    check(
+                        "answer_reaches_model_with_question",
+                        observation["question_resolutions"],
+                        [{**choice, "question": question["question"]}],
+                    )
+                    raw_answers = observation["draft"].get("answers", [])
+                    check(
+                        "model_cites_teacher_answer_for_question",
+                        any(
+                            item["question"] == question["question"]
+                            and item["status"] == "answered"
+                            and "teacher_answer:" + question["question_id"] in item["references"]
+                            for item in raw_answers
+                        ),
+                        True,
+                    )
+                    matching = [
+                        item for item in raw_answers if item["question"] == question["question"]
+                    ]
+                    raw_text = matching[0]["answer"] if len(matching) == 1 else ""
+                    for field, content in (
+                        ("answer", raw_text),
+                        ("body", observation["draft"].get("body", "")),
+                    ):
+                        content = content.casefold()
+                        for term in spec.required_terms:
+                            check(
+                                "raw_" + field + "_contains:" + term,
+                                term.casefold() in content,
+                                True,
+                            )
+                        for term in spec.forbidden_terms:
+                            check(
+                                "raw_" + field + "_excludes:" + term,
+                                term.casefold() in content,
+                                False,
+                            )
+                check(
+                    "teacher_decision_persisted",
+                    choice in updated["draft_details"].get("question_resolutions", []),
+                    True,
+                )
+                check(
+                    "teacher_answer_in_final_draft",
+                    spec.answer in updated["draft_details"]["body"],
+                    True,
+                )
             check("revision_incremented", updated["revision"], run["revision"] + 1)
             check(
                 "revision_removes_proposal",
