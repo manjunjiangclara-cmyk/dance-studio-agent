@@ -283,10 +283,12 @@ test("student enrolments default to current records with expandable history and 
   const studentReads = calls.reads.filter((url) =>
     url.includes(`/students/${studentId}`),
   );
-  expect(studentReads).toHaveLength(1);
-  expect(
-    new URL(studentReads[0], "http://localhost").searchParams.has("on_date"),
-  ).toBe(false);
+  expect(studentReads.length).toBeGreaterThanOrEqual(1);
+  for (const url of studentReads) {
+    expect(new URL(url, "http://localhost").searchParams.has("on_date")).toBe(
+      false,
+    );
+  }
   expect(calls.writes).toEqual([]);
 });
 

@@ -781,10 +781,12 @@ function ReviewDetail({ id }: { id: string }) {
     [busy, setBusy] = useState(false),
     [actionError, setActionError] = useState<Error>();
   const [message, setMessage] = useState("");
+  const [confirmReplaceEdits, setConfirmReplaceEdits] = useState(false);
   const [resolutionEdits, setResolutionEdits] = useState<
     Record<string, QuestionResolution>
   >({});
   const revision = useRef(-1);
+  const historyRef = useRef<HTMLDetailsElement>(null);
   const [pollingStatus, setPollingStatus] = useState<RunStatus>();
   const state = useLoad(
     async () => {
@@ -793,13 +795,14 @@ function ReviewDetail({ id }: { id: string }) {
         workspace,
         `/conversations/${run.conversation_id}`,
       );
-      const [student, messages, classes, sessions, locations] =
+      const [student, messages, classes, sessions, locations, terms] =
         await Promise.all([
           get<StudentDetail>(workspace, `/students/${conversation.student_id}`),
           all<Message>(workspace, `/conversations/${conversation.id}/messages`),
           all<StudioClass>(workspace, "/classes"),
           all<Session>(workspace, "/sessions"),
           all<Location>(workspace, "/locations"),
+          all<Term>(workspace, "/terms"),
         ]);
       return {
         run,
@@ -809,6 +812,7 @@ function ReviewDetail({ id }: { id: string }) {
         classes,
         sessions,
         locations,
+        terms,
       };
     },
     [workspace, id],
@@ -933,8 +937,10 @@ function ReviewDetail({ id }: { id: string }) {
   const retryable =
     workspace &&
     ["failed", "running", "finalizing"].includes(run.status) &&
-    (run.approved_response_id || run.draft_details.failure_code !== "question_limit_exceeded");
-  const canCloseFailed = workspace && run.status === "failed" && !run.approved_response_id;
+    (run.approved_response_id ||
+      run.draft_details.failure_code !== "question_limit_exceeded");
+  const canCloseFailed =
+    workspace && run.status === "failed" && !run.approved_response_id;
   const missing = Array.isArray(run.interpretation.missing_details)
     ? (run.interpretation.missing_details as string[])
     : [];
@@ -953,6 +959,117 @@ function ReviewDetail({ id }: { id: string }) {
   const bookingLocation = value.locations.find(
     (row) => row.id === bookingClass?.location_id,
   );
+  const sourceMessage = messages.find(
+    (row) => row.id === run.source_message_id,
+  );
+  const historyCount = messages.filter(
+    (row) => row.id !== run.source_message_id,
+  ).length;
+  const requestedActions = Array.isArray(run.interpretation.requested_actions)
+    ? run.interpretation.requested_actions.filter(
+        (action): action is string => typeof action === "string",
+      )
+    : [];
+  const references: {
+    raw: string;
+    label: string;
+    to?: string;
+    messageId?: string;
+  }[] = (run.draft_details.references || []).map((raw) => {
+    const message = messages.find((item) => item.id === raw);
+    if (message)
+      return {
+        raw,
+        label:
+          message.id === run.source_message_id
+            ? "Student request"
+            : `Conversation message · ${timeLabel(message.occurred_at)}`,
+        messageId: message.id,
+      };
+    const separator = raw.indexOf(":");
+    const kind = separator < 0 ? raw : raw.slice(0, separator);
+    const id = separator < 0 ? "" : raw.slice(separator + 1);
+    if (kind === "class") {
+      const cls = classes.find((item) => item.id === id);
+      return {
+        raw,
+        label: cls ? `Class: ${cls.name}` : "Class record unavailable",
+        to: cls
+          ? `${base}/timetable?class=${encodeURIComponent(id)}`
+          : undefined,
+      };
+    }
+    if (kind === "session") {
+      const session = value.sessions.find((item) => item.id === id);
+      const cls = classes.find((item) => item.id === session?.class_id);
+      const location = value.locations.find(
+        (item) => item.id === cls?.location_id,
+      );
+      return {
+        raw,
+        label: session
+          ? `Session: ${cls?.name || "Class"} · ${timeLabel(session.starts_at, location?.timezone)}`
+          : "Session record unavailable",
+        to: session
+          ? `${base}/timetable?session=${encodeURIComponent(id)}`
+          : undefined,
+      };
+    }
+    if (kind === "location") {
+      const location = value.locations.find((item) => item.id === id);
+      return {
+        raw,
+        label: location
+          ? `Studio: ${location.name}`
+          : "Studio record unavailable",
+      };
+    }
+    if (kind === "term") {
+      const term = value.terms.find((item) => item.id === id);
+      return {
+        raw,
+        label: term ? `Term: ${term.name}` : "Term record unavailable",
+      };
+    }
+    if (kind === "policy")
+      return { raw, label: "Studio policy used for this draft" };
+    if (kind === "teacher_answer" || kind === "teacher_deferral") {
+      const question = run.draft_details.answers?.find(
+        (answer) => answer.question_id === id,
+      )?.question;
+      return {
+        raw,
+        label: `${kind === "teacher_answer" ? "Teacher answer" : "Teacher deferral"}${question ? `: ${question}` : ""}`,
+      };
+    }
+    if (raw === "teacher_feedback")
+      return { raw, label: "Teacher revision instruction" };
+    return { raw, label: "Other supporting record" };
+  });
+  const draftEditsPending =
+    canReview && draft !== (run.draft_details.body || "");
+  function requestRevision() {
+    if (draftEditsPending) {
+      setConfirmReplaceEdits(true);
+      return;
+    }
+    void action("revise");
+  }
+  const approvalBlockedReason = busy
+    ? "A review action is in progress."
+    : legacyQuestions
+      ? "Update this older draft to generate individual teacher questions."
+      : pendingInvalid
+        ? "Finish each teacher decision before updating the draft."
+        : pendingChoices || !!feedback.trim()
+          ? "Update the draft to apply your decisions or feedback."
+          : missingDecisions.length > 0
+            ? `Answer ${missingDecisions.length} teacher ${missingDecisions.length === 1 ? "question" : "questions"}, then update the draft.`
+            : !draft.trim()
+              ? "Write a final response before approving."
+              : proposal && !bookingSession
+                ? "The proposed session is unavailable. Request a revision."
+                : undefined;
   return (
     <>
       <Link className="back-link" to={`${base}/reviews`}>
@@ -966,10 +1083,6 @@ function ReviewDetail({ id }: { id: string }) {
       >
         {summary(run)}
       </PageHeader>
-      <ClassificationPanel
-        interpretation={run.interpretation}
-        status={run.status}
-      />
       {blocker.state === "blocked" && (
         <div className="dialog-overlay">
           <div
@@ -996,6 +1109,40 @@ function ReviewDetail({ id }: { id: string }) {
                 onClick={() => blocker.proceed()}
               >
                 Leave page
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {confirmReplaceEdits && (
+        <div className="dialog-overlay">
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="replace-draft-title"
+            className="panel dialog"
+          >
+            <h2 id="replace-draft-title">Replace your text edits?</h2>
+            <p>
+              Updating the draft will replace the response text you edited. Your
+              teacher answers and change prompt will be sent to the copilot.
+            </p>
+            <div className="button-row">
+              <button
+                autoFocus
+                className="button secondary"
+                onClick={() => setConfirmReplaceEdits(false)}
+              >
+                Keep editing
+              </button>
+              <button
+                className="button primary"
+                onClick={() => {
+                  setConfirmReplaceEdits(false);
+                  void action("revise");
+                }}
+              >
+                Replace and update draft
               </button>
             </div>
           </div>
@@ -1045,47 +1192,79 @@ function ReviewDetail({ id }: { id: string }) {
           </span>
         </div>
       )}
-      <div className="review-grid">
-        <section className="panel conversation-panel">
-          <div className="section-heading compact">
-            <h2>Conversation</h2>
-            <Mail size={17} />
-          </div>
-          <div className="thread">
-            {messages.map((row) => (
-              <article
-                id={`message-${row.id}`}
-                className={`message message-${row.kind} ${row.id === run.source_message_id ? "source-message" : ""}`}
-                key={row.id}
-              >
-                <div className="message-meta">
-                  <strong>
-                    {row.kind === "student_email"
-                      ? student.display_name
-                      : row.kind === "teacher_response"
-                        ? "Reviewed response"
-                        : row.kind === "assistant_draft"
-                          ? "Generated draft"
-                          : "Staff note"}
-                  </strong>
-                  <small>{timeLabel(row.occurred_at)}</small>
-                </div>
-                {row.id === run.source_message_id && (
-                  <span className="source-tag">SOURCE EMAIL</span>
-                )}
-                <p>{row.body}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-        <section className="panel draft-panel">
+      <div className="review-flow">
+        <section className="panel conversation-panel review-request">
           <div className="section-heading compact">
             <div>
-              <div className="eyebrow">REVISION {run.revision}</div>
-              <h2>{approved ? "Reviewed response" : "The draft"}</h2>
+              <div className="eyebrow">STUDENT REQUEST</div>
+              <h2>What the student asked</h2>
+            </div>
+            <Mail size={17} />
+          </div>
+          {sourceMessage ? (
+            <article
+              id={`message-${sourceMessage.id}`}
+              className={`message message-${sourceMessage.kind} source-message`}
+            >
+              <div className="message-meta">
+                <strong>{student.display_name}</strong>
+                <small>{timeLabel(sourceMessage.occurred_at)}</small>
+              </div>
+              <p>{sourceMessage.body}</p>
+            </article>
+          ) : (
+            <p className="muted">
+              The source email is unavailable. Inspect the conversation history
+              below.
+            </p>
+          )}
+        </section>
+        <section className="panel review-main" id="review-response">
+          <div className="section-heading compact">
+            <div>
+              <div className="eyebrow">
+                {approved
+                  ? "SAVED RESPONSE"
+                  : `CURRENT RESPONSE · REVISION ${run.revision}`}
+              </div>
+              <h2>{approved ? "Saved response" : "Current response"}</h2>
             </div>
             <FileText size={18} />
           </div>
+          {approved ? (
+            <>
+              <div className="saved-response prose">{approved.body}</div>
+              <p className="muted footnote">
+                <Check size={14} />
+                Saved teacher response. Delivery is unconfirmed.
+              </p>
+            </>
+          ) : canReview ? (
+            <label className="editor-label">
+              Final response
+              <textarea
+                aria-label="Final response"
+                maxLength={20000}
+                value={draft}
+                onChange={(event) => {
+                  setDraft(event.target.value);
+                  setDirty(true);
+                }}
+                disabled={busy}
+                rows={13}
+              />
+              <small>
+                {draftEditsPending
+                  ? "Your wording edits are saved when you approve. Updating the draft will ask before replacing them."
+                  : "Edit the wording here, or ask the copilot to change it below."}
+              </small>
+            </label>
+          ) : (
+            <div className="saved-response prose">
+              {run.draft_details.body ||
+                "No draft was produced. The run can be inspected and recovered by the owner."}
+            </div>
+          )}
           {(proposal || booked) && (
             <div className={`notice ${booked ? "success" : ""}`}>
               <strong>
@@ -1119,70 +1298,55 @@ function ReviewDetail({ id }: { id: string }) {
               )}
             </div>
           )}
-          {approved ? (
-            <>
-              <div className="saved-response prose">{approved.body}</div>
+          {!!run.draft_details.answers?.length && (
+            <EnquiryPanel
+              run={run}
+              editable={canReview}
+              busy={busy}
+              edits={resolutionEdits}
+              onChange={(choice) => {
+                setResolutionEdits((previous) => ({
+                  ...previous,
+                  [choice.question_id]: choice,
+                }));
+                setDirty(true);
+              }}
+            />
+          )}
+          {canReview && (
+            <div className="review-revision" id="review-revision">
+              <h3>Change this response</h3>
+              <label>
+                What should the copilot change?
+                <textarea
+                  aria-label="Change prompt"
+                  value={feedback}
+                  maxLength={4000}
+                  onChange={(event) => {
+                    setFeedback(event.target.value);
+                    setDirty(true);
+                  }}
+                  placeholder="For example, make the answer shorter or explain the next class."
+                  rows={3}
+                  disabled={busy}
+                />
+              </label>
+              <button
+                className="button secondary"
+                disabled={
+                  busy ||
+                  pendingInvalid ||
+                  (!feedback.trim() && !pendingChoices && !legacyQuestions)
+                }
+                onClick={requestRevision}
+              >
+                <RefreshCw size={14} />
+                Update draft
+              </button>
               <p className="muted footnote">
-                <Check size={14} />
-                Saved teacher response. Delivery is unconfirmed.
+                The updated response replaces the draft above. You can repeat
+                this as often as needed before approval.
               </p>
-              <details>
-                <summary>Compare generated draft</summary>
-                <div className="prose">{run.draft_details.body}</div>
-              </details>
-            </>
-          ) : canReview ? (
-            <label className="editor-label">
-              Final response
-              <textarea
-                aria-label="Final response"
-                maxLength={20000}
-                value={draft}
-                onChange={(event) => {
-                  setDraft(event.target.value);
-                  setDirty(true);
-                }}
-                disabled={busy}
-                rows={13}
-              />
-              <small>
-                {dirty ? "Unsaved edits" : "Edit the wording before approval."}
-              </small>
-            </label>
-          ) : (
-            <div className="saved-response prose">
-              {run.draft_details.body ||
-                "No draft was produced. The run can be inspected and recovered by the owner."}
-            </div>
-          )}
-          {missing.length > 0 && (
-            <div className="notice">
-              <strong>Information still needed</strong>
-              <ul>
-                {missing.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {run.draft_details.rationale && (
-            <div className="rationale">
-              <span className="eyebrow">WHY THIS RESPONSE</span>
-              <p>{run.draft_details.rationale}</p>
-            </div>
-          )}
-          {!!run.draft_details.references?.length && (
-            <div className="source-links">
-              <span className="eyebrow">REFERENCES</span>
-              {run.draft_details.references.map((ref) =>
-                messages.some((item) => item.id === ref) ? (
-                  <a href={`#message-${ref}`} key={ref}>
-                    Source message <ArrowUpRight size={12} />
-                  </a>
-                ) : (
-                  <span key={ref}>{ref}</span>
-                ),
-              )}
             </div>
           )}
           {canReview && (
@@ -1208,60 +1372,38 @@ function ReviewDetail({ id }: { id: string }) {
               </button>
               <p className="muted footnote">
                 {proposal
-                  ? "Books the proposed session and saves your reply together. No email is sent."
-                  : "Saves reviewed text. No booking is proposed and no email is sent."}
+                  ? "Books the proposed session and saves your response together. No email is sent."
+                  : "Saves your response. No booking is proposed and no email is sent."}
               </p>
-              {(missingDecisions.length > 0 ||
-                pendingChoices ||
-                !!feedback.trim()) && (
-                <p className="notice" role="status">
-                  {legacyQuestions
-                    ? "Update this older draft to enable individual question decisions."
-                    : pendingChoices || feedback.trim()
-                      ? "Update the draft to apply your answers, deferrals and feedback before approval."
-                      : "Provide an answer or choose Confirm later for each question needing teacher input, then update the draft."}
+              {approvalBlockedReason && (
+                <p className="approval-guidance" role="status">
+                  Approval unavailable: {approvalBlockedReason}
                 </p>
               )}
-              <label>
-                Revision feedback
-                <textarea
-                  aria-label="Revision feedback"
-                  value={feedback}
-                  maxLength={4000}
-                  onChange={(event) => {
-                    setFeedback(event.target.value);
-                    setDirty(true);
-                  }}
-                  placeholder="What should the copilot change?"
-                  rows={3}
-                  disabled={busy}
-                />
-              </label>
-              <div className="button-row">
-                <button
-                  className="button secondary"
-                  disabled={
-                    busy ||
-                    pendingInvalid ||
-                    (!feedback.trim() && !pendingChoices && !legacyQuestions)
-                  }
-                  onClick={() => action("revise")}
-                >
-                  <RefreshCw size={14} />
-                  {enquiryReview ? "Update draft" : "Request revision"}
-                </button>
-                <button
-                  className="text-button danger"
-                  disabled={busy}
-                  onClick={() => action("reject")}
-                >
-                  Close review
-                </button>
-              </div>
+              <button
+                className="text-button danger"
+                disabled={busy}
+                onClick={() => action("reject")}
+              >
+                Close review
+              </button>
             </div>
           )}
+          {(run.status === "running" || run.status === "finalizing") && (
+            <p className="muted">
+              {run.status === "finalizing"
+                ? "The response is stored while student memory is reconciled."
+                : "The draft is still being prepared."}
+            </p>
+          )}
+          {(run.status === "closed" || run.status === "superseded") && (
+            <p className="muted">
+              There are no actions available for this review.
+            </p>
+          )}
           {(retryable || canCloseFailed) && (
-            <div className="button-row">
+            <div className="review-recovery">
+              <h3>Recover this review</h3>
               {retryable && (
                 <button
                   className="button secondary"
@@ -1288,97 +1430,193 @@ function ReviewDetail({ id }: { id: string }) {
               <ShieldCheck size={18} />
               <p>
                 {proposal
-                  ? "A teacher can edit this draft, request a revision, or approve the proposed booking and response in the owner workspace."
-                  : "A teacher can edit this draft, request a revision, or approve and save the response in the owner workspace."}
+                  ? "In the owner workspace, a teacher can edit or update this draft, then approve a booking and save the response."
+                  : "In the owner workspace, a teacher can edit or update this draft, then approve and save the response."}{" "}
+                Approval does not send an email.
               </p>
             </div>
           )}
         </section>
-        <aside className="context-stack">
-          <EnquiryPanel
-            run={run}
-            base={base}
-            editable={canReview}
-            busy={busy}
-            edits={resolutionEdits}
-            onChange={(choice) => {
-              setResolutionEdits((previous) => ({
-                ...previous,
-                [choice.question_id]: choice,
-              }));
-              setDirty(true);
-            }}
-          />
-          <section className="panel context-card">
-            <div className="eyebrow">THE STUDENT</div>
-            <Link
-              className="student-heading"
-              to={`${base}/students/${student.id}`}
-            >
-              <span className="avatar">{student.display_name[0]}</span>
-              <div>
-                <h3>{student.display_name}</h3>
-                <small>{student.highest_level || "Level not yet known"}</small>
+        {historyCount > 0 && (
+          <details className="panel conversation-history" ref={historyRef}>
+            <summary>
+              Conversation history · {historyCount}
+              {historyCount === 1 ? " message" : " messages"}
+            </summary>
+            <div className="thread">
+              {messages
+                .filter((row) => row.id !== run.source_message_id)
+                .map((row) => (
+                  <article
+                    id={`message-${row.id}`}
+                    className={`message message-${row.kind}`}
+                    key={row.id}
+                  >
+                    <div className="message-meta">
+                      <strong>
+                        {row.kind === "student_email"
+                          ? student.display_name
+                          : row.kind === "teacher_response"
+                            ? "Reviewed response"
+                            : row.kind === "assistant_draft"
+                              ? "Generated draft"
+                              : "Staff note"}
+                      </strong>
+                      <small>{timeLabel(row.occurred_at)}</small>
+                    </div>
+                    <p>{row.body}</p>
+                  </article>
+                ))}
+            </div>
+          </details>
+        )}
+        {(missing.length > 0 ||
+          requestedActions.length > 0 ||
+          run.draft_details.rationale ||
+          references.length > 0) && (
+          <details className="panel response-support">
+            <summary>Response notes and references</summary>
+            {requestedActions.length > 0 && (
+              <div className="enquiry-actions">
+                <h3>Actions for the teacher</h3>
+                <ul>
+                  {requestedActions.map((action, index) => (
+                    <li key={index}>{action}</li>
+                  ))}
+                </ul>
+                <p className="muted">
+                  These actions have not been performed. Approval saves the
+                  reply only.
+                </p>
               </div>
-              <ArrowUpRight size={15} />
-            </Link>
-            <dl>
-              <dt>Email</dt>
-              <dd>{student.email}</dd>
-              <dt>Current enrolments</dt>
-              <dd>
-                {student.current_enrolments.length
-                  ? student.current_enrolments.map((row) => (
-                      <div key={row.id}>
-                        {classes.find((cls) => cls.id === row.class_id)?.name ||
-                          row.class_id}
-                      </div>
-                    ))
-                  : "None on this date"}
-              </dd>
-            </dl>
-            <span className="eyebrow">CONVERSATION MEMORY</span>
-            <p>{student.ai_summary || "No summary available."}</p>
-            <small className="muted">
-              Memory provides context. Official enrolments remain authoritative.
-            </small>
-          </section>
-          <section className="panel context-card">
-            <div className="eyebrow">SUPPORTING EVIDENCE</div>
-            {run.evidence.length ? (
-              run.evidence.map((item, index) => (
-                <div className="evidence" key={index}>
-                  <span className="evidence-number">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <p>
-                    {typeof item.finding === "string"
-                      ? item.finding
-                      : typeof item.tool === "string"
-                        ? item.tool
-                        : "Tool result"}
-                  </p>
-                  {typeof item.session_id === "string" && (
-                    <Link
-                      className="inline-link"
-                      to={`${base}/timetable?session=${encodeURIComponent(item.session_id)}`}
-                    >
-                      View session <ArrowUpRight size={13} />
-                    </Link>
-                  )}
-                  <details>
-                    <summary>Inspect result</summary>
-                    <Json value={item} />
-                  </details>
-                </div>
-              ))
-            ) : (
-              <p className="muted">
-                No supporting evidence was collected for this run.
-              </p>
             )}
-          </section>
-        </aside>
+            {missing.length > 0 && (
+              <div className="notice">
+                <strong>Information still needed</strong>
+                <ul>
+                  {missing.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {run.draft_details.rationale && (
+              <div className="rationale">
+                <span className="eyebrow">WHY THIS RESPONSE</span>
+                <p>{run.draft_details.rationale}</p>
+              </div>
+            )}
+            {references.length > 0 && (
+              <div className="source-links">
+                <span className="eyebrow">REFERENCES</span>
+                {references.map((reference) =>
+                  reference.messageId ? (
+                    <a
+                      href={`#message-${reference.messageId}`}
+                      key={reference.raw}
+                      onClick={() => {
+                        if (
+                          reference.messageId !== run.source_message_id &&
+                          historyRef.current
+                        )
+                          historyRef.current.open = true;
+                      }}
+                    >
+                      {reference.label} <ArrowUpRight size={12} />
+                    </a>
+                  ) : reference.to ? (
+                    <Link to={reference.to} key={reference.raw}>
+                      {reference.label} <ArrowUpRight size={12} />
+                    </Link>
+                  ) : (
+                    <span key={reference.raw}>{reference.label}</span>
+                  ),
+                )}
+              </div>
+            )}
+          </details>
+        )}
+        <details className="panel review-support">
+          <summary>Student, classification and supporting evidence</summary>
+          <div className="support-content">
+            <ClassificationPanel
+              interpretation={run.interpretation}
+              status={run.status}
+            />
+            <section className="panel context-card">
+              <div className="eyebrow">THE STUDENT</div>
+              <Link
+                className="student-heading"
+                to={`${base}/students/${student.id}`}
+              >
+                <span className="avatar">{student.display_name[0]}</span>
+                <div>
+                  <h3>{student.display_name}</h3>
+                  <small>
+                    {student.highest_level || "Level not yet known"}
+                  </small>
+                </div>
+                <ArrowUpRight size={15} />
+              </Link>
+              <dl>
+                <dt>Email</dt>
+                <dd>{student.email}</dd>
+                <dt>Current enrolments</dt>
+                <dd>
+                  {student.current_enrolments.length
+                    ? student.current_enrolments.map((row) => (
+                        <div key={row.id}>
+                          {classes.find((cls) => cls.id === row.class_id)
+                            ?.name || row.class_id}
+                        </div>
+                      ))
+                    : "None on this date"}
+                </dd>
+              </dl>
+              <span className="eyebrow">CONVERSATION MEMORY</span>
+              <p>{student.ai_summary || "No summary available."}</p>
+              <small className="muted">
+                Memory provides context. Official enrolments remain
+                authoritative.
+              </small>
+            </section>
+            <section className="panel context-card">
+              <div className="eyebrow">SUPPORTING EVIDENCE</div>
+              {run.evidence.length ? (
+                run.evidence.map((item, index) => (
+                  <div className="evidence" key={index}>
+                    <span className="evidence-number">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <p>
+                      {typeof item.finding === "string"
+                        ? item.finding
+                        : typeof item.tool === "string"
+                          ? item.tool
+                          : "Tool result"}
+                    </p>
+                    {typeof item.session_id === "string" && (
+                      <Link
+                        className="inline-link"
+                        to={`${base}/timetable?session=${encodeURIComponent(item.session_id)}`}
+                      >
+                        View session <ArrowUpRight size={13} />
+                      </Link>
+                    )}
+                    <details>
+                      <summary>Inspect result</summary>
+                      <Json value={item} />
+                    </details>
+                  </div>
+                ))
+              ) : (
+                <p className="muted">
+                  No supporting evidence was collected for this run.
+                </p>
+              )}
+            </section>
+          </div>
+        </details>
       </div>
       <details className="panel developer-panel">
         <summary>
@@ -1404,6 +1642,8 @@ function ReviewDetail({ id }: { id: string }) {
           <div>
             <h3>Interpretation</h3>
             <Json value={run.interpretation} />
+            <h3>Draft reference IDs</h3>
+            <Json value={run.draft_details.references || []} />
           </div>
         </div>
       </details>

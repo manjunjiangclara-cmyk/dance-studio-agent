@@ -91,6 +91,9 @@ test("queue and detail expose the saved classification", async ({ page }) => {
   await expect(row).toContainText("Enrolment change");
   await expect(row).toContainText("General enquiry");
   await row.click();
+  const supporting = page.locator(".review-support");
+  await expect(supporting).not.toHaveAttribute("open", "");
+  await supporting.locator(":scope > summary").click();
   const classification = page.getByRole("region", {
     name: "Classification",
     exact: true,
@@ -101,15 +104,7 @@ test("queue and detail expose the saved classification", async ({ page }) => {
   ).toBeVisible();
   const badge = classification.getByText("Enrolment change", { exact: true });
   await expect(badge).toBeInViewport();
-  const classificationBox = await classification.boundingBox();
-  const conversationBox = await page
-    .locator(".conversation-panel")
-    .boundingBox();
-  expect(classificationBox).not.toBeNull();
-  expect(conversationBox).not.toBeNull();
-  expect(classificationBox!.y + classificationBox!.height).toBeLessThanOrEqual(
-    conversationBox!.y,
-  );
+  await expect(supporting).toHaveAttribute("open", "");
   await expect(classification).toContainText("General enquiry");
   await expect(classification).toContainText("Teacher handling");
   await expect(classification).toContainText("Needed");
@@ -145,6 +140,7 @@ test("public classification is visible without API access", async ({
     if (/\/(api|auth)\//.test(request.url())) calls.push(request.url());
   });
   await page.goto(`/demo/reviews/${run.id}`);
+  await page.locator(".review-support > summary").click();
   const classification = page.getByRole("region", {
     name: "Classification",
     exact: true,
@@ -155,11 +151,12 @@ test("public classification is visible without API access", async ({
   expect(calls).toEqual([]);
 });
 
-test("classification is prominent at intermediate screen widths", async ({
+test("classification is readable in supporting context at intermediate screen widths", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1100, height: 800 });
   await page.goto(`/demo/reviews/${run.id}`);
+  await page.locator(".review-support > summary").click();
   const classification = page.getByRole("region", {
     name: "Classification",
     exact: true,
@@ -177,8 +174,8 @@ test("classification is prominent at intermediate screen widths", async ({
     classification.getByText("Intent:", { exact: true }),
   ).toBeInViewport();
   const panel = await classification.boundingBox();
-  const grid = await page.locator(".review-grid").boundingBox();
-  expect(panel!.y + panel!.height).toBeLessThanOrEqual(grid!.y);
+  const support = await page.locator(".review-support").boundingBox();
+  expect(panel!.y).toBeGreaterThanOrEqual(support!.y);
 });
 
 test("legacy runs do not invent a classification", async ({ page }) => {
@@ -204,6 +201,7 @@ test("legacy runs do not invent a classification", async ({ page }) => {
     });
   });
   await page.goto(`/workspace/reviews/${run.id}`);
+  await page.locator(".review-support > summary").click();
   await expect(
     page.getByRole("region", { name: "Classification", exact: true }),
   ).toContainText("Classification was not recorded");

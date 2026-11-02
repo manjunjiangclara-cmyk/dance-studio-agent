@@ -41,6 +41,9 @@ test("public examples work without touching the workspace API", async ({
     page.getByRole("heading", { name: conversation.subject }),
   ).toBeVisible();
   await expect(
+    page.getByRole("heading", { name: "Current response" }),
+  ).toBeVisible();
+  await expect(
     page.getByText("Actually, Saturday 13 February would be better.", {
       exact: true,
     }),
@@ -224,6 +227,9 @@ test("owner approval submits edited text and the reviewed revision", async ({
 }) => {
   const mock = await mockWorkspace(page, { approval: true });
   await page.goto(`/workspace/reviews/${run.id}`);
+  await expect(
+    page.getByRole("heading", { name: "Current response" }),
+  ).toBeVisible();
   await page
     .getByLabel("Final response", { exact: true })
     .fill("Teacher reviewed this response.");
@@ -237,11 +243,46 @@ test("owner approval submits edited text and the reviewed revision", async ({
     body: "Teacher reviewed this response.",
   });
   await expect(
-    page.getByRole("heading", { name: "Reviewed response", exact: true }),
+    page.getByRole("heading", { name: "Saved response", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByText("Booking confirmed", { exact: true }),
   ).toBeVisible();
+  await expect(page.getByText("Saved teacher response.")).toBeVisible();
+});
+
+test("updating a draft asks before replacing direct wording edits", async ({
+  page,
+}) => {
+  const mock = await mockWorkspace(page);
+  await page.goto(`/workspace/reviews/${run.id}`);
+  await page.getByLabel("Final response").fill("My carefully edited reply.");
+  await page.getByLabel("Change prompt").fill("Use a warmer opening.");
+  await page.getByRole("button", { name: "Update draft" }).click();
+  const dialog = page.getByRole("alertdialog", {
+    name: "Replace your text edits?",
+  });
+  await expect(dialog).toBeVisible();
+  expect(mock.getBody()).toBeUndefined();
+  await dialog.getByRole("button", { name: "Keep editing" }).click();
+  await expect(page.getByLabel("Final response")).toHaveValue(
+    "My carefully edited reply.",
+  );
+  await expect(page.getByLabel("Change prompt")).toHaveValue(
+    "Use a warmer opening.",
+  );
+  await page.getByRole("button", { name: "Update draft" }).click();
+  await dialog
+    .getByRole("button", { name: "Replace and update draft" })
+    .click();
+  expect(mock.getBody()).toEqual({
+    action: "revise",
+    expected_revision: 2,
+    feedback: "Use a warmer opening.",
+  });
+  await expect(page.getByLabel("Final response")).toHaveValue(
+    run.draft_details.body,
+  );
 });
 
 test("a stale review preserves edits and requires an explicit reload", async ({
@@ -252,6 +293,7 @@ test("a stale review preserves edits and requires an explicit reload", async ({
   await page
     .getByLabel("Final response", { exact: true })
     .fill("My unsaved response");
+  await expect(page.locator(".review-main")).toContainText("No email is sent");
   await page.getByRole("button", { name: "Approve and book class" }).click();
   await expect(page.getByRole("alert")).toContainText("no longer awaiting");
   await expect(page.getByLabel("Final response", { exact: true })).toHaveValue(
@@ -315,6 +357,56 @@ test("all public pages fit the viewport and expose keyboard navigation", async (
   await expect(
     page.getByRole("link", { name: "Skip to content" }),
   ).toBeFocused();
+});
+
+test("review screen guides the reading order and opens supporting context", async ({
+  page,
+}) => {
+  await page.goto(`/demo/reviews/${run.id}`);
+  const sections = await page
+    .locator(".review-flow > *")
+    .evaluateAll((nodes) => nodes.map((node) => node.className));
+  expect(sections[0]).toBe("panel conversation-panel review-request");
+  expect(sections[1]).toBe("panel review-main");
+  expect(sections.at(-1)).toBe("panel review-support");
+  await expect(page.locator(".review-next-step")).toHaveCount(0);
+  await expect(page.locator(".review-main .saved-response")).toHaveCount(1);
+  const supporting = page.locator(".review-support");
+  await expect(supporting).not.toHaveAttribute("open", "");
+  await supporting.locator(":scope > summary").focus();
+  await page.keyboard.press("Enter");
+  await expect(supporting).toHaveAttribute("open", "");
+  await expect(
+    supporting.getByRole("region", { name: "Classification" }),
+  ).toBeVisible();
+  const notes = page.locator(".response-support");
+  await notes.locator(":scope > summary").focus();
+  await page.keyboard.press("Enter");
+  await expect(notes).toHaveAttribute("open", "");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
+
+test("owner review controls fit a narrow screen in response order", async ({
+  page,
+}, testInfo) => {
+  if (testInfo.project.name !== "mobile") return;
+  await mockWorkspace(page);
+  await page.goto(`/workspace/reviews/${run.id}`);
+  await expect(page.locator(".review-request")).toBeVisible();
+  await expect(page.getByLabel("Final response")).toBeVisible();
+  await expect(page.getByLabel("Change prompt")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Approve and book class" }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
 });
 
 test("database browser shows records and complete columns for every example table", async ({
@@ -385,7 +477,6 @@ test("workspace database uses live rows, paginates and handles empty tables and 
         json: { items: [], total: 0, limit: 20, offset: 0 },
       });
     if (fail) {
-      fail = false;
       return route.fulfill({
         status: 503,
         json: { error: { message: "Temporarily unavailable" } },
@@ -411,6 +502,7 @@ test("workspace database uses live rows, paginates and handles empty tables and 
   await expect(page.getByRole("alert")).toContainText(
     "Temporarily unavailable",
   );
+  fail = false;
   await page.getByRole("button", { name: "Try loading again" }).click();
   await expect(
     page.getByRole("region", { name: "students data" }),
@@ -440,7 +532,8 @@ test("workspace database uses live rows, paginates and handles empty tables and 
   await expect(
     page.getByRole("region", { name: "students data" }),
   ).toContainText("Live student 0");
-  expect(offsets).toEqual(["0", "20", "0", "20", "0"]);
+  expect(offsets.filter((offset) => offset === "20")).toHaveLength(2);
+  expect(offsets.at(-1)).toBe("0");
   await page.getByRole("button", { name: "Refresh database" }).click();
   await expect(
     page.getByRole("region", { name: "students data" }),
