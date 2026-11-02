@@ -95,11 +95,15 @@ def require_browser_access(request: Request) -> None:
     if request.method in {"GET", "HEAD"}:
         return
     policy_write = request.method == "PUT" and request.url.path == "/api/v1/policy"
+    document_write = (request.method == "POST" and request.url.path == "/api/v1/documents") or (
+        request.method in {"PUT", "DELETE"}
+        and re.fullmatch(r"/api/v1/documents/[0-9a-fA-F-]{36}", request.url.path)
+    )
     agent_write = request.method == "POST" and AGENT_WRITE.fullmatch(request.url.path)
     attendance_write = request.method == "PUT" and re.fullmatch(
         r"/api/v1/sessions/[0-9a-fA-F-]{36}/attendance/[0-9a-fA-F-]{36}", request.url.path
     )
-    if not (policy_write or agent_write or attendance_write):
+    if not (policy_write or document_write or agent_write or attendance_write):
         raise HTTPException(403, "The owner workspace cannot change studio records directly.")
     require_csrf(request)
 

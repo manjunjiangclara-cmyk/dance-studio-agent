@@ -22,6 +22,7 @@ from studio_copilot.api import (
     auth,
     conversations,
     database,
+    documents,
     enrolments,
     policy,
     students,
@@ -169,6 +170,7 @@ def create_app(
         conversations.router,
         agents.router,
         database.router,
+        documents.router,
         policy.router,
     ]:
         application.include_router(router, prefix="/api/v1", dependencies=[Depends(require_admin)])

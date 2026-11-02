@@ -45,6 +45,7 @@ import {
 import { all, ApiError, examples, get, post, request } from "./data";
 import { confirmedSessions } from "./attendance";
 import { PolicyPage } from "./PolicyPage";
+import { DocumentsPage } from "./DocumentsPage";
 import { ClassificationPanel, IntentBadges } from "./Classification";
 import { EnquiryPanel, missingTeacherDecisions } from "./EnquiryPanel";
 import type { QuestionResolution } from "./types";
@@ -285,6 +286,7 @@ export default function App() {
     ["timetable", "Timetable", CalendarDays],
     ["database", "Database", Database],
     ["policy", "Policy", BookOpen],
+    ["documents", "Documents", BookOpen],
     ["test-email", "Test email", Send],
   ] as const;
   async function logout() {
@@ -451,6 +453,12 @@ export default function App() {
                   <DatabaseBrowser />
                 ) : page === "policy" ? (
                   <PolicyPage
+                    key={base}
+                    workspace={workspace}
+                    csrf={identity.csrf_token || ""}
+                  />
+                ) : page === "documents" ? (
+                  <DocumentsPage
                     key={base}
                     workspace={workspace}
                     csrf={identity.csrf_token || ""}

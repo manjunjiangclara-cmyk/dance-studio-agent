@@ -715,5 +715,6 @@
       "error": "Processing failed. Check configuration and retry this run."
     }
   ],
-  "session_attendance": []
+  "session_attendance": [],
+  "documents": []
 }
