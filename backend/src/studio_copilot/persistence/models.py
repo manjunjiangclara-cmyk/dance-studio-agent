@@ -55,7 +55,40 @@ class Document(Record, Base):
 
     title: Mapped[str] = mapped_column(String(200))
     filename: Mapped[str] = mapped_column(String(255))
-    content: Mapped[str] = mapped_column(Text)
+    content: Mapped[str] = mapped_column(Text, deferred=True)
+    current_revision: Mapped[int] = mapped_column(Integer, default=1, server_default=text("1"))
+
+
+class DocumentRevision(Record, Base):
+    """Immutable source snapshot. Documents remain outside the agent knowledge base."""
+
+    __tablename__ = "document_revisions"
+    __table_args__ = (
+        UniqueConstraint("document_id", "revision"),
+        CheckConstraint("revision > 0", name="positive_revision"),
+        CheckConstraint("byte_size >= 0", name="nonnegative_size"),
+        CheckConstraint(
+            "effective_from IS NULL OR effective_to IS NULL OR effective_from <= effective_to",
+            name="dates_ordered",
+        ),
+        CheckConstraint("hash_origin IN ('upload_bytes', 'stored_text_utf8')", name="hash_origin"),
+        CheckConstraint(
+            "ingestion_status IN ('ready', 'needs_correction')", name="ingestion_status"
+        ),
+        Index("ix_document_revisions_sha256", "sha256"),
+    )
+
+    document_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"))
+    revision: Mapped[int] = mapped_column(Integer)
+    title: Mapped[str] = mapped_column(String(200))
+    filename: Mapped[str] = mapped_column(String(255))
+    content: Mapped[str] = mapped_column(Text, deferred=True)
+    byte_size: Mapped[int] = mapped_column(Integer)
+    sha256: Mapped[str] = mapped_column(String(64))
+    hash_origin: Mapped[str] = mapped_column(String(30))
+    ingestion_status: Mapped[str] = mapped_column(String(30))
+    effective_from: Mapped[date | None] = mapped_column(Date)
+    effective_to: Mapped[date | None] = mapped_column(Date)
 
 
 class Student(Record, Base):

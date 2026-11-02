@@ -8,7 +8,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
 from studio_copilot.api.app import create_app
-from studio_copilot.persistence.models import Document
+from studio_copilot.persistence.models import Document, DocumentRevision
 from tests.unit.test_website_auth import session_cookie
 
 
@@ -34,6 +34,7 @@ def client(monkeypatch):
         "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
     Document.__table__.create(engine)
+    DocumentRevision.__table__.create(engine)
     with TestClient(
         create_app(engine, admin_token="test"), base_url="https://studio.example.test"
     ) as test_client:
@@ -52,7 +53,9 @@ def test_crud_persists_and_validates(client):
     assert client.get(path, headers=headers).json()["content"] == "你好"
     assert "content" not in client.get("/api/v1/documents", headers=headers).json()[0]
     changed = client.put(
-        path, headers=headers, json=payload("Updated", title="New", filename="new.txt")
+        path,
+        headers=headers,
+        json=payload("Updated", title="New", filename="new.txt", expected_revision=1),
     )
     assert changed.status_code == 200
     for body in [

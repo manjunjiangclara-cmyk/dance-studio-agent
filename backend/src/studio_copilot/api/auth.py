@@ -95,9 +95,21 @@ def require_browser_access(request: Request) -> None:
     if request.method in {"GET", "HEAD"}:
         return
     policy_write = request.method == "PUT" and request.url.path == "/api/v1/policy"
-    document_write = (request.method == "POST" and request.url.path == "/api/v1/documents") or (
-        request.method in {"PUT", "DELETE"}
-        and re.fullmatch(r"/api/v1/documents/[0-9a-fA-F-]{36}", request.url.path)
+    document_write = (
+        (
+            request.method == "POST"
+            and request.url.path in {"/api/v1/documents", "/api/v1/documents/upload"}
+        )
+        or (
+            request.method in {"PUT", "DELETE"}
+            and re.fullmatch(
+                r"/api/v1/documents/[0-9a-fA-F-]{36}(?:/(?:upload|text))?", request.url.path
+            )
+        )
+        or (
+            request.method == "PATCH"
+            and re.fullmatch(r"/api/v1/documents/[0-9a-fA-F-]{36}/metadata", request.url.path)
+        )
     )
     agent_write = request.method == "POST" and AGENT_WRITE.fullmatch(request.url.path)
     attendance_write = request.method == "PUT" and re.fullmatch(
