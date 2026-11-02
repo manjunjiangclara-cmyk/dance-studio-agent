@@ -222,8 +222,9 @@ def save_revision(
             "sha256": digest,
         }.items()
     ):
+        response = metadata(db, document)
         db.commit()  # Release the lock even on a no-op.
-        return metadata(db, document)
+        return response
     if document is None:
         document = Document(
             title=values["title"], filename=values["filename"], content=content, current_revision=1
@@ -248,9 +249,12 @@ def save_revision(
         **values,
     )
     db.add(revision)
+    db.flush()
+    # Freeze primitive response values while this request still owns the document
+    # lock. After commit a competing writer may advance the mutable pointer.
+    response = metadata(db, document)
     db.commit()
-    db.refresh(document)
-    return metadata(db, document)
+    return response
 
 
 @router.get("", response_model=list[DocumentSummary])

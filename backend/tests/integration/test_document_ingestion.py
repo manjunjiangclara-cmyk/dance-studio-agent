@@ -479,3 +479,108 @@ def test_legacy_read_remains_pinned_when_file_is_replaced_with_large_content(cli
     assert result["content"] == original.decode()
     assert result["sha256"] == hashlib.sha256(original).hexdigest()
     assert client.get(f"{ROOT}/{document_id}").status_code == 409
+
+
+@pytest.mark.parametrize("operation", ["legacy", "upload", "text", "metadata"])
+@pytest.mark.parametrize("changed", [False, True], ids=["noop", "changed"])
+@pytest.mark.parametrize("expire", [False, True], ids=["unexpired", "expired"])
+def test_save_response_is_pinned_when_another_writer_commits_before_response(
+    client, db_engine, monkeypatch, operation, changed, expire
+):
+    from sqlalchemy.orm import Session, sessionmaker
+
+    original = b"Original source text."
+    first_raw = b"First writer source text." if changed and operation != "metadata" else original
+    first_title = "First writer" if changed else "Studio handbook"
+    first_filename = "first.md" if changed and operation != "metadata" else "handbook.md"
+    initial_dates = {"effective_from": "2027-01-01", "effective_to": "2027-06-30"}
+    first_dates = (
+        {"effective_from": "2027-02-01", "effective_to": "2027-07-31"} if changed else initial_dates
+    )
+    created = upload(client, original, **initial_dates)
+    assert created.status_code == 201
+    document_id = created.json()["id"]
+    first_revision = 2 if changed else 1
+    competitor_raw = b"A competing writer's newer source."
+    client.app.state.session_factory = sessionmaker(db_engine, expire_on_commit=expire)
+    original_commit = Session.commit
+    competing_results = []
+    fired = False
+
+    def commit_then_compete(session):
+        nonlocal fired
+        original_commit(session)
+        if not fired:
+            fired = True
+            # A separate real transaction writes after the original lock was released,
+            # before the original request has resumed building its response.
+            with TestClient(create_app(db_engine, admin_token="test"), headers=HEADERS) as other:
+                competing_results.append(
+                    upload(
+                        other,
+                        competitor_raw,
+                        document_id=document_id,
+                        expected_revision=str(first_revision),
+                        title="Competing writer",
+                        filename="competitor.txt",
+                        effective_from="2028-01-01",
+                        effective_to="2028-12-31",
+                    )
+                )
+
+    with monkeypatch.context() as patch:
+        patch.setattr(Session, "commit", commit_then_compete)
+        values = {"title": first_title, "expected_revision": 1, **first_dates}
+        if operation == "legacy":
+            response = client.put(
+                f"{ROOT}/{document_id}",
+                json={
+                    **values,
+                    "filename": first_filename,
+                    "content_base64": base64.b64encode(first_raw).decode(),
+                },
+            )
+        elif operation == "upload":
+            response = upload(
+                client, first_raw, document_id=document_id, filename=first_filename, **values
+            )
+        elif operation == "text":
+            response = client.put(
+                f"{ROOT}/{document_id}/text",
+                json={
+                    **values,
+                    "filename": first_filename,
+                    "content": first_raw.decode(),
+                },
+            )
+        else:
+            response = client.patch(f"{ROOT}/{document_id}/metadata", json=values)
+
+    assert fired and len(competing_results) == 1
+    assert competing_results[0].status_code == 200, competing_results[0].text
+    assert response.status_code == 200, response.text
+    result = response.json()
+    assert result["id"] == document_id
+    assert result["current_revision"] == first_revision
+    assert result["title"] == first_title
+    assert result["filename"] == first_filename
+    assert result["sha256"] == hashlib.sha256(first_raw).hexdigest()
+    assert result["byte_size"] == len(first_raw)
+    assert result["effective_from"] == first_dates["effective_from"]
+    assert result["effective_to"] == first_dates["effective_to"]
+    if operation == "legacy":
+        assert result["content"] == first_raw.decode()
+        assert hashlib.sha256(result["content"].encode()).hexdigest() == result["sha256"]
+    latest = metadata(client, document_id)
+    assert latest["current_revision"] == first_revision + 1
+    assert latest["title"] == "Competing writer"
+    assert latest["sha256"] == hashlib.sha256(competitor_raw).hexdigest()
+    stale = client.patch(
+        f"{ROOT}/{document_id}/metadata",
+        json={
+            "title": "Must not overwrite competitor",
+            "expected_revision": result["current_revision"],
+        },
+    )
+    assert stale.status_code == 409
+    assert metadata(client, document_id) == latest
