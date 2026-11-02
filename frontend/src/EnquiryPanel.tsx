@@ -1,11 +1,5 @@
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import type { EnquiryAnswer, QuestionResolution, Run } from "./types";
-
-const statuses = {
-  answered: "Answered",
-  needs_student: "Needs student clarification",
-  needs_teacher: "Needs teacher input",
-};
 
 export function needsTeacherDecision(run: Run, answer: EnquiryAnswer) {
   return (
@@ -29,174 +23,156 @@ export function missingTeacherDecisions(run: Run) {
 
 export function EnquiryPanel({
   run,
-  base,
   editable = false,
   busy = false,
   edits = {},
   onChange,
 }: {
   run: Run;
-  base: string;
   editable?: boolean;
   busy?: boolean;
   edits?: Record<string, QuestionResolution>;
   onChange?: (value: QuestionResolution) => void;
 }) {
-  const answers = run.draft_details.answers || [];
-  const actions = Array.isArray(run.interpretation.requested_actions)
-    ? run.interpretation.requested_actions.filter(
-        (action): action is string => typeof action === "string",
-      )
-    : [];
-  if (!answers.length && !actions.length) return null;
+  const [showPrevious, setShowPrevious] = useState(false);
+  useEffect(() => setShowPrevious(false), [run.id, run.revision]);
+  const teacherQuestions = missingTeacherDecisions(run);
+  const studentQuestions = (run.draft_details.answers || []).filter(
+    (answer) => answer.status === "needs_student",
+  );
+  const applied = run.draft_details.question_resolutions || [];
+  const previousQuestions = (run.draft_details.answers || []).filter(
+    (answer) =>
+      !!answer.question_id &&
+      applied.some((item) => item.question_id === answer.question_id),
+  );
+  const hasNeeds = teacherQuestions.length > 0 || studentQuestions.length > 0;
+  const visibleTeacherQuestions = showPrevious
+    ? [...teacherQuestions, ...previousQuestions]
+    : teacherQuestions;
+
+  if (!hasNeeds && !showPrevious) {
+    return editable && previousQuestions.length > 0 ? (
+      <button
+        className="text-button previous-answers-toggle"
+        onClick={() => setShowPrevious(true)}
+      >
+        Edit previous teacher answers
+      </button>
+    ) : null;
+  }
+
   return (
-    <section
-      className="panel context-card enquiry-panel"
-      aria-labelledby="enquiry-title"
-    >
-      <h2 id="enquiry-title">Enquiry checklist</h2>
-      {editable && (
-        <p>
-          After entering answers, select Update draft to have the agent create a
-          new draft for your review.
-        </p>
-      )}
-      {answers.map((answer, index) => {
-        const questionId = answer.question_id;
-        const applied = (run.draft_details.question_resolutions || []).find(
-          (item) => item.question_id === questionId,
-        );
-        const selected = (questionId && edits[questionId]) || applied;
-        const needsDecision = needsTeacherDecision(run, answer);
-        return (
-          <div
-            className="enquiry-question"
-            key={questionId || `${index}-${answer.question}`}
-          >
-            <h3>{answer.question}</h3>
-            <span className={`enquiry-status ${answer.status}`}>
-              {statuses[answer.status]}
-            </span>
-            <p>{answer.answer}</p>
-            {applied && (
-              <p className="muted resolution-applied">
-                {applied.decision === "answer"
-                  ? "Teacher answer applied"
-                  : "Confirm later applied · still awaiting confirmation"}
-              </p>
-            )}
-            {editable && needsDecision && !questionId && (
-              <p className="notice">
-                This older review needs an updated question checklist. Select
-                Update draft first.
-              </p>
-            )}
-            {editable && needsDecision && questionId && (
-              <fieldset className="question-resolution" disabled={busy}>
-                <legend>Teacher decision</legend>
-                <label>
-                  <input
-                    type="radio"
-                    name={`resolution-${questionId}`}
-                    aria-label={`Provide answer for ${answer.question}`}
-                    checked={selected?.decision === "answer"}
-                    onChange={() =>
-                      onChange?.({
-                        question_id: questionId,
-                        decision: "answer",
-                        answer: selected?.answer || "",
-                      })
-                    }
-                  />
-                  Provide answer
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name={`resolution-${questionId}`}
-                    aria-label={`Confirm later for ${answer.question}`}
-                    checked={selected?.decision === "defer"}
-                    onChange={() =>
-                      onChange?.({
-                        question_id: questionId,
-                        decision: "defer",
-                        answer: null,
-                      })
-                    }
-                  />
-                  Confirm later
-                </label>
-                {selected?.decision === "answer" && (
-                  <label>
-                    Answer for the student
-                    <textarea
-                      aria-label={`Answer for ${answer.question}`}
-                      rows={3}
-                      maxLength={4000}
-                      value={selected.answer || ""}
-                      placeholder="Write the answer you want to give the student."
-                      onChange={(event) =>
-                        onChange?.({ ...selected, answer: event.target.value })
-                      }
-                    />
-                  </label>
-                )}
-                {edits[questionId] && (
-                  <small role="status">
-                    Unapplied choice — update the draft to send it to the agent.
-                  </small>
-                )}
-              </fieldset>
-            )}
-            {!!answer.references.length && (
+    <section className="panel input-needed" aria-label="Input needed">
+      <h3>{hasNeeds ? "Input needed" : "Edit teacher answers"}</h3>
+      {visibleTeacherQuestions.length > 0 && (
+        <div className="input-needed-group">
+          <h4>Needs teacher input</h4>
+          <p className="muted">
+            Add the studio facts or mark what you’ll confirm later, then update
+            the draft before approval.
+          </p>
+          {visibleTeacherQuestions.map((answer, index) => {
+            const questionId = answer.question_id;
+            const current = applied.find(
+              (item) => item.question_id === questionId,
+            );
+            const selected = (questionId && edits[questionId]) || current;
+            return (
               <div
-                className="reference-list"
-                aria-label="Supporting references"
+                className="enquiry-question"
+                key={questionId || index + "-" + answer.question}
               >
-                {answer.references.map((reference) =>
-                  reference.startsWith("session:") ? (
-                    <Link
-                      key={reference}
-                      to={`${base}/timetable?session=${encodeURIComponent(reference.slice(8))}`}
-                    >
-                      View session
-                    </Link>
-                  ) : (
-                    <span key={reference}>
-                      {reference.startsWith("teacher_answer:")
-                        ? "Teacher-provided answer"
-                        : reference.startsWith("teacher_deferral:")
-                          ? "Explicit teacher deferral"
-                          : reference === "teacher_feedback"
-                            ? "Teacher revision feedback"
-                            : reference.startsWith("class:")
-                              ? "Class timetable"
-                              : reference.startsWith("location:")
-                                ? "Studio location"
-                                : reference.startsWith("policy:")
-                                  ? "Studio policy"
-                                  : "Studio record"}
-                    </span>
-                  ),
+                <h5>{answer.question}</h5>
+                {current && (
+                  <p className="muted">
+                    {current.decision === "defer"
+                      ? "Previously marked to confirm later"
+                      : "Previous teacher answer"}
+                  </p>
+                )}
+                {editable && !questionId && (
+                  <p className="notice">
+                    This older review needs an updated question checklist.
+                    Select Update draft first.
+                  </p>
+                )}
+                {editable && questionId ? (
+                  <div className="question-resolution">
+                    {selected?.decision !== "defer" && (
+                      <label>
+                        Your answer
+                        <textarea
+                          aria-label={"Answer for " + answer.question}
+                          rows={3}
+                          maxLength={4000}
+                          value={selected?.answer || ""}
+                          placeholder="Enter the studio fact for the copilot."
+                          disabled={busy}
+                          onChange={(event) =>
+                            onChange?.({
+                              question_id: questionId,
+                              decision: "answer",
+                              answer: event.target.value,
+                            })
+                          }
+                        />
+                      </label>
+                    )}
+                    <label className="question-defer">
+                      <input
+                        type="checkbox"
+                        checked={selected?.decision === "defer"}
+                        disabled={busy}
+                        onChange={(event) =>
+                          onChange?.({
+                            question_id: questionId,
+                            decision: event.target.checked ? "defer" : "answer",
+                            answer: event.target.checked ? null : "",
+                          })
+                        }
+                      />
+                      I’ll confirm this later
+                    </label>
+                    {edits[questionId] && (
+                      <small role="status">
+                        Unapplied choice — update the draft to use it.
+                      </small>
+                    )}
+                  </div>
+                ) : (
+                  <p className="muted">
+                    The teacher needs to provide this studio fact.
+                  </p>
                 )}
               </div>
-            )}
-          </div>
-        );
-      })}
-      {!!actions.length && (
-        <div className="enquiry-actions">
-          <h3>Actions for the teacher</h3>
+            );
+          })}
+        </div>
+      )}
+      {studentQuestions.length > 0 && (
+        <div className="input-needed-group">
+          <h4>Needs student input</h4>
+          <p className="muted">
+            Check that the response asks the student for these details. Approval
+            can save that clarification reply without sending an email.
+          </p>
           <ul>
-            {actions.map((action, index) => (
-              <li key={index}>{action}</li>
+            {studentQuestions.map((answer, index) => (
+              <li key={answer.question_id || index}>{answer.question}</li>
             ))}
           </ul>
-          <p className="muted">
-            These actions have not been performed. Approval saves the reply
-            only.
-          </p>
         </div>
+      )}
+      {editable && previousQuestions.length > 0 && (
+        <button
+          className="text-button previous-answers-toggle"
+          onClick={() => setShowPrevious((value) => !value)}
+        >
+          {showPrevious
+            ? "Hide previous teacher answers"
+            : "Edit previous teacher answers"}
+        </button>
       )}
     </section>
   );

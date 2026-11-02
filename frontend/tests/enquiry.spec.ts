@@ -8,6 +8,9 @@ const example = examples.agent_runs.find(
 const feeQuestion = "What does a trial cost?";
 const clothingQuestion = "What should I wear?";
 const feeAnswer = "A trial costs $20.";
+const clothingAnswer = "Wear comfortable clothes and soft shoes.";
+const generatedBody =
+  "Thanks for asking! Your trial is $20; comfortable clothes and soft shoes are perfect.";
 
 interface ReviewRequest {
   action: "revise" | "approve" | "reject";
@@ -124,9 +127,8 @@ function applyDecisions(run: Run, request: ReviewRequest) {
       `${decision.decision === "answer" ? "teacher_answer" : "teacher_deferral"}:${decision.question_id}`,
     ];
   }
-  run.draft_details.body = run.draft_details
-    .answers!.map((item) => item.answer)
-    .join("\n\n");
+  // Simulate a model-authored revision, rather than concatenating checklist answers.
+  run.draft_details.body = generatedBody;
   run.draft_details.references = run.draft_details.answers!.flatMap(
     (item) => item.references,
   );
@@ -134,20 +136,11 @@ function applyDecisions(run: Run, request: ReviewRequest) {
 
 async function enterDecisions(page: Page) {
   await page
-    .getByRole("radio", {
-      name: `Provide answer for ${feeQuestion}`,
-      exact: true,
-    })
-    .check();
-  await page
     .getByLabel(`Answer for ${feeQuestion}`, { exact: true })
     .fill(feeAnswer);
   await page
-    .getByRole("radio", {
-      name: `Confirm later for ${clothingQuestion}`,
-      exact: true,
-    })
-    .check();
+    .getByLabel(`Answer for ${clothingQuestion}`, { exact: true })
+    .fill(clothingAnswer);
 }
 
 function expectedDecisions(run: Run): QuestionResolution[] {
@@ -162,8 +155,8 @@ function expectedDecisions(run: Run): QuestionResolution[] {
     {
       question_id: answers.find((item) => item.question === clothingQuestion)!
         .question_id!,
-      decision: "defer",
-      answer: null,
+      decision: "answer",
+      answer: clothingAnswer,
     },
   ];
 }
@@ -176,18 +169,22 @@ test("public enquiry shows each question and evidence without owner controls or 
     if (/\/(api|auth)\//.test(request.url())) calls.push(request.url());
   });
   await page.goto(`/demo/reviews/${example.id}`);
+  await page.locator(".review-support > summary").click();
   await expect(
     page.getByRole("region", { name: "Classification", exact: true }),
   ).toContainText("Enquiry workflow");
-  const checklist = page.getByRole("region", { name: "Enquiry checklist" });
-  await expect(checklist.getByRole("heading", { level: 3 })).toHaveCount(3);
+  const input = page.getByRole("region", { name: "Input needed" });
   await expect(
-    checklist.getByText("Needs teacher input", { exact: true }),
-  ).toHaveCount(2);
-  await expect(
-    checklist.getByRole("link", { name: "View session" }),
+    input.getByRole("heading", { name: "Needs teacher input" }),
   ).toBeVisible();
-  await expect(checklist.getByRole("radio")).toHaveCount(0);
+  await expect(input.locator(".enquiry-question")).toHaveCount(2);
+  await expect(input).not.toContainText(
+    "When and where is the Thursday class?",
+  );
+  await expect(
+    page.getByRole("region", { name: "Classification", exact: true }),
+  ).toBeVisible();
+  await expect(input.getByRole("textbox")).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Update draft", exact: true }),
   ).toHaveCount(0);
@@ -199,7 +196,194 @@ test("public enquiry shows each question and evidence without owner controls or 
   ).toBe(true);
 });
 
-test("owner applies a trial fee and clothing deferral before approving the generated reply", async ({
+test("response references show class, session, and studio names instead of IDs", async ({
+  page,
+}) => {
+  await page.goto(`/demo/reviews/${example.id}`);
+  await page.locator(".response-support > summary").click();
+  const references = page.locator(".response-support .source-links");
+  const classId = example.draft_details
+    .references!.find((ref) => ref.startsWith("class:"))!
+    .slice(6);
+  const sessionId = example.draft_details
+    .references!.find((ref) => ref.startsWith("session:"))!
+    .slice(8);
+  await expect(
+    references.getByRole("link", { name: /Class: Adult Ballet/ }),
+  ).toHaveAttribute("href", `/demo/timetable?class=${classId}`);
+  await expect(
+    references.getByRole("link", { name: /Session: Adult Ballet/ }),
+  ).toHaveAttribute("href", `/demo/timetable?session=${sessionId}`);
+  await expect(references).toContainText("Studio: Merri Ballet");
+  await expect(references).not.toContainText(
+    /(?:class|session|location):[0-9a-f-]{20,}/,
+  );
+});
+
+test("policy, missing records, and message references remain understandable", async ({
+  page,
+}) => {
+  const run = structuredClone(example);
+  const historyMessage = examples.messages.find(
+    (item) =>
+      item.conversation_id === run.conversation_id &&
+      item.id !== run.source_message_id,
+  )!;
+  run.draft_details.references = [
+    "policy:version-123",
+    "class:missing-record",
+    "unknown:internal-456",
+    run.source_message_id,
+    historyMessage.id,
+  ];
+  await mockOwner(page, run);
+  await page.goto(`/workspace/reviews/${run.id}`);
+  await page.locator(".response-support > summary").click();
+  const references = page.locator(".response-support .source-links");
+  await expect(references).toContainText("Studio policy used for this draft");
+  await expect(references).toContainText("Class record unavailable");
+  await expect(references).toContainText("Other supporting record");
+  await expect(references).not.toContainText("missing-record");
+  await expect(references).not.toContainText("internal-456");
+  await references.getByRole("link", { name: /Conversation message/ }).click();
+  await expect(page.locator(".conversation-history")).toHaveAttribute(
+    "open",
+    "",
+  );
+  await expect(page.locator(`#message-${historyMessage.id}`)).toBeVisible();
+  await page.locator(".developer-panel > summary").click();
+  await expect(page.locator(".developer-panel")).toContainText(
+    "unknown:internal-456",
+  );
+});
+
+test("student clarification is visible and can be saved as a reply", async ({
+  page,
+}) => {
+  const run = structuredClone(example);
+  const answers = run.draft_details.answers!;
+  run.draft_details.required_question_ids = [];
+  run.draft_details.question_resolutions = [];
+  for (const answer of answers) answer.status = "answered";
+  answers[0].status = "needs_student";
+  answers[0].answer = "Could you tell us which day works for you?";
+  run.draft_details.body = answers[0].answer;
+  const { reviews } = await mockOwner(page, run);
+  await page.goto(`/workspace/reviews/${run.id}`);
+  const input = page.getByRole("region", { name: "Input needed" });
+  await expect(
+    input.getByRole("heading", { name: "Needs student input" }),
+  ).toBeVisible();
+  await expect(input).toContainText(answers[0].question);
+  await expect(
+    input.getByRole("heading", { name: "Needs teacher input" }),
+  ).toHaveCount(0);
+  await expect(input.getByRole("textbox")).toHaveCount(0);
+  const approval = page.getByRole("button", {
+    name: "Approve and save response",
+  });
+  await expect(approval).toBeEnabled();
+  await approval.click();
+  expect(reviews[0]).toEqual({
+    action: "approve",
+    expected_revision: run.revision,
+    body: "Could you tell us which day works for you?",
+  });
+});
+
+test("teacher answers clear their input while student input remains", async ({
+  page,
+}) => {
+  const run = structuredClone(example);
+  run.draft_details.answers![0].status = "needs_student";
+  const { reviews } = await mockOwner(page, run);
+  await page.goto(`/workspace/reviews/${run.id}`);
+  const input = page.getByRole("region", { name: "Input needed" });
+  await expect(
+    input.getByRole("heading", { name: "Needs teacher input" }),
+  ).toBeVisible();
+  await expect(
+    input.getByRole("heading", { name: "Needs student input" }),
+  ).toBeVisible();
+  await enterDecisions(page);
+  await page.getByRole("button", { name: "Update draft" }).click();
+  await expect(
+    input.getByRole("heading", { name: "Needs teacher input" }),
+  ).toHaveCount(0);
+  await expect(
+    input.getByRole("heading", { name: "Needs student input" }),
+  ).toBeVisible();
+  await expect(input.getByRole("textbox")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Approve and save response" }),
+  ).toBeEnabled();
+  expect(reviews[0].question_resolutions).toHaveLength(2);
+});
+
+test("input area stays hidden when no teacher or student answer is needed", async ({
+  page,
+}) => {
+  const run = structuredClone(example);
+  run.draft_details.required_question_ids = [];
+  for (const answer of run.draft_details.answers!) answer.status = "answered";
+  run.interpretation.requested_actions = ["Check the student's level"];
+  await mockOwner(page, run);
+  await page.goto(`/workspace/reviews/${run.id}`);
+  await expect(page.getByRole("region", { name: "Input needed" })).toHaveCount(
+    0,
+  );
+  await expect(
+    page.getByRole("button", { name: "Approve and save response" }),
+  ).toBeEnabled();
+  await page.locator(".response-support > summary").click();
+  await expect(page.locator(".response-support")).toContainText(
+    "Check the student's level",
+  );
+});
+
+test("a decision to confirm later is no longer shown as teacher input", async ({
+  page,
+}) => {
+  const run = structuredClone(example);
+  const fee = run.draft_details.answers!.find(
+    (answer) => answer.question === feeQuestion,
+  )!;
+  run.draft_details.question_resolutions = [
+    { question_id: fee.question_id!, decision: "defer", answer: null },
+  ];
+  await mockOwner(page, run);
+  await page.goto(`/workspace/reviews/${run.id}`);
+  const input = page.getByRole("region", { name: "Input needed" });
+  await expect(input).not.toContainText(feeQuestion);
+  await expect(input).toContainText(clothingQuestion);
+});
+
+test("teacher can defer a studio fact and update the draft", async ({
+  page,
+}) => {
+  const run = structuredClone(example);
+  const feeId = run.draft_details.answers!.find(
+    (answer) => answer.question === feeQuestion,
+  )!.question_id!;
+  const { reviews } = await mockOwner(page, run);
+  await page.goto(`/workspace/reviews/${run.id}`);
+  const input = page.getByRole("region", { name: "Input needed" });
+  await input.getByLabel("I’ll confirm this later").first().check();
+  await page
+    .getByLabel(`Answer for ${clothingQuestion}`, { exact: true })
+    .fill(clothingAnswer);
+  await page.getByRole("button", { name: "Update draft" }).click();
+  expect(reviews[0].question_resolutions).toEqual([
+    { question_id: feeId, decision: "defer", answer: null },
+    expectedDecisions(run)[1],
+  ]);
+  await expect(input).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Approve and save response" }),
+  ).toBeEnabled();
+});
+
+test("owner enters fee and clothing decisions before approving the generated reply", async ({
   page,
 }) => {
   const run = structuredClone(example);
@@ -213,29 +397,41 @@ test("owner applies a trial fee and clothing deferral before approving the gener
     name: "Update draft",
     exact: true,
   });
-  const checklist = page.getByRole("region", { name: "Enquiry checklist" });
+  await expect(
+    page.locator(".review-main").getByRole("button", {
+      name: "Update draft",
+      exact: true,
+    }),
+  ).toBeVisible();
+  const checklist = page.getByRole("region", { name: "Input needed" });
   await expect(checklist).toContainText(
-    "select Update draft to have the agent create a new draft",
+    "Add the studio facts or mark what you’ll confirm later, then update",
   );
+  await expect(
+    checklist.getByRole("heading", {
+      name: "When and where is the Thursday class?",
+    }),
+  ).toHaveCount(0);
+  await expect(
+    checklist.getByRole("heading", { name: "Needs teacher input" }),
+  ).toBeVisible();
   await expect(approval).toBeDisabled();
   await expect(update).toBeDisabled();
+  await expect(checklist.getByRole("checkbox")).toHaveCount(2);
   await page
-    .getByRole("radio", {
-      name: `Provide answer for ${feeQuestion}`,
-      exact: true,
-    })
-    .check();
+    .getByLabel(`Answer for ${feeQuestion}`, { exact: true })
+    .fill("   ");
   await expect(update).toBeDisabled();
   await enterDecisions(page);
+  await expect(page.locator(".review-main .approval-guidance")).toContainText(
+    "Update the draft to apply your decisions or feedback.",
+  );
   await expect(update).toBeEnabled();
   await expect(approval).toBeDisabled();
   await expect(
-    checklist.getByText(
-      "Unapplied choice — update the draft to send it to the agent.",
-      {
-        exact: true,
-      },
-    ),
+    checklist.getByText("Unapplied choice — update the draft to use it.", {
+      exact: true,
+    }),
   ).toHaveCount(2);
   expect(reviews).toEqual([]);
   const decisions = expectedDecisions(run);
@@ -250,27 +446,16 @@ test("owner applies a trial fee and clothing deferral before approving the gener
     question_resolutions: decisions,
   });
   await expect(page.getByLabel("Final response", { exact: true })).toHaveValue(
-    run.draft_details.body!,
+    generatedBody,
   );
-  await expect(checklist).toContainText(feeAnswer);
-  await expect(checklist).toContainText("Teacher answer applied");
-  await expect(checklist).toContainText(
-    "Confirm later applied · still awaiting confirmation",
-  );
-  await expect(checklist).toContainText("Teacher-provided answer");
-  await expect(checklist).toContainText("Explicit teacher deferral");
+  await expect(checklist).toHaveCount(0);
   await expect(
-    checklist.getByText("Needs teacher input", { exact: true }),
-  ).toHaveCount(1);
-  await expect(
-    checklist.getByText(
-      "Unapplied choice — update the draft to send it to the agent.",
-      {
-        exact: true,
-      },
-    ),
-  ).toHaveCount(0);
+    page.getByRole("button", { name: "Edit previous teacher answers" }),
+  ).toBeVisible();
   await expect(approval).toBeEnabled();
+  await page
+    .getByRole("button", { name: "Edit previous teacher answers" })
+    .click();
   await page
     .getByLabel(`Answer for ${feeQuestion}`, { exact: true })
     .fill("A trial costs $25.");
@@ -279,6 +464,7 @@ test("owner applies a trial fee and clothing deferral before approving the gener
     .getByLabel(`Answer for ${feeQuestion}`, { exact: true })
     .fill(feeAnswer);
   await update.click();
+  await expect(checklist).toHaveCount(0);
   await expect(approval).toBeEnabled();
   await approval.click();
   await expect(
@@ -291,16 +477,13 @@ test("owner applies a trial fee and clothing deferral before approving the gener
     "revise",
     "approve",
   ]);
-  expect(reviews[2].body).toContain(feeAnswer);
-  expect(reviews[2].body).toContain(
-    `Regarding “${clothingQuestion}”, I'll confirm the details and get back to you.`,
-  );
+  expect(reviews[2].body).toBe(generatedBody);
   expect(reviews[2].expected_revision).toBe(revision + 2);
   expect(run.draft_details.booking_session_id).toBeNull();
   expect(writes).toEqual(Array(3).fill(`/agent-runs/${run.id}/review`));
 });
 
-test("a rejected update preserves answers, deferral and feedback for resubmission", async ({
+test("a rejected update preserves decisions and feedback for resubmission", async ({
   page,
 }) => {
   const run = structuredClone(example);
@@ -314,7 +497,7 @@ test("a rejected update preserves answers, deferral and feedback for resubmissio
   });
   await page.goto(`/workspace/reviews/${run.id}`);
   await enterDecisions(page);
-  await page.getByLabel("Revision feedback").fill("Keep the reply friendly.");
+  await page.getByLabel("Change prompt").fill("Keep the reply friendly.");
   await page.getByRole("button", { name: "Update draft", exact: true }).click();
   await expect(
     page.getByText("Draft update temporarily unavailable.", { exact: true }),
@@ -323,12 +506,9 @@ test("a rejected update preserves answers, deferral and feedback for resubmissio
     page.getByLabel(`Answer for ${feeQuestion}`, { exact: true }),
   ).toHaveValue(feeAnswer);
   await expect(
-    page.getByRole("radio", {
-      name: `Confirm later for ${clothingQuestion}`,
-      exact: true,
-    }),
-  ).toBeChecked();
-  await expect(page.getByLabel("Revision feedback")).toHaveValue(
+    page.getByLabel(`Answer for ${clothingQuestion}`, { exact: true }),
+  ).toHaveValue(clothingAnswer);
+  await expect(page.getByLabel("Change prompt")).toHaveValue(
     "Keep the reply friendly.",
   );
   await expect(
@@ -345,7 +525,7 @@ test("a rejected update preserves answers, deferral and feedback for resubmissio
     }),
   ).toBeEnabled();
   expect(reviews[1]).toEqual(reviews[0]);
-  await expect(page.getByLabel("Revision feedback")).toHaveValue("");
+  await expect(page.getByLabel("Change prompt")).toHaveValue("");
 });
 
 test("failed generation keeps pending decisions through a retry that has not applied them", async ({
@@ -367,15 +547,16 @@ test("failed generation keeps pending decisions through a retry that has not app
   });
   await page.goto(`/workspace/reviews/${run.id}`);
   await enterDecisions(page);
-  await page
-    .getByLabel("Revision feedback")
-    .fill("Preserve the timetable answer.");
+  await page.getByLabel("Change prompt").fill("Preserve the timetable answer.");
   await page.getByRole("button", { name: "Update draft", exact: true }).click();
   await expect(
     page.getByText(
       "The run needs attention. Inspect its current state before retrying.",
       { exact: true },
     ),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Recover this review" }),
   ).toBeVisible();
   await page
     .getByRole("button", { name: "Retry this run", exact: true })
@@ -384,12 +565,9 @@ test("failed generation keeps pending decisions through a retry that has not app
     page.getByLabel(`Answer for ${feeQuestion}`, { exact: true }),
   ).toHaveValue(feeAnswer);
   await expect(
-    page.getByRole("radio", {
-      name: `Confirm later for ${clothingQuestion}`,
-      exact: true,
-    }),
-  ).toBeChecked();
-  await expect(page.getByLabel("Revision feedback")).toHaveValue(
+    page.getByLabel(`Answer for ${clothingQuestion}`, { exact: true }),
+  ).toHaveValue(clothingAnswer);
+  await expect(page.getByLabel("Change prompt")).toHaveValue(
     "Preserve the timetable answer.",
   );
   await expect(
@@ -475,14 +653,14 @@ test("legacy questions require regeneration before individual decisions or appro
     }
   });
   await page.goto(`/workspace/reviews/${run.id}`);
-  const checklist = page.getByRole("region", { name: "Enquiry checklist" });
+  const checklist = page.getByRole("region", { name: "Input needed" });
   await expect(
     checklist.getByText(
       "This older review needs an updated question checklist. Select Update draft first.",
       { exact: true },
     ),
   ).toHaveCount(2);
-  await expect(checklist.getByRole("radio")).toHaveCount(0);
+  await expect(checklist.getByRole("textbox")).toHaveCount(0);
   await expect(
     page.getByRole("button", {
       name: "Approve and save response",
@@ -495,7 +673,7 @@ test("legacy questions require regeneration before individual decisions or appro
     expected_revision: example.revision,
     feedback: "Regenerate the question checklist for this older review.",
   });
-  await expect(checklist.getByRole("radio")).toHaveCount(4);
+  await expect(checklist.getByRole("textbox")).toHaveCount(2);
   await expect(
     page.getByRole("button", {
       name: "Approve and save response",
@@ -540,11 +718,8 @@ test("a stale revision preserves choices until the owner explicitly loads the la
     page.getByLabel(`Answer for ${feeQuestion}`, { exact: true }),
   ).toHaveValue(feeAnswer);
   await expect(
-    page.getByRole("radio", {
-      name: `Confirm later for ${clothingQuestion}`,
-      exact: true,
-    }),
-  ).toBeChecked();
+    page.getByLabel(`Answer for ${clothingQuestion}`, { exact: true }),
+  ).toHaveValue(clothingAnswer);
   await expect(
     page.getByRole("button", {
       name: "Approve and save response",
@@ -552,8 +727,8 @@ test("a stale revision preserves choices until the owner explicitly loads the la
     }),
   ).toBeDisabled();
   await expect(
-    page.getByText(`REVISION ${originalRevision + 1}`, { exact: true }),
-  ).toBeVisible();
+    page.locator("#review-response .section-heading .eyebrow"),
+  ).toContainText(`REVISION ${originalRevision + 1}`);
   await page
     .getByRole("button", {
       name: "Load the latest draft and discard local edits",
@@ -562,13 +737,10 @@ test("a stale revision preserves choices until the owner explicitly loads the la
     .click();
   await expect(
     page.getByLabel(`Answer for ${feeQuestion}`, { exact: true }),
-  ).toHaveCount(0);
+  ).toHaveValue("");
   await expect(
-    page.getByRole("radio", {
-      name: `Confirm later for ${clothingQuestion}`,
-      exact: true,
-    }),
-  ).not.toBeChecked();
+    page.getByLabel(`Answer for ${clothingQuestion}`, { exact: true }),
+  ).toHaveValue("");
   await enterDecisions(page);
   await page.getByRole("button", { name: "Update draft", exact: true }).click();
   await expect(
@@ -581,5 +753,41 @@ test("a stale revision preserves choices until the owner explicitly loads the la
   expect(reviews[1].expected_revision).toBe(originalRevision + 1);
   expect(reviews[1].question_resolutions).toEqual(
     reviews[0].question_resolutions,
+  );
+});
+
+test("applied decision disappears while unanswered questions remain and can be corrected", async ({
+  page,
+}) => {
+  const run = structuredClone(example);
+  const { reviews } = await mockOwner(page, run);
+  await page.goto(`/workspace/reviews/${run.id}`);
+  const checklist = page.getByRole("region", { name: "Input needed" });
+  await page
+    .getByLabel(`Answer for ${feeQuestion}`, { exact: true })
+    .fill(feeAnswer);
+  await page.getByRole("button", { name: "Update draft", exact: true }).click();
+  await expect(
+    checklist.getByRole("heading", { name: feeQuestion }),
+  ).toHaveCount(0);
+  await expect(
+    checklist.getByRole("heading", { name: clothingQuestion }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Approve and save response" }),
+  ).toBeDisabled();
+  expect(reviews[0].question_resolutions).toHaveLength(1);
+  await page.reload();
+  await expect(
+    checklist.getByRole("heading", { name: feeQuestion }),
+  ).toHaveCount(0);
+  await expect(
+    checklist.getByRole("heading", { name: clothingQuestion }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Edit previous teacher answers" })
+    .click();
+  await expect(page.getByLabel(`Answer for ${feeQuestion}`)).toHaveValue(
+    feeAnswer,
   );
 });
