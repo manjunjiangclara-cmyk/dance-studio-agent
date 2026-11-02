@@ -444,3 +444,38 @@ def test_delete_removes_document_and_all_revision_previews(client):
     assert client.delete(f"{ROOT}/{document_id}").status_code == 200
     for suffix in ("metadata", "revisions", "revisions/1/preview"):
         assert client.get(f"{ROOT}/{document_id}/{suffix}").status_code == 404
+
+
+def test_legacy_read_remains_pinned_when_file_is_replaced_with_large_content(client, monkeypatch):
+    from studio_copilot.api import documents
+
+    original = b"A small original handbook."
+    created = upload(client, original)
+    assert created.status_code == 201
+    document_id = created.json()["id"]
+    original_revision_for = documents.revision_for
+    replaced = False
+
+    def replace_after_snapshot(db, document, revision=None):
+        nonlocal replaced
+        snapshot = original_revision_for(db, document, revision)
+        if not replaced:
+            replaced = True
+            replacement = upload(
+                client,
+                b"X" * 1_000_001,
+                document_id=document_id,
+                expected_revision="1",
+            )
+            assert replacement.status_code == 200
+        return snapshot
+
+    monkeypatch.setattr(documents, "revision_for", replace_after_snapshot)
+    response = client.get(f"{ROOT}/{document_id}")
+    assert response.status_code == 200
+    result = response.json()
+    assert result["current_revision"] == 1
+    assert len(result["content"]) == len(original)
+    assert result["content"] == original.decode()
+    assert result["sha256"] == hashlib.sha256(original).hexdigest()
+    assert client.get(f"{ROOT}/{document_id}").status_code == 409

@@ -420,13 +420,14 @@ def preview(
 @router.get("/{document_id}", response_model=DocumentDetail)
 def read_document(document_id: UUID, db: Db):
     document = find(db, document_id)
-    if revision_for(db, document).byte_size > MAX_BYTES:
+    snapshot = revision_for(db, document)
+    if snapshot.byte_size > MAX_BYTES:
         raise AdministrationError(
             409,
             "document_preview_required",
             "Use the revision preview for documents larger than 1 MB.",
         )
-    return {**summary(document, revision_for(db, document)), "content": document.content}
+    return {**summary(document, snapshot), "content": snapshot.content}
 
 
 @router.put("/{document_id}", response_model=DocumentDetail)
