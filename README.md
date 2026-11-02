@@ -8,7 +8,7 @@ The app prepares drafts for teacher review and handles makeup requests using a L
 
 Dated sessions have independent student rosters. Staff separately record attendance as attended, absent, or unknown. The studio policy defines the order of class levels from easiest to hardest; makeup candidates cannot exceed the student's highest recorded attended level. Missing attendance or level order requires staff review. Historical runs retain their policy snapshots.
 
-The anonymous public demo uses predefined fictional data and makes no live API or model calls. The owner workspace provides a review queue, policy editor, document library, attendance controls, and database inspection. The library accepts UTF-8 `.txt` and `.md` files up to 1 MB, and supports viewing, editing, replacing, and deleting documents. See [website setup](docs/09-website.md).
+The anonymous public demo uses predefined fictional data and makes no live API or model calls. The owner workspace provides a review queue, Studio knowledge area for rules and documents, attendance controls, and database inspection. The library accepts UTF-8 `.txt` and `.md` files up to 1 MB, and supports viewing, editing, replacing, and deleting documents. See [website setup](docs/09-website.md).
 
 ## Local setup
 

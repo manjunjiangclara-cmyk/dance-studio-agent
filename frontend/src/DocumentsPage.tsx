@@ -180,8 +180,7 @@ export function DocumentsPage({
     <>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">Studio settings</div>
-          <h1>Documents</h1>
+          <h2>Documents</h2>
           <p>
             Manage studio reference material. Documents are not yet used by the
             agent.

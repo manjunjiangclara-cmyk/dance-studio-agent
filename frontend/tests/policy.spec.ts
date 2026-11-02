@@ -124,7 +124,7 @@ test("public policy example is read-only and fits the viewport", async ({
   });
   await page.goto("/demo/policy");
   await expect(
-    page.getByRole("heading", { name: "Policy", exact: true }),
+    page.getByRole("heading", { name: "Rules", exact: true }),
   ).toBeVisible();
   await expect(page.getByLabel("Policy version")).toBeDisabled();
   await expect(page.getByLabel("Policy explanation")).toBeDisabled();
@@ -137,4 +137,55 @@ test("public policy example is read-only and fits the viewport", async ({
     ),
   ).toBe(true);
   expect(calls).toEqual([]);
+});
+
+test("knowledge navigation protects unsaved rules and preserves old links", async ({
+  page,
+}) => {
+  await page.route("**/auth/me", (route) =>
+    route.fulfill({
+      json: {
+        authenticated: true,
+        user: { email: "owner@example.test" },
+        csrf_token: "csrf",
+      },
+    }),
+  );
+  await page.route("**/api/v1/policy", (route) =>
+    route.fulfill({
+      json: {
+        version: "1",
+        absence_notice_before_start: true,
+        explanation: "Notice",
+        level_order: [],
+      },
+    }),
+  );
+  await page.route("**/api/v1/documents", (route) =>
+    route.fulfill({ json: [] }),
+  );
+  await page.goto("/workspace/policy");
+  await expect(page).toHaveURL(/\/workspace\/knowledge\/rules$/);
+  await expect(
+    page.getByRole("heading", { name: "Studio knowledge" }),
+  ).toBeVisible();
+  await page.getByLabel("Policy version").fill("2");
+  await page
+    .getByRole("navigation", { name: "Studio knowledge" })
+    .getByRole("link", { name: "Documents" })
+    .click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("button", { name: "Stay here" }).click();
+  await expect(page.getByLabel("Policy version")).toHaveValue("2");
+  await page
+    .getByRole("navigation", { name: "Studio knowledge" })
+    .getByRole("link", { name: "Documents" })
+    .click();
+  await page.getByRole("button", { name: /leave/i }).click();
+  await expect(page).toHaveURL(/\/workspace\/knowledge\/documents$/);
+  await expect(
+    page.getByText(/Documents are not yet used by the agent/),
+  ).toBeVisible();
+  await page.goto("/workspace/documents");
+  await expect(page).toHaveURL(/\/workspace\/knowledge\/documents$/);
 });

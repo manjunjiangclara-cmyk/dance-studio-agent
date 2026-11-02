@@ -117,7 +117,7 @@ Apply the additive migration with `uv run --env-file .env alembic upgrade head` 
 
 ## Policy editor
 
-Open **Policy** in the owner workspace to edit the policy version, absence-notice timing rule, explanation, and class-level order from easiest to hardest. Save writes the validated settings atomically to `STUDIO_POLICY_PATH` (default: `backend/policies/studio.yaml` when running from `backend/`). The server needs write access to that file and its directory; deployments should keep the resource on persistent storage. New AI runs load the saved policy; existing reviews retain their original snapshots. The explanation provides AI context, while the checkbox controls the supported absence timing check. The public demo displays a read-only fictional policy.
+Open **Studio knowledge → Rules** in the owner workspace to edit the policy version, absence-notice timing rule, explanation, and class-level order from easiest to hardest. Save writes the validated settings atomically to `STUDIO_POLICY_PATH` (default: `backend/policies/studio.yaml` when running from `backend/`). The server needs write access to that file and its directory; deployments should keep the resource on persistent storage. New AI runs load the saved policy; existing reviews retain their original snapshots. The explanation provides AI context, while the checkbox controls the supported absence timing check. The public demo displays a read-only fictional policy.
 
 Authenticated `GET /api/v1/policy` returns the current policy and `PUT /api/v1/policy` saves all three fields. Browser saves require the owner session, same-origin request, and CSRF token.
 
