@@ -136,5 +136,7 @@ Alembic upgrades the consolidated initial schema through the independent-session
 - [Administration API guide](docs/07-api.md)
 - [Agent setup, APIs, and evaluation](docs/08-agent-api.md)
 - [Website and owner workspace](docs/09-website.md)
+- [Document ingestion and revision APIs](docs/10-document-ingestion.md)
+- [Document RAG design and roadmap](docs/11-rag-design.md)
 
 Policies remain external resources. Financial rules, credit ledgers, email delivery, and production infrastructure remain outside the implemented workflow.
