@@ -88,7 +88,8 @@ export function DocumentsPage({
     }
   }
   async function chooseFile(file?: File, newDocument = false) {
-    if (!file) return;
+    if (!file || busy) return;
+    setBusy(true);
     try {
       if (!/\.(txt|md)$/i.test(file.name))
         throw new Error("Choose a .txt or .md file.");
@@ -111,6 +112,8 @@ export function DocumentsPage({
       setMessage("");
     } catch (err) {
       setError((err as Error).message || "The file must be valid UTF-8 text.");
+    } finally {
+      setBusy(false);
     }
   }
   async function save() {
@@ -316,7 +319,7 @@ export function DocumentsPage({
                 className="button primary"
                 disabled={!dirty || busy || !draft.title.trim()}
               >
-                {busy ? "Saving…" : "Save document"}
+                {busy ? "Working…" : "Save document"}
               </button>
               <button
                 type="button"

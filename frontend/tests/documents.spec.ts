@@ -105,3 +105,84 @@ test("demo documents are illustrative and read only", async ({ page }) => {
   );
   expect(calls).toEqual([]);
 });
+
+test("a pending replacement cannot be applied to another document", async ({
+  page,
+}) => {
+  const docs = [
+    {
+      id: "a",
+      title: "Document A",
+      filename: "a.txt",
+      content: "A",
+      updated_at: "2026-01-01T00:00:00Z",
+    },
+    {
+      id: "b",
+      title: "Document B",
+      filename: "b.txt",
+      content: "B",
+      updated_at: "2026-01-01T00:00:00Z",
+    },
+  ];
+  await page.addInitScript(() => {
+    const original = File.prototype.arrayBuffer;
+    File.prototype.arrayBuffer = async function () {
+      await new Promise<void>((resolve, reject) => {
+        Object.assign(window, {
+          finishFileRead: resolve,
+          failFileRead: reject,
+        });
+      });
+      return original.call(this);
+    };
+  });
+  await page.route("**/auth/me", (route) =>
+    route.fulfill({
+      json: {
+        authenticated: true,
+        user: { email: "owner@example.test" },
+        csrf_token: "test-csrf",
+      },
+    }),
+  );
+  await page.route("**/api/v1/documents**", (route) => {
+    const id = route.request().url().split("/").pop();
+    return route.fulfill({
+      json: id === "documents" ? docs : docs.find((doc) => doc.id === id),
+    });
+  });
+  await page.goto("/workspace/documents");
+  await page.getByRole("button", { name: "Document A" }).click();
+  await page.getByLabel("Replace file").setInputFiles({
+    name: "replacement.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("replacement"),
+  });
+  await expect(page.getByRole("button", { name: "Document B" })).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Close", exact: true }),
+  ).toBeDisabled();
+  await expect(page.getByLabel("Document text")).toBeDisabled();
+  await page.evaluate(() =>
+    (window as unknown as { finishFileRead: () => void }).finishFileRead(),
+  );
+  await expect(page.getByLabel("Document text")).toHaveValue("replacement");
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "Document B" }).click();
+  await expect(page.getByLabel("Document text")).toHaveValue("B");
+
+  await page.getByLabel("Replace file").setInputFiles({
+    name: "failure.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("failure"),
+  });
+  await page.evaluate(() =>
+    (
+      window as unknown as { failFileRead: (error: Error) => void }
+    ).failFileRead(new Error("Read failed")),
+  );
+  await expect(page.getByRole("alert")).toContainText("Read failed");
+  await expect(page.getByLabel("Document text")).toHaveValue("B");
+  await expect(page.getByRole("button", { name: "Document A" })).toBeEnabled();
+});
