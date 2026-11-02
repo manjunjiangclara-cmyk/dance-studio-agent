@@ -89,7 +89,25 @@
       "name": "documents",
       "label": "Studio documents",
       "page": "documents",
-      "fields": ["title", "filename", "content"]
+      "fields": ["title", "filename", "content", "current_revision"]
+    },
+    {
+      "name": "document_revisions",
+      "label": "Saved document revisions",
+      "page": "documents",
+      "fields": [
+        "document_id",
+        "revision",
+        "title",
+        "filename",
+        "content",
+        "byte_size",
+        "sha256",
+        "hash_origin",
+        "ingestion_status",
+        "effective_from",
+        "effective_to"
+      ]
     }
   ],
   "relationships": [
@@ -157,6 +175,11 @@
       "table": "session_attendance",
       "field": "student_id",
       "target": "students"
+    },
+    {
+      "table": "document_revisions",
+      "field": "document_id",
+      "target": "documents"
     }
   ]
 }

@@ -8,7 +8,7 @@ The app prepares drafts for teacher review and handles makeup requests using a L
 
 Dated sessions have independent student rosters. Staff separately record attendance as attended, absent, or unknown. The studio policy defines the order of class levels from easiest to hardest; makeup candidates cannot exceed the student's highest recorded attended level. Missing attendance or level order requires staff review. Historical runs retain their policy snapshots.
 
-The anonymous public demo uses predefined fictional data and makes no live API or model calls. The owner workspace provides a review queue, Studio knowledge area for rules and documents, attendance controls, and database inspection. The library accepts UTF-8 `.txt` and `.md` files up to 1 MB, and supports viewing, editing, replacing, and deleting documents. See [website setup](docs/09-website.md).
+The anonymous public demo uses predefined fictional data and makes no live API or model calls. The owner workspace provides a review queue, Studio knowledge area for rules and documents, attendance controls, and database inspection. The library accepts UTF-8 `.txt` and `.md` files up to 10 MB, retains immutable revisions, and supports effective dates, duplicate-content notices, and paginated previews. Files up to 1 MB can also be edited inline. Ingested documents are not published or used by the agent. See [document ingestion](docs/10-document-ingestion.md). See [website setup](docs/09-website.md).
 
 ## Local setup
 
@@ -136,5 +136,7 @@ Alembic upgrades the consolidated initial schema through the independent-session
 - [Administration API guide](docs/07-api.md)
 - [Agent setup, APIs, and evaluation](docs/08-agent-api.md)
 - [Website and owner workspace](docs/09-website.md)
+- [Document ingestion and revision APIs](docs/10-document-ingestion.md)
+- [Document RAG design and roadmap](docs/11-rag-design.md)
 
 Policies remain external resources. Financial rules, credit ledgers, email delivery, and production infrastructure remain outside the implemented workflow.

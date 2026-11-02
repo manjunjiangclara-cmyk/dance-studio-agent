@@ -716,5 +716,6 @@
     }
   ],
   "session_attendance": [],
-  "documents": []
+  "documents": [],
+  "document_revisions": []
 }
