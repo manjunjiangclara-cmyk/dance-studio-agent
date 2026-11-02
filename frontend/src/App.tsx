@@ -11,6 +11,7 @@ import {
 import {
   Link,
   NavLink,
+  Navigate,
   useBlocker,
   useLocation,
   useNavigate,
@@ -285,8 +286,7 @@ export default function App() {
     ["students", "Students", Users],
     ["timetable", "Timetable", CalendarDays],
     ["database", "Database", Database],
-    ["policy", "Policy", BookOpen],
-    ["documents", "Documents", BookOpen],
+    ["knowledge", "Studio knowledge", BookOpen],
     ["test-email", "Test email", Send],
   ] as const;
   async function logout() {
@@ -451,18 +451,56 @@ export default function App() {
                   <Timetable />
                 ) : page === "database" ? (
                   <DatabaseBrowser />
-                ) : page === "policy" ? (
-                  <PolicyPage
-                    key={base}
-                    workspace={workspace}
-                    csrf={identity.csrf_token || ""}
+                ) : page === "policy" || page === "documents" ? (
+                  <Navigate
+                    to={`${base}/knowledge/${page === "policy" ? "rules" : "documents"}`}
+                    replace
                   />
-                ) : page === "documents" ? (
-                  <DocumentsPage
-                    key={base}
-                    workspace={workspace}
-                    csrf={identity.csrf_token || ""}
-                  />
+                ) : page === "knowledge" &&
+                  (!id || id === "rules" || id === "documents") ? (
+                  <>
+                    <div className="page-heading">
+                      <div>
+                        <div className="eyebrow">Studio settings</div>
+                        <h1>Studio knowledge</h1>
+                        <p>
+                          Manage the rules and reference material for your
+                          studio.
+                        </p>
+                      </div>
+                    </div>
+                    <nav
+                      className="knowledge-nav"
+                      aria-label="Studio knowledge"
+                    >
+                      <NavLink
+                        to={`${base}/knowledge/rules`}
+                        className={id !== "documents" ? "active" : ""}
+                        aria-current={id !== "documents" ? "page" : undefined}
+                      >
+                        Rules
+                      </NavLink>
+                      <NavLink
+                        to={`${base}/knowledge/documents`}
+                        className={id === "documents" ? "active" : ""}
+                      >
+                        Documents
+                      </NavLink>
+                    </nav>
+                    {id === "documents" ? (
+                      <DocumentsPage
+                        key={base}
+                        workspace={workspace}
+                        csrf={identity.csrf_token || ""}
+                      />
+                    ) : (
+                      <PolicyPage
+                        key={base}
+                        workspace={workspace}
+                        csrf={identity.csrf_token || ""}
+                      />
+                    )}
+                  </>
                 ) : page === "test-email" ? (
                   <TestEmail />
                 ) : (

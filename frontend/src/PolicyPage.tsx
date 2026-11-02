@@ -89,10 +89,9 @@ export function PolicyPage({
     <>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">Studio settings</div>
-          <h1>Policy</h1>
+          <h2>Rules</h2>
           <p>
-            Set the policy used for new AI runs. Existing reviews keep their
+            Set the rules used for new AI runs. Existing reviews keep their
             original policy snapshot.
           </p>
         </div>
@@ -177,8 +176,9 @@ export function PolicyPage({
             </label>
           </fieldset>
           <p>
-            The checkbox controls the absence timing check. The explanation
-            gives the AI context; it does not create additional automated
+            The checkbox controls the absence timing check, and the level order
+            controls class suitability checks. Use the explanation to describe
+            these rules to the AI; it does not create additional automated
             eligibility checks.
           </p>
           {workspace && (
