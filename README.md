@@ -4,7 +4,7 @@ An independent portfolio project for teacher-reviewed ballet studio administrati
 
 ## Current scope
 
-The app prepares drafts for teacher review and handles makeup requests using a LangGraph workflow. The agent verifies the missed session and notice, checks actual attendance and eligible replacement sessions, and leaves the final decision to a teacher. Approving a draft with a verified booking proposal adds the student to that session atomically; approval never sends email. Information-only requests use an enquiry workflow with a question-by-question review checklist. Other business actions or unclear requests go to teacher handoff. For missing studio facts, teachers provide an answer or explicitly choose to confirm later beside each question, then update the draft before approval. Teacher answers stay scoped to the conversation. The owner can maintain a document library, but the agent does not yet search or use those documents; RAG is not included.
+The app prepares drafts for teacher review and handles makeup requests using a LangGraph workflow. The agent verifies the missed session and notice, checks actual attendance and eligible replacement sessions, and leaves the final decision to a teacher. Approving a draft with a verified booking proposal adds the student to that session atomically; approval never sends email. Information-only requests use an enquiry workflow with a question-by-question review checklist. Other business actions or unclear requests go to teacher handoff. For missing studio facts, teachers provide an answer or explicitly choose to confirm later beside each question, then update the draft before approval. Teacher answers stay scoped to the conversation. The owner can maintain a document library and inspect deterministic chunks using an offline CLI, but the agent does not yet search or use those documents; RAG is not included.
 
 Dated sessions have independent student rosters. Staff separately record attendance as attended, absent, or unknown. The studio policy defines the order of class levels from easiest to hardest; makeup candidates cannot exceed the student's highest recorded attended level. Missing attendance or level order requires staff review. Historical runs retain their policy snapshots.
 
@@ -100,6 +100,7 @@ docker compose exec db createdb -U copilot studio_copilot_test
 Then, from `backend/`:
 
 ```sh
+uv run python -m studio_copilot.documents.chunking --prepare-tokenizer
 uv run --env-file .env.example pytest
 uv run ruff check .
 uv run ruff format --check .
@@ -138,5 +139,6 @@ Alembic upgrades the consolidated initial schema through the independent-session
 - [Website and owner workspace](docs/09-website.md)
 - [Document ingestion and revision APIs](docs/10-document-ingestion.md)
 - [Document RAG design and roadmap](docs/11-rag-design.md)
+- [Offline chunking and inspection CLI](docs/12-document-chunking.md)
 
 Policies remain external resources. Financial rules, credit ledgers, email delivery, and production infrastructure remain outside the implemented workflow.
