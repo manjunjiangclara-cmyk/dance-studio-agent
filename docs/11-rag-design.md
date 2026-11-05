@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-This document records the agreed design for document-based retrieval-augmented generation (RAG). **Only ingestion is implemented in this branch.** Documents are not yet published, chunked, embedded, retrieved, or supplied to the agent. The sections below explicitly distinguish existing behavior from planned work.
+This document records the agreed design for document-based retrieval-augmented generation (RAG). **Ingestion and an offline chunking engine are implemented in this branch.** Chunking is explicitly invoked through a CLI and exports local inspection files. Documents are not yet published, embedded, retrieved, or supplied to the agent. The sections below explicitly distinguish existing behavior from planned work.
 
 The initial scope is English Markdown and plain text, up to **10,000,000 bytes per file**, answering specific questions. Whole-document analysis, PDF/DOCX extraction, OCR, external document synchronization, and multi-tenant access are deferred. The sample studio handbook is an example, not the structure every document must follow or an authoritative policy to load automatically.
 
@@ -29,7 +29,7 @@ flowchart TD
     M --> N[Teacher review and approval checks]
 ```
 
-The diagram describes the target system. Only upload through immutable ingestion revision currently exists.
+The diagram describes the target system. Upload through immutable ingestion revision exists, together with an independently invoked offline section/passage preparation tool. There is no background indexing pipeline yet.
 
 ## 1. Data ingestion
 
@@ -50,7 +50,7 @@ Only a completely indexed revision becomes the active publication. A failed or s
 
 ## 2. Chunking
 
-**Planned choice: structure-aware recursive splitting with parent-child context.**
+**Implemented offline: structure-aware recursive splitting with parent-child context.** See the [chunking guide](12-document-chunking.md) for CLI setup, provenance, limits, inspection files, and measured large-file behavior. Automatic invocation, persisted indexes, and publication remain planned.
 
 | Layer           | Starting size                                               | Purpose                                              |
 | --------------- | ----------------------------------------------------------- | ---------------------------------------------------- |
@@ -59,6 +59,10 @@ Only a completely indexed revision becomes the active publication. A failed or s
 | Passage overlap | Approximately 80 tokens within the same section             | Preserve continuity across split boundaries          |
 
 Use token counting rather than character-to-token estimates. Parse Markdown headings and block boundaries; group paragraphs when headings are absent or unhelpful. Split oversized content by paragraphs, then sentences, and finally tokens for individual oversized sentences or blocks. The maximum takes precedence over preserving an unusually large block intact.
+
+The offline implementation pins markdown-it-py 4.0.0 and tiktoken 0.12.0 with `cl100k_base`. It measures final rendered text, including context, rather than adding component counts. Generated title/path prefixes and repeated table headers are each capped at 128 tokens, with truncation warnings and full original content retained in primary source spans. Token work windows are capped at 8,192 characters and may underfill a target on token-sparse input.
+
+To avoid millions of parser objects, sources exceeding 100,000 logical lines or 100,000 pipe characters use bounded paragraph/line fallback with an explicit `structure_complexity_fallback` warning. These exports preserve all original text but make no inferred heading/table-context claims. Inspect them before treating them as suitable inputs for future indexing. There is no automated publication path that accepts these results today.
 
 Keep lists, tables, and examples together where they fit. Split large tables between rows and repeat column headers; split oversized individual rows into bounded fragments that retain their headers. Store document identity, revision, heading path, source offsets, parent section, neighbours, and chunker version. Repeated heading text must not serve as the unique passage identity.
 
@@ -151,7 +155,8 @@ Ingestion already has deterministic unit, PostgreSQL integration, and desktop/mo
 | Milestone                  | Status                     | Exit condition                                                                                                                                   |
 | -------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 1. Reliable ingestion      | Implemented in this branch | Bounded uploads, validation, revisions, dates, exact dedup behavior, previews, concurrency/cleanup tests, migration and running-app verification |
-| 2. Chunking and indexing   | Planned                    | Reproducible two-layer splitting, embedding batches, pgvector/full-text infrastructure, resumable jobs, and explicit atomic publication          |
+| 2a. Offline chunking       | Implemented in this branch | Revision-pinned two-layer splitting, exact source spans, token caps, deterministic JSONL exports, visible fallback, and large-file checks        |
+| 2b. Indexing/publication   | Planned                    | Embedding batches, pgvector/full-text infrastructure, resumable jobs, and explicit atomic publication                                            |
 | 3. Retrieval inspection    | Planned                    | Owner search preview, permission/date filtering, hybrid retrieval, bounded context, and measured baseline recall                                 |
 | 4. Grounded enquiry drafts | Planned                    | Question-level retrieval, retained passage citations, safe missing-evidence behavior, teacher inspection, and approval-time publication checks   |
 | 5. Quality and operations  | Planned                    | Held-out evaluation, large-file measurements, cache/tracing controls, and evidence-based reranking decision                                      |
