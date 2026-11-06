@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 from alembic import command
-from sqlalchemy import Engine, create_engine
+from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 from sqlalchemy.schema import CreateSchema, DropSchema
@@ -26,8 +26,23 @@ from studio_copilot.persistence.models import (
 from tests.support import migration_config
 
 
+@pytest.fixture(scope="session")
+def vector_extension():
+    url = os.environ.get("TEST_DATABASE_URL")
+    if not url:
+        return
+    if not (make_url(url).database or "").endswith("_test"):
+        pytest.fail("TEST_DATABASE_URL database name must end with '_test'.")
+    engine = make_engine(url)
+    try:
+        with engine.begin() as connection:
+            connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA public"))
+    finally:
+        engine.dispose()
+
+
 @pytest.fixture
-def db_engine() -> Iterator[Engine]:
+def db_engine(vector_extension) -> Iterator[Engine]:
     url = os.environ.get("TEST_DATABASE_URL")
     if not url:
         pytest.skip("Set TEST_DATABASE_URL to run PostgreSQL integration tests.")
@@ -38,7 +53,7 @@ def db_engine() -> Iterator[Engine]:
     admin = make_engine(url)
     with admin.begin() as connection:
         connection.execute(CreateSchema(schema))
-    engine = create_engine(url, connect_args={"options": f"-csearch_path={schema}"})
+    engine = create_engine(url, connect_args={"options": f"-csearch_path={schema},public"})
     try:
         with engine.begin() as connection:
             config = migration_config()

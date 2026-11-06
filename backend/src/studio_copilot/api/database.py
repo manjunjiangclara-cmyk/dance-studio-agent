@@ -19,6 +19,7 @@ def list_tables(db: Db):
             "total": db.scalar(select(func.count()).select_from(table)),
         }
         for table in Base.metadata.tables.values()
+        if table.info.get("database_browser", True)
     ]
 
 
@@ -27,7 +28,7 @@ def list_records(table_name: str, db: Db, paging: Paging):
     # Resolve only mapped application tables; never interpolate SQL or inspect
     # server-managed tables, workflow checkpoints, or connection configuration.
     table = Base.metadata.tables.get(table_name)
-    if table is None:
+    if table is None or not table.info.get("database_browser", True):
         raise HTTPException(404, "This application table was not found.")
     limit, offset = paging
     statement = select(table).order_by(table.c.created_at, table.c.id)

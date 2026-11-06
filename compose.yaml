@@ -2,7 +2,7 @@ name: dance-studio-agent
 
 services:
   db:
-    image: postgres:18
+    image: pgvector/pgvector:0.8.7-pg18-trixie
     environment:
       POSTGRES_USER: copilot
       POSTGRES_PASSWORD: copilot_local

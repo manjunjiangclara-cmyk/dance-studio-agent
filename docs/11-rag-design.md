@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-This document records the agreed design for document-based retrieval-augmented generation (RAG). **Ingestion and an offline chunking engine are implemented in this branch.** Chunking is explicitly invoked through a CLI and exports local inspection files. Documents are not yet published, embedded, retrieved, or supplied to the agent. The sections below explicitly distinguish existing behavior from planned work.
+This document records the agreed design for document-based retrieval-augmented generation (RAG). **Ingestion, offline chunking, and explicitly invoked PostgreSQL embedding preparation are implemented.** Chunking exports local inspection files; embedding reads an explicit immutable revision and saves chunks/vectors in PostgreSQL. Documents are not yet published, retrieved, or supplied to the agent. The sections below explicitly distinguish existing behavior from planned work.
 
 The initial scope is English Markdown and plain text, up to **10,000,000 bytes per file**, answering specific questions. Whole-document analysis, PDF/DOCX extraction, OCR, external document synchronization, and multi-tenant access are deferred. The sample studio handbook is an example, not the structure every document must follow or an authoritative policy to load automatically.
 
@@ -29,7 +29,7 @@ flowchart TD
     M --> N[Teacher review and approval checks]
 ```
 
-The diagram describes the target system. Upload through immutable ingestion revision exists, together with an independently invoked offline section/passage preparation tool. There is no background indexing pipeline yet.
+The diagram describes the target system. Upload through immutable ingestion revision exists, together with independently invoked chunking and embedding preparation CLIs. There is no background indexing pipeline yet.
 
 ## 1. Data ingestion
 
@@ -50,7 +50,7 @@ Only a completely indexed revision becomes the active publication. A failed or s
 
 ## 2. Chunking
 
-**Implemented offline: structure-aware recursive splitting with parent-child context.** See the [chunking guide](12-document-chunking.md) for CLI setup, provenance, limits, inspection files, and measured large-file behavior. Automatic invocation, persisted indexes, and publication remain planned.
+**Implemented offline: structure-aware recursive splitting with parent-child context.** See the [chunking guide](12-document-chunking.md) for CLI setup, provenance, limits, inspection files, and measured large-file behavior. The embedding CLI now reuses this engine and persists its chunks. Automatic invocation, retrieval indexes, and publication remain planned.
 
 | Layer           | Starting size                                               | Purpose                                              |
 | --------------- | ----------------------------------------------------------- | ---------------------------------------------------- |
@@ -72,11 +72,11 @@ Semantic boundary detection using another model is deferred. These sizes are ini
 
 ## 3. Embedding
 
-**Planned baseline:** `text-embedding-3-small`, 1,536 dimensions, cosine distance. Questions and document passages use the same model configuration. OpenAI embeddings are unit-normalized; the baseline does not manually truncate or renormalize vectors.
+**Implemented preparation:** an explicit revision-pinned CLI uses `text-embedding-3-small` with 1,536 dimensions and a PostgreSQL/pgvector shared cache. See the [embedding guide](13-document-embeddings.md) for setup, paid-call boundaries, lease fencing, recovery, and measurements. Search and query embeddings remain planned. The intended retrieval metric is cosine distance. Questions and document passages use the same model configuration. OpenAI embeddings are unit-normalized; the baseline does not manually truncate or renormalize vectors.
 
 Validate response counts, dimensions, and finite numeric values. Record the model, dimensions, input hash, and preprocessing version. Process at most 64 passages per batch, checkpoint completed work, and keep provider calls outside database write transactions. Reuse unchanged embedding inputs, including their title/heading prefixes, rather than assuming an unchanged body always has an unchanged embedding.
 
-Apply the existing known-student identity pseudonymization to query text before embedding. Owner-approved document passages are sent to the embedding provider; publishing must make this clear. Do not describe embedding as local processing.
+Apply the existing known-student identity pseudonymization to query text before embedding. Explicit embedding `run` sends document passages to the configured provider and incurs API usage; it does not publish them. Future publishing must make provider processing clear. Do not describe embedding as local processing.
 
 Changing models requires a separately built compatible index, evaluation, and an explicit switch. Never compare query vectors with an incompatible document-vector configuration.
 
@@ -156,7 +156,8 @@ Ingestion already has deterministic unit, PostgreSQL integration, and desktop/mo
 | -------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 1. Reliable ingestion      | Implemented in this branch | Bounded uploads, validation, revisions, dates, exact dedup behavior, previews, concurrency/cleanup tests, migration and running-app verification |
 | 2a. Offline chunking       | Implemented in this branch | Revision-pinned two-layer splitting, exact source spans, token caps, deterministic JSONL exports, visible fallback, and large-file checks        |
-| 2b. Indexing/publication   | Planned                    | Embedding batches, pgvector/full-text infrastructure, resumable jobs, and explicit atomic publication                                            |
+| 2b. Embedding preparation | Implemented                | Explicit revision CLI, persisted chunks, bounded batches, pgvector cache, lease fencing, and resumable checkpoints |
+| 2c. Indexing/publication   | Planned                    | Background scheduling, full-text/vector retrieval indexes, and explicit atomic publication                                            |
 | 3. Retrieval inspection    | Planned                    | Owner search preview, permission/date filtering, hybrid retrieval, bounded context, and measured baseline recall                                 |
 | 4. Grounded enquiry drafts | Planned                    | Question-level retrieval, retained passage citations, safe missing-evidence behavior, teacher inspection, and approval-time publication checks   |
 | 5. Quality and operations  | Planned                    | Held-out evaluation, large-file measurements, cache/tracing controls, and evidence-based reranking decision                                      |
