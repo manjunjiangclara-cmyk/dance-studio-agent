@@ -11,11 +11,13 @@ from datetime import date, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     CheckConstraint,
     Date,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
     MetaData,
@@ -89,6 +91,107 @@ class DocumentRevision(Record, Base):
     ingestion_status: Mapped[str] = mapped_column(String(30))
     effective_from: Mapped[date | None] = mapped_column(Date)
     effective_to: Mapped[date | None] = mapped_column(Date)
+
+
+class EmbeddingRun(Record, Base):
+    """Explicit CLI preparation, never a publication or permission to retrieve."""
+
+    __tablename__ = "embedding_runs"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["document_id", "revision"],
+            ["document_revisions.document_id", "document_revisions.revision"],
+            ondelete="CASCADE",
+        ),
+        UniqueConstraint("document_id", "revision", "chunker_hash", "profile_hash"),
+        UniqueConstraint("id", "profile_hash"),
+        CheckConstraint("status IN ('preparing','running','failed','complete')", name="status"),
+        CheckConstraint("reported_tokens >= 0 AND attempts >= 0", name="usage_nonnegative"),
+        {"info": {"database_browser": False}},
+    )
+
+    document_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    revision: Mapped[int] = mapped_column(Integer)
+    chunker_hash: Mapped[str] = mapped_column(String(64))
+    profile_hash: Mapped[str] = mapped_column(String(64))
+    profile: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    source: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    chunker_config: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    headings: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
+    warnings: Mapped[list[str]] = mapped_column(JSONB)
+    status: Mapped[str] = mapped_column(String(16), default="preparing")
+    prepared: Mapped[bool] = mapped_column(default=False)
+    expected_chunks: Mapped[int | None] = mapped_column(Integer)
+    expected_passages: Mapped[int | None] = mapped_column(Integer)
+    lease_token: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reported_tokens: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    error_code: Mapped[str | None] = mapped_column(String(40))
+
+
+class EmbeddingVector(Base):
+    """Project-local shared cache. No original text or publication authority."""
+
+    __tablename__ = "embedding_vectors"
+    __table_args__ = (
+        UniqueConstraint("profile_hash", "input_sha256"),
+        UniqueConstraint("key", "profile_hash", "input_sha256"),
+        CheckConstraint("public.vector_norm(embedding) BETWEEN 0.999 AND 1.001", name="unit_norm"),
+        {"info": {"database_browser": False}},
+    )
+
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    profile_hash: Mapped[str] = mapped_column(String(64))
+    input_sha256: Mapped[str] = mapped_column(String(64))
+    embedding: Mapped[Any] = mapped_column(Vector(1536), deferred=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class DocumentChunk(Base):
+    __tablename__ = "document_chunks"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["run_id", "profile_hash"],
+            ["embedding_runs.id", "embedding_runs.profile_hash"],
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["run_id", "parent_id"],
+            ["document_chunks.run_id", "document_chunks.chunk_id"],
+            deferrable=True,
+            initially="DEFERRED",
+        ),
+        ForeignKeyConstraint(
+            ["vector_key", "profile_hash", "text_sha256"],
+            [
+                "embedding_vectors.key",
+                "embedding_vectors.profile_hash",
+                "embedding_vectors.input_sha256",
+            ],
+        ),
+        UniqueConstraint("run_id", "ordinal"),
+        CheckConstraint("kind IN ('parent','passage')", name="kind"),
+        CheckConstraint("kind = 'passage' OR vector_key IS NULL", name="parents_not_embedded"),
+        CheckConstraint(
+            "token_count > 0 AND ((kind='parent' AND token_count<=2400) "
+            "OR (kind='passage' AND token_count<=900))",
+            name="token_budget",
+        ),
+        {"info": {"database_browser": False}},
+    )
+
+    run_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    chunk_id: Mapped[str] = mapped_column(String(72), primary_key=True)
+    profile_hash: Mapped[str] = mapped_column(String(64))
+    ordinal: Mapped[int] = mapped_column(Integer)
+    kind: Mapped[str] = mapped_column(String(10))
+    parent_id: Mapped[str | None] = mapped_column(String(72))
+    text: Mapped[str] = mapped_column(Text, deferred=True)
+    text_sha256: Mapped[str] = mapped_column(String(64))
+    token_count: Mapped[int] = mapped_column(Integer)
+    provenance: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    vector_key: Mapped[str | None] = mapped_column(String(64))
 
 
 class Student(Record, Base):

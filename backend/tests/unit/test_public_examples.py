@@ -16,7 +16,11 @@ DATA = ROOT / "frontend" / "src" / "data"
 
 def test_public_manifest_matches_application_tables_and_foreign_keys():
     manifest = json.loads((DATA / "schema.v1.json").read_text())
-    tables = Base.metadata.tables
+    tables = {
+        name: table
+        for name, table in Base.metadata.tables.items()
+        if table.info.get("database_browser", True)
+    }
     assert {row["name"] for row in manifest["tables"]} == set(tables)
     actual = {
         (name, fk.parent.name, fk.column.table.name)

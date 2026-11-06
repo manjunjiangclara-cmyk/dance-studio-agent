@@ -35,7 +35,11 @@ def test_database_catalog_and_every_stored_column(client, records, db_engine):
     catalog = client.get("/api/v1/database")
     assert catalog.status_code == 200
     assert catalog.headers["cache-control"] == "no-store"
-    assert {table["name"] for table in catalog.json()} == set(Base.metadata.tables)
+    assert {table["name"] for table in catalog.json()} == set(Base.metadata.tables) - {
+        "embedding_runs",
+        "embedding_vectors",
+        "document_chunks",
+    }
     assert "session_bookings" not in {table["name"] for table in catalog.json()}
     sessions = next(table for table in catalog.json() if table["name"] == "class_sessions")
     assert "students" in sessions["columns"]
@@ -79,5 +83,13 @@ def test_database_pagination_and_table_allowlist(client, records):
     }
     for query in ["limit=0", "limit=101", "offset=-1"]:
         assert client.get(f"/api/v1/database/students?{query}").status_code == 422
-    for name in ["unknown", "alembic_version", "checkpoints", "students;DROP TABLE students"]:
+    for name in [
+        "unknown",
+        "alembic_version",
+        "checkpoints",
+        "students;DROP TABLE students",
+        "embedding_runs",
+        "embedding_vectors",
+        "document_chunks",
+    ]:
         assert client.get(f"/api/v1/database/{name}").status_code == 404
