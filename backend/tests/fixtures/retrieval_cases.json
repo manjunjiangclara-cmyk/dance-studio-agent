@@ -1,0 +1,724 @@
+{
+  "version": 1,
+  "source_sha256": "e3887695b890365bbd5833d9416c0c5eb835d8dfb39ba762b658319a3a17ab2f",
+  "effective_from": "2027-01-01",
+  "effective_to": "2027-12-31",
+  "offset_unit": "Unicode code points; zero-based half-open [start,end)",
+  "annotation": "Manually authored questions and source sentences; offsets resolved by exact unique sentence lookup. Labels describe needed evidence, not model-produced answers.",
+  "evaluation_notes": [
+    "No-answer questions measure false-positive behaviour separately; nearest-neighbour retrieval need not abstain.",
+    "Outside-effective-date questions must return zero results.",
+    "Compute Recall@K using source-range overlap against every required evidence span; MRR uses the first hit covering any required evidence. Exclude unanswerable cases from recall/MRR denominators.",
+    "Tuning and held-out sets have distinct questions, not disjoint policies. Report this limitation.",
+    "Fake embeddings cannot establish semantic retrieval quality. Live semantic evaluation requires an explicitly enabled paid provider."
+  ],
+  "cases": [
+    {
+      "id": "policy-01-1",
+      "split": "tuning",
+      "query": "How much notice must I give to retain a makeup credit?",
+      "as_of": "2027-01-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 320,
+          "end": 430,
+          "text": "Students must cancel a booked class at least 24 hours before its scheduled start to retain makeup eligibility."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-01-2",
+      "split": "held_out",
+      "query": "Can I still get a makeup if I cancel two hours before class?",
+      "as_of": "2027-12-31",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 534,
+          "end": 604,
+          "text": "Cancelling two hours before class normally forfeits the makeup credit."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-02-1",
+      "split": "tuning",
+      "query": "What permits an exception to the cancellation notice rule?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 628,
+          "end": 735,
+          "text": "A teacher may approve a medical exception to the 24-hour notice rule after reviewing a medical certificate."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-02-2",
+      "split": "held_out",
+      "query": "If I have a medical certificate after cancelling late, is a makeup automatic?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "multi-evidence"
+      ],
+      "evidence": [
+        {
+          "start": 788,
+          "end": 856,
+          "text": "A medical certificate does not automatically create a makeup credit."
+        },
+        {
+          "start": 628,
+          "end": 735,
+          "text": "A teacher may approve a medical exception to the 24-hour notice rule after reviewing a medical certificate."
+        },
+        {
+          "start": 320,
+          "end": 430,
+          "text": "Students must cancel a booked class at least 24 hours before its scheduled start to retain makeup eligibility."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-03-1",
+      "split": "tuning",
+      "query": "When does an approved makeup credit expire?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 878,
+          "end": 952,
+          "text": "An approved makeup credit expires 28 calendar days after the missed class."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-03-2",
+      "split": "held_out",
+      "query": "Can the replacement lesson happen on day 28?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 953,
+          "end": 1026,
+          "text": "The replacement class must take place by that deadline, including day 28."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-04-1",
+      "split": "tuning",
+      "query": "What conditions must a replacement class satisfy?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 1156,
+          "end": 1244,
+          "text": "A replacement class must have an available place and match the student's approved level."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-04-2",
+      "split": "held_out",
+      "query": "Does being on a waitlist mean my makeup is booked?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 1245,
+          "end": 1289,
+          "text": "A waitlist place is not a confirmed booking."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-05-1",
+      "split": "tuning",
+      "query": "What does a trial lesson cost?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 1381,
+          "end": 1434,
+          "text": "A new student may attend one trial lesson for AUD 18."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-05-2",
+      "split": "held_out",
+      "query": "How soon after a trial must I enrol to receive the fee credit?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 1435,
+          "end": 1566,
+          "text": "The trial fee is credited against the first term invoice only if enrolment is completed within seven calendar days after the trial."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-06-1",
+      "split": "tuning",
+      "query": "What is the Junior Ballet term tuition?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 1625,
+          "end": 1702,
+          "text": "Junior Ballet tuition is AUD 240 for a ten-week term with one class per week."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-06-2",
+      "split": "held_out",
+      "query": "Does the term price include costumes and examinations?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 1765,
+          "end": 1830,
+          "text": "Costume, examination and performance fees are charged separately."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-07-1",
+      "split": "tuning",
+      "query": "What discount does the second sibling receive?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 1853,
+          "end": 1937,
+          "text": "The second enrolled sibling receives a 10 percent discount on the lower tuition fee."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-07-2",
+      "split": "held_out",
+      "query": "Can I combine the sibling and early-payment discounts?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 2005,
+          "end": 2077,
+          "text": "The sibling discount cannot be combined with the early-payment discount."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-08-1",
+      "split": "tuning",
+      "query": "What is the early-payment discount and its deadline?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 2097,
+          "end": 2192,
+          "text": "Invoices paid in full at least 14 days before term begins receive a 5 percent tuition discount."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-08-2",
+      "split": "held_out",
+      "query": "Does sending payment before the deadline qualify if it has not cleared?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 2193,
+          "end": 2235,
+          "text": "Payment must have cleared by the deadline."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-09-1",
+      "split": "tuning",
+      "query": "How much written notice is required to withdraw?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 2325,
+          "end": 2414,
+          "text": "Families must give 14 calendar days of written notice to withdraw from ongoing enrolment."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-09-2",
+      "split": "held_out",
+      "query": "Can I withdraw by telling another student?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 2415,
+          "end": 2515,
+          "text": "Telling another student or leaving a verbal message does not satisfy the written-notice requirement."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-10-1",
+      "split": "tuning",
+      "query": "What happens if the studio cancels for extreme weather?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 2595,
+          "end": 2728,
+          "text": "If the studio cancels a class because of extreme weather, the studio offers a replacement class or a credit for the cancelled lesson."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-10-2",
+      "split": "held_out",
+      "query": "Does the normal cancellation-notice rule apply to studio closures?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 2729,
+          "end": 2816,
+          "text": "Families do not need to meet the student cancellation-notice rule for a studio closure."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-11-1",
+      "split": "tuning",
+      "query": "What should Junior Ballet students wear?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 2871,
+          "end": 2952,
+          "text": "Junior Ballet students wear a plain leotard, ballet tights and soft ballet shoes."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-11-2",
+      "split": "held_out",
+      "query": "May children wear outdoor shoes onto the dance floor?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 2994,
+          "end": 3056,
+          "text": "Outdoor shoes must be removed before entering the dance floor."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-12-1",
+      "split": "tuning",
+      "query": "Who must collect children under 12?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 3147,
+          "end": 3223,
+          "text": "An authorised adult must collect children under 12 from the studio entrance."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-12-2",
+      "split": "held_out",
+      "query": "What should I do if another adult will collect my child?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 3224,
+          "end": 3295,
+          "text": "Notify the studio in writing if a different adult will collect a child."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-13-1",
+      "split": "tuning",
+      "query": "What permission is required to use a child photograph in marketing?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 3324,
+          "end": 3436,
+          "text": "The studio requires written guardian consent before using a child's identifiable photograph in public marketing."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-13-2",
+      "split": "held_out",
+      "query": "If I withdraw photo consent, are old printed materials guaranteed to be removed?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 3501,
+          "end": 3596,
+          "text": "Withdrawal affects future use; it does not guarantee removal from previously printed materials."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-14-1",
+      "split": "tuning",
+      "query": "How can I request accessibility adjustments?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 3616,
+          "end": 3712,
+          "text": "Families may request accessibility adjustments by contacting the office before the first lesson."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-14-2",
+      "split": "held_out",
+      "query": "Do I need a diagnosis to discuss accessibility needs?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 3800,
+          "end": 3864,
+          "text": "A diagnosis is not required simply to request that conversation."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-15-1",
+      "split": "tuning",
+      "query": "What approval and attendance are needed for examination entry?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 3888,
+          "end": 4006,
+          "text": "Examination entry requires the teacher's approval and a minimum attendance rate of 80 percent in the preparation term."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-15-2",
+      "split": "held_out",
+      "query": "Does paying the examination fee guarantee entry?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 4007,
+          "end": 4062,
+          "text": "Paying the examination fee does not guarantee approval."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-16-1",
+      "split": "tuning",
+      "query": "How long is unlabelled lost property kept?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 4151,
+          "end": 4237,
+          "text": "Unlabelled lost property is kept for 30 calendar days and then donated where suitable."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-16-2",
+      "split": "held_out",
+      "query": "Are labelled lost items donated immediately?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 4238,
+          "end": 4310,
+          "text": "Labelled items are held while the office attempts to contact the family."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-17-1",
+      "split": "tuning",
+      "query": "When does the office answer enquiries?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 4412,
+          "end": 4505,
+          "text": "The office answers enquiries from 09:00 to 17:00 Monday to Friday, excluding public holidays."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-17-2",
+      "split": "held_out",
+      "query": "What email address accepts administrative questions?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 4506,
+          "end": 4562,
+          "text": "Send administrative questions to office@example.invalid."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-18-1",
+      "split": "tuning",
+      "query": "How do I request a refund?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 4646,
+          "end": 4740,
+          "text": "Refund requests must be submitted in writing to the office with the invoice number and reason."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "policy-18-2",
+      "split": "held_out",
+      "query": "How and when are approved refunds returned?",
+      "as_of": "2027-06-01",
+      "answerable": true,
+      "tags": [
+        "policy"
+      ],
+      "evidence": [
+        {
+          "start": 4834,
+          "end": 4920,
+          "text": "Approved refunds are returned to the original payment method within ten business days."
+        }
+      ],
+      "expected_empty": false
+    },
+    {
+      "id": "noanswer-parking",
+      "split": "tuning",
+      "query": "Is parking free at the studio?",
+      "as_of": "2027-06-01",
+      "answerable": false,
+      "tags": [
+        "not-in-source"
+      ],
+      "evidence": [],
+      "expected_empty": false
+    },
+    {
+      "id": "date-before",
+      "split": "tuning",
+      "query": "What is the Junior Ballet term tuition?",
+      "as_of": "2026-12-31",
+      "answerable": false,
+      "tags": [
+        "outside-effective-dates"
+      ],
+      "evidence": [],
+      "expected_empty": true
+    },
+    {
+      "id": "noanswer-pets",
+      "split": "held_out",
+      "query": "Can I bring a pet dog into the waiting room?",
+      "as_of": "2027-06-01",
+      "answerable": false,
+      "tags": [
+        "not-in-source"
+      ],
+      "evidence": [],
+      "expected_empty": false
+    },
+    {
+      "id": "date-after",
+      "split": "held_out",
+      "query": "What is the Junior Ballet term tuition?",
+      "as_of": "2028-01-01",
+      "answerable": false,
+      "tags": [
+        "outside-effective-dates"
+      ],
+      "evidence": [],
+      "expected_empty": true
+    }
+  ],
+  "source_file": "retrieval_handbook.md"
+}
