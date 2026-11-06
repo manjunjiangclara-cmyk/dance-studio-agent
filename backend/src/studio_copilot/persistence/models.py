@@ -151,6 +151,12 @@ class EmbeddingVector(Base):
 class DocumentChunk(Base):
     __tablename__ = "document_chunks"
     __table_args__ = (
+        Index(
+            "ix_document_chunks_search",
+            func.to_tsvector(text("'english'::regconfig"), text("text")),
+            postgresql_using="gin",
+            postgresql_where=text("kind = 'passage'"),
+        ),
         ForeignKeyConstraint(
             ["run_id", "profile_hash"],
             ["embedding_runs.id", "embedding_runs.profile_hash"],

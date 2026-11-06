@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-This document records the agreed design for document-based retrieval-augmented generation (RAG). **Ingestion, offline chunking, and explicitly invoked PostgreSQL embedding preparation are implemented.** Chunking exports local inspection files; embedding reads an explicit immutable revision and saves chunks/vectors in PostgreSQL. Documents are not yet published, retrieved, or supplied to the agent. The sections below explicitly distinguish existing behavior from planned work.
+This document records the agreed design for document-based retrieval-augmented generation (RAG). **Ingestion, offline chunking, PostgreSQL embedding preparation, and explicit CLI retrieval inspection are implemented.** Chunking exports local inspection files; embedding reads an explicit immutable revision and saves chunks/vectors in PostgreSQL. Documents are not yet published or supplied to the agent. CLI retrieval requires explicit completed embedding runs and a target date. The sections below explicitly distinguish existing behavior from planned work.
 
 The initial scope is English Markdown and plain text, up to **10,000,000 bytes per file**, answering specific questions. Whole-document analysis, PDF/DOCX extraction, OCR, external document synchronization, and multi-tenant access are deferred. The sample studio handbook is an example, not the structure every document must follow or an authoritative policy to load automatically.
 
@@ -72,7 +72,7 @@ Semantic boundary detection using another model is deferred. These sizes are ini
 
 ## 3. Embedding
 
-**Implemented preparation:** an explicit revision-pinned CLI uses `text-embedding-3-small` with 1,536 dimensions and a PostgreSQL/pgvector shared cache. See the [embedding guide](13-document-embeddings.md) for setup, paid-call boundaries, lease fencing, recovery, and measurements. Search and query embeddings remain planned. The intended retrieval metric is cosine distance. Questions and document passages use the same model configuration. OpenAI embeddings are unit-normalized; the baseline does not manually truncate or renormalize vectors.
+**Implemented preparation:** an explicit revision-pinned CLI uses `text-embedding-3-small` with 1,536 dimensions and a PostgreSQL/pgvector shared cache. See the [embedding guide](13-document-embeddings.md) for setup, paid-call boundaries, lease fencing, recovery, and measurements. Explicit CLI search and query embeddings are implemented; online agent retrieval remains planned. The intended retrieval metric is cosine distance. Questions and document passages use the same model configuration. OpenAI embeddings are unit-normalized; the baseline does not manually truncate or renormalize vectors.
 
 Validate response counts, dimensions, and finite numeric values. Record the model, dimensions, input hash, and preprocessing version. Process at most 64 passages per batch, checkpoint completed work, and keep provider calls outside database write transactions. Reuse unchanged embedding inputs, including their title/heading prefixes, rather than assuming an unchanged body always has an unchanged embedding.
 
@@ -82,11 +82,11 @@ Changing models requires a separately built compatible index, evaluation, and an
 
 ## 4. Retrieval
 
-**Planned baseline:** PostgreSQL full-text search plus pgvector cosine search, fused with reciprocal rank fusion (RRF).
+**Implemented inspection baseline:** an explicit CLI searches selected completed embedding runs using PostgreSQL full-text search plus exact pgvector cosine search, fused with reciprocal rank fusion (RRF). See the [retrieval guide](14-document-retrieval.md). It adds no reranker, publication, search API/UI, or agent access. The publication-filtered online path below remains planned.
 
 - Filter by permissions, active publication, and effective dates during candidate retrieval. Do not rely on filtering inaccessible results after retrieval or after reading a cache entry.
 - Use English full-text search with a GIN index and `ts_rank_cd`; this is **not BM25**. A BM25 extension or separate search service requires its own evidence-backed decision.
-- Use an HNSW vector index, checking its recall against exact vector search and tuning filtered searches so applicable publications are not silently omitted.
+- The CLI uses exact vector search. Consider HNSW only after measuring latency and its recall against this baseline, including filtered-search behavior.
 - Take up to 20 candidates from each retrieval path, fuse with RRF, deduplicate, and retain up to 40 candidates before final selection. Start with RRF's rank constant set to 60.
 - Supply up to six search passages per question. Deduplicated, expanded document evidence shares a 12,000-token budget across the drafting attempt. Cover questions before expanding surrounding sections, and report truncation.
 
@@ -158,7 +158,8 @@ Ingestion already has deterministic unit, PostgreSQL integration, and desktop/mo
 | 2a. Offline chunking       | Implemented in this branch | Revision-pinned two-layer splitting, exact source spans, token caps, deterministic JSONL exports, visible fallback, and large-file checks        |
 | 2b. Embedding preparation | Implemented                | Explicit revision CLI, persisted chunks, bounded batches, pgvector cache, lease fencing, and resumable checkpoints |
 | 2c. Indexing/publication   | Planned                    | Background scheduling, full-text/vector retrieval indexes, and explicit atomic publication                                            |
-| 3. Retrieval inspection    | Planned                    | Owner search preview, permission/date filtering, hybrid retrieval, bounded context, and measured baseline recall                                 |
+| 3a. Retrieval CLI         | Implemented                | Explicit runs/date, keyword and exact vector search, RRF, bounded parent context, source references, and labelled evaluation tooling |
+| 3b. Owner retrieval preview | Planned                   | Publication-aware owner API/UI and measured live semantic recall                                 |
 | 4. Grounded enquiry drafts | Planned                    | Question-level retrieval, retained passage citations, safe missing-evidence behavior, teacher inspection, and approval-time publication checks   |
 | 5. Quality and operations  | Planned                    | Held-out evaluation, large-file measurements, cache/tracing controls, and evidence-based reranking decision                                      |
 

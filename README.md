@@ -4,7 +4,7 @@ An independent portfolio project for teacher-reviewed ballet studio administrati
 
 ## Current scope
 
-The app prepares drafts for teacher review and handles makeup requests using a LangGraph workflow. The agent verifies the missed session and notice, checks actual attendance and eligible replacement sessions, and leaves the final decision to a teacher. Approving a draft with a verified booking proposal adds the student to that session atomically; approval never sends email. Information-only requests use an enquiry workflow with a question-by-question review checklist. Other business actions or unclear requests go to teacher handoff. For missing studio facts, teachers provide an answer or explicitly choose to confirm later beside each question, then update the draft before approval. Teacher answers stay scoped to the conversation. The owner can maintain a document library and inspect deterministic chunks and prepare revision-pinned embeddings in PostgreSQL using explicit CLIs, but the agent does not yet search or use those documents.
+The app prepares drafts for teacher review and handles makeup requests using a LangGraph workflow. The agent verifies the missed session and notice, checks actual attendance and eligible replacement sessions, and leaves the final decision to a teacher. Approving a draft with a verified booking proposal adds the student to that session atomically; approval never sends email. Information-only requests use an enquiry workflow with a question-by-question review checklist. Other business actions or unclear requests go to teacher handoff. For missing studio facts, teachers provide an answer or explicitly choose to confirm later beside each question, then update the draft before approval. Teacher answers stay scoped to the conversation. The owner can maintain a document library and inspect deterministic chunks and prepare revision-pinned embeddings in PostgreSQL using explicit CLIs, and inspect keyword/vector retrieval for selected revisions. The agent does not yet search or use those documents.
 
 Dated sessions have independent student rosters. Staff separately record attendance as attended, absent, or unknown. The studio policy defines the order of class levels from easiest to hardest; makeup candidates cannot exceed the student's highest recorded attended level. Missing attendance or level order requires staff review. Historical runs retain their policy snapshots.
 
@@ -140,6 +140,7 @@ Alembic upgrades the consolidated initial schema through the independent-session
 - [Document ingestion and revision APIs](docs/10-document-ingestion.md)
 - [Document RAG design and roadmap](docs/11-rag-design.md)
 - [Revision-pinned embedding CLI and recovery](docs/13-document-embeddings.md)
+- [Retrieval CLI, source references, and evaluation](docs/14-document-retrieval.md)
 - [Offline chunking and inspection CLI](docs/12-document-chunking.md)
 
 Policies remain external resources. Financial rules, credit ledgers, email delivery, and production infrastructure remain outside the implemented workflow.
