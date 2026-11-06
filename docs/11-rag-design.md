@@ -82,7 +82,7 @@ Changing models requires a separately built compatible index, evaluation, and an
 
 ## 4. Retrieval
 
-**Implemented inspection baseline:** an explicit CLI searches selected completed embedding runs using PostgreSQL full-text search plus exact pgvector cosine search, fused with reciprocal rank fusion (RRF). See the [retrieval guide](14-document-retrieval.md). It adds no reranker, publication, search API/UI, or agent access. The publication-filtered online path below remains planned.
+**Implemented inspection baseline:** an explicit CLI searches selected completed embedding runs using PostgreSQL full-text search plus exact pgvector cosine search, fused with reciprocal rank fusion (RRF). See the [retrieval guide](14-document-retrieval.md). A frozen-corpus experiment now provides local-only planning, explicitly paid fictional-source preparation, and paired keyword/vector/hybrid comparison with invocation-local question-vector reuse and provenance/failed-case reporting. Live semantic quality remains unmeasured until explicitly executed. It adds no reranker, publication, search API/UI, or agent access. The publication-filtered online path below remains planned.
 
 - Filter by permissions, active publication, and effective dates during candidate retrieval. Do not rely on filtering inaccessible results after retrieval or after reading a cache entry.
 - Use English full-text search with a GIN index and `ts_rank_cd`; this is **not BM25**. A BM25 extension or separate search service requires its own evidence-backed decision.

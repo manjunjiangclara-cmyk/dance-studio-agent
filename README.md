@@ -140,7 +140,7 @@ Alembic upgrades the consolidated initial schema through the independent-session
 - [Document ingestion and revision APIs](docs/10-document-ingestion.md)
 - [Document RAG design and roadmap](docs/11-rag-design.md)
 - [Revision-pinned embedding CLI and recovery](docs/13-document-embeddings.md)
-- [Retrieval CLI, source references, and evaluation](docs/14-document-retrieval.md)
+- [Retrieval CLI, source references, and paired keyword/vector/hybrid evaluation](docs/14-document-retrieval.md)
 - [Offline chunking and inspection CLI](docs/12-document-chunking.md)
 
 Policies remain external resources. Financial rules, credit ledgers, email delivery, and production infrastructure remain outside the implemented workflow.

@@ -122,3 +122,84 @@ Measured on 2026-11-06, macOS 26.5.2 arm64, Python 3.12.13, PostgreSQL 18.6 / pg
 The seven stress fixtures are deliberately repetitive. The additional four-document corpus uses distinct numbered paragraphs, producing 4,908 distinct vectors. Its hybrid keyword stage median was 722.106 ms and exact-vector stage median was 19.820 ms; broad keyword terms match most paragraphs and dominate ranking work. Search remains exact; these measurements do not establish a need for HNSW or a semantic-recall result.
 
 All eight cases passed result-count, distinct-candidate, context-budget, API-call-boundary, and GIN-index checks. Every case saved actual SQL EXPLAIN plans; the [versioned measurement summary](measurements/retrieval-2026-11-06.json) includes plan structures and separate stage timings. Rerunning the script retains full plans and individual observations in its output directory. All fixture schemas were removed afterward. Fake embedding-call timing is not OpenAI latency; real vector/hybrid relevance and provider cost remain unmeasured.
+
+## Paired keyword/vector/hybrid evaluation
+
+Use the dedicated experiment entrypoint to prepare the frozen fictional corpus and
+compare all three modes with identical document revision, chunker, model and questions.
+The existing single-mode `evaluate` command remains available. Neither workflow
+uses a reranker or answer-generation model.
+
+From `backend/`, begin with the local-only plan:
+
+```bash
+uv run --env-file .env python -m studio_copilot.documents.retrieval.experiment plan \
+  --cases tests/fixtures/retrieval_cases.json \
+  --tokenizer-cache /tmp/studio-chunking-tokenizer
+```
+
+This command requires no database, API key or network. The frozen v1 fixture has
+40 questions (20 tuning / 20 held-out), 38 in-period questions, and 19 distinct
+passage inputs. A fresh preparation estimates 1,343 document tokens in at least
+one request; paired evaluation estimates 371 question tokens in 38 requests.
+These are tokenizer counts, not a price quotation. Existing document vector
+cache entries can reduce preparation requests; retries can increase requests.
+
+The following commands are **explicitly paid operations** and are never run by
+normal automated tests:
+
+```bash
+# Writes only the named fictional evaluation document and its preparation data.
+# A repeated call resumes the same immutable revision; it does not overwrite it.
+uv run --env-file .env python -m studio_copilot.documents.retrieval.experiment prepare \
+  --cases tests/fixtures/retrieval_cases.json --allow-api \
+  --tokenizer-cache /tmp/studio-chunking-tokenizer
+
+# Use run_id from prepare's JSON output. Without provenance attestation, scores
+# are inspection results and semantic_quality_measured remains false.
+uv run --env-file .env python -m studio_copilot.documents.retrieval.experiment compare \
+  --run-id UUID --cases tests/fixtures/retrieval_cases.json --allow-api \
+  --document-vectors-verified --tokenizer-cache /tmp/studio-chunking-tokenizer \
+  > /tmp/retrieval-comparison.json
+```
+
+`prepare` validates the frozen fixture and preflights the provider before creating
+its deterministic evaluation document. A failed embedding preparation can leave
+that fictional document and a failed resumable run; retry the command rather than
+editing the revision. Existing mismatched documents are rejected, never replaced.
+The experiment intentionally adds no migration, background job or publication.
+
+`--document-vectors-verified` is an explicit operator attestation, not automatic
+proof: model and endpoint labels cannot establish whether an existing shared
+vector cache contains fake test vectors. Use a database/schema prepared only with
+the real provider, or verify its preparation history, before attesting. Injected
+fake providers always produce `semantic_quality_measured: false` even with this
+flag. A compatible configured provider may be OpenAI or an alternative endpoint;
+its endpoint and profile hash are recorded, and it is not silently relabelled OpenAI.
+
+Comparison validates source hash, dates, title, filename and chunker configuration
+before provider calls. Question vectors exist only in memory for one invocation:
+vector mode obtains each eligible question vector, and hybrid mode reuses that
+same vector. Normally this costs 38 question requests total, rather than 76.
+Keyword mode and the two date-exclusion questions make no embedding requests.
+No persistent query cache, search history or query tracing is added.
+
+The JSON includes fixed dataset/source/config hashes, pinned revision/run,
+provider provenance, actual request attempts, reported usage tokens, provider
+elapsed time, per-mode database/context timings, and per-question results.
+Compare DB-stage timings rather than treating cached hybrid embedding latency
+as a speed improvement. Usage is provider-reported, not exactly-once billing.
+
+Each mode reports candidate Recall@20, final Recall@6 and MRR@6, all-required
+source-evidence coverage, and expanded-parent coverage. Missing evidence is
+classified as absent from the complete candidate union or lost during final
+selection, with a flag when parent context recovers it. Provider failures and
+hybrid degradation are failed cases, counted as zero for answerable-case metrics;
+they do not disappear from denominators. Incomplete comparisons exit nonzero,
+retain case failure codes, and cannot claim successful semantic quality or target
+achievement. Date-exclusion checks and in-period unanswerable cases remain separate.
+
+The fixture and splits are frozen; this implementation does not tune retrieval on
+the held-out set. Actual paid vector/hybrid quality remains **unmeasured** until an
+operator explicitly runs and records a verified live comparison. Offline tests
+exercise all paths with fake vectors and real isolated PostgreSQL only.
