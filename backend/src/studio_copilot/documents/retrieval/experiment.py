@@ -26,7 +26,7 @@ from studio_copilot.persistence.database import make_engine
 from studio_copilot.persistence.models import Document, DocumentRevision, EmbeddingRun
 
 from .engine import BUDGET, CANDIDATES, RESULTS, VERSION, RetrievalError, _sources, snapshot
-from .evaluation import evaluate, load_fixture
+from .evaluation import evaluate, failed_case, load_fixture, summarize
 
 # Changing either fixture requires a new reviewed experiment version, not hidden tuning.
 CASES_SHA256 = "66c7c705416b7dbad903f9c2eeb71f2abdd4355ba5de056aef1d7888140f159e"
@@ -270,17 +270,34 @@ def compare(
     )
     reports = {}
     for mode in ("keyword", "vector", "hybrid"):
-        reports[mode] = evaluate(
-            engine,
-            run_id,
-            cases_path,
-            tokenizer,
-            mode=mode,
-            allow_api=True,
-            embedder=paired,
-            continue_on_error=True,
-            fixture_data=(labels, frozen_source.text),
-        )
+        try:
+            reports[mode] = evaluate(
+                engine,
+                run_id,
+                cases_path,
+                tokenizer,
+                mode=mode,
+                allow_api=True,
+                embedder=paired,
+                continue_on_error=True,
+                fixture_data=(labels, frozen_source.text),
+            )
+        except (SQLAlchemyError, RetrievalError, EmbeddingError) as error:
+            # A later mode can fail while loading source positions, before search's
+            # per-case handler. Preserve prior results and already-incurred usage.
+            reports[mode] = summarize(
+                [
+                    failed_case(
+                        case,
+                        mode,
+                        "database_error" if isinstance(error, SQLAlchemyError) else error.code,
+                    )
+                    for case in labels["cases"]
+                ],
+                mode,
+                labels,
+                paired,
+            )
     complete = all(report["complete"] for report in reports.values())
     measured = complete and paired.real_provider
     latency = {}

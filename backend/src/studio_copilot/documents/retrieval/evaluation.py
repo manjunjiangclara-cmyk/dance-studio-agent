@@ -2,12 +2,14 @@
 
 import hashlib
 import json
+import time
 from datetime import date
 from pathlib import Path
 from statistics import mean
 from uuid import UUID
 
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 from studio_copilot.documents.embedding.provider import EmbeddingError
 
@@ -128,6 +130,10 @@ def evaluate(
             spans_by_hash.setdefault(chunk["text_sha256"], []).extend(chunk["spans"])
     reports = []
     for case in cases:
+        result = None
+        started = time.perf_counter()
+        before_embedding = getattr(embedder, "embedding_seconds", None)
+        before_tokens = getattr(embedder, "reported_tokens", None)
         try:
             result = search(
                 engine,
@@ -144,31 +150,36 @@ def evaluate(
                     "evaluation_degraded",
                     "Do not report hybrid quality using degraded keyword-only searches.",
                 )
-        except (RetrievalError, EmbeddingError) as error:
+        except (RetrievalError, EmbeddingError, SQLAlchemyError) as error:
             if not continue_on_error:
                 raise
-            failed_entry = dict(
-                id=case["id"],
-                split=case["split"],
-                failed=True,
-                error_code=error.code,
-                answerable=case["answerable"],
-                expected_empty=case.get("expected_empty", False),
+            reports.append(
+                failed_case(
+                    case,
+                    mode,
+                    "database_error" if isinstance(error, SQLAlchemyError) else error.code,
+                    timings=result["timings"]
+                    if result is not None
+                    else dict(
+                        embedding_seconds=(
+                            embedder.embedding_seconds - before_embedding
+                            if before_embedding is not None
+                            else None
+                        ),
+                        keyword_seconds=None,
+                        vector_seconds=None,
+                        context_seconds=None,
+                        total_seconds=time.perf_counter() - started,
+                    ),
+                    reported_tokens=(
+                        result["reported_tokens"]
+                        if result is not None
+                        else embedder.reported_tokens - before_tokens
+                        if before_tokens is not None
+                        else None
+                    ),
+                )
             )
-            if case["answerable"]:
-                for stage in (
-                    "keyword_at_20",
-                    "vector_at_20",
-                    "fused_at_20",
-                    "final_at_6",
-                    "expanded_evidence",
-                ):
-                    failed_entry[stage] = dict(recall=0.0, all_evidence=False, reciprocal_rank=0.0)
-                if mode == "keyword":
-                    failed_entry["vector_at_20"] = None
-                elif mode == "vector":
-                    failed_entry["keyword_at_20"] = None
-            reports.append(failed_entry)
             continue
         entry = dict(
             id=case["id"],
@@ -234,6 +245,48 @@ def evaluate(
         else:
             entry["returned_without_answer_label"] = bool(result["results"])
         reports.append(entry)
+    return summarize(reports, mode, fixture, embedder)
+
+
+def failed_case(case, mode, code, *, timings=None, reported_tokens=None):
+    """Sanitized failure diagnostics; unknown stage timings/usage stay null."""
+    entry = dict(
+        id=case["id"],
+        split=case["split"],
+        failed=True,
+        error_code=code,
+        answerable=case["answerable"],
+        expected_empty=case.get("expected_empty", False),
+        timings=timings
+        if timings is not None
+        else dict.fromkeys(
+            (
+                "embedding_seconds",
+                "keyword_seconds",
+                "vector_seconds",
+                "context_seconds",
+                "total_seconds",
+            )
+        ),
+        reported_tokens=reported_tokens,
+    )
+    if case["answerable"]:
+        for stage in (
+            "keyword_at_20",
+            "vector_at_20",
+            "fused_at_20",
+            "final_at_6",
+            "expanded_evidence",
+        ):
+            entry[stage] = dict(recall=0.0, all_evidence=False, reciprocal_rank=0.0)
+        if mode == "keyword":
+            entry["vector_at_20"] = None
+        elif mode == "vector":
+            entry["keyword_at_20"] = None
+    return entry
+
+
+def summarize(reports, mode, fixture, embedder=None):
     summaries = {}
     for split in ("tuning", "held_out"):
         selected = [r for r in reports if r["split"] == split]

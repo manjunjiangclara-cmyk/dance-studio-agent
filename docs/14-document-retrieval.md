@@ -197,7 +197,9 @@ selection, with a flag when parent context recovers it. Provider failures and
 hybrid degradation are failed cases, counted as zero for answerable-case metrics;
 they do not disappear from denominators. Incomplete comparisons exit nonzero,
 retain case failure codes, and cannot claim successful semantic quality or target
-achievement. Date-exclusion checks and in-period unanswerable cases remain separate.
+achievement. Database errors and later-mode source/preflight failures preserve
+completed modes and already-incurred usage in that incomplete JSON, using sanitized
+error codes; unknown stage timings remain null rather than fabricated zero values. Date-exclusion checks and in-period unanswerable cases remain separate.
 
 The fixture and splits are frozen; this implementation does not tune retrieval on
 the held-out set. Actual paid vector/hybrid quality remains **unmeasured** until an

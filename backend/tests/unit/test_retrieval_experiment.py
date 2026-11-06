@@ -115,3 +115,40 @@ def test_programmatic_api_gate_before_any_access(function, args):
     with pytest.raises(RetrievalError) as error:
         function(*args)
     assert error.value.code == "api_permission"
+
+
+def test_cli_partial_report_is_json_and_nonzero(monkeypatch, capsys):
+    class Engine:
+        disposed = False
+
+        def dispose(self):
+            self.disposed = True
+
+    engine = Engine()
+    monkeypatch.setattr(experiment, "Tokenizer", lambda *a: object())
+    monkeypatch.setattr(experiment, "make_engine", lambda: engine)
+    monkeypatch.setattr(
+        experiment,
+        "compare",
+        lambda *a, **kw: dict(
+            complete=False,
+            question_embedding=dict(requests=3, reported_tokens=21),
+            modes=dict(hybrid=dict(complete=False, error_code="database_error")),
+        ),
+    )
+    assert (
+        experiment.main(
+            [
+                "compare",
+                "--run-id",
+                str(uuid4()),
+                "--cases",
+                str(CASES),
+                "--allow-api",
+            ]
+        )
+        == 1
+    )
+    report = json.loads(capsys.readouterr().out)
+    assert not report["complete"] and report["question_embedding"]["reported_tokens"] == 21
+    assert engine.disposed
