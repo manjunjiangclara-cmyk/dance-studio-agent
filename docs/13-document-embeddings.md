@@ -83,9 +83,6 @@ Measured on 2026-11-06, macOS 26.5.2 arm64, Python 3.12.13, PostgreSQL 18.6 / pg
 
 | Exact 10 MB case | Pipeline seconds | Verification seconds | Peak RSS MiB | Parents | Passages | New vectors |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-
-The 600/900/2,400 parameters remain versioned starting values; retrieval quality must be evaluated in the retrieval milestone.
-
 | single-line | 156.723 | 22.838 | 218.71 | 1221 | 3662 | 4 |
 | short-blocks | 69.424 | 8.201 | 199.54 | 4884 | 12210 | 7 |
 | many-headings | 26.09 | 3.752 | 218.78 | 2442 | 4885 | 6 |
@@ -95,3 +92,5 @@ The 600/900/2,400 parameters remain versioned starting values; retrieval quality
 | giant-row | 10.061 | 1.562 | 234.48 | 1224 | 2446 | 6 |
 
 [Machine-readable measurements](measurements/document-embeddings-2026-11-06.json) include cache reuse and explicit structure-fallback warnings. Every case passed coverage, token, vector/link, complete-state, and replay checks with zero model calls.
+
+The 600/900/2,400 parameters remain versioned starting values; retrieval quality must be evaluated in the retrieval milestone.
