@@ -306,9 +306,22 @@ class Store:
     def fail(self, run_id, token, code):
         try:
             with Session(self.engine) as session, session.begin():
-                run = self._owned(session, run_id, token)
-                run.status, run.error_code = "failed", code
-                run.lease_token, run.lease_expires_at = None, None
+                self._owned(session, run_id, token)
+                result = session.execute(
+                    update(Run)
+                    .where(
+                        Run.id == run_id,
+                        Run.lease_token == token,
+                        Run.profile_hash == self.profile.key,
+                        Run.lease_expires_at > func.clock_timestamp(),
+                        Run.status.in_(["preparing", "running"]),
+                    )
+                    .values(
+                        status="failed", error_code=code, lease_token=None, lease_expires_at=None
+                    )
+                )
+                if result.rowcount != 1:
+                    raise LeaseLost()
         except LeaseLost:
             pass
 

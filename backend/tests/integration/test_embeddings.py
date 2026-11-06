@@ -578,3 +578,29 @@ def test_real_cli_plan_run_and_status_use_isolated_database_and_fake_http_provid
         status = invoke("status", ["--run-id", completed["run_id"]])
         assert status == completed
         assert invoke("run", common) == completed and len(received) == 1
+
+
+def test_failure_rechecks_expiry_after_acquiring_ownership(db_engine, tokenizer, monkeypatch):
+    document_id = create_source(db_engine)
+    store = Store(db_engine, EmbeddingProfile())
+    run_id, token = store.claim(source_chunker(db_engine, tokenizer, document_id))
+    with db_engine.begin() as connection:
+        connection.execute(
+            update(EmbeddingRun)
+            .where(EmbeddingRun.id == run_id)
+            .values(lease_expires_at=func.clock_timestamp() + text("interval '0.2 seconds'"))
+        )
+    original = store._owned
+
+    def delay_after_ownership(session, *args):
+        run = original(session, *args)
+        session.execute(text("SELECT pg_sleep(0.3)"))
+        return run
+
+    monkeypatch.setattr(store, "_owned", delay_after_ownership)
+    store.fail(run_id, token, "provider_error")
+    with Session(db_engine) as session:
+        row = session.get(EmbeddingRun, run_id)
+        assert row.status == "preparing"
+        assert row.lease_token == token
+        assert row.error_code is None

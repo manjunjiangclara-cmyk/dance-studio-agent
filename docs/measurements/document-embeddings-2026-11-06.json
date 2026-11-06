@@ -1,0 +1,148 @@
+{
+  "environment": "macOS 26.5.2 arm64; PostgreSQL 18.6; pgvector 0.8.7; Python 3.12.13; fake provider; concurrent local validation workloads",
+  "cases": {
+    "single-line": {
+      "source_bytes": 10000000,
+      "elapsed_seconds": 156.723,
+      "verification_seconds": 22.838,
+      "peak_rss_mib": 218.71,
+      "counts": {
+        "parent": 1221,
+        "passage": 3662,
+        "vectors": 4
+      },
+      "cache_reused_passages": 3658,
+      "new_vectors": 4,
+      "fake_batches": 2,
+      "max_batch": 3,
+      "fake_reported_tokens": 3076,
+      "warnings": [],
+      "model_calls": 0,
+      "verification": "full source coverage, text/token/vector/mapping checks and no-op replay"
+    },
+    "short-blocks": {
+      "source_bytes": 10000000,
+      "elapsed_seconds": 69.424,
+      "verification_seconds": 8.201,
+      "peak_rss_mib": 199.54,
+      "counts": {
+        "parent": 4884,
+        "passage": 12210,
+        "vectors": 7
+      },
+      "cache_reused_passages": 12203,
+      "new_vectors": 7,
+      "fake_batches": 2,
+      "max_batch": 6,
+      "fake_reported_tokens": 3587,
+      "warnings": [
+        "structure_complexity_fallback"
+      ],
+      "model_calls": 0,
+      "verification": "full source coverage, text/token/vector/mapping checks and no-op replay"
+    },
+    "many-headings": {
+      "source_bytes": 10000000,
+      "elapsed_seconds": 26.09,
+      "verification_seconds": 3.752,
+      "peak_rss_mib": 218.78,
+      "counts": {
+        "parent": 2442,
+        "passage": 4885,
+        "vectors": 6
+      },
+      "cache_reused_passages": 4879,
+      "new_vectors": 6,
+      "fake_batches": 2,
+      "max_batch": 4,
+      "fake_reported_tokens": 3983,
+      "warnings": [
+        "structure_complexity_fallback"
+      ],
+      "model_calls": 0,
+      "verification": "full source coverage, text/token/vector/mapping checks and no-op replay"
+    },
+    "unicode": {
+      "source_bytes": 10000000,
+      "elapsed_seconds": 19.679,
+      "verification_seconds": 2.31,
+      "peak_rss_mib": 277.14,
+      "counts": {
+        "parent": 2326,
+        "passage": 9302,
+        "vectors": 8
+      },
+      "cache_reused_passages": 9294,
+      "new_vectors": 8,
+      "fake_batches": 2,
+      "max_batch": 7,
+      "fake_reported_tokens": 4806,
+      "warnings": [
+        "structure_complexity_fallback"
+      ],
+      "model_calls": 0,
+      "verification": "full source coverage, text/token/vector/mapping checks and no-op replay"
+    },
+    "table": {
+      "source_bytes": 10000000,
+      "elapsed_seconds": 14.792,
+      "verification_seconds": 2.452,
+      "peak_rss_mib": 220.8,
+      "counts": {
+        "parent": 1221,
+        "passage": 4883,
+        "vectors": 5
+      },
+      "cache_reused_passages": 4878,
+      "new_vectors": 5,
+      "fake_batches": 2,
+      "max_batch": 4,
+      "fake_reported_tokens": 2879,
+      "warnings": [
+        "structure_complexity_fallback"
+      ],
+      "model_calls": 0,
+      "verification": "full source coverage, text/token/vector/mapping checks and no-op replay"
+    },
+    "code": {
+      "source_bytes": 10000000,
+      "elapsed_seconds": 15.736,
+      "verification_seconds": 2.574,
+      "peak_rss_mib": 224.7,
+      "counts": {
+        "parent": 1229,
+        "passage": 4914,
+        "vectors": 6
+      },
+      "cache_reused_passages": 4908,
+      "new_vectors": 6,
+      "fake_batches": 2,
+      "max_batch": 5,
+      "fake_reported_tokens": 3309,
+      "warnings": [
+        "structure_complexity_fallback"
+      ],
+      "model_calls": 0,
+      "verification": "full source coverage, text/token/vector/mapping checks and no-op replay"
+    },
+    "giant-row": {
+      "source_bytes": 10000000,
+      "elapsed_seconds": 10.061,
+      "verification_seconds": 1.562,
+      "peak_rss_mib": 234.48,
+      "counts": {
+        "parent": 1224,
+        "passage": 2446,
+        "vectors": 6
+      },
+      "cache_reused_passages": 2440,
+      "new_vectors": 6,
+      "fake_batches": 2,
+      "max_batch": 5,
+      "fake_reported_tokens": 3107,
+      "warnings": [],
+      "model_calls": 0,
+      "verification": "full source coverage, text/token/vector/mapping checks and no-op replay"
+    }
+  }
+}

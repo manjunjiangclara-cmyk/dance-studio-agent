@@ -77,6 +77,21 @@ TEST_DATABASE_URL=postgresql+psycopg://.../studio_copilot_test \
   --tokenizer-cache /tmp/studio-chunking-tokenizer
 ```
 
-Each of seven fixtures is exactly 10,000,000 bytes: a single line, giant paragraph, dense short blocks, long table, long code, Chinese/emoji, and heading-heavy text. Each case runs in a fresh subprocess and isolated schema with the real chunker, PostgreSQL, and a deterministic fake embedding provider. It independently checks rendered text/source coverage, token budgets, stored vector dimensions/norm, parent links, and a no-op repeat run. These fixtures are repetitive and exercise deduplication heavily; they do not establish high-uniqueness vector throughput, provider latency/cost, or retrieval recall.
+Each of seven fixtures is exactly 10,000,000 bytes: a single giant paragraph without line breaks, dense short blocks, repeated headings, Chinese/emoji, a long table, long code, and a giant table row. Each case runs in a fresh subprocess and isolated schema with the real chunker, PostgreSQL, and a deterministic fake embedding provider. It independently checks rendered text/source coverage, token budgets, stored vector dimensions/norm, parent links, and a no-op repeat run. These fixtures are repetitive and exercise deduplication heavily; they do not establish high-uniqueness vector throughput, provider latency/cost, or retrieval recall.
 
-Measured results are recorded below after the benchmark completes. The 600/900/2,400 parameters remain versioned starting values; retrieval quality must be evaluated in the retrieval milestone.
+Measured on 2026-11-06, macOS 26.5.2 arm64, Python 3.12.13, PostgreSQL 18.6 / pgvector 0.8.7. Other local validation workloads ran concurrently, so timings are representative observations, not an SLA. Pipeline time includes revision load, chunking, persistence, and fake-provider work; verification is measured separately. Peak RSS includes the child process's verification phase.
+
+| Exact 10 MB case | Pipeline seconds | Verification seconds | Peak RSS MiB | Parents | Passages | New vectors |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+
+The 600/900/2,400 parameters remain versioned starting values; retrieval quality must be evaluated in the retrieval milestone.
+
+| single-line | 156.723 | 22.838 | 218.71 | 1221 | 3662 | 4 |
+| short-blocks | 69.424 | 8.201 | 199.54 | 4884 | 12210 | 7 |
+| many-headings | 26.09 | 3.752 | 218.78 | 2442 | 4885 | 6 |
+| unicode | 19.679 | 2.31 | 277.14 | 2326 | 9302 | 8 |
+| table | 14.792 | 2.452 | 220.8 | 1221 | 4883 | 5 |
+| code | 15.736 | 2.574 | 224.7 | 1229 | 4914 | 6 |
+| giant-row | 10.061 | 1.562 | 234.48 | 1224 | 2446 | 6 |
+
+[Machine-readable measurements](measurements/document-embeddings-2026-11-06.json) include cache reuse and explicit structure-fallback warnings. Every case passed coverage, token, vector/link, complete-state, and replay checks with zero model calls.

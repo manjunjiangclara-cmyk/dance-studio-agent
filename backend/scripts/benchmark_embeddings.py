@@ -131,10 +131,19 @@ def verify(engine, run_id, original, tokenizer, profile, status):
     return counts
 
 
-def child(args):
+def test_database_url():
     url = make_url(os.environ["TEST_DATABASE_URL"])
-    if url.drivername != "postgresql+psycopg" or not url.database.endswith("_test"):
+    if (
+        url.drivername != "postgresql+psycopg"
+        or not url.database
+        or not url.database.endswith("_test")
+    ):
         raise ValueError("Use a postgresql+psycopg TEST_DATABASE_URL ending in _test.")
+    return url
+
+
+def child(args):
+    url = test_database_url()
     schema = "embedding_benchmark_" + (uuid.UUID(args.schema) if args.schema else uuid.uuid4()).hex
     admin = create_engine(url)
     engine = None
@@ -234,6 +243,7 @@ def main():
         parser.error("--output-dir is required.")
     if not os.environ.get("TEST_DATABASE_URL"):
         parser.error("Set TEST_DATABASE_URL to the disposable PostgreSQL test database.")
+    test_database_url()
     args.output_dir.mkdir(parents=True, exist_ok=False)
     results = {}
     for case in args.cases:
@@ -261,7 +271,7 @@ def main():
         finally:
             # Also clean up if subprocess.run had to kill a timed-out child, whose
             # Python finally block cannot execute after SIGKILL.
-            admin = create_engine(os.environ["TEST_DATABASE_URL"])
+            admin = create_engine(test_database_url())
             try:
                 with admin.begin() as connection:
                     schema = "embedding_benchmark_" + schema_id.hex
