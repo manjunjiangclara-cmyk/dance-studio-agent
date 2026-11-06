@@ -308,7 +308,8 @@ def search(
                 ).mappings()
             ]
             timings["vector_seconds"] = time.perf_counter() - before
-        chosen = fuse(keyword, vector)[:RESULTS]
+        fused = fuse(keyword, vector)
+        chosen = fused[:RESULTS]
         before = time.perf_counter()
         references = {}
         if chosen:
@@ -386,7 +387,7 @@ def search(
         evidence=evidence,
         evidence_tokens=count,
         source_runs=source_runs,
-        candidates=dict(keyword=keyword, vector=vector),
+        candidates=dict(keyword=keyword, vector=vector, fused=fused),
         reported_tokens=usage,
         timings=timings,
     )

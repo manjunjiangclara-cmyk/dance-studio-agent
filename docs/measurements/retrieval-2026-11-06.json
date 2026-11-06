@@ -1,0 +1,2212 @@
+{
+  "environment": "macOS 26.5.2 arm64; Python 3.12.13; PostgreSQL 18.6; pgvector 0.8.7; concurrent local checks; deterministic fake embedding provider",
+  "notes": [
+    "Plan structures omit query constants, including 1536-element query vectors; rerun benchmark for full EXPLAIN and individual observations.",
+    "Timings are local observations, not an SLA. PostgreSQL caches may already be warm after preparation."
+  ],
+  "cases": {
+    "single-line": {
+      "source_bytes": 10000000,
+      "documents": 1,
+      "chunk_counts": {
+        "parent": 1221,
+        "passage": 3662
+      },
+      "preparation_seconds": 129.574,
+      "preparation_peak_rss_mib": 232.16,
+      "search_peak_rss_mib": 155.73,
+      "measurement_notes": "Fresh search process; PostgreSQL buffers may be warm from preparation. Summaries aggregate three query shapes. Embedding time measures a local fake call, not OpenAI network latency. EXPLAIN is collected after timing.",
+      "semantic_quality": "unmeasured: fixture unit vectors are not semantic embeddings",
+      "modes": {
+        "keyword": {
+          "samples": 9,
+          "timings_seconds": {
+            "keyword_seconds": {
+              "median": 0.001159,
+              "p95": 0.004988
+            },
+            "vector_seconds": {
+              "median": 0.0,
+              "p95": 0.0
+            },
+            "embedding_seconds": {
+              "median": 0.0,
+              "p95": 0.0
+            },
+            "context_seconds": {
+              "median": 2.2e-05,
+              "p95": 0.018317
+            },
+            "total_seconds": {
+              "median": 0.004138,
+              "p95": 0.039775
+            }
+          },
+          "fake_query_calls": 0,
+          "real_model_calls": 0
+        },
+        "vector": {
+          "samples": 9,
+          "timings_seconds": {
+            "keyword_seconds": {
+              "median": 0.0,
+              "p95": 0.0
+            },
+            "vector_seconds": {
+              "median": 0.002772,
+              "p95": 0.00415
+            },
+            "embedding_seconds": {
+              "median": 0.000252,
+              "p95": 0.00027
+            },
+            "context_seconds": {
+              "median": 0.063958,
+              "p95": 0.066633
+            },
+            "total_seconds": {
+              "median": 0.070495,
+              "p95": 0.075274
+            }
+          },
+          "fake_query_calls": 9,
+          "real_model_calls": 0
+        },
+        "hybrid": {
+          "samples": 9,
+          "timings_seconds": {
+            "keyword_seconds": {
+              "median": 0.001971,
+              "p95": 0.002931
+            },
+            "vector_seconds": {
+              "median": 0.003805,
+              "p95": 0.007095
+            },
+            "embedding_seconds": {
+              "median": 0.000226,
+              "p95": 0.000241
+            },
+            "context_seconds": {
+              "median": 0.06452,
+              "p95": 0.068066
+            },
+            "total_seconds": {
+              "median": 0.07355,
+              "p95": 0.08238
+            }
+          },
+          "fake_query_calls": 9,
+          "real_model_calls": 0
+        }
+      },
+      "plan_structure": {
+        "keyword": [
+          {
+            "Plan": {
+              "Node Type": "Limit",
+              "Total Cost": 216.56,
+              "Plan Rows": 1,
+              "Plans": [
+                {
+                  "Node Type": "Sort",
+                  "Total Cost": 216.56,
+                  "Plan Rows": 1,
+                  "Plans": [
+                    {
+                      "Node Type": "Aggregate",
+                      "Total Cost": 216.55,
+                      "Plan Rows": 1,
+                      "Plans": [
+                        {
+                          "Node Type": "Sort",
+                          "Total Cost": 216.28,
+                          "Plan Rows": 1,
+                          "Plans": [
+                            {
+                              "Node Type": "Nested Loop",
+                              "Join Type": "Inner",
+                              "Total Cost": 216.27,
+                              "Plan Rows": 1,
+                              "Plans": [
+                                {
+                                  "Node Type": "Nested Loop",
+                                  "Join Type": "Inner",
+                                  "Total Cost": 205.2,
+                                  "Plan Rows": 1,
+                                  "Plans": [
+                                    {
+                                      "Node Type": "Bitmap Heap Scan",
+                                      "Relation Name": "document_chunks",
+                                      "Total Cost": 204.18,
+                                      "Plan Rows": 1,
+                                      "Plans": [
+                                        {
+                                          "Node Type": "Bitmap Index Scan",
+                                          "Index Name": "ix_document_chunks_search",
+                                          "Total Cost": 199.91,
+                                          "Plan Rows": 1
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "Node Type": "Seq Scan",
+                                      "Relation Name": "embedding_runs",
+                                      "Total Cost": 1.01,
+                                      "Plan Rows": 1
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Node Type": "Seq Scan",
+                                  "Relation Name": "document_revisions",
+                                  "Total Cost": 11.05,
+                                  "Plan Rows": 1
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "vector": [
+          {
+            "Plan": {
+              "Node Type": "Limit",
+              "Total Cost": 1206.86,
+              "Plan Rows": 4,
+              "Plans": [
+                {
+                  "Node Type": "Unique",
+                  "Total Cost": 1205.16,
+                  "Plan Rows": 24,
+                  "Plans": [
+                    {
+                      "Node Type": "Sort",
+                      "Total Cost": 1204.93,
+                      "Plan Rows": 46,
+                      "Plans": [
+                        {
+                          "Node Type": "Nested Loop",
+                          "Join Type": "Inner",
+                          "Total Cost": 1203.54,
+                          "Plan Rows": 46,
+                          "Plans": [
+                            {
+                              "Node Type": "Nested Loop",
+                              "Join Type": "Inner",
+                              "Total Cost": 12.08,
+                              "Plan Rows": 1,
+                              "Plans": [
+                                {
+                                  "Node Type": "Seq Scan",
+                                  "Relation Name": "embedding_runs",
+                                  "Total Cost": 1.01,
+                                  "Plan Rows": 1
+                                },
+                                {
+                                  "Node Type": "Seq Scan",
+                                  "Relation Name": "document_revisions",
+                                  "Total Cost": 11.05,
+                                  "Plan Rows": 1
+                                }
+                              ]
+                            },
+                            {
+                              "Node Type": "Seq Scan",
+                              "Relation Name": "document_chunks",
+                              "Total Cost": 1157.14,
+                              "Plan Rows": 2746
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Node Type": "Sort",
+                  "Total Cost": 1.7,
+                  "Plan Rows": 4,
+                  "Plans": [
+                    {
+                      "Node Type": "Hash Join",
+                      "Join Type": "Inner",
+                      "Total Cost": 1.65,
+                      "Plan Rows": 4,
+                      "Plans": [
+                        {
+                          "Node Type": "CTE Scan",
+                          "Total Cost": 0.48,
+                          "Plan Rows": 24
+                        },
+                        {
+                          "Node Type": "Hash",
+                          "Total Cost": 1.04,
+                          "Plan Rows": 4,
+                          "Plans": [
+                            {
+                              "Node Type": "Seq Scan",
+                              "Relation Name": "embedding_vectors",
+                              "Total Cost": 1.04,
+                              "Plan Rows": 4
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "keyword_gin_indexes": [
+        "CREATE INDEX ix_document_chunks_search ON retrieval_benchmark_1c4782bc63ba4867a4efc71126e1a5e5.document_chunks USING gin (to_tsvector('english'::regconfig, text)) WHERE ((kind)::text = 'passage'::text)"
+      ],
+      "real_model_calls": 0
+    },
+    "short-blocks": {
+      "source_bytes": 10000000,
+      "documents": 1,
+      "chunk_counts": {
+        "parent": 4884,
+        "passage": 12210
+      },
+      "preparation_seconds": 59.188,
+      "preparation_peak_rss_mib": 226.12,
+      "search_peak_rss_mib": 159.61,
+      "measurement_notes": "Fresh search process; PostgreSQL buffers may be warm from preparation. Summaries aggregate three query shapes. Embedding time measures a local fake call, not OpenAI network latency. EXPLAIN is collected after timing.",
+      "semantic_quality": "unmeasured: fixture unit vectors are not semantic embeddings",
+      "modes": {
+        "keyword": {
+          "samples": 9,
+          "timings_seconds": {
+            "keyword_seconds": {
+              "median": 0.002062,
+              "p95": 0.007072
+            },
+            "vector_seconds": {
+              "median": 0.0,
+              "p95": 0.0
+            },
+            "embedding_seconds": {
+              "median": 0.0,
+              "p95": 0.0
+            },
+            "context_seconds": {
+              "median": 1.9e-05,
+              "p95": 0.011972
+            },
+            "total_seconds": {
+              "median": 0.004791,
+              "p95": 0.039958
+            }
+          },
+          "fake_query_calls": 0,
+          "real_model_calls": 0
+        },
+        "vector": {
+          "samples": 9,
+          "timings_seconds": {
+            "keyword_seconds": {
+              "median": 0.0,
+              "p95": 0.0
+            },
+            "vector_seconds": {
+              "median": 0.006955,
+              "p95": 0.008182
+            },
+            "embedding_seconds": {
+              "median": 0.000244,
+              "p95": 0.000313
+            },
+            "context_seconds": {
+              "median": 0.042607,
+              "p95": 0.044349
+            },
+            "total_seconds": {
+              "median": 0.052325,
+              "p95": 0.055164
+            }
+          },
+          "fake_query_calls": 9,
+          "real_model_calls": 0
+        },
+        "hybrid": {
+          "samples": 9,
+          "timings_seconds": {
+            "keyword_seconds": {
+              "median": 0.001652,
+              "p95": 0.002279
+            },
+            "vector_seconds": {
+              "median": 0.006792,
+              "p95": 0.007078
+            },
+            "embedding_seconds": {
+              "median": 0.000247,
+              "p95": 0.000256
+            },
+            "context_seconds": {
+              "median": 0.041873,
+              "p95": 0.042488
+            },
+            "total_seconds": {
+              "median": 0.052987,
+              "p95": 0.053747
+            }
+          },
+          "fake_query_calls": 9,
+          "real_model_calls": 0
+        }
+      },
+      "plan_structure": {
+        "keyword": [
+          {
+            "Plan": {
+              "Node Type": "Limit",
+              "Total Cost": 746.2,
+              "Plan Rows": 1,
+              "Plans": [
+                {
+                  "Node Type": "Sort",
+                  "Total Cost": 746.2,
+                  "Plan Rows": 1,
+                  "Plans": [
+                    {
+                      "Node Type": "Aggregate",
+                      "Total Cost": 746.18,
+                      "Plan Rows": 1,
+                      "Plans": [
+                        {
+                          "Node Type": "Sort",
+                          "Total Cost": 745.91,
+                          "Plan Rows": 1,
+                          "Plans": [
+                            {
+                              "Node Type": "Nested Loop",
+                              "Join Type": "Inner",
+                              "Total Cost": 745.9,
+                              "Plan Rows": 1,
+                              "Plans": [
+                                {
+                                  "Node Type": "Nested Loop",
+                                  "Join Type": "Inner",
+                                  "Total Cost": 734.83,
+                                  "Plan Rows": 1,
+                                  "Plans": [
+                                    {
+                                      "Node Type": "Index Scan",
+                                      "Index Name": "uq_embedding_runs_document_id",
+                                      "Relation Name": "embedding_runs",
+                                      "Total Cost": 8.14,
+                                      "Plan Rows": 1
+                                    },
+                                    {
+                                      "Node Type": "Bitmap Heap Scan",
+                                      "Relation Name": "document_chunks",
+                                      "Total Cost": 726.68,
+                                      "Plan Rows": 1,
+                                      "Plans": [
+                                        {
+                                          "Node Type": "Bitmap Index Scan",
+                                          "Index Name": "ix_document_chunks_search",
+                                          "Total Cost": 722.41,
+                                          "Plan Rows": 1
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Node Type": "Seq Scan",
+                                  "Relation Name": "document_revisions",
+                                  "Total Cost": 11.05,
+                                  "Plan Rows": 1
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "vector": [
+          {
+            "Plan": {
+              "Node Type": "Limit",
+              "Total Cost": 6884.28,
+              "Plan Rows": 7,
+              "Plans": [
+                {
+                  "Node Type": "Unique",
+                  "Total Cost": 6881.56,
+                  "Plan Rows": 63,
+                  "Plans": [
+                    {
+                      "Node Type": "Sort",
+                      "Total Cost": 6880.83,
+                      "Plan Rows": 145,
+                      "Plans": [
+                        {
+                          "Node Type": "Nested Loop",
+                          "Join Type": "Inner",
+                          "Total Cost": 6875.26,
+                          "Plan Rows": 145,
+                          "Plans": [
+                            {
+                              "Node Type": "Nested Loop",
+                              "Join Type": "Inner",
+                              "Total Cost": 19.21,
+                              "Plan Rows": 1,
+                              "Plans": [
+                                {
+                                  "Node Type": "Index Scan",
+                                  "Index Name": "uq_embedding_runs_id",
+                                  "Relation Name": "embedding_runs",
+                                  "Total Cost": 8.14,
+                                  "Plan Rows": 1
+                                },
+                                {
+                                  "Node Type": "Seq Scan",
+                                  "Relation Name": "document_revisions",
+                                  "Total Cost": 11.05,
+                                  "Plan Rows": 1
+                                }
+                              ]
+                            },
+                            {
+                              "Node Type": "Seq Scan",
+                              "Relation Name": "document_chunks",
+                              "Total Cost": 6747.04,
+                              "Plan Rows": 8721
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Node Type": "Sort",
+                  "Total Cost": 2.73,
+                  "Plan Rows": 7,
+                  "Plans": [
+                    {
+                      "Node Type": "Hash Join",
+                      "Join Type": "Inner",
+                      "Total Cost": 2.61,
+                      "Plan Rows": 7,
+                      "Plans": [
+                        {
+                          "Node Type": "CTE Scan",
+                          "Total Cost": 1.26,
+                          "Plan Rows": 63
+                        },
+                        {
+                          "Node Type": "Hash",
+                          "Total Cost": 1.07,
+                          "Plan Rows": 7,
+                          "Plans": [
+                            {
+                              "Node Type": "Seq Scan",
+                              "Relation Name": "embedding_vectors",
+                              "Total Cost": 1.07,
+                              "Plan Rows": 7
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "keyword_gin_indexes": [
+        "CREATE INDEX ix_document_chunks_search ON retrieval_benchmark_26c110b4062b4d1697a08d6339542b19.document_chunks USING gin (to_tsvector('english'::regconfig, text)) WHERE ((kind)::text = 'passage'::text)"
+      ],
+      "real_model_calls": 0
+    },
+    "many-headings": {
+      "source_bytes": 10000000,
+      "documents": 1,
+      "chunk_counts": {
+        "parent": 2442,
+        "passage": 4885,
+        "distinct_passage_texts": 6,
+        "vectors": 6
+      },
+      "preparation_seconds": 28.396,
+      "preparation_peak_rss_mib": 227.9,
+      "search_peak_rss_mib": 155.76,
+      "measurement_notes": "Fresh search process; PostgreSQL buffers may be warm from preparation. Summaries aggregate three query shapes. Embedding time measures a local fake call, not OpenAI network latency. EXPLAIN is collected after timing.",
+      "semantic_quality": "unmeasured: fixture unit vectors are not semantic embeddings",
+      "modes": {
+        "keyword": {
+          "samples": 9,
+          "timings_seconds": {
+            "keyword_seconds": {
+              "median": 0.002018,
+              "p95": 0.006946
+            },
+            "vector_seconds": {
+              "median": 0.0,
+              "p95": 0.0
+            },
+            "embedding_seconds": {
+              "median": 0.0,
+              "p95": 0.0
+            },
+            "context_seconds": {
+              "median": 2.1e-05,
+              "p95": 0.005492
+            },
+            "total_seconds": {
+              "median": 0.00536,
+              "p95": 0.039776
+            }
+          },
+          "fake_query_calls": 0,
+          "real_model_calls": 0
+        },
+        "vector": {
+          "samples": 9,
+          "timings_seconds": {
+            "keyword_seconds": {
+              "median": 0.0,
+              "p95": 0.0
+            },
+            "vector_seconds": {
+              "median": 0.002293,
+              "p95": 0.004156
+            },
+            "embedding_seconds": {
+              "median": 0.000261,
+              "p95": 0.000299
+            },
+            "context_seconds": {
+              "median": 0.018891,
+              "p95": 0.022167
+            },
+            "total_seconds": {
+              "median": 0.023817,
+              "p95": 0.029003
+            }
+          },
+          "fake_query_calls": 9,
+          "real_model_calls": 0
+        },
+        "hybrid": {
+          "samples": 9,
+          "timings_seconds": {
+            "keyword_seconds": {
+              "median": 0.001322,
+              "p95": 0.001725
+            },
+            "vector_seconds": {
+              "median": 0.002353,
+              "p95": 0.002534
+            },
+            "embedding_seconds": {
+              "median": 0.000242,
+              "p95": 0.000272
+            },
+            "context_seconds": {
+              "median": 0.018202,
+              "p95": 0.019158
+            },
+            "total_seconds": {
+              "median": 0.024485,
+              "p95": 0.025963
+            }
+          },
+          "fake_query_calls": 9,
+          "real_model_calls": 0
+        }
+      },
+      "plan_structure": {
+        "keyword": [
+          {
+            "Plan": {
+              "Node Type": "Limit",
+              "Total Cost": 593.51,
+              "Plan Rows": 1,
+              "Plans": [
+                {
+                  "Node Type": "Sort",
+                  "Total Cost": 593.51,
+                  "Plan Rows": 1,
+                  "Plans": [
+                    {
+                      "Node Type": "Aggregate",
+                      "Total Cost": 593.49,
+                      "Plan Rows": 1,
+                      "Plans": [
+                        {
+                          "Node Type": "Sort",
+                          "Total Cost": 593.22,
+                          "Plan Rows": 1,
+                          "Plans": [
+                            {
+                              "Node Type": "Nested Loop",
+                              "Join Type": "Inner",
+                              "Total Cost": 593.21,
+                              "Plan Rows": 1,
+                              "Plans": [
+                                {
+                                  "Node Type": "Nested Loop",
+                                  "Join Type": "Inner",
+                                  "Total Cost": 19.23,
+                                  "Plan Rows": 1,
+                                  "Plans": [
+                                    {
+                                      "Node Type": "Seq Scan",
+                                      "Relation Name": "document_revisions",
+                                      "Total Cost": 11.05,
+                                      "Plan Rows": 1
+                                    },
+                                    {
+                                      "Node Type": "Index Scan",
+                                      "Index Name": "uq_embedding_runs_document_id",
+                                      "Relation Name": "embedding_runs",
+                                      "Total Cost": 8.17,
+                                      "Plan Rows": 1
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Node Type": "Bitmap Heap Scan",
+                                  "Relation Name": "document_chunks",
+                                  "Total Cost": 573.97,
+                                  "Plan Rows": 1,
+                                  "Plans": [
+                                    {
+                                      "Node Type": "Bitmap Index Scan",
+                                      "Index Name": "ix_document_chunks_search",
+                                      "Total Cost": 569.7,
+                                      "Plan Rows": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "vector": [
+          {
+            "Plan": {
+              "Node Type": "Limit",
+              "Total Cost": 1558.47,
+              "Plan Rows": 1,
+              "Plans": [
+                {
+                  "Node Type": "Unique",
+                  "Total Cost": 1557.33,
+                  "Plan Rows": 1,
+                  "Plans": [
+                    {
+                      "Node Type": "Sort",
+                      "Total Cost": 1557.33,
+                      "Plan Rows": 1,
+                      "Plans": [
+                        {
+                          "Node Type": "Hash Join",
+                          "Join Type": "Inner",
+                          "Total Cost": 1557.31,
+                          "Plan Rows": 1,
+                          "Plans": [
+                            {
+                              "Node Type": "Seq Scan",
+                              "Relation Name": "document_chunks",
+                              "Total Cost": 1525.75,
+                              "Plan Rows": 3257
+                            },
+                            {
+                              "Node Type": "Hash",
+                              "Total Cost": 19.23,
+                              "Plan Rows": 1,
+                              "Plans": [
+                                {
+                                  "Node Type": "Nested Loop",
+                                  "Join Type": "Inner",
+                                  "Total Cost": 19.23,
+                                  "Plan Rows": 1,
+                                  "Plans": [
+                                    {
+                                      "Node Type": "Seq Scan",
+                                      "Relation Name": "document_revisions",
+                                      "Total Cost": 11.05,
+                                      "Plan Rows": 1
+                                    },
+                                    {
+                                      "Node Type": "Index Scan",
+                                      "Index Name": "uq_embedding_runs_document_id",
+                                      "Relation Name": "embedding_runs",
+                                      "Total Cost": 8.17,
+                                      "Plan Rows": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Node Type": "Sort",
+                  "Total Cost": 1.14,
+                  "Plan Rows": 1,
+                  "Plans": [
+                    {
+                      "Node Type": "Hash Join",
+                      "Join Type": "Inner",
+                      "Total Cost": 1.13,
+                      "Plan Rows": 1,
+                      "Plans": [
+                        {
+                          "Node Type": "Seq Scan",
+                          "Relation Name": "embedding_vectors",
+                          "Total Cost": 1.06,
+                          "Plan Rows": 6
+                        },
+                        {
+                          "Node Type": "Hash",
+                          "Total Cost": 0.02,
+                          "Plan Rows": 1,
+                          "Plans": [
+                            {
+                              "Node Type": "CTE Scan",
+                              "Total Cost": 0.02,
+                              "Plan Rows": 1
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "keyword_gin_indexes": [
+        "CREATE INDEX ix_document_chunks_search ON retrieval_benchmark_536bee6ea26148569fc6ffa3e1b8dea5.document_chunks USING gin (to_tsvector('english'::regconfig, text)) WHERE ((kind)::text = 'passage'::text)"
+      ],
+      "real_model_calls": 0
+    },
+    "unicode": {
+      "source_bytes": 10000000,
+      "documents": 1,
+      "chunk_counts": {
+        "parent": 2326,
+        "passage": 9302,
+        "distinct_passage_texts": 8,
+        "vectors": 8
+      },
+      "preparation_seconds": 19.056,
+      "preparation_peak_rss_mib": 282.25,
+      "search_peak_rss_mib": 159.18,
+      "measurement_notes": "Fresh search process; PostgreSQL buffers may be warm from preparation. Summaries aggregate three query shapes. Embedding time measures a local fake call, not OpenAI network latency. EXPLAIN is collected after timing.",
+      "semantic_quality": "unmeasured: fixture unit vectors are not semantic embeddings",
+      "modes": {
+        "keyword": {
+          "samples": 9,
+          "timings_seconds": {
+            "keyword_seconds": {
+              "median": 0.001991,
+              "p95": 0.003422
+            },
+            "vector_seconds": {
+              "median": 0.0,
+              "p95": 0.0
+            },
+            "embedding_seconds": {
+              "median": 0.0,
+              "p95": 0.0
+            },
+            "context_seconds": {
+              "median": 2.1e-05,
+              "p95": 0.006815
+            },
+            "total_seconds": {
+              "median": 0.004927,
+              "p95": 0.025328
+            }
+          },
+          "fake_query_calls": 0,
+          "real_model_calls": 0
+        },
+        "vector": {
+          "samples": 9,
+          "timings_seconds": {
+            "keyword_seconds": {
+              "median": 0.0,
+              "p95": 0.0
+            },
+            "vector_seconds": {
+              "median": 0.00433,
+              "p95": 0.005495
+            },
+            "embedding_seconds": {
+              "median": 0.00024,
+              "p95": 0.000267
+            },
+            "context_seconds": {
+              "median": 0.036062,
+              "p95": 0.042147
+            },
+            "total_seconds": {
+              "median": 0.043222,
+              "p95": 0.049296
+            }
+          },
+          "fake_query_calls": 9,
+          "real_model_calls": 0
+        },
+        "hybrid": {
+          "samples": 9,
+          "timings_seconds": {
+            "keyword_seconds": {
+              "median": 0.00179,
+              "p95": 0.002605
+            },
+            "vector_seconds": {
+              "median": 0.004249,
+              "p95": 0.004416
+            },
+            "embedding_seconds": {
+              "median": 0.000262,
+              "p95": 0.00062
+            },
+            "context_seconds": {
+              "median": 0.042364,
+              "p95": 0.044167
+            },
+            "total_seconds": {
+              "median": 0.051529,
+              "p95": 0.053074
+            }
+          },
+          "fake_query_calls": 9,
+          "real_model_calls": 0
+        }
+      },
+      "plan_structure": {
+        "keyword": [
+          {
+            "Plan": {
+              "Node Type": "Limit",
+              "Total Cost": 937.72,
+              "Plan Rows": 1,
+              "Plans": [
+                {
+                  "Node Type": "Sort",
+                  "Total Cost": 937.72,
+                  "Plan Rows": 1,
+                  "Plans": [
+                    {
+                      "Node Type": "Aggregate",
+                      "Total Cost": 937.7,
+                      "Plan Rows": 1,
+                      "Plans": [
+                        {
+                          "Node Type": "Sort",
+                          "Total Cost": 937.43,
+                          "Plan Rows": 1,
+                          "Plans": [
+                            {
+                              "Node Type": "Nested Loop",
+                              "Join Type": "Inner",
+                              "Total Cost": 937.42,
+                              "Plan Rows": 1,
+                              "Plans": [
+                                {
+                                  "Node Type": "Nested Loop",
+                                  "Join Type": "Inner",
+                                  "Total Cost": 19.21,
+                                  "Plan Rows": 1,
+                                  "Plans": [
+                                    {
+                                      "Node Type": "Seq Scan",
+                                      "Relation Name": "document_revisions",
+                                      "Total Cost": 11.05,
+                                      "Plan Rows": 1
+                                    },
+                                    {
+                                      "Node Type": "Index Scan",
+                                      "Index Name": "uq_embedding_runs_document_id",
+                                      "Relation Name": "embedding_runs",
+                                      "Total Cost": 8.15,
+                                      "Plan Rows": 1
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Node Type": "Bitmap Heap Scan",
+                                  "Relation Name": "document_chunks",
+                                  "Total Cost": 918.2,
+                                  "Plan Rows": 1,
+                                  "Plans": [
+                                    {
+                                      "Node Type": "Bitmap Index Scan",
+                                      "Index Name": "ix_document_chunks_search",
+                                      "Total Cost": 913.93,
+                                      "Plan Rows": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "vector": [
+          {
+            "Plan": {
+              "Node Type": "Limit",
+              "Total Cost": 3849.17,
+              "Plan Rows": 8,
+              "Plans": [
+                {
+                  "Node Type": "Unique",
+                  "Total Cost": 3846.42,
+                  "Plan Rows": 62,
+                  "Plans": [
+                    {
+                      "Node Type": "Sort",
+                      "Total Cost": 3846.11,
+                      "Plan Rows": 62,
+                      "Plans": [
+                        {
+                          "Node Type": "Nested Loop",
+                          "Join Type": "Inner",
+                          "Total Cost": 3844.11,
+                          "Plan Rows": 62,
+                          "Plans": [
+                            {
+                              "Node Type": "Nested Loop",
+                              "Join Type": "Inner",
+                              "Total Cost": 19.21,
+                              "Plan Rows": 1,
+                              "Plans": [
+                                {
+                                  "Node Type": "Seq Scan",
+                                  "Relation Name": "document_revisions",
+                                  "Total Cost": 11.05,
+                                  "Plan Rows": 1
+                                },
+                                {
+                                  "Node Type": "Index Scan",
+                                  "Index Name": "uq_embedding_runs_document_id",
+                                  "Relation Name": "embedding_runs",
+                                  "Total Cost": 8.15,
+                                  "Plan Rows": 1
+                                }
+                              ]
+                            },
+                            {
+                              "Node Type": "Seq Scan",
+                              "Relation Name": "document_chunks",
+                              "Total Cost": 3731.89,
+                              "Plan Rows": 7441
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Node Type": "Sort",
+                  "Total Cost": 2.75,
+                  "Plan Rows": 8,
+                  "Plans": [
+                    {
+                      "Node Type": "Hash Join",
+                      "Join Type": "Inner",
+                      "Total Cost": 2.61,
+                      "Plan Rows": 8,
+                      "Plans": [
+                        {
+                          "Node Type": "CTE Scan",
+                          "Total Cost": 1.24,
+                          "Plan Rows": 62
+                        },
+                        {
+                          "Node Type": "Hash",
+                          "Total Cost": 1.08,
+                          "Plan Rows": 8,
+                          "Plans": [
+                            {
+                              "Node Type": "Seq Scan",
+                              "Relation Name": "embedding_vectors",
+                              "Total Cost": 1.08,
+                              "Plan Rows": 8
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "keyword_gin_indexes": [
+        "CREATE INDEX ix_document_chunks_search ON retrieval_benchmark_52b07e4d683b4372a5ab73af9b8a832b.document_chunks USING gin (to_tsvector('english'::regconfig, text)) WHERE ((kind)::text = 'passage'::text)"
+      ],
+      "real_model_calls": 0
+    },
+    "table": {
+      "source_bytes": 10000000,
+      "documents": 1,
+      "chunk_counts": {
+        "parent": 1221,
+        "passage": 4883,
+        "distinct_passage_texts": 5,
+        "vectors": 5
+      },
+      "preparation_seconds": 17.5,
+      "preparation_peak_rss_mib": 232.28,
+      "search_peak_rss_mib": 160.5,
+      "measurement_notes": "Fresh search process; PostgreSQL buffers may be warm from preparation. Summaries aggregate three query shapes. Embedding time measures a local fake call, not OpenAI network latency. EXPLAIN is collected after timing.",
+      "semantic_quality": "unmeasured: fixture unit vectors are not semantic embeddings",
+      "modes": {
+        "keyword": {
+          "samples": 9,
+          "timings_seconds": {
+            "keyword_seconds": {
+              "median": 0.001887,
+              "p95": 0.700238
+            },
+            "vector_seconds": {
+              "median": 0.0,
+              "p95": 0.0
+            },
+            "embedding_seconds": {
+              "median": 0.0,
+              "p95": 0.0
+            },
+            "context_seconds": {
+              "median": 0.004335,
+              "p95": 0.04614
+            },
+            "total_seconds": {
+              "median": 0.009329,
+              "p95": 0.780329
+            }
+          },
+          "fake_query_calls": 0,
+          "real_model_calls": 0
+        },
+        "vector": {
+          "samples": 9,
+          "timings_seconds": {
+            "keyword_seconds": {
+              "median": 0.0,
+              "p95": 0.0
+            },
+            "vector_seconds": {
+              "median": 0.002281,
+              "p95": 0.00311
+            },
+            "embedding_seconds": {
+              "median": 0.000233,
+              "p95": 0.000583
+            },
+            "context_seconds": {
+              "median": 0.024037,
+              "p95": 0.031365
+            },
+            "total_seconds": {
+              "median": 0.029462,
+              "p95": 0.037817
+            }
+          },
+          "fake_query_calls": 9,
+          "real_model_calls": 0
+        },
+        "hybrid": {
+          "samples": 9,
+          "timings_seconds": {
+            "keyword_seconds": {
+              "median": 0.0019,
+              "p95": 0.679056
+            },
+            "vector_seconds": {
+              "median": 0.002536,
+              "p95": 0.004682
+            },
+            "embedding_seconds": {
+              "median": 0.000246,
+              "p95": 0.000261
+            },
+            "context_seconds": {
+              "median": 0.027022,
+              "p95": 0.042769
+            },
+            "total_seconds": {
+              "median": 0.034495,
+              "p95": 0.727033
+            }
+          },
+          "fake_query_calls": 9,
+          "real_model_calls": 0
+        }
+      },
+      "plan_structure": {
+        "keyword": [
+          {
+            "Plan": {
+              "Node Type": "Limit",
+              "Total Cost": 551.0,
+              "Plan Rows": 1,
+              "Plans": [
+                {
+                  "Node Type": "Sort",
+                  "Total Cost": 551.0,
+                  "Plan Rows": 1,
+                  "Plans": [
+                    {
+                      "Node Type": "Aggregate",
+                      "Total Cost": 550.99,
+                      "Plan Rows": 1,
+                      "Plans": [
+                        {
+                          "Node Type": "Sort",
+                          "Total Cost": 550.72,
+                          "Plan Rows": 1,
+                          "Plans": [
+                            {
+                              "Node Type": "Nested Loop",
+                              "Join Type": "Inner",
+                              "Total Cost": 550.71,
+                              "Plan Rows": 1,
+                              "Plans": [
+                                {
+                                  "Node Type": "Nested Loop",
+                                  "Join Type": "Inner",
+                                  "Total Cost": 19.23,
+                                  "Plan Rows": 1,
+                                  "Plans": [
+                                    {
+                                      "Node Type": "Seq Scan",
+                                      "Relation Name": "document_revisions",
+                                      "Total Cost": 11.05,
+                                      "Plan Rows": 1
+                                    },
+                                    {
+                                      "Node Type": "Index Scan",
+                                      "Index Name": "uq_embedding_runs_document_id",
+                                      "Relation Name": "embedding_runs",
+                                      "Total Cost": 8.17,
+                                      "Plan Rows": 1
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Node Type": "Bitmap Heap Scan",
+                                  "Relation Name": "document_chunks",
+                                  "Total Cost": 531.47,
+                                  "Plan Rows": 1,
+                                  "Plans": [
+                                    {
+                                      "Node Type": "Bitmap Index Scan",
+                                      "Index Name": "ix_document_chunks_search",
+                                      "Total Cost": 527.2,
+                                      "Plan Rows": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "vector": [
+          {
+            "Plan": {
+              "Node Type": "Limit",
+              "Total Cost": 1558.13,
+              "Plan Rows": 1,
+              "Plans": [
+                {
+                  "Node Type": "Unique",
+                  "Total Cost": 1557.0,
+                  "Plan Rows": 1,
+                  "Plans": [
+                    {
+                      "Node Type": "Sort",
+                      "Total Cost": 1556.99,
+                      "Plan Rows": 1,
+                      "Plans": [
+                        {
+                          "Node Type": "Hash Join",
+                          "Join Type": "Inner",
+                          "Total Cost": 1556.98,
+                          "Plan Rows": 1,
+                          "Plans": [
+                            {
+                              "Node Type": "Seq Scan",
+                              "Relation Name": "document_chunks",
+                              "Total Cost": 1522.93,
+                              "Plan Rows": 3906
+                            },
+                            {
+                              "Node Type": "Hash",
+                              "Total Cost": 19.23,
+                              "Plan Rows": 1,
+                              "Plans": [
+                                {
+                                  "Node Type": "Nested Loop",
+                                  "Join Type": "Inner",
+                                  "Total Cost": 19.23,
+                                  "Plan Rows": 1,
+                                  "Plans": [
+                                    {
+                                      "Node Type": "Seq Scan",
+                                      "Relation Name": "document_revisions",
+                                      "Total Cost": 11.05,
+                                      "Plan Rows": 1
+                                    },
+                                    {
+                                      "Node Type": "Index Scan",
+                                      "Index Name": "uq_embedding_runs_document_id",
+                                      "Relation Name": "embedding_runs",
+                                      "Total Cost": 8.17,
+                                      "Plan Rows": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Node Type": "Sort",
+                  "Total Cost": 1.13,
+                  "Plan Rows": 1,
+                  "Plans": [
+                    {
+                      "Node Type": "Hash Join",
+                      "Join Type": "Inner",
+                      "Total Cost": 1.11,
+                      "Plan Rows": 1,
+                      "Plans": [
+                        {
+                          "Node Type": "Seq Scan",
+                          "Relation Name": "embedding_vectors",
+                          "Total Cost": 1.05,
+                          "Plan Rows": 5
+                        },
+                        {
+                          "Node Type": "Hash",
+                          "Total Cost": 0.02,
+                          "Plan Rows": 1,
+                          "Plans": [
+                            {
+                              "Node Type": "CTE Scan",
+                              "Total Cost": 0.02,
+                              "Plan Rows": 1
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "keyword_gin_indexes": [
+        "CREATE INDEX ix_document_chunks_search ON retrieval_benchmark_46ad0da21f444890b573e36b5f6b50b4.document_chunks USING gin (to_tsvector('english'::regconfig, text)) WHERE ((kind)::text = 'passage'::text)"
+      ],
+      "real_model_calls": 0
+    },
+    "code": {
+      "source_bytes": 10000000,
+      "documents": 1,
+      "chunk_counts": {
+        "parent": 1229,
+        "passage": 4914,
+        "distinct_passage_texts": 6,
+        "vectors": 6
+      },
+      "preparation_seconds": 18.112,
+      "preparation_peak_rss_mib": 228.13,
+      "search_peak_rss_mib": 155.94,
+      "measurement_notes": "Fresh search process; PostgreSQL buffers may be warm from preparation. Summaries aggregate three query shapes. Embedding time measures a local fake call, not OpenAI network latency. EXPLAIN is collected after timing.",
+      "semantic_quality": "unmeasured: fixture unit vectors are not semantic embeddings",
+      "modes": {
+        "keyword": {
+          "samples": 9,
+          "timings_seconds": {
+            "keyword_seconds": {
+              "median": 0.001694,
+              "p95": 0.005949
+            },
+            "vector_seconds": {
+              "median": 0.0,
+              "p95": 0.0
+            },
+            "embedding_seconds": {
+              "median": 0.0,
+              "p95": 0.0
+            },
+            "context_seconds": {
+              "median": 1.7e-05,
+              "p95": 0.005281
+            },
+            "total_seconds": {
+              "median": 0.004285,
+              "p95": 0.036704
+            }
+          },
+          "fake_query_calls": 0,
+          "real_model_calls": 0
+        },
+        "vector": {
+          "samples": 9,
+          "timings_seconds": {
+            "keyword_seconds": {
+              "median": 0.0,
+              "p95": 0.0
+            },
+            "vector_seconds": {
+              "median": 0.002488,
+              "p95": 0.004027
+            },
+            "embedding_seconds": {
+              "median": 0.000255,
+              "p95": 0.000293
+            },
+            "context_seconds": {
+              "median": 0.024257,
+              "p95": 0.027758
+            },
+            "total_seconds": {
+              "median": 0.02969,
+              "p95": 0.03453
+            }
+          },
+          "fake_query_calls": 9,
+          "real_model_calls": 0
+        },
+        "hybrid": {
+          "samples": 9,
+          "timings_seconds": {
+            "keyword_seconds": {
+              "median": 0.001305,
+              "p95": 0.001745
+            },
+            "vector_seconds": {
+              "median": 0.002495,
+              "p95": 0.002868
+            },
+            "embedding_seconds": {
+              "median": 0.000237,
+              "p95": 0.000268
+            },
+            "context_seconds": {
+              "median": 0.024339,
+              "p95": 0.025855
+            },
+            "total_seconds": {
+              "median": 0.031127,
+              "p95": 0.032829
+            }
+          },
+          "fake_query_calls": 9,
+          "real_model_calls": 0
+        }
+      },
+      "plan_structure": {
+        "keyword": [
+          {
+            "Plan": {
+              "Node Type": "Limit",
+              "Total Cost": 449.0,
+              "Plan Rows": 1,
+              "Plans": [
+                {
+                  "Node Type": "Sort",
+                  "Total Cost": 449.0,
+                  "Plan Rows": 1,
+                  "Plans": [
+                    {
+                      "Node Type": "Aggregate",
+                      "Total Cost": 448.99,
+                      "Plan Rows": 1,
+                      "Plans": [
+                        {
+                          "Node Type": "Sort",
+                          "Total Cost": 448.72,
+                          "Plan Rows": 1,
+                          "Plans": [
+                            {
+                              "Node Type": "Nested Loop",
+                              "Join Type": "Inner",
+                              "Total Cost": 448.71,
+                              "Plan Rows": 1,
+                              "Plans": [
+                                {
+                                  "Node Type": "Nested Loop",
+                                  "Join Type": "Inner",
+                                  "Total Cost": 19.23,
+                                  "Plan Rows": 1,
+                                  "Plans": [
+                                    {
+                                      "Node Type": "Seq Scan",
+                                      "Relation Name": "document_revisions",
+                                      "Total Cost": 11.05,
+                                      "Plan Rows": 1
+                                    },
+                                    {
+                                      "Node Type": "Index Scan",
+                                      "Index Name": "uq_embedding_runs_document_id",
+                                      "Relation Name": "embedding_runs",
+                                      "Total Cost": 8.17,
+                                      "Plan Rows": 1
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Node Type": "Bitmap Heap Scan",
+                                  "Relation Name": "document_chunks",
+                                  "Total Cost": 429.47,
+                                  "Plan Rows": 1,
+                                  "Plans": [
+                                    {
+                                      "Node Type": "Bitmap Index Scan",
+                                      "Index Name": "ix_document_chunks_search",
+                                      "Total Cost": 425.2,
+                                      "Plan Rows": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "vector": [
+          {
+            "Plan": {
+              "Node Type": "Limit",
+              "Total Cost": 1567.77,
+              "Plan Rows": 1,
+              "Plans": [
+                {
+                  "Node Type": "Unique",
+                  "Total Cost": 1566.63,
+                  "Plan Rows": 1,
+                  "Plans": [
+                    {
+                      "Node Type": "Sort",
+                      "Total Cost": 1566.62,
+                      "Plan Rows": 1,
+                      "Plans": [
+                        {
+                          "Node Type": "Hash Join",
+                          "Join Type": "Inner",
+                          "Total Cost": 1566.61,
+                          "Plan Rows": 1,
+                          "Plans": [
+                            {
+                              "Node Type": "Seq Scan",
+                              "Relation Name": "document_chunks",
+                              "Total Cost": 1532.47,
+                              "Plan Rows": 3931
+                            },
+                            {
+                              "Node Type": "Hash",
+                              "Total Cost": 19.23,
+                              "Plan Rows": 1,
+                              "Plans": [
+                                {
+                                  "Node Type": "Nested Loop",
+                                  "Join Type": "Inner",
+                                  "Total Cost": 19.23,
+                                  "Plan Rows": 1,
+                                  "Plans": [
+                                    {
+                                      "Node Type": "Seq Scan",
+                                      "Relation Name": "document_revisions",
+                                      "Total Cost": 11.05,
+                                      "Plan Rows": 1
+                                    },
+                                    {
+                                      "Node Type": "Index Scan",
+                                      "Index Name": "uq_embedding_runs_document_id",
+                                      "Relation Name": "embedding_runs",
+                                      "Total Cost": 8.17,
+                                      "Plan Rows": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Node Type": "Sort",
+                  "Total Cost": 1.14,
+                  "Plan Rows": 1,
+                  "Plans": [
+                    {
+                      "Node Type": "Hash Join",
+                      "Join Type": "Inner",
+                      "Total Cost": 1.13,
+                      "Plan Rows": 1,
+                      "Plans": [
+                        {
+                          "Node Type": "Seq Scan",
+                          "Relation Name": "embedding_vectors",
+                          "Total Cost": 1.06,
+                          "Plan Rows": 6
+                        },
+                        {
+                          "Node Type": "Hash",
+                          "Total Cost": 0.02,
+                          "Plan Rows": 1,
+                          "Plans": [
+                            {
+                              "Node Type": "CTE Scan",
+                              "Total Cost": 0.02,
+                              "Plan Rows": 1
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "keyword_gin_indexes": [
+        "CREATE INDEX ix_document_chunks_search ON retrieval_benchmark_f452f25dea52475e8c69a74eb36780f1.document_chunks USING gin (to_tsvector('english'::regconfig, text)) WHERE ((kind)::text = 'passage'::text)"
+      ],
+      "real_model_calls": 0
+    },
+    "giant-row": {
+      "source_bytes": 10000000,
+      "documents": 1,
+      "chunk_counts": {
+        "parent": 1224,
+        "passage": 2446,
+        "distinct_passage_texts": 5,
+        "vectors": 5
+      },
+      "preparation_seconds": 10.461,
+      "preparation_peak_rss_mib": 241.68,
+      "search_peak_rss_mib": 152.14,
+      "measurement_notes": "Fresh search process; PostgreSQL buffers may be warm from preparation. Summaries aggregate three query shapes. Embedding time measures a local fake call, not OpenAI network latency. EXPLAIN is collected after timing.",
+      "semantic_quality": "unmeasured: fixture unit vectors are not semantic embeddings",
+      "modes": {
+        "keyword": {
+          "samples": 9,
+          "timings_seconds": {
+            "keyword_seconds": {
+              "median": 0.001421,
+              "p95": 0.003024
+            },
+            "vector_seconds": {
+              "median": 0.0,
+              "p95": 0.0
+            },
+            "embedding_seconds": {
+              "median": 0.0,
+              "p95": 0.0
+            },
+            "context_seconds": {
+              "median": 2.4e-05,
+              "p95": 0.005815
+            },
+            "total_seconds": {
+              "median": 0.004432,
+              "p95": 0.080765
+            }
+          },
+          "fake_query_calls": 0,
+          "real_model_calls": 0
+        },
+        "vector": {
+          "samples": 9,
+          "timings_seconds": {
+            "keyword_seconds": {
+              "median": 0.0,
+              "p95": 0.0
+            },
+            "vector_seconds": {
+              "median": 0.002798,
+              "p95": 0.003305
+            },
+            "embedding_seconds": {
+              "median": 0.000255,
+              "p95": 0.000673
+            },
+            "context_seconds": {
+              "median": 0.016973,
+              "p95": 0.039372
+            },
+            "total_seconds": {
+              "median": 0.024081,
+              "p95": 0.048858
+            }
+          },
+          "fake_query_calls": 9,
+          "real_model_calls": 0
+        },
+        "hybrid": {
+          "samples": 9,
+          "timings_seconds": {
+            "keyword_seconds": {
+              "median": 0.002012,
+              "p95": 0.00772
+            },
+            "vector_seconds": {
+              "median": 0.004957,
+              "p95": 0.010814
+            },
+            "embedding_seconds": {
+              "median": 0.0003,
+              "p95": 0.000853
+            },
+            "context_seconds": {
+              "median": 0.041305,
+              "p95": 0.153715
+            },
+            "total_seconds": {
+              "median": 0.054516,
+              "p95": 0.177372
+            }
+          },
+          "fake_query_calls": 9,
+          "real_model_calls": 0
+        }
+      },
+      "plan_structure": {
+        "keyword": [
+          {
+            "Plan": {
+              "Node Type": "Limit",
+              "Total Cost": 572.25,
+              "Plan Rows": 1,
+              "Plans": [
+                {
+                  "Node Type": "Sort",
+                  "Total Cost": 572.25,
+                  "Plan Rows": 1,
+                  "Plans": [
+                    {
+                      "Node Type": "Aggregate",
+                      "Total Cost": 572.24,
+                      "Plan Rows": 1,
+                      "Plans": [
+                        {
+                          "Node Type": "Sort",
+                          "Total Cost": 571.97,
+                          "Plan Rows": 1,
+                          "Plans": [
+                            {
+                              "Node Type": "Nested Loop",
+                              "Join Type": "Inner",
+                              "Total Cost": 571.95,
+                              "Plan Rows": 1,
+                              "Plans": [
+                                {
+                                  "Node Type": "Nested Loop",
+                                  "Join Type": "Inner",
+                                  "Total Cost": 19.22,
+                                  "Plan Rows": 1,
+                                  "Plans": [
+                                    {
+                                      "Node Type": "Seq Scan",
+                                      "Relation Name": "document_revisions",
+                                      "Total Cost": 11.05,
+                                      "Plan Rows": 1
+                                    },
+                                    {
+                                      "Node Type": "Index Scan",
+                                      "Index Name": "uq_embedding_runs_document_id",
+                                      "Relation Name": "embedding_runs",
+                                      "Total Cost": 8.16,
+                                      "Plan Rows": 1
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Node Type": "Bitmap Heap Scan",
+                                  "Relation Name": "document_chunks",
+                                  "Total Cost": 552.72,
+                                  "Plan Rows": 1,
+                                  "Plans": [
+                                    {
+                                      "Node Type": "Bitmap Index Scan",
+                                      "Index Name": "ix_document_chunks_search",
+                                      "Total Cost": 548.45,
+                                      "Plan Rows": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "vector": [
+          {
+            "Plan": {
+              "Node Type": "Limit",
+              "Total Cost": 981.72,
+              "Plan Rows": 1,
+              "Plans": [
+                {
+                  "Node Type": "Unique",
+                  "Total Cost": 980.59,
+                  "Plan Rows": 1,
+                  "Plans": [
+                    {
+                      "Node Type": "Sort",
+                      "Total Cost": 980.59,
+                      "Plan Rows": 1,
+                      "Plans": [
+                        {
+                          "Node Type": "Nested Loop",
+                          "Join Type": "Inner",
+                          "Total Cost": 980.57,
+                          "Plan Rows": 1,
+                          "Plans": [
+                            {
+                              "Node Type": "Seq Scan",
+                              "Relation Name": "document_revisions",
+                              "Total Cost": 11.05,
+                              "Plan Rows": 1
+                            },
+                            {
+                              "Node Type": "Hash Join",
+                              "Join Type": "Inner",
+                              "Total Cost": 969.3,
+                              "Plan Rows": 15,
+                              "Plans": [
+                                {
+                                  "Node Type": "Seq Scan",
+                                  "Relation Name": "document_chunks",
+                                  "Total Cost": 953.46,
+                                  "Plan Rows": 1630
+                                },
+                                {
+                                  "Node Type": "Hash",
+                                  "Total Cost": 11.38,
+                                  "Plan Rows": 1,
+                                  "Plans": [
+                                    {
+                                      "Node Type": "Seq Scan",
+                                      "Relation Name": "embedding_runs",
+                                      "Total Cost": 11.38,
+                                      "Plan Rows": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Node Type": "Sort",
+                  "Total Cost": 1.13,
+                  "Plan Rows": 1,
+                  "Plans": [
+                    {
+                      "Node Type": "Hash Join",
+                      "Join Type": "Inner",
+                      "Total Cost": 1.11,
+                      "Plan Rows": 1,
+                      "Plans": [
+                        {
+                          "Node Type": "Seq Scan",
+                          "Relation Name": "embedding_vectors",
+                          "Total Cost": 1.05,
+                          "Plan Rows": 5
+                        },
+                        {
+                          "Node Type": "Hash",
+                          "Total Cost": 0.02,
+                          "Plan Rows": 1,
+                          "Plans": [
+                            {
+                              "Node Type": "CTE Scan",
+                              "Total Cost": 0.02,
+                              "Plan Rows": 1
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "keyword_gin_indexes": [
+        "CREATE INDEX ix_document_chunks_search ON retrieval_benchmark_d48e415621a143a78fcfaba2b870a183.document_chunks USING gin (to_tsvector('english'::regconfig, text)) WHERE ((kind)::text = 'passage'::text)"
+      ],
+      "real_model_calls": 0
+    },
+    "multi-document": {
+      "source_bytes": 10000000,
+      "documents": 4,
+      "chunk_counts": {
+        "parent": 1228,
+        "passage": 4908,
+        "distinct_passage_texts": 4908,
+        "vectors": 4908
+      },
+      "preparation_seconds": 154.936,
+      "preparation_peak_rss_mib": 188.39,
+      "search_peak_rss_mib": 158.85,
+      "measurement_notes": "Fresh search process; PostgreSQL buffers may be warm from preparation. Summaries aggregate three query shapes. Embedding time measures a local fake call, not OpenAI network latency. EXPLAIN is collected after timing. Peak RSS covers the Python process, not PostgreSQL server memory.",
+      "semantic_quality": "unmeasured: fixture unit vectors are not semantic embeddings",
+      "modes": {
+        "keyword": {
+          "samples": 9,
+          "timings_seconds": {
+            "keyword_seconds": {
+              "median": 0.721549,
+              "p95": 0.803873
+            },
+            "vector_seconds": {
+              "median": 0.0,
+              "p95": 0.0
+            },
+            "embedding_seconds": {
+              "median": 0.0,
+              "p95": 0.0
+            },
+            "context_seconds": {
+              "median": 0.05595,
+              "p95": 0.063419
+            },
+            "total_seconds": {
+              "median": 0.781208,
+              "p95": 0.898457
+            }
+          },
+          "fake_query_calls": 0,
+          "real_model_calls": 0
+        },
+        "vector": {
+          "samples": 9,
+          "timings_seconds": {
+            "keyword_seconds": {
+              "median": 0.0,
+              "p95": 0.0
+            },
+            "vector_seconds": {
+              "median": 0.018057,
+              "p95": 0.020586
+            },
+            "embedding_seconds": {
+              "median": 0.000264,
+              "p95": 0.000294
+            },
+            "context_seconds": {
+              "median": 0.035107,
+              "p95": 0.040366
+            },
+            "total_seconds": {
+              "median": 0.056789,
+              "p95": 0.064558
+            }
+          },
+          "fake_query_calls": 9,
+          "real_model_calls": 0
+        },
+        "hybrid": {
+          "samples": 9,
+          "timings_seconds": {
+            "keyword_seconds": {
+              "median": 0.722106,
+              "p95": 0.740721
+            },
+            "vector_seconds": {
+              "median": 0.01982,
+              "p95": 0.022097
+            },
+            "embedding_seconds": {
+              "median": 0.000262,
+              "p95": 0.000291
+            },
+            "context_seconds": {
+              "median": 0.05258,
+              "p95": 0.061758
+            },
+            "total_seconds": {
+              "median": 0.805877,
+              "p95": 0.816988
+            }
+          },
+          "fake_query_calls": 9,
+          "real_model_calls": 0
+        }
+      },
+      "plan_structure": {
+        "keyword": [
+          {
+            "Plan": {
+              "Node Type": "Limit",
+              "Total Cost": 47.78,
+              "Plan Rows": 1,
+              "Plans": [
+                {
+                  "Node Type": "Sort",
+                  "Total Cost": 47.78,
+                  "Plan Rows": 1,
+                  "Plans": [
+                    {
+                      "Node Type": "Aggregate",
+                      "Total Cost": 47.77,
+                      "Plan Rows": 1,
+                      "Plans": [
+                        {
+                          "Node Type": "Sort",
+                          "Total Cost": 47.5,
+                          "Plan Rows": 1,
+                          "Plans": [
+                            {
+                              "Node Type": "Nested Loop",
+                              "Join Type": "Inner",
+                              "Total Cost": 47.49,
+                              "Plan Rows": 1,
+                              "Plans": [
+                                {
+                                  "Node Type": "Nested Loop",
+                                  "Join Type": "Inner",
+                                  "Total Cost": 36.42,
+                                  "Plan Rows": 1,
+                                  "Plans": [
+                                    {
+                                      "Node Type": "Bitmap Heap Scan",
+                                      "Relation Name": "document_chunks",
+                                      "Total Cost": 34.32,
+                                      "Plan Rows": 1,
+                                      "Plans": [
+                                        {
+                                          "Node Type": "Bitmap Index Scan",
+                                          "Index Name": "ix_document_chunks_search",
+                                          "Total Cost": 30.05,
+                                          "Plan Rows": 1
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "Node Type": "Seq Scan",
+                                      "Relation Name": "embedding_runs",
+                                      "Total Cost": 2.05,
+                                      "Plan Rows": 4
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Node Type": "Seq Scan",
+                                  "Relation Name": "document_revisions",
+                                  "Total Cost": 11.05,
+                                  "Plan Rows": 1
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "vector": [
+          {
+            "Plan": {
+              "Node Type": "Limit",
+              "Total Cost": 1390.86,
+              "Plan Rows": 20,
+              "Plans": [
+                {
+                  "Node Type": "Unique",
+                  "Total Cost": 1165.31,
+                  "Plan Rows": 58,
+                  "Plans": [
+                    {
+                      "Node Type": "Sort",
+                      "Total Cost": 1165.02,
+                      "Plan Rows": 58,
+                      "Plans": [
+                        {
+                          "Node Type": "Nested Loop",
+                          "Join Type": "Inner",
+                          "Total Cost": 1163.18,
+                          "Plan Rows": 58,
+                          "Plans": [
+                            {
+                              "Node Type": "Nested Loop",
+                              "Join Type": "Inner",
+                              "Total Cost": 13.16,
+                              "Plan Rows": 1,
+                              "Plans": [
+                                {
+                                  "Node Type": "Seq Scan",
+                                  "Relation Name": "document_revisions",
+                                  "Total Cost": 11.05,
+                                  "Plan Rows": 1
+                                },
+                                {
+                                  "Node Type": "Seq Scan",
+                                  "Relation Name": "embedding_runs",
+                                  "Total Cost": 2.05,
+                                  "Plan Rows": 4
+                                }
+                              ]
+                            },
+                            {
+                              "Node Type": "Bitmap Heap Scan",
+                              "Relation Name": "document_chunks",
+                              "Total Cost": 1141.34,
+                              "Plan Rows": 868,
+                              "Plans": [
+                                {
+                                  "Node Type": "Bitmap Index Scan",
+                                  "Index Name": "uq_document_chunks_run_id",
+                                  "Total Cost": 56.69,
+                                  "Plan Rows": 1356
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Node Type": "Sort",
+                  "Total Cost": 225.65,
+                  "Plan Rows": 58,
+                  "Plans": [
+                    {
+                      "Node Type": "Hash Join",
+                      "Join Type": "Inner",
+                      "Total Cost": 223.96,
+                      "Plan Rows": 58,
+                      "Plans": [
+                        {
+                          "Node Type": "Seq Scan",
+                          "Relation Name": "embedding_vectors",
+                          "Total Cost": 202.98,
+                          "Plan Rows": 4898
+                        },
+                        {
+                          "Node Type": "Hash",
+                          "Total Cost": 1.16,
+                          "Plan Rows": 58,
+                          "Plans": [
+                            {
+                              "Node Type": "CTE Scan",
+                              "Total Cost": 1.16,
+                              "Plan Rows": 58
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "keyword_gin_indexes": [
+        "CREATE INDEX ix_document_chunks_search ON retrieval_benchmark_e31c49f4a2e84a47b67e40f81ccf19af.document_chunks USING gin (to_tsvector('english'::regconfig, text)) WHERE ((kind)::text = 'passage'::text)"
+      ],
+      "real_model_calls": 0
+    }
+  }
+}

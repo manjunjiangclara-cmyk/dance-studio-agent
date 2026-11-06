@@ -120,8 +120,8 @@ def measure(args):
                     )
                     assert fake.calls - before == (mode != "keyword")
                     assert not result["degraded"]
-                    for candidates in result["candidates"].values():
-                        assert len(candidates) <= 20
+                    for route, candidates in result["candidates"].items():
+                        assert len(candidates) <= (40 if route == "fused" else 20)
                         assert len({c["text_sha256"] for c in candidates}) == len(candidates)
                     samples.append(result["timings"])
                     observations.append(
@@ -162,7 +162,8 @@ def measure(args):
             "measurement_notes": (
                 "Fresh search process; PostgreSQL buffers may be warm from preparation. "
                 "Summaries aggregate three query shapes. Embedding time measures a local "
-                "fake call, not OpenAI network latency. EXPLAIN is collected after timing."
+                "fake call, not OpenAI network latency. EXPLAIN is collected after timing. "
+                "Peak RSS covers the Python process, not PostgreSQL server memory."
             ),
         }
     finally:
@@ -172,10 +173,12 @@ def measure(args):
 def prepare(args):
     admin = create_engine(test_database_url())
     engine = None
+    created = False
     try:
         with admin.begin() as connection:
             connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA public"))
             connection.execute(text(f'CREATE SCHEMA "{args.schema}"'))
+        created = True
         engine = create_engine(
             test_database_url(), connect_args={"options": f"-csearch_path={args.schema},public"}
         )
@@ -285,8 +288,9 @@ def prepare(args):
     finally:
         if engine is not None:
             engine.dispose()
-        with admin.begin() as connection:
-            connection.execute(text(f'DROP SCHEMA IF EXISTS "{args.schema}" CASCADE'))
+        if created:
+            with admin.begin() as connection:
+                connection.execute(text(f'DROP SCHEMA IF EXISTS "{args.schema}" CASCADE'))
         admin.dispose()
 
 
@@ -371,6 +375,10 @@ def main():
     args = parser.parse_args()
     if not 1 <= args.repeats <= 20:
         parser.error("--repeats must be between 1 and 20.")
+    if args.case and (not args.schema or not args.source):
+        parser.error("Internal --case requires --schema and --source.")
+    if args.measure and (not args.schema or not args.run_ids):
+        parser.error("Internal --measure requires --schema and --run-ids.")
     test_database_url()
     if args.schema:
         # The internal subprocess argument is never interpolated unchecked.

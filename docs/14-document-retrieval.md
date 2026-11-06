@@ -67,7 +67,7 @@ uv run --env-file .env python -m studio_copilot.documents.retrieval evaluate \
   --mode hybrid --allow-api
 ```
 
-The evaluator verifies source hash, revision dates, label text/offsets, and split identities. It reports keyword/vector candidate Recall@20, final passage Recall@6 and MRR@6, all-required-evidence coverage, and expanded-context coverage. A required evidence item must be fully covered by returned source ranges; a one-character overlap is insufficient. Adjoining passages can jointly cover an item. Unanswerable questions are excluded from recall/MRR denominators and their returned-result counts are reported separately; date-exclusion cases must be empty. Degraded hybrid runs are rejected for evaluation rather than mislabelled as hybrid quality.
+The evaluator verifies source hash, revision dates, label text/offsets, and split identities. It reports keyword/vector and fused candidate Recall@20, final passage Recall@6 and MRR@6, all-required-evidence coverage, and expanded-context coverage. A required evidence item must be fully covered by returned source ranges; a one-character overlap is insufficient. Adjoining passages can jointly cover an item. Unanswerable questions are excluded from recall/MRR denominators and their returned-result counts are reported separately; date-exclusion cases must be empty. Degraded hybrid runs are rejected for evaluation rather than mislabelled as hybrid quality.
 
 The initial held-out Recall@6 target is 90%. Report shortfalls honestly, and do not tune on held-out questions. Fake vectors test correctness and orchestration, not semantic relevance. A paid semantic evaluation has not been run in this milestone; vector/hybrid semantic quality remains unmeasured.
 
@@ -76,3 +76,49 @@ The initial held-out Recall@6 target is 90%. Report shortfalls honestly, and do 
 Normal CI uses real PostgreSQL and fake providers, including actual subprocess CLI/SDK requests against a loopback HTTP service. It covers filtering, exact distances, duplicate mapping, RRF, source provenance, context budgets, read-only transactions, concurrent deletion/replacement, input limits, configuration failures, and safe degradation. The 40-question keyword evaluation is exercised without paid calls.
 
 The benchmark script uses seven exact-10-MB fixtures and a multi-document corpus, isolated test schemas, real stored chunks/vectors and deterministic fake embeddings. It records query-embedding and database-search timings separately, cold/warm query samples, peak memory, and SQL execution plans. Repetitive fixtures exercise large-source preparation and cache reuse, not high-uniqueness vector throughput. Results and limitations are recorded with the completed measurements below.
+
+### Measured keyword baseline
+
+On 2026-11-06, real PostgreSQL keyword search over the labelled fictional handbook produced:
+
+| Split | Answerable questions | Recall@20 | Recall@6 | MRR@6 |
+| --- | ---: | ---: | ---: | ---: |
+| Tuning | 18 | 55.56% | 55.56% | 0.5556 |
+| Held out | 18 | 27.78% | 27.78% | 0.2500 |
+
+All date-exclusion checks passed. The two in-period questions with no source answer returned no keyword results. These four questions are reported separately from the answerable-question denominators. Parent expansion did not improve coverage for this fixture.
+
+**The keyword-only held-out result misses the initial 90% Recall@6 target.** Long questions can contain terms absent from the relevant policy; AND matching then returns nothing. This is a recorded baseline, not a quality acceptance claim. Held-out labels were not used to tune the query parser. Vector and hybrid semantic quality remain unmeasured, so this result does not establish whether hybrid search meets the target.
+
+The [full keyword evaluation report](measurements/retrieval-keyword-2026-11-06.json) records every case and marks the unexecuted vector route as unmeasured. Document vectors were deterministic fixtures for this run and were not used by keyword search. No paid API calls were made.
+
+### Measured retrieval performance
+
+Reproduce from `backend/` using a dedicated database ending in `_test`:
+
+```bash
+TEST_DATABASE_URL=postgresql+psycopg://.../studio_copilot_test \
+  uv run python scripts/benchmark_retrieval.py \
+  --output-dir /tmp/retrieval-benchmark --tokenizer-cache /tmp/studio-chunking-tokenizer
+
+TEST_DATABASE_URL=postgresql+psycopg://.../studio_copilot_test \
+  uv run python scripts/benchmark_retrieval.py --evaluate-keyword \
+  --output-dir /tmp/retrieval-keyword-evaluation --tokenizer-cache /tmp/studio-chunking-tokenizer
+```
+
+Measured on 2026-11-06, macOS 26.5.2 arm64, Python 3.12.13, PostgreSQL 18.6 / pgvector 0.8.7. Each corpus totals exactly 10,000,000 bytes. Search runs in a fresh Python process; RSS includes its tokenizer and client state, excludes PostgreSQL server memory, and does not imply cold PostgreSQL buffers. Each mode has nine observations (three query shapes, repeated three times); these local percentiles are not production latency estimates. Preparation time includes actual chunking and persistence with fake embeddings, separate from search. A dash means the distinct-vector count was not recorded in that measurement.
+
+| Corpus | Passages | Distinct vectors | Prepare s | Hybrid median ms | Hybrid p95 ms | Search peak RSS MiB |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| single-line | 3662 | — | 129.574 | 73.550 | 82.380 | 155.73 |
+| short-blocks | 12210 | — | 59.188 | 52.987 | 53.747 | 159.61 |
+| many-headings | 4885 | 6 | 28.396 | 24.485 | 25.963 | 155.76 |
+| unicode | 9302 | 8 | 19.056 | 51.529 | 53.074 | 159.18 |
+| table | 4883 | 5 | 17.500 | 34.495 | 727.033 | 160.50 |
+| code | 4914 | 6 | 18.112 | 31.127 | 32.829 | 155.94 |
+| giant-row | 2446 | 5 | 10.461 | 54.516 | 177.372 | 152.14 |
+| multi-document | 4908 | 4908 | 154.936 | 805.877 | 816.988 | 158.85 |
+
+The seven stress fixtures are deliberately repetitive. The additional four-document corpus uses distinct numbered paragraphs, producing 4,908 distinct vectors. Its hybrid keyword stage median was 722.106 ms and exact-vector stage median was 19.820 ms; broad keyword terms match most paragraphs and dominate ranking work. Search remains exact; these measurements do not establish a need for HNSW or a semantic-recall result.
+
+All eight cases passed result-count, distinct-candidate, context-budget, API-call-boundary, and GIN-index checks. Every case saved actual SQL EXPLAIN plans; the [versioned measurement summary](measurements/retrieval-2026-11-06.json) includes plan structures and separate stage timings. Rerunning the script retains full plans and individual observations in its output directory. All fixture schemas were removed afterward. Fake embedding-call timing is not OpenAI latency; real vector/hybrid relevance and provider cost remain unmeasured.

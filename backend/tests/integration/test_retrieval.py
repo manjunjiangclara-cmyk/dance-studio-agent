@@ -14,6 +14,7 @@ from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.orm import Session
 
 from studio_copilot.documents.chunking import Tokenizer
+from studio_copilot.documents.chunking.tokenizer import default_cache
 from studio_copilot.documents.embedding import pipeline
 from studio_copilot.documents.embedding.provider import EmbeddingError, EmbeddingProfile
 from studio_copilot.documents.retrieval.engine import RetrievalError, search
@@ -32,9 +33,7 @@ AS_OF = date(2026, 6, 1)
 
 @pytest.fixture(scope="module")
 def tokenizer():
-    return Tokenizer(
-        Path(os.environ.get("STUDIO_TOKENIZER_CACHE", "/tmp/studio-chunking-tokenizer"))
-    )
+    return Tokenizer(Path(os.environ.get("STUDIO_TOKENIZER_CACHE", str(default_cache()))))
 
 
 class LocalVectors:
@@ -531,7 +530,7 @@ def test_real_retrieval_cli_keyword_and_vector_use_local_database_and_fake_http(
             "--as-of",
             "2026-06-01",
             "--tokenizer-cache",
-            os.environ.get("STUDIO_TOKENIZER_CACHE", "/tmp/studio-chunking-tokenizer"),
+            os.environ.get("STUDIO_TOKENIZER_CACHE", str(default_cache())),
             "--format",
             "json",
         ]

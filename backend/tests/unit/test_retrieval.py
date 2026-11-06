@@ -8,14 +8,13 @@ from uuid import uuid4
 import pytest
 
 from studio_copilot.documents.chunking import Tokenizer
+from studio_copilot.documents.chunking.tokenizer import default_cache
 from studio_copilot.documents.retrieval.engine import RetrievalError, search
 
 
 @pytest.fixture(scope="module")
 def tokenizer():
-    return Tokenizer(
-        Path(os.environ.get("STUDIO_TOKENIZER_CACHE", "/tmp/studio-chunking-tokenizer"))
-    )
+    return Tokenizer(Path(os.environ.get("STUDIO_TOKENIZER_CACHE", default_cache())))
 
 
 class NoDatabase:

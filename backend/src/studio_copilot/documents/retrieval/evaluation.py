@@ -137,6 +137,9 @@ def evaluate(engine, run_id, cases_path, tokenizer, *, mode="keyword", allow_api
                 [spans_by_hash[c["text_sha256"]] for c in result["candidates"]["vector"]],
                 20,
             )
+            entry["fused_at_20"] = measures(
+                labels, [spans_by_hash[c["text_sha256"]] for c in result["candidates"]["fused"]], 20
+            )
             entry["final_at_6"] = measures(
                 labels, [r["source_spans"] for r in result["results"]], 6
             )
@@ -155,7 +158,13 @@ def evaluate(engine, run_id, cases_path, tokenizer, *, mode="keyword", allow_api
         selected = [r for r in reports if r["split"] == split]
         answerable = [r for r in selected if r["answerable"]]
         summaries[split] = dict(cases=len(selected), answerable=len(answerable))
-        for stage in ("keyword_at_20", "vector_at_20", "final_at_6", "expanded_evidence"):
+        for stage in (
+            "keyword_at_20",
+            "vector_at_20",
+            "fused_at_20",
+            "final_at_6",
+            "expanded_evidence",
+        ):
             measured = [r for r in answerable if r[stage] is not None]
             summaries[split][stage] = (
                 {
