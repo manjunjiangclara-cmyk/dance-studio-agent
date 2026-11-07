@@ -28,6 +28,38 @@ class ConfigurationError(ValueError):
     """Safe, fixed local setup message."""
 
 
+def initialize(engine, schema):
+    """Never discover a fallback schema's Alembic version or application tables."""
+    # Schema names are generated internally. Quote defensively for test callers too.
+    quoted = engine.dialect.identifier_preparer.quote_identifier(schema)
+    with engine.begin() as connection:
+        connection.execute(text(f"SET LOCAL search_path TO {quoted}"))
+        config = Config(str(BACKEND / "alembic.ini"))
+        config.attributes["connection"] = connection
+        command.upgrade(config, "head")
+        for relation in (
+            "alembic_version",
+            "documents",
+            "document_revisions",
+            "embedding_vectors",
+            "embedding_runs",
+            "document_chunks",
+        ):
+            owner = connection.scalar(
+                text(
+                    "SELECT n.nspname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace "
+                    "WHERE c.oid=to_regclass(:relation)"
+                ),
+                dict(relation=relation),
+            )
+            if owner != schema:
+                raise ConfigurationError(
+                    "Evaluation tables did not resolve inside the owned schema."
+                )
+        if connection.scalar(text("SELECT count(*) FROM embedding_vectors")) != 0:
+            raise ConfigurationError("Fresh schema unexpectedly has cached vectors.")
+
+
 def execute(args):
     # These checks precede output creation, DB access, and provider construction.
     if not args.allow_api:
@@ -71,12 +103,7 @@ def execute(args):
             connection.execute(text(f'CREATE SCHEMA "{schema}"'))
         created = True
         engine = create_engine(url, connect_args={"options": f"-csearch_path={schema},public"})
-        with engine.begin() as connection:
-            config = Config(str(BACKEND / "alembic.ini"))
-            config.attributes["connection"] = connection
-            command.upgrade(config, "head")
-            if connection.scalar(text("SELECT count(*) FROM embedding_vectors")) != 0:
-                raise ConfigurationError("Fresh schema unexpectedly has cached vectors.")
+        initialize(engine, schema)
         print(json.dumps(dict(stage="preparing_real_vectors")), flush=True)
         before = time.perf_counter()
         runs = corpus.prepare(engine, cases, tokenizer, profile, allow_api=True)

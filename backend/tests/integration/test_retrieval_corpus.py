@@ -430,3 +430,67 @@ def test_database_failure_after_paid_step_retains_usage_and_sanitized_partial_re
     assert failures[0]["final_at_6"]["recall"] == 0
     assert "secret" not in json.dumps(report)
     assert "private-question" not in json.dumps(report)
+
+
+def test_isolated_runner_migrates_own_schema_despite_visible_fallback_head(db_engine):
+    import importlib.util
+    from uuid import uuid4
+
+    from sqlalchemy import create_engine, text
+    from sqlalchemy.schema import CreateSchema, DropSchema
+
+    from studio_copilot.persistence.models import Base
+
+    script = CORPUS.parents[3] / "scripts" / "evaluate_retrieval_corpus.py"
+    spec = importlib.util.spec_from_file_location("independent_corpus_runner", script)
+    runner = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(runner)
+    preserved = create_source(db_engine, content="# Fallback policy\n\nDo not touch this document.")
+    with db_engine.connect() as connection:
+        fallback = connection.scalar(text("SELECT current_schema()"))
+        assert connection.scalar(text("SELECT version_num FROM alembic_version"))
+    fresh = "test_corpus_runner_" + uuid4().hex
+    engine = None
+    with db_engine.begin() as connection:
+        connection.execute(CreateSchema(fresh))
+    try:
+        engine = create_engine(
+            db_engine.url,
+            connect_args={"options": f"-csearch_path={fresh},{fallback},public"},
+        )
+        with engine.connect() as connection:
+            # Reproduce the unsafe precondition: an empty own schema can see the
+            # fallback's already-current migration marker and populated tables.
+            assert connection.scalar(text("SELECT current_schema()")) == fresh
+            assert connection.scalar(text("SELECT count(*) FROM documents")) == 1
+            assert connection.scalar(text("SELECT version_num FROM alembic_version"))
+        runner.initialize(engine, fresh)
+        with engine.connect() as connection:
+            owned = set(
+                connection.scalars(
+                    text("SELECT tablename FROM pg_tables WHERE schemaname=:schema"),
+                    dict(schema=fresh),
+                )
+            )
+            assert set(Base.metadata.tables) | {"alembic_version"} <= owned
+            assert connection.scalar(text("SELECT count(*) FROM documents")) == 0
+            assert connection.scalar(text("SELECT count(*) FROM embedding_vectors")) == 0
+            assert connection.scalar(text("SELECT count(*) FROM embedding_runs")) == 0
+            assert connection.scalar(text("SELECT version_num FROM alembic_version"))
+    finally:
+        if engine is not None:
+            engine.dispose()
+        with db_engine.begin() as connection:
+            connection.execute(DropSchema(fresh, cascade=True))
+    with Session(db_engine) as session:
+        assert (
+            session.get(Document, preserved).content
+            == "# Fallback policy\n\nDo not touch this document."
+        )
+        assert len(session.scalars(select(Document)).all()) == 1
+    with db_engine.connect() as connection:
+        assert connection.scalar(text("SELECT version_num FROM alembic_version"))
+        assert not connection.scalar(
+            text("SELECT EXISTS(SELECT 1 FROM pg_namespace WHERE nspname=:schema)"),
+            dict(schema=fresh),
+        )
