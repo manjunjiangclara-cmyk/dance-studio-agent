@@ -226,3 +226,97 @@ Both date exclusions returned zero results in all three modes. For each of the t
 Actual usage was one document request (1,343 reported input tokens) plus 38 question requests (371 reported tokens): **39 requests / 1,714 input tokens**, with no retries. Hybrid reused all 38 question vectors in memory. The complete comparison took 10.54 seconds after 4.36 seconds of document preparation; the question provider calls totalled 8.23 seconds. Hybrid's cached question-vector timing must not be compared with vector-only's paid embedding latency as an end-to-end speed gain. Usage is provider-reported, not an invoice.
 
 [Full live comparison](measurements/retrieval-live-2026-11-07.json) includes source/config hashes, per-case evidence diagnostics, metrics, and timings. The [execution manifest](measurements/retrieval-live-2026-11-07-manifest.json) records real-provider provenance, request/token totals, completion, and isolation cleanup. Automated tests remain fake-provider tests and make no real OpenAI calls.
+
+
+## Larger frozen-corpus comparison — 2026-11-07
+
+The second real-provider run keeps retrieval-v1 unchanged: exact cosine search,
+20 candidates per route, RRF constant 60, six final passages, and a 12,000-token
+context budget. It adds no reranking, BM25, publication, search UI, or agent access.
+
+The frozen `tests/fixtures/retrieval_corpus_v2/corpus.json` describes **16 fictional
+sources / 131,248 UTF-8 bytes / 201 unique passage inputs**. Sources cover archived
+and current attendance/assessment policies, conflicting active fee/access/costume
+instructions, transport, recording consent, and scholarship exceptions. One source
+is plain text. There are 100 manually authored questions, split 50/50; each split
+has 40 answerable questions, eight in-period unanswered questions, and two dates
+outside every document's effective period. Tuning and held-out policy families
+are disjoint. Sixteen cases require multiple documents, including ten
+condition/exception cases; ten cases deliberately require both conflicting active
+sources rather than silently choosing one. The fixture is frozen before model
+calls; no retrieval settings or labels were tuned after seeing these results.
+
+This is a hand-authored challenge corpus, with shared administrative language and
+repeated scaffolding. It is larger and more varied than the first handbook, but
+it is not a representative production sample or a statistical reliability claim.
+
+| Mode | Tuning Recall@6 | Held-out Recall@20 | Held-out Recall@6 | Held-out MRR@6 | Held-out all-required evidence | Held-out expanded coverage |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Keyword | 10.00% | 7.50% | 7.50% | 0.0750 | 7.50% | 7.50% |
+| Vector only | 97.92% | 100% | 95.00% | 0.9133 | 92.50% | 97.50% |
+| Hybrid / RRF | 97.92% | 100% | 95.00% | 0.9258 | 92.50% | 97.50% |
+
+Recall averages the fraction of required source spans recovered per answerable
+question; all-required evidence is the fraction of questions with every labelled
+span recovered. MRR counts the rank of the first passage fully covering any
+required span. It does not measure whether a multi-source answer is complete.
+Candidate Recall@20 for the table means the active route for keyword/vector and
+the first 20 fused candidates for hybrid.
+
+Three held-out questions lose evidence from the final six, despite it appearing
+in the candidates: one side of a conflicting costume-deposit policy, a scholarship
+late-evidence condition, and the scholarship private-submission instruction.
+Parent context recovers the last item, raising all-required coverage to 95%.
+The first two still lack complete supplied evidence after expansion. Tuning also
+contains one candidate-search miss and one final-selection miss. These are
+recorded diagnostics, not a parameter-tuning pass. Hybrid improves MRR slightly
+on this corpus but does not improve final recall over vector-only.
+
+All four date exclusions passed in all modes. Both vector and hybrid returned
+candidates for all 16 in-period questions without source answers (eight per
+split); keyword returned none. Future sufficiency/abstention must address this.
+No answers were generated in this evaluation.
+
+Scoring is document-aware: an identical integer range in another document cannot
+satisfy a label. Candidate scoring uses only date-eligible selected source links.
+Final scoring counts the representative and actually returned alternative source
+references, not invisible occurrences beyond the engine's reference cap. Expanded
+coverage uses only the evidence actually packed into the context budget.
+
+Both document and query embeddings came from real OpenAI
+`text-embedding-3-small`, 1,536 dimensions, with no existing/fake vectors in a
+fresh test schema. Actual usage: **16 document requests / 26,948 tokens**, plus
+**96 question requests / 1,414 tokens**, for **112 requests / 28,362 reported input
+tokens**, no retries. Hybrid reused all 96 query vectors in memory. Preparation
+took 7.55 seconds; comparison took 25.03 seconds, including 17.54 seconds in query
+provider calls. These local timings are not production latency estimates. The
+isolated schema was removed after saving results; the main library was unchanged.
+
+Reproduce the exact corpus with a new isolated schema (from `backend/`):
+
+```bash
+# Local-only, no database/key/network required.
+uv run python -m studio_copilot.documents.retrieval.corpus plan \
+  --cases tests/fixtures/retrieval_corpus_v2/corpus.json \
+  --tokenizer-cache /tmp/studio-chunking-tokenizer
+
+# Explicitly paid. TEST_DATABASE_URL must name a dedicated database ending _test.
+# Creates/migrates/removes only a fresh randomly named schema in that database.
+uv run --env-file .env python scripts/evaluate_retrieval_corpus.py --allow-api \
+  --output-dir evaluations/results/my-corpus-comparison \
+  --tokenizer-cache /tmp/studio-chunking-tokenizer
+```
+
+Existing output directories are refused. The runner requires the official OpenAI
+endpoint, leaves the frozen questions/settings unchanged, saves plan/preparation/
+comparison/summary/cleanup manifest files, and never supplies a fake provider.
+For manually managed evaluation environments, the `corpus` module also exposes
+`prepare --allow-api` and `compare --run-id UUID ... --allow-api
+--document-vectors-verified`; pass all sixteen pinned run IDs explicitly.
+
+[Full larger-corpus report](measurements/retrieval-corpus-live-2026-11-07.json)
+and [execution manifest](measurements/retrieval-corpus-live-2026-11-07-manifest.json)
+record actual case scores, misses, source identities, usage and cleanup. Independent
+automated tests cover document/date attribution, visible references, packed
+context, pairing, read-only comparison, immutable preparation and failure accounting
+with real PostgreSQL and fake providers only. They make no paid API calls.
