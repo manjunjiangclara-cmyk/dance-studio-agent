@@ -69,7 +69,7 @@ uv run --env-file .env python -m studio_copilot.documents.retrieval evaluate \
 
 The evaluator verifies source hash, revision dates, label text/offsets, and split identities. It reports keyword/vector and fused candidate Recall@20, final passage Recall@6 and MRR@6, all-required-evidence coverage, and expanded-context coverage. A required evidence item must be fully covered by returned source ranges; a one-character overlap is insufficient. Adjoining passages can jointly cover an item. Unanswerable questions are excluded from recall/MRR denominators and their returned-result counts are reported separately; date-exclusion cases must be empty. Degraded hybrid runs are rejected for evaluation rather than mislabelled as hybrid quality.
 
-The initial held-out Recall@6 target is 90%. Report shortfalls honestly, and do not tune on held-out questions. Fake vectors test correctness and orchestration, not semantic relevance. A paid semantic evaluation has not been run in this milestone; vector/hybrid semantic quality remains unmeasured.
+The initial held-out Recall@6 target is 90%. Report shortfalls honestly, and do not tune on held-out questions. Fake vectors test correctness and orchestration, not semantic relevance. A separate live OpenAI evaluation was completed on 2026-11-07; see the measured comparison below. Normal automated tests still use fake providers.
 
 ## Automated tests and measurements
 
@@ -88,7 +88,7 @@ On 2026-11-06, real PostgreSQL keyword search over the labelled fictional handbo
 
 All date-exclusion checks passed. The two in-period questions with no source answer returned no keyword results. These four questions are reported separately from the answerable-question denominators. Parent expansion did not improve coverage for this fixture.
 
-**The keyword-only held-out result misses the initial 90% Recall@6 target.** Long questions can contain terms absent from the relevant policy; AND matching then returns nothing. This is a recorded baseline, not a quality acceptance claim. Held-out labels were not used to tune the query parser. Vector and hybrid semantic quality remain unmeasured, so this result does not establish whether hybrid search meets the target.
+**The keyword-only held-out result misses the initial 90% Recall@6 target.** Long questions can contain terms absent from the relevant policy; AND matching then returns nothing. This is a recorded baseline, not a quality acceptance claim. Held-out labels were not used to tune the query parser. This keyword-only measurement did not establish hybrid quality; the separate 2026-11-07 live comparison below now measures all three paths.
 
 The [full keyword evaluation report](measurements/retrieval-keyword-2026-11-06.json) records every case and marks the unexecuted vector route as unmeasured. Document vectors were deterministic fixtures for this run and were not used by keyword search. No paid API calls were made.
 
@@ -121,7 +121,7 @@ Measured on 2026-11-06, macOS 26.5.2 arm64, Python 3.12.13, PostgreSQL 18.6 / pg
 
 The seven stress fixtures are deliberately repetitive. The additional four-document corpus uses distinct numbered paragraphs, producing 4,908 distinct vectors. Its hybrid keyword stage median was 722.106 ms and exact-vector stage median was 19.820 ms; broad keyword terms match most paragraphs and dominate ranking work. Search remains exact; these measurements do not establish a need for HNSW or a semantic-recall result.
 
-All eight cases passed result-count, distinct-candidate, context-budget, API-call-boundary, and GIN-index checks. Every case saved actual SQL EXPLAIN plans; the [versioned measurement summary](measurements/retrieval-2026-11-06.json) includes plan structures and separate stage timings. Rerunning the script retains full plans and individual observations in its output directory. All fixture schemas were removed afterward. Fake embedding-call timing is not OpenAI latency; real vector/hybrid relevance and provider cost remain unmeasured.
+All eight cases passed result-count, distinct-candidate, context-budget, API-call-boundary, and GIN-index checks. Every case saved actual SQL EXPLAIN plans; the [versioned measurement summary](measurements/retrieval-2026-11-06.json) includes plan structures and separate stage timings. Rerunning the script retains full plans and individual observations in its output directory. All fixture schemas were removed afterward. Fake embedding-call timing in these performance fixtures is not OpenAI latency; the separate live comparison below measures real model relevance and records API usage.
 
 ## Paired keyword/vector/hybrid evaluation
 
@@ -202,6 +202,27 @@ completed modes and already-incurred usage in that incomplete JSON, using saniti
 error codes; unknown stage timings remain null rather than fabricated zero values. Date-exclusion checks and in-period unanswerable cases remain separate.
 
 The fixture and splits are frozen; this implementation does not tune retrieval on
-the held-out set. Actual paid vector/hybrid quality remains **unmeasured** until an
-operator explicitly runs and records a verified live comparison. Offline tests
+the held-out set. The first verified live comparison was run on **2026-11-07** and is recorded below;
+its results apply only to this fixed fixture. Offline tests
 exercise all paths with fake vectors and real isolated PostgreSQL only.
+
+
+## Live OpenAI comparison — 2026-11-07
+
+This is a real provider run, separate from automated tests. Both document and question vectors came from OpenAI `text-embedding-3-small` at 1,536 dimensions. Preparation used a fresh isolated schema with no cached vectors; the schema was removed after saving reports. The main document library was not modified. No query parser, fusion parameter, or held-out label was changed for this run.
+
+The corpus is the same fictional handbook (19 distinct passage inputs), with 40 fixed questions split 20/20. Each split contains 18 answerable questions, one in-period question with no source answer, and one out-of-date exclusion. Recall and MRR exclude those latter two cases and are computed over the 18 answerable questions.
+
+| Mode | Tuning Recall@6 | Held-out Recall@6 | Held-out MRR@6 | Held-out all-required evidence coverage |
+| --- | ---: | ---: | ---: | ---: |
+| Keyword | 55.56% | 27.78% | 0.2500 | 27.78% |
+| Vector only | 100% | 100% | 0.9722 | 100% |
+| Hybrid / RRF | 100% | 100% | 0.9444 | 100% |
+
+Vector and hybrid found every required evidence span within six passages for all 18 answerable held-out questions, exceeding the initial 90% target on this fixture. Vector-only ranked the first relevant passage slightly better than hybrid. These results do not establish that hybrid is superior, that BM25 is needed, or that retrieval is production-ready: the single handbook is small, and the tuning/held-out questions share policies. Parent expansion did not increase recall in this run.
+
+Both date exclusions returned zero results in all three modes. For each of the two in-period no-answer questions, vector and hybrid returned six candidate passages; keyword returned none. Similarity search does not establish answerability. Evidence-sufficiency checks and abstention remain necessary in a later generation stage.
+
+Actual usage was one document request (1,343 reported input tokens) plus 38 question requests (371 reported tokens): **39 requests / 1,714 input tokens**, with no retries. Hybrid reused all 38 question vectors in memory. The complete comparison took 10.54 seconds after 4.36 seconds of document preparation; the question provider calls totalled 8.23 seconds. Hybrid's cached question-vector timing must not be compared with vector-only's paid embedding latency as an end-to-end speed gain. Usage is provider-reported, not an invoice.
+
+[Full live comparison](measurements/retrieval-live-2026-11-07.json) includes source/config hashes, per-case evidence diagnostics, metrics, and timings. The [execution manifest](measurements/retrieval-live-2026-11-07-manifest.json) records real-provider provenance, request/token totals, completion, and isolation cleanup. Automated tests remain fake-provider tests and make no real OpenAI calls.
