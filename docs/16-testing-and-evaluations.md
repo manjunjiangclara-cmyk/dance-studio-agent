@@ -1,0 +1,73 @@
+# Tests and evaluations: consolidated summary
+
+This page indexes implementation checks, performance measurements and real model evaluations. **Passing fake-model tests proves code behavior, not semantic answer quality.** Paid/live evaluations are separate from normal CI. Documents remain unavailable to the agent; reranking remains an offline experiment.
+
+## Automated checks
+
+| Area | What is checked | Details |
+| --- | --- | --- |
+| Backend unit tests | Validation, deterministic rules, routing, mocked adapters, token/provenance logic and failure handling | [README test commands](../README.md#verification), [agent guide](08-agent-api.md) |
+| PostgreSQL integration | Migrations/model parity, constraints, API access, revisions, concurrent operations, read-only snapshots and owned-schema cleanup | [Schema](02-domain-and-schema.md), [API](07-api.md) |
+| Agent/workflow tests | Scripted model responses, teacher review, booking revalidation, recovery, access and tool limits | [Agent guide](08-agent-api.md) |
+| Browser tests | Desktop/mobile layout, owner access, document CRUD/large previews, conflicts and preservation of unsaved edits | [Website guide](09-website.md) |
+| Ingestion | Exact 10 MB/raw UTF-8 bounds, streaming upload, hashes/dedup, immutable revisions, dates, cleanup, CSRF and safe preview | [Ingestion guide](10-document-ingestion.md) |
+| Chunking | Strict token limits, original-source coverage, Unicode/CRLF, tables/code, huge inputs, deterministic export and pinned reads | [Chunking guide](12-document-chunking.md) |
+| Embedding | Fake/loopback providers, cache identity, leases, resume/recovery, deletion races and vector linkage | [Embedding guide](13-document-embeddings.md) |
+| Retrieval | Exact distances, lexical/RRF behavior, effective dates, duplicate references, evidence budgets, provider failures and source-aware metrics | [Retrieval guide](14-document-retrieval.md) |
+| Reranking | Offline windowing/tails, stable scores, cache hashes, source/date/parent attribution, frozen selection, failed-case accounting and paid/download gates | [Reranking guide](15-document-reranking.md) |
+
+Normal pytest does not call OpenAI, download reranker weights, or run real neural inference. PostgreSQL tests require `TEST_DATABASE_URL` ending `_test`; absence explicitly skips them and must not be reported as passing. Browser tests use fixtures/mock API behavior; a healthy local app alone does not establish agent quality or successful Google login.
+
+The reranking milestone passed **903 backend tests**, including **79 new independent reranking tests**. **All 90 desktop/mobile browser tests also passed** against the refreshed app. Static checks include Ruff lint/format, dependency-lock consistency, frontend build, and Alembic schema parity.
+
+```bash
+# backend/: real PostgreSQL integration with fake providers; no paid API calls.
+STUDIO_TOKENIZER_CACHE=/tmp/studio-chunking-tokenizer \
+  uv run --env-file .env pytest -q
+uv run ruff check .
+uv run ruff format --check .
+uv lock --check
+uv run --env-file .env alembic check
+
+# frontend/: supported Node.js, running app on the intended existing origin.
+npm run build
+WEBSITE_TEST_URL=http://127.0.0.1:8000 PLAYWRIGHT_CHANNEL=chrome npm test
+```
+
+## Performance benchmarks
+
+- **Chunking:** seven exact-10,000,000-byte fixtures cover huge paragraphs, dense blocks/headings, Unicode, tables, code and oversized rows. Real chunking/export is independently verified for coverage and token bounds; elapsed time and process peak RSS are documented in the [chunking guide](12-document-chunking.md).
+- **Embedding preparation:** real parsing/persistence with fake vectors measures throughput, cache reuse and replay safety. It is not a semantic embedding evaluation. [Guide and measurements](13-document-embeddings.md), [JSON](measurements/document-embeddings-2026-11-06.json).
+- **Retrieval:** seven exact-10-MB stress fixtures plus a four-document, 4,908-distinct-vector corpus measure database stage timing, context budgets, peak RSS and actual SQL plans. Fake vectors make this a performance/correctness benchmark, not a relevance result. [Guide](14-document-retrieval.md#measured-retrieval-performance), [JSON](measurements/retrieval-2026-11-06.json).
+- **Local reranking:** real CPU models replay identical captured candidates, recording load/warmup, per-query latency, windows and process memory. No database or OpenAI call is part of that timing. [Guide](15-document-reranking.md).
+
+## Real semantic evaluations
+
+All document/query embeddings below use real OpenAI `text-embedding-3-small` at 1,536 dimensions. Runs use fresh isolated PostgreSQL test schemas and leave the main application library unchanged. Settings and labels are frozen; no reranker is involved in the first two comparisons.
+
+| Run | Corpus / answerable evaluation questions | Mode | Recall@6 | Complete evidence | MRR@6 |
+| --- | --- | --- | ---: | ---: | ---: |
+| 2026-11-07 | One handbook, 19 passages / 18 held-out | Keyword | 27.78% | 27.78% | 0.2500 |
+| 2026-11-07 | Same | Vector | 100% | 100% | 0.9722 |
+| 2026-11-07 | Same | Hybrid | 100% | 100% | 0.9444 |
+| 2026-11-07 | 16 documents, 201 passages / 40 held-out | Keyword | 7.50% | 7.50% | 0.0750 |
+| 2026-11-07 | Same | Vector | 95% | 92.50% | 0.9133 |
+| 2026-11-07 | Same | Hybrid | 95% | 92.50% | 0.9258 |
+| 2026-11-08 | 24 documents, 279 passages / 40 fresh validation | Hybrid baseline | 93.75% | 90% | 0.9050 |
+| 2026-11-08 | Same candidates | Hybrid + local MiniLM-L6-v2 | 97.50% | 95% | 1.0000 |
+
+Recall averages the fraction of required source spans recovered per answerable question. Complete evidence requires every labelled span for that question. MRR measures the first passage fully covering any required span, not completeness of a multi-source answer. Unanswered/date-excluded cases are outside these denominators and reported separately.
+
+The 2026-11-08 selected model improves fresh complete evidence by five percentage points, with warm CPU p95 331 ms. It passes the predeclared experimental adoption gates but remains off in normal search. The already inspected older held-out split is now diagnostic; it was not reused to claim fresh validation.
+
+All date exclusions passed in the real comparisons. Semantic retrieval/reranking still returns candidates for in-period unanswered questions. These experiments do not prove answerability, faithfulness, citation correctness of generated answers, or production reliability. No answers are generated in the document evaluations. Synthetic English policies and correlated question scenarios limit generalization.
+
+Full evidence:
+
+- [Single-handbook report](measurements/retrieval-live-2026-11-07.json) and [execution manifest](measurements/retrieval-live-2026-11-07-manifest.json): 39 requests / 1,714 reported input tokens.
+- [Larger retrieval report](measurements/retrieval-corpus-live-2026-11-07.json) and [execution manifest](measurements/retrieval-corpus-live-2026-11-07-manifest.json): 112 requests / 28,362 tokens.
+- [Reranking report](measurements/reranking-live-2026-11-08.json), [frozen model selection](measurements/reranking-live-2026-11-08-selection.json), [capture/cleanup manifest](measurements/reranking-live-2026-11-08-capture.json): 168 OpenAI embedding requests / 40,521 tokens; reranking itself runs locally with no API usage.
+
+## Other paid agent evaluations
+
+Email-drafting and business-workflow evaluations live in `backend/evaluations/` and `backend/workflow_evaluations/`, separately from pytest. The [agent guide](08-agent-api.md) documents opt-in execution and graders. Their model understanding, booking behavior and teacher-review results must be assessed separately from document retrieval. They were not rerun merely to add offline reranking, and this page makes no new claim about their current live quality.

@@ -320,3 +320,8 @@ record actual case scores, misses, source identities, usage and cleanup. Indepen
 automated tests cover document/date attribution, visible references, packed
 context, pairing, read-only comparison, immutable preparation and failure accounting
 with real PostgreSQL and fake providers only. They make no paid API calls.
+
+
+## Offline reranking follow-up
+
+The [local reranking experiment](15-document-reranking.md) captures the same full hybrid candidate union and compares real local cross-encoders before final selection. It changes no default search behavior. The [consolidated test/evaluation summary](16-testing-and-evaluations.md) links all implementation tests, performance benchmarks, and real relevance measurements.

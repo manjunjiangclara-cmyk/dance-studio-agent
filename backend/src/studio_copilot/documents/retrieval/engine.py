@@ -178,6 +178,17 @@ def _chunk(connection, run_id, chunk_id):
 
 
 def pack_evidence(connection, results, tokenizer):
+    return _pack(
+        results, tokenizer, lambda run_id, parent_id: _chunk(connection, UUID(run_id), parent_id)
+    )
+
+
+def pack_from_records(results, parents, tokenizer):
+    """Pack only selected evidence using captured immutable parent records."""
+    return _pack(results, tokenizer, lambda run_id, parent_id: parents[f"{run_id}:{parent_id}"])
+
+
+def _pack(results, tokenizer, load_parent):
     evidence = [
         dict(
             run_id=r["run_id"],
@@ -198,7 +209,7 @@ def pack_evidence(connection, results, tokenizer):
         if not parent_id or key in seen:
             continue
         seen.add(key)
-        parent = _chunk(connection, UUID(hit["run_id"]), parent_id)
+        parent = load_parent(hit["run_id"], parent_id)
         if parent["kind"] != "parent":
             raise RetrievalError("invalid_chunks", "Passage context is not a parent chunk.")
         item = dict(
@@ -226,6 +237,38 @@ def pack_evidence(connection, results, tokenizer):
 
 def search(
     engine, run_ids, query, as_of, tokenizer, *, mode="hybrid", allow_api=False, embedder=None
+):
+    return _search(
+        engine, run_ids, query, as_of, tokenizer, mode=mode, allow_api=allow_api, embedder=embedder
+    )
+
+
+def capture_candidates(engine, run_ids, query, as_of, tokenizer, *, allow_api=False, embedder=None):
+    """Offline inspection: materialize the full bounded union and parents in one snapshot."""
+    return _search(
+        engine,
+        run_ids,
+        query,
+        as_of,
+        tokenizer,
+        mode="hybrid",
+        allow_api=allow_api,
+        embedder=embedder,
+        capture_all=True,
+    )
+
+
+def _search(
+    engine,
+    run_ids,
+    query,
+    as_of,
+    tokenizer,
+    *,
+    mode="hybrid",
+    allow_api=False,
+    embedder=None,
+    capture_all=False,
 ):
     started = time.perf_counter()
     if not isinstance(query, str) or not query.strip() or len(query) > 4096 or "\x00" in query:
@@ -309,7 +352,7 @@ def search(
             ]
             timings["vector_seconds"] = time.perf_counter() - before
         fused = fuse(keyword, vector)
-        chosen = fused[:RESULTS]
+        chosen = fused if capture_all else fused[:RESULTS]
         before = time.perf_counter()
         references = {}
         if chosen:
@@ -359,7 +402,15 @@ def search(
             results.append(result)
         # Serialize IDs/dates only at the boundary, retaining raw text/Unicode exactly.
         results = json.loads(json.dumps(results, default=str))
-        evidence, count, context_warnings = pack_evidence(connection, results, tokenizer)
+        parents = {}
+        if capture_all:
+            for hit in results:
+                key = f"{hit['run_id']}:{hit['parent_id']}"
+                if hit["parent_id"] and key not in parents:
+                    parents[key] = _chunk(connection, UUID(hit["run_id"]), hit["parent_id"])
+            evidence, count, context_warnings = [], 0, []
+        else:
+            evidence, count, context_warnings = pack_evidence(connection, results, tokenizer)
         warnings.extend(context_warnings)
         source_runs = [
             dict(
@@ -376,7 +427,7 @@ def search(
         ]
         timings["context_seconds"] = time.perf_counter() - before
     timings["total_seconds"] = time.perf_counter() - started
-    return dict(
+    output = dict(
         version=VERSION,
         mode=mode,
         as_of=as_of.isoformat(),
@@ -391,3 +442,7 @@ def search(
         reported_tokens=usage,
         timings=timings,
     )
+
+    if capture_all:
+        output["parents"] = parents
+    return output

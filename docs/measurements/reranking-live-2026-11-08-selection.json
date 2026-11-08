@@ -1,0 +1,19 @@
+{
+  "model_id": "cross-encoder/ms-marco-MiniLM-L6-v2",
+  "revision": "233902d25c440f23af6f7d6e94d2946bac0bee0a",
+  "records_sha256": "ba5ebc4bcaf55d0d24b2bd424c611024fe269def32dd73f83efd580af5f1eab3",
+  "dataset_sha256": "ec42861e2f58c5b8b8b65cf7e1df63c89e55aa25cf7638b6d40fec9792703144",
+  "frozen_at": "2026-11-08T02:32:42.513764+00:00",
+  "tuning_report_hashes": {
+    "cross-encoder/ms-marco-MiniLM-L6-v2": "cf30157f44f9a5622d086aa826da3b1bf4d9077e93d1723cd813dd83bad849af",
+    "cross-encoder/ms-marco-MiniLM-L12-v2": "2d34fcbb92183c3a07630ef27459fa650a8661326c22ee5a6eab175f519c20de"
+  },
+  "rule": "Tuning only: completeness, recall, MRR, lower warm p95, L6 tie preference.",
+  "gates": {
+    "complete_evidence_gain": 0.025,
+    "recall_drop": 0,
+    "mrr_drop": 0.01,
+    "multi_source_drop": 0,
+    "warm_p95_seconds": 2
+  }
+}
