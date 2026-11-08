@@ -33,9 +33,9 @@
   "database_calls": 0,
   "note": "Synthetic mechanism measurement, not provider latency or semantic quality.",
   "validation": {
-    "backend_tests_passed": 1040,
+    "backend_tests_passed": 1041,
     "skipped": 0,
-    "independent_unit_cases": 48,
+    "independent_unit_cases": 49,
     "independent_postgresql_cases": 4,
     "playwright_passed": 90,
     "frontend_build": true,
