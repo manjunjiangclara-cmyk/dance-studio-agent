@@ -2,8 +2,6 @@
 
 This CLI answers document questions from saved evidence. It does not connect documents to the application agent, email or teacher review, introduce tables, or authorize business actions. Normal tests use fake providers; hosted inference requires `--allow-api`. Configuration uses `OPENAI_MODEL` and `OPENAI_API_KEY` from the invoking environment. The measured configuration is `gpt-6-luna`; embedding configuration is separate.
 
-The default remains frozen **v1**. `plan`, `answer` and `evaluate` accept `--prompt-version v1|v2`; v2 is explicitly selected and always answers in English, except exact source quotations. There is no language selector or localization. Both versions retain the original source text and citation ranges. New outputs record the selected prompt/hash, writer hash, request settings, validation version and, for current provider calls, configuration/request hashes.
-
 ## Evidence and calls
 
 `prepare-evidence` validates the existing capture, selected L6 rankings and frozen question/source manifests. It replays the top six candidates with existing parent expansion and a 12,000-token evidence budget. It does not access PostgreSQL, recompute embeddings or run the reranker. Each self-contained artifact includes raw source snapshots, document/revision/date identity, actual supplied blocks, original half-open Unicode character ranges, question/date/variant identity and SHA-256 checksums. These checks detect accidental changes; they are not signatures establishing document authenticity.
@@ -102,61 +100,3 @@ All 304 evaluation requests completed; unknown-usage calls and technical failure
 **Recommendation:** keep verification off. The next iteration should improve condition preservation, conflict/completeness decisions, table interpretation and language adherence on tuning examples, then use a fresh validation set. The inspected held-out set cannot support a fresh unseen-quality claim after tuning to these failures. No automatic prompt rewrite, verifier enablement or application integration was performed.
 
 Audit files (fictional content only): [tuning execution](measurements/generation-tuning-2026-11-08-manifest.json), [tuning review](measurements/generation-tuning-2026-11-08-review.json), [held-out execution](measurements/generation-heldout-2026-11-08-manifest.json), [held-out review](measurements/generation-heldout-2026-11-08-review.json), [tuning final answers](measurements/generation-tuning-2026-11-08-results.jsonl), [held-out final answers](measurements/generation-heldout-2026-11-08-results.jsonl). Matching `*-reports.jsonl` preserve the shared writer candidates and per-request accounting; matching `*-adjudication.json` preserve every independent judgment and its result hash. Execution manifests retain the original unreviewed diagnostics; the separate review files contain the independently reviewed metrics.
-
-## Generation v2 repair and diagnostic — 2026-11-08
-
-V2 emphasizes necessary conditions in permission claims, distinguishing examples from governing rules, original table-column meanings, unresolved authority decisions, English-only prose, and question-relevant completeness. The deterministic checker now downgrades an `answered` candidate that declares nonblank missing information. Empty missing information never upgrades a partial answer; invalid citations still take precedence. These structural checks cannot establish semantic support or English adherence.
-
-Inspection confirmed the original shuttle table had the correct header/row association. Its time column is `Operational note`, so an answer must not infer a departure-time meaning. No chunker or source-text changes were made.
-
-The first v2 diagnostic still granted permissions when a controlled source deletion removed the governing condition. The original renderer preserved positions but represented the gap only as blank lines. The refinement supplies v2 with the existing `source_ranges` and `omitted_body_ranges` positions beside the unchanged excerpt. It does not expose omitted text, gold facts, controlled-drop labels or full source snapshots. Copied table-header gaps are not classified as body omissions. The v1 payload and both frozen v1 instruction strings remain unchanged.
-
-```bash
-# No API call; estimates the selected prompt and supplied-range metadata.
-uv run python -m studio_copilot.documents.generation plan \
-  --evidence-dir PATH/TO/EVIDENCE --prompt-version v2 \
-  --tokenizer-cache /tmp/studio-chunking-tokenizer
-
-uv run --env-file .env python -m studio_copilot.documents.generation answer \
-  --evidence-file PATH/TO/EVIDENCE/case-actual.json \
-  --output-dir evaluations/results/v2-answer --prompt-version v2 --allow-api \
-  --tokenizer-cache /tmp/studio-chunking-tokenizer
-```
-
-`plan` and `evaluate` also accept repeated `--case-id` for targeted diagnostics. IDs must be distinct, known, compatible with `--split`, and cannot be combined with `--limit`. Every source artifact is validated even when selecting a subset. Selection never changes frozen labels.
-
-### Execution and observed fixes
-
-All old 80 questions are now **known regression diagnostics**, including the subset still named `held_out` for file compatibility. They are not fresh validation. V1 and the initial v2 each ran once on the same 160 artifacts: 152 calls per version, eight empty-evidence artifacts per version bypassing calls. After inspecting tuning results, the initial v2 was frozen before scoring the remaining old questions. Its source-gap failure prompted a separately frozen refinement and a 16-artifact targeted recheck, without silently replacing any original output. Default v1 was never changed.
-
-| Diagnostic run | Requests | Input tokens | Output tokens |
-| --- | ---: | ---: | ---: |
-| Tuning, v1 | 76 | 145,430 | 19,020 |
-| Tuning, initial v2 | 76 | 174,690 | 17,231 |
-| Old remaining subset, v1 | 76 | 158,789 | 21,912 |
-| Old remaining subset, initial v2 | 76 | 188,049 | 23,209 |
-| Refined v2, targeted recheck | 16 | 42,611 | 7,463 |
-| Total | **320** | **709,569** | **88,835** |
-
-The approved 320-call ceiling was exhausted; no additional calls or full refined-v2 run were made. No verifier, embedding, reranking, hidden retry or rewrite calls were used. All requests completed with reported usage. This compares separate one-shot writer samples, not reused writer output; changing sample randomness can affect results. No monetary cost is inferred.
-
-Primary inspection of the 16 targeted outputs observed:
-
-- Missing governing conditions now produce partial answers rather than affirmative permission in the inhaler and evacuation examples; complete contexts preserve signatures and named-adult requirements.
-- Both table answers preserve the original columns and remain partial about the unsupported collection/departure interpretation, despite the frozen `answered` label.
-- The ordinary notice question is answered without unrelated booking uncertainty; the complete capacity context answers the no-vacancy restriction.
-- Unresolved deposit authority remains partial; missing medicine details request clarification. All 16 targeted answers are English apart from permitted original quotations.
-
-These are **primary-agent observations, not independent adjudication or a full semantic-quality score**. The new v1 samples already avoided some historical errors, so those observations do not establish a causal improvement for every issue. The initial full-suite v2 still failed the missing-condition cases; its metrics cannot be presented as the refined v2's full-suite results.
-
-### Acceptance limits and audit
-
-The implementation-time independent review attempt failed with an agent usage-limit error. During PR delivery a fresh-context reviewer completed code/test review, found no actionable issues and passed 96 relevant tests. A second independent AI reviewer checked all 16 refined-prompt outputs against their actual evidence: 28/28 final claims supported, 16/16 English-compliant and 16/16 appropriately classified. This is AI review, not human ground truth or full-suite acceptance. Standard case 25 omits the frozen notice threshold (already a question premise); actual case 38 omits handover timing. Table headings remain ambiguous despite the frozen answered label. Full refined-prompt ≥95% support / ≥90% completeness / ≥95% correct-refusal / ≤10% false-refusal gates remain unverified. Lexical/status diagnostics and valid source quotes cannot substitute for them. The `review` command accepts an explicit `english_answer` judgment per result and an `independent` review flag; absent language judgments remain unknown, and a primary-only review cannot satisfy independent acceptance.
-
-The refined v2 remains opt-in. Completing a full refined-prompt diagnostic requires a separately budgeted run and independent adjudication; fresh validation and teacher confirmation remain the next milestone. No historical labels, original reports, business workflow, UI, database schema or model configuration were changed.
-
-Validation: **1,013 backend tests passed**, including real PostgreSQL integration and **110 Generation fake-model tests**. Ruff lint/format, dependency-lock consistency, Alembic model parity and whitespace checks passed. Independent code/test review is complete. No UI/API code changed. PR delivery rebuilt the frontend with supported Node.js, passed all **90 desktop/mobile Playwright tests**, and restarted the reviewed checkout on existing ports 8010/8000. Health, portal, authentication proxy and rebuilt assets were verified; no migration, seed/reset or additional model call was performed.
-
-Independent targeted audit: [claim/fact judgments](measurements/generation-v2-2026-11-08/targeted-independent-adjudication.json), [metrics by context and historical split](measurements/generation-v2-2026-11-08/targeted-independent-review.json). Completeness means full factual resolution, not merely an appropriate partial or clarification. Frozen fact coverage is retained even when broader than the question. No abstention cases occur in this targeted subset, so refusal quality is not established.
-
-Evidence: [initial freeze](measurements/generation-v2-freeze-2026-11-08.json), [refinement freeze](measurements/generation-v2-refinement-freeze-2026-11-08.json), [execution summary](measurements/generation-v2-2026-11-08/summary.json), [all per-question comparisons](measurements/generation-v2-2026-11-08/comparison.md), [primary targeted observations](measurements/generation-v2-2026-11-08/targeted-primary-inspection.json). Each run directory beside the summary retains `manifest.json`, `results.jsonl`, `reports.jsonl` and escaped readable `report.md`, with source/prompt/result checksums and per-request usage. Only fictional corpus content is included.

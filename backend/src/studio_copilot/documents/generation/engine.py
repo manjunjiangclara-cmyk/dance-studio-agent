@@ -6,7 +6,7 @@ import time
 
 from .contracts import Candidate, GenerationError, Verification
 from .evidence import model_payload, resolve_quote, validate_artifact
-from .provider import VERIFY, GenerationProvider, generation_prompt, prompt_metadata
+from .provider import GENERATE, VERIFY, GenerationProvider
 
 
 def require_api(allow_api):
@@ -67,24 +67,12 @@ def validate_candidate(artifact, candidate):
         status = "abstained"
     if invalid and candidate.status != "abstained":
         status = "partial" if kept else "abstained"
-    unresolved = status == "answered" and any(
-        item.strip() for item in candidate.missing_information
-    )
-    if unresolved:
-        status = "partial"
     result = dict(
         execution_status="completed",
         status=status,
         claims=kept,
         missing_information=candidate.missing_information,
-        reason_code=(
-            "invalid_citations"
-            if invalid
-            else "insufficient_evidence"
-            if unresolved
-            else candidate.reason_code
-        ),
-        state_adjustments=["answered_with_missing_information"] if unresolved else [],
+        reason_code="invalid_citations" if invalid else candidate.reason_code,
         invalid_claim_ids=invalid,
         citation_counts=dict(valid=valid_citations, total=total_citations),
         verification_applied=False,
@@ -129,9 +117,8 @@ def apply_verification(baseline, verification):
     return result
 
 
-def _run(artifact, tokenizer, *, allow_api=False, verify=False, provider=None, prompt_version="v1"):
+def _run(artifact, tokenizer, *, allow_api=False, verify=False, provider=None):
     require_api(allow_api)
-    metadata = prompt_metadata(prompt_version)
     validate_artifact(artifact, tokenizer)
     started = time.perf_counter()
     report = dict(
@@ -141,8 +128,6 @@ def _run(artifact, tokenizer, *, allow_api=False, verify=False, provider=None, p
         raw_candidate=None,
         baseline=None,
         verified=None,
-        validation_version="citation-status-v2",
-        **metadata,
     )
     if not artifact["blocks"]:
         result = dict(
@@ -167,20 +152,9 @@ def _run(artifact, tokenizer, *, allow_api=False, verify=False, provider=None, p
         return report
     model = provider
     try:
-        model = (
-            provider if provider is not None else GenerationProvider(prompt_version=prompt_version)
-        )
-        if getattr(model, "prompt_version", prompt_version) != prompt_version:
-            raise GenerationError(
-                "prompt_mismatch", "Provider and requested prompt version differ."
-            )
-        payload = model_payload(artifact, prompt_version=prompt_version)
-        if (
-            tokenizer.count(
-                generation_prompt(prompt_version) + json.dumps(payload, ensure_ascii=False)
-            )
-            > 20000
-        ):
+        model = provider if provider is not None else GenerationProvider()
+        payload = model_payload(artifact)
+        if tokenizer.count(GENERATE + json.dumps(payload, ensure_ascii=False)) > 20000:
             raise GenerationError(
                 "request_limit", "Generation request exceeds its local token budget."
             )
@@ -238,17 +212,8 @@ def _run(artifact, tokenizer, *, allow_api=False, verify=False, provider=None, p
     return report
 
 
-def answer(
-    artifact, tokenizer, *, allow_api=False, verify=False, provider=None, prompt_version="v1"
-):
-    report = _run(
-        artifact,
-        tokenizer,
-        allow_api=allow_api,
-        verify=verify,
-        provider=provider,
-        prompt_version=prompt_version,
-    )
+def answer(artifact, tokenizer, *, allow_api=False, verify=False, provider=None):
+    report = _run(artifact, tokenizer, allow_api=allow_api, verify=verify, provider=provider)
     return dict(
         report["verified"] if verify else report["baseline"],
         calls=report["calls"],
@@ -259,17 +224,8 @@ def answer(
         variant=artifact["variant"],
         real_provider=report["real_provider"],
         raw_candidate=report["raw_candidate"],
-        validation_version=report["validation_version"],
-        **prompt_metadata(prompt_version),
     )
 
 
-def paired(artifact, tokenizer, *, allow_api=False, provider=None, prompt_version="v1"):
-    return _run(
-        artifact,
-        tokenizer,
-        allow_api=allow_api,
-        verify=True,
-        provider=provider,
-        prompt_version=prompt_version,
-    )
+def paired(artifact, tokenizer, *, allow_api=False, provider=None):
+    return _run(artifact, tokenizer, allow_api=allow_api, verify=True, provider=provider)

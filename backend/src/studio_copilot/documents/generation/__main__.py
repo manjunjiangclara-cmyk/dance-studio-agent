@@ -29,9 +29,7 @@ def main(argv=None):
         command.add_argument("--evidence-dir", type=Path, required=True)
         command.add_argument("--split", choices=("tuning", "held_out"))
         command.add_argument("--limit", type=int)
-        command.add_argument("--case-id", action="append", dest="case_ids")
         command.add_argument("--compare-verification", action="store_true")
-        command.add_argument("--prompt-version", choices=("v1", "v2"), default="v1")
         command.add_argument("--tokenizer-cache", type=Path, default=default_cache())
         if name == "evaluate":
             command.add_argument("--allow-api", action="store_true")
@@ -42,7 +40,6 @@ def main(argv=None):
     command.add_argument("--output-dir", type=Path, required=True)
     command.add_argument("--allow-api", action="store_true")
     command.add_argument("--verify", action="store_true")
-    command.add_argument("--prompt-version", choices=("v1", "v2"), default="v1")
     command.add_argument("--tokenizer-cache", type=Path, default=default_cache())
     command = commands.add_parser("review")
     command.add_argument("--results-dir", type=Path, required=True)
@@ -69,9 +66,7 @@ def main(argv=None):
                     tokenizer,
                     split=args.split,
                     limit=args.limit,
-                    case_ids=args.case_ids,
                     compare_verification=args.compare_verification,
-                    prompt_version=args.prompt_version,
                 )
             elif args.command == "evaluate":
                 result = evaluate_directory(
@@ -80,10 +75,8 @@ def main(argv=None):
                     tokenizer,
                     allow_api=True,
                     compare_verification=args.compare_verification,
-                    prompt_version=args.prompt_version,
                     split=args.split,
                     limit=args.limit,
-                    case_ids=args.case_ids,
                     workers=args.workers,
                 )
             else:
@@ -93,7 +86,6 @@ def main(argv=None):
                     tokenizer,
                     allow_api=True,
                     verify=args.verify,
-                    prompt_version=args.prompt_version,
                 )
         print(json.dumps(result, ensure_ascii=False))
         if args.command in {"answer", "evaluate"} and (
