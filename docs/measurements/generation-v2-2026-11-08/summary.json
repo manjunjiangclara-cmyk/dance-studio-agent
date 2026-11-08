@@ -1,0 +1,752 @@
+{
+  "version": "generation-v2-diagnostic-v1",
+  "default_prompt": "v1",
+  "verification_enabled": false,
+  "dataset_role": "known_regression_diagnostic",
+  "independent_review_status": "blocked_subagent_usage_limit",
+  "semantic_quality_status": "unreviewed",
+  "full_final_v2_run": false,
+  "runs": {
+    "tuning-v1": {
+      "prompt_version": "grounded-generation-v1",
+      "prompt_sha256": "0788e2c0e6e14dab32c3832c8ef70196d24ac45dea315412ce3722287073e49e",
+      "manifest_sha256": "4388d0d8c705438d96eeb3bf2209a589156a4e4ab128ff7d2df192800d53598e",
+      "results_sha256": "c2d273ec5ff0e03c47024cf44c0074a7cd4d283a134c858b2d3c2a2bffc3940f",
+      "evidence_manifest_sha256": "191cdb2c4611bada9cdc96873f02265f0304f895b2967b311f0cbfa021349e87",
+      "models": [
+        "gpt-6-luna"
+      ],
+      "case_artifacts": 80,
+      "requests": 76,
+      "usage": {
+        "input_tokens": 145430,
+        "output_tokens": 19020,
+        "unknown_usage_calls": 0
+      },
+      "operation_usage": {
+        "generate": {
+          "requests": 76,
+          "failed": 0,
+          "input_tokens": 145430,
+          "output_tokens": 19020,
+          "unknown_usage_calls": 0,
+          "seconds": 290.44996450212784,
+          "p50_seconds": 2.862593541154638,
+          "p95_seconds": 8.972782417200506
+        },
+        "verify": {
+          "requests": 0,
+          "failed": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "unknown_usage_calls": 0,
+          "seconds": 0,
+          "p50_seconds": null,
+          "p95_seconds": null
+        }
+      },
+      "diagnostic_summaries": {
+        "tuning/standard/baseline": {
+          "cases": 40,
+          "technical_failures": 0,
+          "citation_validity": 0.9811320754716981,
+          "citation_counts": {
+            "valid": 52,
+            "total": 53
+          },
+          "generated_citation_validity": 0.9811320754716981,
+          "generated_citation_counts": {
+            "valid": 52,
+            "total": 53
+          },
+          "final_citation_validity": 1.0,
+          "final_citation_counts": {
+            "valid": 51,
+            "total": 51,
+            "invalid": 0
+          },
+          "citation_metric_note": "citation_validity is the generated-before-pruning legacy alias. Final retained quotes are valid by deterministic construction; semantic support is separate.",
+          "diagnostic_status_accuracy": 0.925,
+          "diagnostic_required_fact_coverage": 0.9523809523809523,
+          "diagnostic_correct_abstention": 1.0,
+          "diagnostic_false_abstention": 0.034482758620689655,
+          "diagnostic_complete_answer": 0.896551724137931,
+          "forbidden_pattern_cases": 0,
+          "semantic_support_rate": null,
+          "semantic_required_fact_coverage": null,
+          "semantic_complete_answer_rate": null,
+          "semantic_appropriate_status_rate": null,
+          "semantic_review_status": "unreviewed",
+          "quality_targets": {
+            "criteria": {
+              "no_technical_failures": true,
+              "semantic_support": null,
+              "complete_answer": null,
+              "correct_abstention": null,
+              "false_abstention": null
+            },
+            "passed": null
+          }
+        },
+        "tuning/actual/baseline": {
+          "cases": 40,
+          "technical_failures": 0,
+          "citation_validity": 0.9795918367346939,
+          "citation_counts": {
+            "valid": 48,
+            "total": 49
+          },
+          "generated_citation_validity": 0.9795918367346939,
+          "generated_citation_counts": {
+            "valid": 48,
+            "total": 49
+          },
+          "final_citation_validity": 1.0,
+          "final_citation_counts": {
+            "valid": 48,
+            "total": 48,
+            "invalid": 0
+          },
+          "citation_metric_note": "citation_validity is the generated-before-pruning legacy alias. Final retained quotes are valid by deterministic construction; semantic support is separate.",
+          "diagnostic_status_accuracy": 0.95,
+          "diagnostic_required_fact_coverage": 0.8809523809523809,
+          "diagnostic_correct_abstention": 1.0,
+          "diagnostic_false_abstention": 0.0,
+          "diagnostic_complete_answer": 0.92,
+          "forbidden_pattern_cases": 0,
+          "semantic_support_rate": null,
+          "semantic_required_fact_coverage": null,
+          "semantic_complete_answer_rate": null,
+          "semantic_appropriate_status_rate": null,
+          "semantic_review_status": "unreviewed",
+          "quality_targets": {
+            "criteria": {
+              "no_technical_failures": true,
+              "semantic_support": null,
+              "complete_answer": null,
+              "correct_abstention": null,
+              "false_abstention": null
+            },
+            "passed": null
+          }
+        }
+      }
+    },
+    "tuning-v2": {
+      "prompt_version": "grounded-generation-v2",
+      "prompt_sha256": "eb545bcf62b388350eca55d9960f3dcbc752f500280d902d7e56e4a18fdc55d2",
+      "manifest_sha256": "2186d5db3fb0401b471b053cd5ace725c8da572a7801a7cc9e0add5835178662",
+      "results_sha256": "3839ff97af7b4a883976e55d5400ce77e6ce563228a8cfd2876518e1027e76ee",
+      "evidence_manifest_sha256": "191cdb2c4611bada9cdc96873f02265f0304f895b2967b311f0cbfa021349e87",
+      "models": [
+        "gpt-6-luna"
+      ],
+      "case_artifacts": 80,
+      "requests": 76,
+      "usage": {
+        "input_tokens": 174690,
+        "output_tokens": 17231,
+        "unknown_usage_calls": 0
+      },
+      "operation_usage": {
+        "generate": {
+          "requests": 76,
+          "failed": 0,
+          "input_tokens": 174690,
+          "output_tokens": 17231,
+          "unknown_usage_calls": 0,
+          "seconds": 241.18221595976502,
+          "p50_seconds": 2.478056666906923,
+          "p95_seconds": 7.493821208132431
+        },
+        "verify": {
+          "requests": 0,
+          "failed": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "unknown_usage_calls": 0,
+          "seconds": 0,
+          "p50_seconds": null,
+          "p95_seconds": null
+        }
+      },
+      "diagnostic_summaries": {
+        "tuning/standard/baseline": {
+          "cases": 40,
+          "technical_failures": 0,
+          "citation_validity": 0.9814814814814815,
+          "citation_counts": {
+            "valid": 53,
+            "total": 54
+          },
+          "generated_citation_validity": 0.9814814814814815,
+          "generated_citation_counts": {
+            "valid": 53,
+            "total": 54
+          },
+          "final_citation_validity": 1.0,
+          "final_citation_counts": {
+            "valid": 53,
+            "total": 53,
+            "invalid": 0
+          },
+          "citation_metric_note": "citation_validity is the generated-before-pruning legacy alias. Final retained quotes are valid by deterministic construction; semantic support is separate.",
+          "diagnostic_status_accuracy": 0.95,
+          "diagnostic_required_fact_coverage": 0.9761904761904762,
+          "diagnostic_correct_abstention": 1.0,
+          "diagnostic_false_abstention": 0.0,
+          "diagnostic_complete_answer": 0.9310344827586207,
+          "forbidden_pattern_cases": 0,
+          "semantic_support_rate": null,
+          "semantic_required_fact_coverage": null,
+          "semantic_complete_answer_rate": null,
+          "semantic_appropriate_status_rate": null,
+          "semantic_review_status": "unreviewed",
+          "quality_targets": {
+            "criteria": {
+              "no_technical_failures": true,
+              "semantic_support": null,
+              "complete_answer": null,
+              "correct_abstention": null,
+              "false_abstention": null
+            },
+            "passed": null
+          }
+        },
+        "tuning/actual/baseline": {
+          "cases": 40,
+          "technical_failures": 0,
+          "citation_validity": 1.0,
+          "citation_counts": {
+            "valid": 47,
+            "total": 47
+          },
+          "generated_citation_validity": 1.0,
+          "generated_citation_counts": {
+            "valid": 47,
+            "total": 47
+          },
+          "final_citation_validity": 1.0,
+          "final_citation_counts": {
+            "valid": 47,
+            "total": 47,
+            "invalid": 0
+          },
+          "citation_metric_note": "citation_validity is the generated-before-pruning legacy alias. Final retained quotes are valid by deterministic construction; semantic support is separate.",
+          "diagnostic_status_accuracy": 0.975,
+          "diagnostic_required_fact_coverage": 0.9047619047619048,
+          "diagnostic_correct_abstention": 1.0,
+          "diagnostic_false_abstention": 0.0,
+          "diagnostic_complete_answer": 0.96,
+          "forbidden_pattern_cases": 0,
+          "semantic_support_rate": null,
+          "semantic_required_fact_coverage": null,
+          "semantic_complete_answer_rate": null,
+          "semantic_appropriate_status_rate": null,
+          "semantic_review_status": "unreviewed",
+          "quality_targets": {
+            "criteria": {
+              "no_technical_failures": true,
+              "semantic_support": null,
+              "complete_answer": null,
+              "correct_abstention": null,
+              "false_abstention": null
+            },
+            "passed": null
+          }
+        }
+      }
+    },
+    "legacy-v1": {
+      "prompt_version": "grounded-generation-v1",
+      "prompt_sha256": "0788e2c0e6e14dab32c3832c8ef70196d24ac45dea315412ce3722287073e49e",
+      "manifest_sha256": "bada4b87f3c7a9002467ed711ac203a264b5d3bb0a5a0a52b1247eb5040ae7e7",
+      "results_sha256": "89729820a27b8e62f95ca67c4e0aae8717fc1d5d450475d00db4a68da5a14a55",
+      "evidence_manifest_sha256": "191cdb2c4611bada9cdc96873f02265f0304f895b2967b311f0cbfa021349e87",
+      "models": [
+        "gpt-6-luna"
+      ],
+      "case_artifacts": 80,
+      "requests": 76,
+      "usage": {
+        "input_tokens": 158789,
+        "output_tokens": 21912,
+        "unknown_usage_calls": 0
+      },
+      "operation_usage": {
+        "generate": {
+          "requests": 76,
+          "failed": 0,
+          "input_tokens": 158789,
+          "output_tokens": 21912,
+          "unknown_usage_calls": 0,
+          "seconds": 293.71450029313564,
+          "p50_seconds": 3.070420332951471,
+          "p95_seconds": 8.215569624910131
+        },
+        "verify": {
+          "requests": 0,
+          "failed": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "unknown_usage_calls": 0,
+          "seconds": 0,
+          "p50_seconds": null,
+          "p95_seconds": null
+        }
+      },
+      "diagnostic_summaries": {
+        "held_out/actual/baseline": {
+          "cases": 40,
+          "technical_failures": 0,
+          "citation_validity": 1.0,
+          "citation_counts": {
+            "valid": 63,
+            "total": 63
+          },
+          "generated_citation_validity": 1.0,
+          "generated_citation_counts": {
+            "valid": 63,
+            "total": 63
+          },
+          "final_citation_validity": 1.0,
+          "final_citation_counts": {
+            "valid": 63,
+            "total": 63,
+            "invalid": 0
+          },
+          "citation_metric_note": "citation_validity is the generated-before-pruning legacy alias. Final retained quotes are valid by deterministic construction; semantic support is separate.",
+          "diagnostic_status_accuracy": 0.825,
+          "diagnostic_required_fact_coverage": 0.8958333333333334,
+          "diagnostic_correct_abstention": 1.0,
+          "diagnostic_false_abstention": 0.0,
+          "diagnostic_complete_answer": 0.96,
+          "forbidden_pattern_cases": 0,
+          "semantic_support_rate": null,
+          "semantic_required_fact_coverage": null,
+          "semantic_complete_answer_rate": null,
+          "semantic_appropriate_status_rate": null,
+          "semantic_review_status": "unreviewed",
+          "english_answer_rate": null,
+          "quality_targets": {
+            "criteria": {
+              "no_technical_failures": true,
+              "semantic_support": null,
+              "complete_answer": null,
+              "correct_abstention": null,
+              "false_abstention": null
+            },
+            "passed": null
+          }
+        },
+        "held_out/standard/baseline": {
+          "cases": 40,
+          "technical_failures": 0,
+          "citation_validity": 0.9833333333333333,
+          "citation_counts": {
+            "valid": 59,
+            "total": 60
+          },
+          "generated_citation_validity": 0.9833333333333333,
+          "generated_citation_counts": {
+            "valid": 59,
+            "total": 60
+          },
+          "final_citation_validity": 1.0,
+          "final_citation_counts": {
+            "valid": 59,
+            "total": 59,
+            "invalid": 0
+          },
+          "citation_metric_note": "citation_validity is the generated-before-pruning legacy alias. Final retained quotes are valid by deterministic construction; semantic support is separate.",
+          "diagnostic_status_accuracy": 0.95,
+          "diagnostic_required_fact_coverage": 0.9583333333333334,
+          "diagnostic_correct_abstention": 1.0,
+          "diagnostic_false_abstention": 0.0,
+          "diagnostic_complete_answer": 0.9655172413793104,
+          "forbidden_pattern_cases": 0,
+          "semantic_support_rate": null,
+          "semantic_required_fact_coverage": null,
+          "semantic_complete_answer_rate": null,
+          "semantic_appropriate_status_rate": null,
+          "semantic_review_status": "unreviewed",
+          "english_answer_rate": null,
+          "quality_targets": {
+            "criteria": {
+              "no_technical_failures": true,
+              "semantic_support": null,
+              "complete_answer": null,
+              "correct_abstention": null,
+              "false_abstention": null
+            },
+            "passed": null
+          }
+        }
+      }
+    },
+    "legacy-v2": {
+      "prompt_version": "grounded-generation-v2",
+      "prompt_sha256": "eb545bcf62b388350eca55d9960f3dcbc752f500280d902d7e56e4a18fdc55d2",
+      "manifest_sha256": "cb552daee97fa75a08985ccc06cae4c95dc68ffc89abef6d1398e1f22c535020",
+      "results_sha256": "2cec9d887ec1663b3b09813e28e82e8147e825c6ebf88b71d5d6af7fb1bc4484",
+      "evidence_manifest_sha256": "191cdb2c4611bada9cdc96873f02265f0304f895b2967b311f0cbfa021349e87",
+      "models": [
+        "gpt-6-luna"
+      ],
+      "case_artifacts": 80,
+      "requests": 76,
+      "usage": {
+        "input_tokens": 188049,
+        "output_tokens": 23209,
+        "unknown_usage_calls": 0
+      },
+      "operation_usage": {
+        "generate": {
+          "requests": 76,
+          "failed": 0,
+          "input_tokens": 188049,
+          "output_tokens": 23209,
+          "unknown_usage_calls": 0,
+          "seconds": 303.4103871250991,
+          "p50_seconds": 2.849101416999474,
+          "p95_seconds": 7.316791833145544
+        },
+        "verify": {
+          "requests": 0,
+          "failed": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "unknown_usage_calls": 0,
+          "seconds": 0,
+          "p50_seconds": null,
+          "p95_seconds": null
+        }
+      },
+      "diagnostic_summaries": {
+        "held_out/standard/baseline": {
+          "cases": 40,
+          "technical_failures": 0,
+          "citation_validity": 0.95,
+          "citation_counts": {
+            "valid": 76,
+            "total": 80
+          },
+          "generated_citation_validity": 0.95,
+          "generated_citation_counts": {
+            "valid": 76,
+            "total": 80
+          },
+          "final_citation_validity": 1.0,
+          "final_citation_counts": {
+            "valid": 76,
+            "total": 76,
+            "invalid": 0
+          },
+          "citation_metric_note": "citation_validity is the generated-before-pruning legacy alias. Final retained quotes are valid by deterministic construction; semantic support is separate.",
+          "diagnostic_status_accuracy": 0.925,
+          "diagnostic_required_fact_coverage": 0.8958333333333334,
+          "diagnostic_correct_abstention": 1.0,
+          "diagnostic_false_abstention": 0.034482758620689655,
+          "diagnostic_complete_answer": 0.9310344827586207,
+          "forbidden_pattern_cases": 0,
+          "semantic_support_rate": null,
+          "semantic_required_fact_coverage": null,
+          "semantic_complete_answer_rate": null,
+          "semantic_appropriate_status_rate": null,
+          "semantic_review_status": "unreviewed",
+          "english_answer_rate": null,
+          "quality_targets": {
+            "criteria": {
+              "no_technical_failures": true,
+              "semantic_support": null,
+              "complete_answer": null,
+              "correct_abstention": null,
+              "false_abstention": null,
+              "english_answer": null
+            },
+            "passed": null
+          }
+        },
+        "held_out/actual/baseline": {
+          "cases": 40,
+          "technical_failures": 0,
+          "citation_validity": 0.972972972972973,
+          "citation_counts": {
+            "valid": 72,
+            "total": 74
+          },
+          "generated_citation_validity": 0.972972972972973,
+          "generated_citation_counts": {
+            "valid": 72,
+            "total": 74
+          },
+          "final_citation_validity": 1.0,
+          "final_citation_counts": {
+            "valid": 72,
+            "total": 72,
+            "invalid": 0
+          },
+          "citation_metric_note": "citation_validity is the generated-before-pruning legacy alias. Final retained quotes are valid by deterministic construction; semantic support is separate.",
+          "diagnostic_status_accuracy": 0.875,
+          "diagnostic_required_fact_coverage": 0.8333333333333334,
+          "diagnostic_correct_abstention": 1.0,
+          "diagnostic_false_abstention": 0.0,
+          "diagnostic_complete_answer": 0.92,
+          "forbidden_pattern_cases": 0,
+          "semantic_support_rate": null,
+          "semantic_required_fact_coverage": null,
+          "semantic_complete_answer_rate": null,
+          "semantic_appropriate_status_rate": null,
+          "semantic_review_status": "unreviewed",
+          "english_answer_rate": null,
+          "quality_targets": {
+            "criteria": {
+              "no_technical_failures": true,
+              "semantic_support": null,
+              "complete_answer": null,
+              "correct_abstention": null,
+              "false_abstention": null,
+              "english_answer": null
+            },
+            "passed": null
+          }
+        }
+      }
+    },
+    "targeted-recheck": {
+      "prompt_version": "grounded-generation-v2",
+      "prompt_sha256": "afe44438e7b70e61075a8929c884fda27e3fe91018ace97f8378a2f4370ea6c5",
+      "manifest_sha256": "148e0a1ab17fc214aeccdf13549d9607defd3ac54fc8d064042e7f61ba66ef01",
+      "results_sha256": "852af754bda2440d4247ed1183f451ee6ffb09d9271dfe27f6d2a3eac870e0c7",
+      "evidence_manifest_sha256": "191cdb2c4611bada9cdc96873f02265f0304f895b2967b311f0cbfa021349e87",
+      "models": [
+        "gpt-6-luna"
+      ],
+      "case_artifacts": 16,
+      "requests": 16,
+      "usage": {
+        "input_tokens": 42611,
+        "output_tokens": 7463,
+        "unknown_usage_calls": 0
+      },
+      "operation_usage": {
+        "generate": {
+          "requests": 16,
+          "failed": 0,
+          "input_tokens": 42611,
+          "output_tokens": 7463,
+          "unknown_usage_calls": 0,
+          "seconds": 85.44072891911492,
+          "p50_seconds": 5.004358500009403,
+          "p95_seconds": 10.317528374958783
+        },
+        "verify": {
+          "requests": 0,
+          "failed": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "unknown_usage_calls": 0,
+          "seconds": 0,
+          "p50_seconds": null,
+          "p95_seconds": null
+        }
+      },
+      "diagnostic_summaries": {
+        "tuning/standard/baseline": {
+          "cases": 3,
+          "technical_failures": 0,
+          "citation_validity": 1.0,
+          "citation_counts": {
+            "valid": 5,
+            "total": 5
+          },
+          "generated_citation_validity": 1.0,
+          "generated_citation_counts": {
+            "valid": 5,
+            "total": 5
+          },
+          "final_citation_validity": 1.0,
+          "final_citation_counts": {
+            "valid": 5,
+            "total": 5,
+            "invalid": 0
+          },
+          "citation_metric_note": "citation_validity is the generated-before-pruning legacy alias. Final retained quotes are valid by deterministic construction; semantic support is separate.",
+          "diagnostic_status_accuracy": 0.6666666666666666,
+          "diagnostic_required_fact_coverage": 0.75,
+          "diagnostic_correct_abstention": null,
+          "diagnostic_false_abstention": 0.0,
+          "diagnostic_complete_answer": 0.6666666666666666,
+          "forbidden_pattern_cases": 0,
+          "semantic_support_rate": null,
+          "semantic_required_fact_coverage": null,
+          "semantic_complete_answer_rate": null,
+          "semantic_appropriate_status_rate": null,
+          "semantic_review_status": "unreviewed",
+          "english_answer_rate": null,
+          "quality_targets": {
+            "criteria": {
+              "no_technical_failures": true,
+              "semantic_support": null,
+              "complete_answer": null,
+              "correct_abstention": null,
+              "false_abstention": null,
+              "english_answer": null
+            },
+            "passed": null
+          }
+        },
+        "tuning/actual/baseline": {
+          "cases": 3,
+          "technical_failures": 0,
+          "citation_validity": 1.0,
+          "citation_counts": {
+            "valid": 7,
+            "total": 7
+          },
+          "generated_citation_validity": 1.0,
+          "generated_citation_counts": {
+            "valid": 7,
+            "total": 7
+          },
+          "final_citation_validity": 1.0,
+          "final_citation_counts": {
+            "valid": 7,
+            "total": 7,
+            "invalid": 0
+          },
+          "citation_metric_note": "citation_validity is the generated-before-pruning legacy alias. Final retained quotes are valid by deterministic construction; semantic support is separate.",
+          "diagnostic_status_accuracy": 0.6666666666666666,
+          "diagnostic_required_fact_coverage": 1.0,
+          "diagnostic_correct_abstention": null,
+          "diagnostic_false_abstention": 0.0,
+          "diagnostic_complete_answer": 0.5,
+          "forbidden_pattern_cases": 0,
+          "semantic_support_rate": null,
+          "semantic_required_fact_coverage": null,
+          "semantic_complete_answer_rate": null,
+          "semantic_appropriate_status_rate": null,
+          "semantic_review_status": "unreviewed",
+          "english_answer_rate": null,
+          "quality_targets": {
+            "criteria": {
+              "no_technical_failures": true,
+              "semantic_support": null,
+              "complete_answer": null,
+              "correct_abstention": null,
+              "false_abstention": null,
+              "english_answer": null
+            },
+            "passed": null
+          }
+        },
+        "held_out/actual/baseline": {
+          "cases": 5,
+          "technical_failures": 0,
+          "citation_validity": 1.0,
+          "citation_counts": {
+            "valid": 15,
+            "total": 15
+          },
+          "generated_citation_validity": 1.0,
+          "generated_citation_counts": {
+            "valid": 15,
+            "total": 15
+          },
+          "final_citation_validity": 1.0,
+          "final_citation_counts": {
+            "valid": 15,
+            "total": 15,
+            "invalid": 0
+          },
+          "citation_metric_note": "citation_validity is the generated-before-pruning legacy alias. Final retained quotes are valid by deterministic construction; semantic support is separate.",
+          "diagnostic_status_accuracy": 1.0,
+          "diagnostic_required_fact_coverage": 0.7777777777777778,
+          "diagnostic_correct_abstention": null,
+          "diagnostic_false_abstention": 0.0,
+          "diagnostic_complete_answer": 1.0,
+          "forbidden_pattern_cases": 0,
+          "semantic_support_rate": null,
+          "semantic_required_fact_coverage": null,
+          "semantic_complete_answer_rate": null,
+          "semantic_appropriate_status_rate": null,
+          "semantic_review_status": "unreviewed",
+          "english_answer_rate": null,
+          "quality_targets": {
+            "criteria": {
+              "no_technical_failures": true,
+              "semantic_support": null,
+              "complete_answer": null,
+              "correct_abstention": null,
+              "false_abstention": null,
+              "english_answer": null
+            },
+            "passed": null
+          }
+        },
+        "held_out/standard/baseline": {
+          "cases": 5,
+          "technical_failures": 0,
+          "citation_validity": 1.0,
+          "citation_counts": {
+            "valid": 15,
+            "total": 15
+          },
+          "generated_citation_validity": 1.0,
+          "generated_citation_counts": {
+            "valid": 15,
+            "total": 15
+          },
+          "final_citation_validity": 1.0,
+          "final_citation_counts": {
+            "valid": 15,
+            "total": 15,
+            "invalid": 0
+          },
+          "citation_metric_note": "citation_validity is the generated-before-pruning legacy alias. Final retained quotes are valid by deterministic construction; semantic support is separate.",
+          "diagnostic_status_accuracy": 1.0,
+          "diagnostic_required_fact_coverage": 1.0,
+          "diagnostic_correct_abstention": null,
+          "diagnostic_false_abstention": 0.0,
+          "diagnostic_complete_answer": 1.0,
+          "forbidden_pattern_cases": 0,
+          "semantic_support_rate": null,
+          "semantic_required_fact_coverage": null,
+          "semantic_complete_answer_rate": null,
+          "semantic_appropriate_status_rate": null,
+          "semantic_review_status": "unreviewed",
+          "english_answer_rate": null,
+          "quality_targets": {
+            "criteria": {
+              "no_technical_failures": true,
+              "semantic_support": null,
+              "complete_answer": null,
+              "correct_abstention": null,
+              "false_abstention": null,
+              "english_answer": null
+            },
+            "passed": null
+          }
+        }
+      }
+    }
+  },
+  "requests": 320,
+  "input_tokens": 709569,
+  "output_tokens": 88835,
+  "total_tokens": 798404,
+  "embedding_requests": 0,
+  "reranking_requests": 0,
+  "verifier_requests": 0,
+  "same_evidence_identity_checked": true,
+  "validation": {
+    "backend_tests": 1013,
+    "generation_fake_tests": 110,
+    "ruff_lint": true,
+    "ruff_format": true,
+    "dependency_lock": true,
+    "alembic_model_parity": true,
+    "independent_test_review": "blocked_subagent_usage_limit",
+    "frontend_changes": false
+  }
+}

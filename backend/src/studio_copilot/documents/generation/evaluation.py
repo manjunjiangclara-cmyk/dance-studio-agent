@@ -13,7 +13,7 @@ from .contracts import Candidate, GenerationError, Verification
 from .engine import answer, paired, require_api
 from .evidence import hash_value, load_artifact
 from .prepare import CASES_SHA256, load_cases
-from .provider import GENERATE, PROMPT_VERSION, VERIFY
+from .provider import generation_prompt, prompt_metadata
 
 
 def markdown_text(value):
@@ -54,7 +54,7 @@ def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def selected_inputs(evidence_dir, tokenizer, *, split=None, limit=None):
+def selected_inputs(evidence_dir, tokenizer, *, split=None, limit=None, case_ids=None):
     directory = Path(evidence_dir)
     manifest = json.loads((directory / "manifest.json").read_text())
     labels = load_cases()
@@ -74,6 +74,17 @@ def selected_inputs(evidence_dir, tokenizer, *, split=None, limit=None):
     if split not in {None, "tuning", "held_out"} or (limit is not None and limit < 1):
         raise GenerationError("invalid_selection", "Invalid split or positive case limit.")
     identifiers = [c["id"] for c in labels["cases"] if split is None or c["split"] == split]
+    if case_ids is not None:
+        if (
+            not case_ids
+            or len(case_ids) != len(set(case_ids))
+            or not set(case_ids) <= set(identifiers)
+            or limit is not None
+        ):
+            raise GenerationError(
+                "invalid_selection", "Choose distinct known case IDs without --limit."
+            )
+        identifiers = [identifier for identifier in identifiers if identifier in set(case_ids)]
     if limit is not None:
         identifiers = identifiers[:limit]
     selected = set(identifiers)
@@ -100,13 +111,26 @@ def selected_inputs(evidence_dir, tokenizer, *, split=None, limit=None):
     return output
 
 
-def plan(evidence_dir, tokenizer, *, split=None, limit=None, compare_verification=False):
-    inputs = selected_inputs(evidence_dir, tokenizer, split=split, limit=limit)
+def plan(
+    evidence_dir,
+    tokenizer,
+    *,
+    split=None,
+    limit=None,
+    compare_verification=False,
+    prompt_version="v1",
+    case_ids=None,
+):
+    metadata = prompt_metadata(prompt_version)
+    inputs = selected_inputs(evidence_dir, tokenizer, split=split, limit=limit, case_ids=case_ids)
     active = [(c, a) for c, a in inputs if a["blocks"]]
     from .evidence import model_payload
 
     tokens = sum(
-        tokenizer.count(GENERATE + json.dumps(model_payload(a), ensure_ascii=False))
+        tokenizer.count(
+            generation_prompt(prompt_version)
+            + json.dumps(model_payload(a, prompt_version=prompt_version), ensure_ascii=False)
+        )
         for _, a in active
     )
     return dict(
@@ -120,9 +144,10 @@ def plan(evidence_dir, tokenizer, *, split=None, limit=None, compare_verificatio
         output_tokens_limit_per_request=4000,
         split=split,
         limit=limit,
+        case_ids=case_ids,
         model_requests=False,
-        prompt_version=PROMPT_VERSION,
-        prompt_sha256=hash_value([GENERATE, VERIFY]),
+        dataset_role="known_regression_diagnostic",
+        **metadata,
     )
 
 
@@ -159,6 +184,8 @@ def diagnostic(case, result, variant):
 def summarize(records, *, adjudication=None, results_sha256=None):
     reviews = {}
     if adjudication is not None:
+        if "independent" in adjudication and type(adjudication["independent"]) is not bool:
+            raise GenerationError("invalid_review", "Review independence must be a boolean.")
         if adjudication.get("results_sha256") != results_sha256 or not adjudication.get("reviewer"):
             raise GenerationError(
                 "invalid_review", "Review must identify its reviewer and exact results hash."
@@ -240,6 +267,7 @@ def summarize(records, *, adjudication=None, results_sha256=None):
             semantic_complete_answer_rate=None,
             semantic_appropriate_status_rate=None,
             semantic_review_status="unreviewed",
+            english_answer_rate=None,
         )
         if adjudication is not None:
             supported = total = complete_answers = appropriate = correct_refusals = (
@@ -247,9 +275,22 @@ def summarize(records, *, adjudication=None, results_sha256=None):
             ) = 0
             facts_supported = facts_total = factual_complete = 0
             all_facts_reviewed = True
+            english_answers = 0
+            all_languages_reviewed = True
             for row in rows:
                 review = reviews[(row["case_id"], row["variant"], row["path"])]
                 claims = {c["id"] for c in row["result"]["claims"]}
+                if "english_answer" in review:
+                    if type(review["english_answer"]) is not bool:
+                        raise GenerationError(
+                            "invalid_review", "Language judgment must be boolean."
+                        )
+                    english_answers += (
+                        row["result"]["execution_status"] == "completed"
+                        and review["english_answer"]
+                    )
+                else:
+                    all_languages_reviewed = False
                 if (
                     set(review["claims"]) != claims
                     or any(type(v) is not bool for v in review["claims"].values())
@@ -336,7 +377,17 @@ def summarize(records, *, adjudication=None, results_sha256=None):
                 if answerable
                 else None,
                 semantic_appropriate_status_rate=appropriate / len(rows),
-                semantic_review_status="independently_reviewed",
+                semantic_review_status=(
+                    "independently_reviewed"
+                    if adjudication.get("independent", True)
+                    else "reviewed_primary_only"
+                ),
+                english_answer_rate=english_answers / len(rows) if all_languages_reviewed else None,
+                english_answer_counts=dict(
+                    compliant=english_answers,
+                    total=len(rows),
+                    complete_review=all_languages_reviewed,
+                ),
                 semantic_required_fact_coverage=facts_supported / facts_total
                 if all_facts_reviewed and facts_total
                 else None,
@@ -359,6 +410,14 @@ def summarize(records, *, adjudication=None, results_sha256=None):
             if metrics.get("semantic_false_abstention_rate") is not None
             else None,
         )
+        if any(r.get("answer_language") == "en" for r in rows):
+            criteria["english_answer"] = (
+                metrics["english_answer_rate"] == 1
+                if metrics["english_answer_rate"] is not None
+                else None
+            )
+        if adjudication is not None and not adjudication.get("independent", True):
+            criteria["independent_review"] = False
         applicable = [
             value
             for name, value in criteria.items()
@@ -386,7 +445,9 @@ def _write_report(directory, records, manifest):
     manifest["execution_status"] = "failed" if manifest["technical_failures"] else "completed"
     save(directory / "manifest.json", manifest)
     lines = [
-        "# Offline generation evaluation",
+        "# Offline generation regression diagnostic",
+        "",
+        "All 80 questions have been inspected; neither split is an unseen validation set.",
         "",
         "Lexical metrics are diagnostic. Semantic support requires independent adjudication.",
         "",
@@ -454,21 +515,36 @@ def evaluate_directory(
     limit=None,
     workers=1,
     provider_factory=None,
+    case_ids=None,
+    prompt_version="v1",
 ):
     require_api(allow_api)
+    metadata = prompt_metadata(prompt_version)
     if type(workers) is not int or not 1 <= workers <= 8:
         raise GenerationError("invalid_workers", "Use between one and eight workers.")
     if Path(output_dir).exists():
         raise GenerationError("output_exists", "Output already exists; choose a new directory.")
-    inputs = selected_inputs(evidence_dir, tokenizer, split=split, limit=limit)
+    inputs = selected_inputs(evidence_dir, tokenizer, split=split, limit=limit, case_ids=case_ids)
 
     def run(item):
         case, artifact = item
         provider = provider_factory() if provider_factory else None
         if compare_verification:
-            report = paired(artifact, tokenizer, allow_api=True, provider=provider)
+            report = paired(
+                artifact,
+                tokenizer,
+                allow_api=True,
+                provider=provider,
+                prompt_version=prompt_version,
+            )
         else:
-            result = answer(artifact, tokenizer, allow_api=True, provider=provider)
+            result = answer(
+                artifact,
+                tokenizer,
+                allow_api=True,
+                provider=provider,
+                prompt_version=prompt_version,
+            )
             report = dict(
                 baseline=result,
                 calls=result["calls"],
@@ -490,6 +566,8 @@ def evaluate_directory(
                     result=result,
                     provenance=artifact.get("provenance", {}),
                     diagnostic=diagnostic(case, result, artifact["variant"]),
+                    validation_version="citation-status-v2",
+                    **metadata,
                 )
             )
         return rows, report
@@ -501,7 +579,7 @@ def evaluate_directory(
             dict(
                 complete=False,
                 cases_sha256=CASES_SHA256,
-                prompt_sha256=hash_value([GENERATE, VERIFY]),
+                **metadata,
                 schema_sha256=hash_value(
                     [Candidate.model_json_schema(), Verification.model_json_schema()]
                 ),
@@ -581,8 +659,9 @@ def evaluate_directory(
             version="generation-evaluation-v1",
             complete=True,
             cases_sha256=CASES_SHA256,
-            prompt_version=PROMPT_VERSION,
-            prompt_sha256=hash_value([GENERATE, VERIFY]),
+            **metadata,
+            validation_version="citation-status-v2",
+            dataset_role="known_regression_diagnostic",
             schema_sha256=hash_value(
                 [Candidate.model_json_schema(), Verification.model_json_schema()]
             ),
@@ -590,6 +669,7 @@ def evaluate_directory(
             reports_sha256=digest(directory / "reports.jsonl"),
             split=split,
             limit=limit,
+            case_ids=case_ids,
             workers=workers,
             compare_verification=compare_verification,
             real_provider=any(r["real_provider"] for r in reports),
@@ -613,14 +693,19 @@ def evaluate_directory(
     return atomic_export(output_dir, export, preserve_failure=True)
 
 
-def answer_directory(evidence_file, output_dir, tokenizer, *, allow_api=False, verify=False):
+def answer_directory(
+    evidence_file, output_dir, tokenizer, *, allow_api=False, verify=False, prompt_version="v1"
+):
     require_api(allow_api)
+    metadata = prompt_metadata(prompt_version)
     if Path(output_dir).exists():
         raise GenerationError("output_exists", "Output already exists; choose a new directory.")
     artifact = load_artifact(evidence_file, tokenizer)
 
     def export(directory):
-        result = answer(artifact, tokenizer, allow_api=True, verify=verify)
+        result = answer(
+            artifact, tokenizer, allow_api=True, verify=verify, prompt_version=prompt_version
+        )
         save(directory / "answer.json", result)
         (directory / "answer.md").write_text(readable_answer(result), encoding="utf-8")
         manifest = dict(
@@ -631,7 +716,8 @@ def answer_directory(evidence_file, output_dir, tokenizer, *, allow_api=False, v
             technical_failures=int(result["execution_status"] == "failed"),
             error_code=result.get("error_code"),
             answer_sha256=digest(directory / "answer.json"),
-            prompt_version=PROMPT_VERSION,
+            **metadata,
+            validation_version="citation-status-v2",
         )
         save(directory / "manifest.json", manifest)
         return manifest
@@ -685,6 +771,7 @@ def review_directory(results_dir, adjudication_file, output_dir):
             results_sha256=results_hash,
             adjudication_sha256=digest(adjudication_file),
             reviewer=review["reviewer"],
+            independent=review.get("independent", True),
             paired_semantic_changes=effects,
             summaries=summaries,
         )
