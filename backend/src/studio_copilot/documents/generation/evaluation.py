@@ -293,6 +293,7 @@ def summarize(records, *, adjudication=None, results_sha256=None):
                         okay
                         and review["complete_answer"]
                         and all(review["claims"].values())
+                        and (not fact_ids or "required_facts" in review)
                         and all(review.get("required_facts", {}).values())
                     )
                     factual_complete += factual

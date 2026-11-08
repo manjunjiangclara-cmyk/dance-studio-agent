@@ -397,6 +397,28 @@ def test_factually_complete_partial_answer_does_not_count_as_complete_output():
     assert summary["semantic_complete_answer_counts"] == dict(complete=0, total=1)
 
 
+@pytest.mark.parametrize("review_facts", [False, True])
+def test_completeness_requires_individual_frozen_fact_judgments(review_facts):
+    judgment = dict(
+        case_id="one",
+        variant="standard",
+        path="baseline",
+        claims={"c1": True},
+        complete_answer=True,
+        appropriate_status=True,
+    )
+    if review_facts:
+        judgment["required_facts"] = {"f1": True}
+    review = dict(results_sha256="fixed", reviewer="independent", reviews=[judgment])
+    summary = evaluation.summarize([record()], adjudication=review, results_sha256="fixed")[
+        "held_out/standard/baseline"
+    ]
+    assert summary["semantic_factual_completeness_rate"] == int(review_facts)
+    assert summary["semantic_complete_answer_rate"] == int(review_facts)
+    assert summary["semantic_required_fact_counts"]["complete_review"] is review_facts
+    assert summary["quality_targets"]["criteria"]["complete_answer"] is review_facts
+
+
 def test_failed_single_answer_exports_failure_and_cli_exits_nonzero(tmp_path, monkeypatch):
     from studio_copilot.documents.generation import __main__ as cli
     from studio_copilot.documents.generation.engine import answer as engine_answer
