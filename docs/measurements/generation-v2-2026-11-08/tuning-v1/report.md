@@ -1091,4 +1091,3 @@ Metadata missing_information (not part of answer): \["Which campus you are trave
 
 - Ef4ba5fd533df0cccc5bb605f: 97efc8d4-f336-5bd2-a17c-fd085ff59c6d revision 1 chunk parent:0fd21a305c46ddaf63ed160f203bc12b0ce16942a7aaebc5c89088470c334f7d \[317, 399\); valid 2027-01-01 through 2027-12-31; SHA-256 f62858fed472df8a12e102d4795a4c8a4fbaa4363d417eb2afabd8b41e8ba729; quote: Main Campus shuttle seats must be reserved by 16:00 on the preceding business day.
 - E6088199fdf9a2bbb4ee6741d: fd7e8629-4d83-558b-836a-b30da0be3a08 revision 1 chunk parent:a931f4dbeb1e954bebec57ffd6ee51e797d5534d77e6c14fa826aaaf9a3832d7 \[321, 409\); valid 2027-01-01 through 2027-12-31; SHA-256 db328c416d5c18a285293a2e84c5abf65e58dbb920653b8907a2c36f0d8392af; quote: Riverside Annex shuttle seats must be reserved by 12:00 two business days before travel.
-

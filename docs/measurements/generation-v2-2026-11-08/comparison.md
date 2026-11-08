@@ -5373,4 +5373,3 @@ Metadata reason: supported
 Metadata missing_information (not part of answer): \[\]
 
 - Eaedbb81170ae34caffc26d71: bf97b588-ebc1-5bdf-9ec6-7475730639e7 revision 1 chunk parent:a6dc88c43b5f309f1a17df95d0c24f4d776bffd33f1eb25a4ac9799e8a4e4a52 \[320, 421\); valid 2027-01-01 through 2027-12-31; SHA-256 b278275fb6efc84ace9cb880b1973a9b725677bd1920bf2ce546a925740e6712; quote: In 2027, an ordinary absence must be reported at least 24 hours before class to earn a makeup credit.
-
