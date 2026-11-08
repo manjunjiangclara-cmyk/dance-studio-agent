@@ -162,9 +162,11 @@ def resolve_quote(artifact, citation):
     return None
 
 
-def model_payload(artifact):
+def model_payload(artifact, *, prompt_version="v1"):
+    if prompt_version not in {"v1", "v2"}:
+        raise GenerationError("invalid_prompt_version", "Choose prompt version v1 or v2.")
     sources = {source_id(s): s for s in artifact["sources"]}
-    return dict(
+    payload = dict(
         question=artifact["question"],
         as_of=artifact["as_of"],
         evidence=[
@@ -179,3 +181,15 @@ def model_payload(artifact):
             for b in artifact["blocks"]
         ],
     )
+    if prompt_version == "v2":
+        for item, block in zip(payload["evidence"], artifact["blocks"], strict=True):
+            # Expose only the ranges actually supplied, never missing text or evaluation labels.
+            item["source_ranges"] = [dict(fragment) for fragment in block["fragments"]]
+            item["omitted_body_ranges"] = [
+                dict(start=left["end"], end=right["start"])
+                for left, right in zip(block["fragments"], block["fragments"][1:])
+                if left["role"] != "table_header"
+                and right["role"] != "table_header"
+                and left["end"] < right["start"]
+            ]
+    return payload

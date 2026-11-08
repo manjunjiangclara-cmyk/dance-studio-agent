@@ -1,0 +1,269 @@
+{
+  "results_sha256": "852af754bda2440d4247ed1183f451ee6ffb09d9271dfe27f6d2a3eac870e0c7",
+  "reviewer": "independent Codex agent /root/generation_v2_targeted_review; AI review, not human",
+  "independent": true,
+  "reviews": [
+    {
+      "case_id": "gen-tuning-01",
+      "variant": "standard",
+      "path": "baseline",
+      "claims": {
+        "c1": true
+      },
+      "required_facts": {
+        "f1": true
+      },
+      "complete_answer": true,
+      "appropriate_status": true,
+      "english_answer": true,
+      "notes": "Supplied ordinary-notice fragment expressly states the 2026 twelve-hour threshold."
+    },
+    {
+      "case_id": "gen-tuning-01",
+      "variant": "actual",
+      "path": "baseline",
+      "claims": {
+        "c1": true
+      },
+      "required_facts": {
+        "f1": true
+      },
+      "complete_answer": true,
+      "appropriate_status": true,
+      "english_answer": true,
+      "notes": "Same supplied blocks as standard; archived policy year and threshold correctly preserved."
+    },
+    {
+      "case_id": "gen-tuning-20",
+      "variant": "standard",
+      "path": "baseline",
+      "claims": {
+        "c1": true
+      },
+      "required_facts": {
+        "f1": true
+      },
+      "complete_answer": false,
+      "appropriate_status": true,
+      "english_answer": true,
+      "notes": "Accurate MC-12 row and actual headings. Location or segment and Operational note do not establish collection location or departure time. Gold answered status overstates the supplied table."
+    },
+    {
+      "case_id": "gen-tuning-20",
+      "variant": "actual",
+      "path": "baseline",
+      "claims": {
+        "c1": true,
+        "c2": true
+      },
+      "required_facts": {
+        "f1": true
+      },
+      "complete_answer": false,
+      "appropriate_status": true,
+      "english_answer": true,
+      "notes": "Both row transcription and limitation supported. Requested collection/departure interpretation remains unconfirmed."
+    },
+    {
+      "case_id": "gen-held_out-13",
+      "variant": "actual",
+      "path": "baseline",
+      "claims": {
+        "c1": true
+      },
+      "required_facts": {
+        "f1": true
+      },
+      "complete_answer": true,
+      "appropriate_status": true,
+      "english_answer": true,
+      "notes": "Direct dry-weather answer supported by explicit closed-case outdoors rule."
+    },
+    {
+      "case_id": "gen-tuning-25",
+      "variant": "standard",
+      "path": "baseline",
+      "claims": {
+        "c1": true
+      },
+      "required_facts": {
+        "f1": false,
+        "f2": true
+      },
+      "complete_answer": true,
+      "appropriate_status": true,
+      "english_answer": true,
+      "notes": "Correctly denies use without confirmed vacancy. Notice is a question premise; answer resolves the request but omits frozen f1 specific 24-hour threshold."
+    },
+    {
+      "case_id": "gen-held_out-13",
+      "variant": "standard",
+      "path": "baseline",
+      "claims": {
+        "c1": true
+      },
+      "required_facts": {
+        "f1": true
+      },
+      "complete_answer": true,
+      "appropriate_status": true,
+      "english_answer": true,
+      "notes": "Explicit supplied policy supports complete answer including dry weather."
+    },
+    {
+      "case_id": "gen-tuning-25",
+      "variant": "actual",
+      "path": "baseline",
+      "claims": {
+        "c1": true,
+        "c2": true
+      },
+      "required_facts": {
+        "f1": true,
+        "f2": false
+      },
+      "complete_answer": false,
+      "appropriate_status": true,
+      "english_answer": true,
+      "notes": "Capacity fragment excludes 4315-4410. Remaining acknowledgement/booking distinctions do not establish omitted vacancy rule. Correct partial response."
+    },
+    {
+      "case_id": "gen-held_out-28",
+      "variant": "standard",
+      "path": "baseline",
+      "claims": {
+        "c1": true,
+        "c2": true
+      },
+      "required_facts": {
+        "f1": true,
+        "f2": true
+      },
+      "complete_answer": true,
+      "appropriate_status": true,
+      "english_answer": true,
+      "notes": "Preserves visible-signal permission, teacher rehearsal, and drill named adult within sight able to relay evacuation cue."
+    },
+    {
+      "case_id": "gen-held_out-27",
+      "variant": "standard",
+      "path": "baseline",
+      "claims": {
+        "c1": true,
+        "c2": true
+      },
+      "required_facts": {
+        "f1": true,
+        "f2": true
+      },
+      "complete_answer": true,
+      "appropriate_status": true,
+      "english_answer": true,
+      "notes": "Distinguishes handover from signed rescue-inhaler exception; preserves guardian, medicines lead, named trip, and night-support check-in roles."
+    },
+    {
+      "case_id": "gen-held_out-27",
+      "variant": "actual",
+      "path": "baseline",
+      "claims": {
+        "c1": true,
+        "c2": true
+      },
+      "required_facts": {
+        "f1": true,
+        "f2": false
+      },
+      "complete_answer": false,
+      "appropriate_status": true,
+      "english_answer": true,
+      "notes": "Governing permission sentence 1447-1584 absent. Surviving details do not establish required guardian and medicines-lead signatures. Correct partial response."
+    },
+    {
+      "case_id": "gen-held_out-28",
+      "variant": "actual",
+      "path": "baseline",
+      "claims": {
+        "c1": true,
+        "c2": true
+      },
+      "required_facts": {
+        "f1": true,
+        "f2": false
+      },
+      "complete_answer": false,
+      "appropriate_status": true,
+      "english_answer": true,
+      "notes": "Governing drill sentence 1501-1629 absent. Worked example does not supply full named-adult-within-sight condition. Gap warning justified."
+    },
+    {
+      "case_id": "gen-held_out-29",
+      "variant": "standard",
+      "path": "baseline",
+      "claims": {
+        "c1": true,
+        "c2": true,
+        "c3": true
+      },
+      "required_facts": {
+        "f1": true,
+        "f2": true
+      },
+      "complete_answer": false,
+      "appropriate_status": true,
+      "english_answer": true,
+      "notes": "Both deposits correctly attributed; sources establish no charging authority. Appropriate partial handling does not fully resolve requested authoritative amount."
+    },
+    {
+      "case_id": "gen-held_out-29",
+      "variant": "actual",
+      "path": "baseline",
+      "claims": {
+        "c1": true,
+        "c2": true,
+        "c3": true
+      },
+      "required_facts": {
+        "f1": true,
+        "f2": true
+      },
+      "complete_answer": false,
+      "appropriate_status": true,
+      "english_answer": true,
+      "notes": "Preserves 35-versus-20 conflict without choosing precedence. Appropriate partial handling does not resolve requested authority."
+    },
+    {
+      "case_id": "gen-held_out-38",
+      "variant": "actual",
+      "path": "baseline",
+      "claims": {
+        "c1": true,
+        "c2": true
+      },
+      "required_facts": {
+        "f1": false,
+        "f2": true
+      },
+      "complete_answer": false,
+      "appropriate_status": true,
+      "english_answer": true,
+      "notes": "Supported conditional policy and appropriate clarification. Missing information identifies medicine and signed-plan details. Strict f1 coverage fails because handover at departure omitted. Personal conclusion remains unresolved."
+    },
+    {
+      "case_id": "gen-held_out-38",
+      "variant": "standard",
+      "path": "baseline",
+      "claims": {
+        "c1": true,
+        "c2": true
+      },
+      "required_facts": {
+        "f1": true,
+        "f2": true
+      },
+      "complete_answer": false,
+      "appropriate_status": true,
+      "english_answer": true,
+      "notes": "Preserves timing, packaging, responsible role and signed conditions. Structured missing information identifies required user details; rendered prose asks generically. Appropriate clarification does not resolve personal conclusion."
+    }
+  ]
+}
