@@ -747,7 +747,13 @@
     "dependency_lock": true,
     "alembic_model_parity": true,
     "independent_test_review": "passed_fresh_context_96_relevant_tests",
-    "frontend_changes": false
+    "frontend_changes": false,
+    "frontend_build": true,
+    "playwright_passed": 90,
+    "running_app_verified": true,
+    "portal_origin": "http://127.0.0.1:8010",
+    "backend_origin": "http://127.0.0.1:8000",
+    "database_migrated_or_seeded": false
   },
   "targeted_independent_review": {
     "adjudication_file": "targeted-independent-adjudication.json",
