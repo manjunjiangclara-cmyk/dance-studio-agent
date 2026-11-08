@@ -3,8 +3,8 @@
   "default_prompt": "v1",
   "verification_enabled": false,
   "dataset_role": "known_regression_diagnostic",
-  "independent_review_status": "blocked_subagent_usage_limit",
-  "semantic_quality_status": "unreviewed",
+  "independent_review_status": "code_and_test_review_complete_targeted_semantic_review_complete",
+  "semantic_quality_status": "targeted_16_reviewed_full_refined_run_pending",
   "full_final_v2_run": false,
   "runs": {
     "tuning-v1": {
@@ -746,7 +746,18 @@
     "ruff_format": true,
     "dependency_lock": true,
     "alembic_model_parity": true,
-    "independent_test_review": "blocked_subagent_usage_limit",
+    "independent_test_review": "passed_fresh_context_96_relevant_tests",
     "frontend_changes": false
+  },
+  "targeted_independent_review": {
+    "adjudication_file": "targeted-independent-adjudication.json",
+    "review_file": "targeted-independent-review.json",
+    "results_sha256": "852af754bda2440d4247ed1183f451ee6ffb09d9271dfe27f6d2a3eac870e0c7",
+    "artifacts": 16,
+    "supported_claims": 28,
+    "total_claims": 28,
+    "english_compliant": 16,
+    "appropriate_status": 16,
+    "scope": "independent AI review, not human or full refined-prompt acceptance"
   }
 }
