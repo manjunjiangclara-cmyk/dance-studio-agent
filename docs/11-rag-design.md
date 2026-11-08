@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-This document records the agreed design for document-based retrieval-augmented generation (RAG). **Ingestion, offline chunking, PostgreSQL embedding preparation, and explicit CLI retrieval inspection are implemented.** Chunking exports local inspection files; embedding reads an explicit immutable revision and saves chunks/vectors in PostgreSQL. Documents are not yet published or supplied to the agent. CLI retrieval requires explicit completed embedding runs and a target date. The sections below explicitly distinguish existing behavior from planned work.
+This document records the agreed design for document-based retrieval-augmented generation (RAG). **Ingestion, offline chunking, PostgreSQL embedding preparation, explicit CLI retrieval inspection, offline reranking and grounded generation are implemented.** Chunking exports local inspection files; embedding reads an explicit immutable revision and saves chunks/vectors in PostgreSQL. Documents are not yet published or supplied to the agent. CLI retrieval requires explicit completed embedding runs and a target date. Generation replays saved evidence without database access. The sections below explicitly distinguish existing behavior from planned work.
 
 The initial scope is English Markdown and plain text, up to **10,000,000 bytes per file**, answering specific questions. Whole-document analysis, PDF/DOCX extraction, OCR, external document synchronization, and multi-tenant access are deferred. The sample studio handbook is an example, not the structure every document must follow or an authoritative policy to load automatically.
 
@@ -112,7 +112,13 @@ Do not enable a cross-encoder merely because the file is large. Adopt it only if
 
 ## 6. Generation and grounding
 
-**Planned:** pass selected excerpts and their immutable passage references into the existing question-by-question drafting and teacher-review flow.
+**Implemented offline:** `documents.generation` prepares checksummed evidence from a saved retrieval capture and selected MiniLM-L6 rankings, then generates structured claims with exact citations. It does not read the database, embed, rerank, publish documents, or change email/teacher-review behavior. See the [Generation guide](17-document-generation.md).
+
+The default makes one explicit model request and checks citation IDs and verbatim original-source ranges deterministically. Optional independent semantic verification can delete claims or lower completeness, never add facts or upgrade a result. Paired experiments reuse one writer result; verification stays disabled by default regardless of experimental results. Empty applicable evidence yields abstention with zero requests. Transport/schema/verifier failures remain technical failures, not successful abstentions.
+
+Evidence carries the question, explicit date, document revision, source hashes, raw snapshots, exact supplied excerpts and character spans. Generated heading prefixes are not citable. Source snapshots support provenance checks but are not sent wholesale to the model. Rendered answers contain only retained claims and fixed state messages. Quote validity establishes provenance, not semantic support.
+
+**Future integration:** pass selected excerpts and their immutable passage references into the existing question-by-question drafting and teacher-review flow.
 
 Each question receives a supported answer, a request for student details, or an explicit need for teacher input. Answers cite evidence actually supplied in that drafting attempt. Retain the title, revision, section, effective dates, source offsets, and exact excerpt in run evidence so document changes cannot rewrite what a teacher reviewed.
 
@@ -124,7 +130,7 @@ Before approval, verify cited publications remain active and applicable. A repla
 
 ## 7. Evaluation
 
-**Planned:** begin with at least 40 manually checked questions, with tuning and held-out subsets. Label expected answers, evidence positions in original sources, and clarification/teacher-handoff outcomes. A small initial set is an acceptance baseline, not proof of general reliability.
+**Generation evaluation:** 80 frozen questions in policy-family-disjoint 40/40 tuning and held-out splits, each with retrieved and standard-evidence contexts. They reuse existing fictional documents/questions and include explicitly labelled controlled variants. The two contexts and splits are reported separately. Frozen source facts support coverage checks; independent output-linked review establishes semantic support. Lexical matching and the verifier's own verdicts are not faithfulness measurements. This is an acceptance baseline, not proof of general reliability.
 
 | Stage                     | Measures                                                                                             |
 | ------------------------- | ---------------------------------------------------------------------------------------------------- |

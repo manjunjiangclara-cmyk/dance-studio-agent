@@ -1,0 +1,120 @@
+{
+  "case_id": "gen-tuning-01",
+  "variant": "actual",
+  "artifact_sha256": "57fa94a18f49dc930dbc451489556dafbb76da12f4cc6db6dfe009d560b1b901",
+  "raw_candidate": {
+    "status": "answered",
+    "claims": [
+      {
+        "id": "c1",
+        "text": "In 2026, a family had to report an ordinary absence at least 12 hours before class to earn a makeup credit.",
+        "citations": [
+          {
+            "evidence_id": "Ea92b562f543edeb612bd0309",
+            "quote": "In 2026, an ordinary absence must be reported at least 12 hours before class to earn a makeup credit."
+          }
+        ]
+      }
+    ],
+    "missing_information": [],
+    "reason_code": "supported"
+  },
+  "baseline": {
+    "execution_status": "completed",
+    "status": "answered",
+    "claims": [
+      {
+        "id": "c1",
+        "text": "In 2026, a family had to report an ordinary absence at least 12 hours before class to earn a makeup credit.",
+        "citations": [
+          {
+            "evidence_id": "Ea92b562f543edeb612bd0309",
+            "quote": "In 2026, an ordinary absence must be reported at least 12 hours before class to earn a makeup credit.",
+            "document_id": "f9a1904c-9faa-51d3-a54c-06fedde8e761",
+            "revision": 1,
+            "title": "Archived Attendance Rules 2026",
+            "chunk_id": "parent:9096e32bffce6f18a703b680d29e715bb9de2839ff1888dc3b7eb7256e7c4344",
+            "sha256": "12a08f31b050482e629dd97c8164fcde317baa8af9f7d3566cc3890d0b1621cd",
+            "effective_from": "2026-01-01",
+            "effective_to": "2026-12-31",
+            "start": 321,
+            "end": 422,
+            "role": "body"
+          }
+        ]
+      }
+    ],
+    "missing_information": [],
+    "reason_code": "supported",
+    "invalid_claim_ids": [],
+    "citation_counts": {
+      "valid": 1,
+      "total": 1
+    },
+    "verification_applied": false,
+    "answer": "In 2026, a family had to report an ordinary absence at least 12 hours before class to earn a makeup credit. [Ea92b562f543edeb612bd0309]"
+  },
+  "verified": {
+    "execution_status": "completed",
+    "status": "partial",
+    "claims": [
+      {
+        "id": "c1",
+        "text": "In 2026, a family had to report an ordinary absence at least 12 hours before class to earn a makeup credit.",
+        "citations": [
+          {
+            "evidence_id": "Ea92b562f543edeb612bd0309",
+            "quote": "In 2026, an ordinary absence must be reported at least 12 hours before class to earn a makeup credit.",
+            "document_id": "f9a1904c-9faa-51d3-a54c-06fedde8e761",
+            "revision": 1,
+            "title": "Archived Attendance Rules 2026",
+            "chunk_id": "parent:9096e32bffce6f18a703b680d29e715bb9de2839ff1888dc3b7eb7256e7c4344",
+            "sha256": "12a08f31b050482e629dd97c8164fcde317baa8af9f7d3566cc3890d0b1621cd",
+            "effective_from": "2026-01-01",
+            "effective_to": "2026-12-31",
+            "start": 321,
+            "end": 422,
+            "role": "body"
+          }
+        ]
+      }
+    ],
+    "missing_information": [],
+    "reason_code": "supported",
+    "invalid_claim_ids": [],
+    "citation_counts": {
+      "valid": 1,
+      "total": 1
+    },
+    "verification_applied": true,
+    "answer": "I can confirm only the following from the supplied documents:\n\nIn 2026, a family had to report an ordinary absence at least 12 hours before class to earn a makeup credit. [Ea92b562f543edeb612bd0309]\n\nThe remaining details cannot be confirmed from this evidence.",
+    "verification": {
+      "claims": [
+        {
+          "claim_id": "c1",
+          "supported": true
+        }
+      ],
+      "status": "partial"
+    }
+  },
+  "calls": [
+    {
+      "operation": "generate",
+      "input_tokens": 1910,
+      "output_tokens": 107,
+      "succeeded": true,
+      "seconds": 4.104073542170227
+    },
+    {
+      "operation": "verify",
+      "input_tokens": 1777,
+      "output_tokens": 330,
+      "succeeded": true,
+      "seconds": 4.166959499940276
+    }
+  ],
+  "real_provider": true,
+  "model": "gpt-6-luna",
+  "seconds": 8.324846083996817
+}

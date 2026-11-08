@@ -1,0 +1,277 @@
+{
+  "results_sha256": "7ef35c62580a6b9c13411fd6223d22341ff9840d1b0c7266577eae743394085c",
+  "adjudication_sha256": "79b970285acc9e344c49b824d4d19d812b207a5e3f7f56378ec6f8c5d0b196ca",
+  "reviewer": "independent Codex agent /root/generation_semantic_review; AI review, not human",
+  "paired_semantic_changes": {
+    "unsupported_claims_removed": 0,
+    "supported_claims_removed": 2,
+    "unnecessary_status_downgrades": 2,
+    "status_errors_corrected": 0
+  },
+  "summaries": {
+    "held_out/actual/baseline": {
+      "cases": 40,
+      "technical_failures": 0,
+      "citation_validity": 1.0,
+      "citation_counts": {
+        "valid": 66,
+        "total": 66
+      },
+      "generated_citation_validity": 1.0,
+      "generated_citation_counts": {
+        "valid": 66,
+        "total": 66
+      },
+      "final_citation_validity": 1.0,
+      "final_citation_counts": {
+        "valid": 66,
+        "total": 66,
+        "invalid": 0
+      },
+      "citation_metric_note": "citation_validity is the generated-before-pruning legacy alias. Final retained quotes are valid by deterministic construction; semantic support is separate.",
+      "diagnostic_status_accuracy": 0.825,
+      "diagnostic_required_fact_coverage": 0.8333333333333334,
+      "diagnostic_correct_abstention": 1.0,
+      "diagnostic_false_abstention": 0.0,
+      "diagnostic_complete_answer": 0.92,
+      "forbidden_pattern_cases": 0,
+      "semantic_support_rate": 0.9833333333333333,
+      "semantic_required_fact_coverage": 0.8125,
+      "semantic_complete_answer_rate": 0.88,
+      "semantic_appropriate_status_rate": 0.95,
+      "semantic_review_status": "independently_reviewed",
+      "semantic_support_counts": {
+        "supported": 59,
+        "total": 60
+      },
+      "semantic_complete_answer_counts": {
+        "complete": 22,
+        "total": 25
+      },
+      "semantic_correct_abstention_rate": 1.0,
+      "semantic_correct_abstention_counts": {
+        "correct": 6,
+        "total": 6
+      },
+      "semantic_false_abstention_rate": 0.0,
+      "semantic_false_abstention_counts": {
+        "wrong": 0,
+        "total": 25
+      },
+      "semantic_factual_completeness_rate": 0.88,
+      "semantic_required_fact_counts": {
+        "covered": 39,
+        "total": 48,
+        "complete_review": true
+      },
+      "quality_targets": {
+        "criteria": {
+          "no_technical_failures": true,
+          "semantic_support": true,
+          "complete_answer": null,
+          "correct_abstention": true,
+          "false_abstention": true
+        },
+        "passed": true
+      }
+    },
+    "held_out/actual/verified": {
+      "cases": 40,
+      "technical_failures": 0,
+      "citation_validity": 1.0,
+      "citation_counts": {
+        "valid": 66,
+        "total": 66
+      },
+      "generated_citation_validity": 1.0,
+      "generated_citation_counts": {
+        "valid": 66,
+        "total": 66
+      },
+      "final_citation_validity": 1.0,
+      "final_citation_counts": {
+        "valid": 64,
+        "total": 64,
+        "invalid": 0
+      },
+      "citation_metric_note": "citation_validity is the generated-before-pruning legacy alias. Final retained quotes are valid by deterministic construction; semantic support is separate.",
+      "diagnostic_status_accuracy": 0.8,
+      "diagnostic_required_fact_coverage": 0.8125,
+      "diagnostic_correct_abstention": 1.0,
+      "diagnostic_false_abstention": 0.04,
+      "diagnostic_complete_answer": 0.88,
+      "forbidden_pattern_cases": 0,
+      "semantic_support_rate": 0.9830508474576272,
+      "semantic_required_fact_coverage": 0.7916666666666666,
+      "semantic_complete_answer_rate": 0.84,
+      "semantic_appropriate_status_rate": 0.925,
+      "semantic_review_status": "independently_reviewed",
+      "semantic_support_counts": {
+        "supported": 58,
+        "total": 59
+      },
+      "semantic_complete_answer_counts": {
+        "complete": 21,
+        "total": 25
+      },
+      "semantic_correct_abstention_rate": 1.0,
+      "semantic_correct_abstention_counts": {
+        "correct": 6,
+        "total": 6
+      },
+      "semantic_false_abstention_rate": 0.04,
+      "semantic_false_abstention_counts": {
+        "wrong": 1,
+        "total": 25
+      },
+      "semantic_factual_completeness_rate": 0.84,
+      "semantic_required_fact_counts": {
+        "covered": 38,
+        "total": 48,
+        "complete_review": true
+      },
+      "quality_targets": {
+        "criteria": {
+          "no_technical_failures": true,
+          "semantic_support": true,
+          "complete_answer": null,
+          "correct_abstention": true,
+          "false_abstention": true
+        },
+        "passed": true
+      }
+    },
+    "held_out/standard/baseline": {
+      "cases": 40,
+      "technical_failures": 0,
+      "citation_validity": 0.9666666666666667,
+      "citation_counts": {
+        "valid": 58,
+        "total": 60
+      },
+      "generated_citation_validity": 0.9666666666666667,
+      "generated_citation_counts": {
+        "valid": 58,
+        "total": 60
+      },
+      "final_citation_validity": 1.0,
+      "final_citation_counts": {
+        "valid": 58,
+        "total": 58,
+        "invalid": 0
+      },
+      "citation_metric_note": "citation_validity is the generated-before-pruning legacy alias. Final retained quotes are valid by deterministic construction; semantic support is separate.",
+      "diagnostic_status_accuracy": 0.9,
+      "diagnostic_required_fact_coverage": 0.8333333333333334,
+      "diagnostic_correct_abstention": 1.0,
+      "diagnostic_false_abstention": 0.0,
+      "diagnostic_complete_answer": 0.9655172413793104,
+      "forbidden_pattern_cases": 0,
+      "semantic_support_rate": 0.9818181818181818,
+      "semantic_required_fact_coverage": 0.9166666666666666,
+      "semantic_complete_answer_rate": 0.8620689655172413,
+      "semantic_appropriate_status_rate": 0.975,
+      "semantic_review_status": "independently_reviewed",
+      "semantic_support_counts": {
+        "supported": 54,
+        "total": 55
+      },
+      "semantic_complete_answer_counts": {
+        "complete": 25,
+        "total": 29
+      },
+      "semantic_correct_abstention_rate": 1.0,
+      "semantic_correct_abstention_counts": {
+        "correct": 6,
+        "total": 6
+      },
+      "semantic_false_abstention_rate": 0.0,
+      "semantic_false_abstention_counts": {
+        "wrong": 0,
+        "total": 29
+      },
+      "semantic_factual_completeness_rate": 0.8620689655172413,
+      "semantic_required_fact_counts": {
+        "covered": 44,
+        "total": 48,
+        "complete_review": true
+      },
+      "quality_targets": {
+        "criteria": {
+          "no_technical_failures": true,
+          "semantic_support": true,
+          "complete_answer": false,
+          "correct_abstention": true,
+          "false_abstention": true
+        },
+        "passed": false
+      }
+    },
+    "held_out/standard/verified": {
+      "cases": 40,
+      "technical_failures": 0,
+      "citation_validity": 0.9666666666666667,
+      "citation_counts": {
+        "valid": 58,
+        "total": 60
+      },
+      "generated_citation_validity": 0.9666666666666667,
+      "generated_citation_counts": {
+        "valid": 58,
+        "total": 60
+      },
+      "final_citation_validity": 1.0,
+      "final_citation_counts": {
+        "valid": 57,
+        "total": 57,
+        "invalid": 0
+      },
+      "citation_metric_note": "citation_validity is the generated-before-pruning legacy alias. Final retained quotes are valid by deterministic construction; semantic support is separate.",
+      "diagnostic_status_accuracy": 0.875,
+      "diagnostic_required_fact_coverage": 0.8125,
+      "diagnostic_correct_abstention": 1.0,
+      "diagnostic_false_abstention": 0.0,
+      "diagnostic_complete_answer": 0.9310344827586207,
+      "forbidden_pattern_cases": 0,
+      "semantic_support_rate": 0.9814814814814815,
+      "semantic_required_fact_coverage": 0.8958333333333334,
+      "semantic_complete_answer_rate": 0.8275862068965517,
+      "semantic_appropriate_status_rate": 0.95,
+      "semantic_review_status": "independently_reviewed",
+      "semantic_support_counts": {
+        "supported": 53,
+        "total": 54
+      },
+      "semantic_complete_answer_counts": {
+        "complete": 24,
+        "total": 29
+      },
+      "semantic_correct_abstention_rate": 1.0,
+      "semantic_correct_abstention_counts": {
+        "correct": 6,
+        "total": 6
+      },
+      "semantic_false_abstention_rate": 0.0,
+      "semantic_false_abstention_counts": {
+        "wrong": 0,
+        "total": 29
+      },
+      "semantic_factual_completeness_rate": 0.8275862068965517,
+      "semantic_required_fact_counts": {
+        "covered": 43,
+        "total": 48,
+        "complete_review": true
+      },
+      "quality_targets": {
+        "criteria": {
+          "no_technical_failures": true,
+          "semantic_support": true,
+          "complete_answer": false,
+          "correct_abstention": true,
+          "false_abstention": true
+        },
+        "passed": false
+      }
+    }
+  }
+}
