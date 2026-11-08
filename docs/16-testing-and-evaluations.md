@@ -6,7 +6,7 @@ This page indexes implementation checks, performance measurements and real model
 
 | Area | What is checked | Details |
 | --- | --- | --- |
-| Backend unit tests | Validation, deterministic rules, routing, mocked adapters, token/provenance logic and failure handling | [README test commands](../README.md#testing), [agent guide](08-agent-api.md) |
+| Backend unit tests | Validation, deterministic rules, routing, mocked adapters, token/provenance logic and failure handling | [README test commands](../README.md#verification), [agent guide](08-agent-api.md) |
 | PostgreSQL integration | Migrations/model parity, constraints, API access, revisions, concurrent operations, read-only snapshots and owned-schema cleanup | [Schema](02-domain-and-schema.md), [API](07-api.md) |
 | Agent/workflow tests | Scripted model responses, teacher review, booking revalidation, recovery, access and tool limits | [Agent guide](08-agent-api.md) |
 | Browser tests | Desktop/mobile layout, owner access, document CRUD/large previews, conflicts and preservation of unsaved edits | [Website guide](09-website.md) |
@@ -18,7 +18,7 @@ This page indexes implementation checks, performance measurements and real model
 
 Normal pytest does not call OpenAI, download reranker weights, or run real neural inference. PostgreSQL tests require `TEST_DATABASE_URL` ending `_test`; absence explicitly skips them and must not be reported as passing. Browser tests use fixtures/mock API behavior; a healthy local app alone does not establish agent quality or successful Google login.
 
-The latest full validation totals are recorded with the PR and final delivery. Before this reranking milestone the full suite passed 824 backend tests and 90 desktop/mobile browser tests; the new milestone adds independent reranking coverage and reruns the complete suite. Static checks include Ruff lint/format, dependency-lock consistency, frontend build, and Alembic schema parity.
+The reranking milestone passed **903 backend tests**, including **79 new independent reranking tests**. **All 90 desktop/mobile browser tests also passed** against the refreshed app. Static checks include Ruff lint/format, dependency-lock consistency, frontend build, and Alembic schema parity.
 
 ```bash
 # backend/: real PostgreSQL integration with fake providers; no paid API calls.
