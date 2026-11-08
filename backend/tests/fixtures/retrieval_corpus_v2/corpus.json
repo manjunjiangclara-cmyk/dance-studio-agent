@@ -1,0 +1,2315 @@
+{
+  "version": "retrieval-corpus-v2",
+  "documents": [
+    {
+      "key": "attendance_2026",
+      "title": "Archived Attendance Rules 2026",
+      "file": "attendance_2026.md",
+      "sha256": "12a08f31b050482e629dd97c8164fcde317baa8af9f7d3566cc3890d0b1621cd",
+      "effective_from": "2026-01-01",
+      "effective_to": "2026-12-31"
+    },
+    {
+      "key": "attendance_2027",
+      "title": "Current Attendance Rules 2027",
+      "file": "attendance_2027.md",
+      "sha256": "b278275fb6efc84ace9cb880b1973a9b725677bd1920bf2ce546a925740e6712",
+      "effective_from": "2027-01-01",
+      "effective_to": "2027-12-31"
+    },
+    {
+      "key": "fees_office",
+      "title": "Enrolment Office Fee Schedule",
+      "file": "fees_office.md",
+      "sha256": "dd08419811511f20a52643b5673fab06dabd018eee143c7dfdeb3603e04df4fd",
+      "effective_from": "2027-01-01",
+      "effective_to": "2027-12-31"
+    },
+    {
+      "key": "fees_welcome",
+      "title": "Welcome Pack Payment Leaflet",
+      "file": "fees_welcome.md",
+      "sha256": "4bfe0c526728625a4453d6665cfa44ecda4d4def6ec83bfc868c3a78955ed752",
+      "effective_from": "2027-01-01",
+      "effective_to": "2027-12-31"
+    },
+    {
+      "key": "transport_main",
+      "title": "Main Campus Shuttle Protocol",
+      "file": "transport_main.md",
+      "sha256": "f62858fed472df8a12e102d4795a4c8a4fbaa4363d417eb2afabd8b41e8ba729",
+      "effective_from": "2027-01-01",
+      "effective_to": "2027-12-31"
+    },
+    {
+      "key": "transport_annex",
+      "title": "Riverside Annex Shuttle Protocol",
+      "file": "transport_annex.md",
+      "sha256": "db328c416d5c18a285293a2e84c5abf65e58dbb920653b8907a2c36f0d8392af",
+      "effective_from": "2027-01-01",
+      "effective_to": "2027-12-31"
+    },
+    {
+      "key": "access_main",
+      "title": "Main Campus Building Access Manual",
+      "file": "access_main.md",
+      "sha256": "6f65a90f7c4c63a0a7136a7e85dd85571320f90c3b37b26065a18f1aafc29e7e",
+      "effective_from": "2027-01-01",
+      "effective_to": "2027-12-31"
+    },
+    {
+      "key": "access_addendum",
+      "title": "Facilities Desk Access Addendum",
+      "file": "access_addendum.md",
+      "sha256": "fd6e135d5281dc42744d003d414429a54de200425c06b6ecf20f88121dd628e6",
+      "effective_from": "2027-01-01",
+      "effective_to": "2027-12-31"
+    },
+    {
+      "key": "assessment_2026",
+      "title": "Archived Assessment Handbook 2026",
+      "file": "assessment_2026.md",
+      "sha256": "1ab1941921e3f1f746ce8934a17abc83a72a1063d99002c939afdfcb2f208a6a",
+      "effective_from": "2026-01-01",
+      "effective_to": "2026-12-31"
+    },
+    {
+      "key": "assessment_2027",
+      "title": "Assessment Handbook 2027",
+      "file": "assessment_2027.md",
+      "sha256": "be70fd65bdddc17245d429efff8f4f804169e9f9778e7bcf6e42fbcc3c14e2dc",
+      "effective_from": "2027-01-01",
+      "effective_to": "2027-12-31"
+    },
+    {
+      "key": "costume_wardrobe",
+      "title": "Wardrobe Hire Instructions",
+      "file": "costume_wardrobe.md",
+      "sha256": "d7176aa22843e92980af5f5b405f2df30a92d482479fdc55d171319c315265a9",
+      "effective_from": "2027-01-01",
+      "effective_to": "2027-12-31"
+    },
+    {
+      "key": "costume_performance",
+      "title": "Performance Night Costume Brief",
+      "file": "costume_performance.md",
+      "sha256": "63835dc06ab1d4372b99192a9dfd18b24a1ca6e675d76b0e6f89aefe927371eb",
+      "effective_from": "2027-01-01",
+      "effective_to": "2027-12-31"
+    },
+    {
+      "key": "recording_consent",
+      "title": "Student Recording Consent Rules",
+      "file": "recording_consent.md",
+      "sha256": "02a27b42b1402d694576c1ffdf768bebd3b4ccaa730e476242ca17db004b3e99",
+      "effective_from": "2027-01-01",
+      "effective_to": "2027-12-31"
+    },
+    {
+      "key": "recording_operations",
+      "title": "Media Desk Recording Operations",
+      "file": "recording_operations.md",
+      "sha256": "24c24f64d7c57d89017a1b32ec6ae76e2c744d274fd5f86d74d32eec3dfe4cba",
+      "effective_from": "2027-01-01",
+      "effective_to": "2027-12-31"
+    },
+    {
+      "key": "scholarship_award",
+      "title": "Community Scholarship Award Rules",
+      "file": "scholarship_award.md",
+      "sha256": "289da2a29d42602a25105b2e9c981e37cd16964aae3c217d795ea320bbeb372f",
+      "effective_from": "2027-01-01",
+      "effective_to": "2027-12-31"
+    },
+    {
+      "key": "scholarship_admin",
+      "title": "Scholarship Administration Desk Notes",
+      "file": "scholarship_admin.txt",
+      "sha256": "1263a5a937f0f76f81c477864a795ad558481a77c161e07ef40092f00ddd1f86",
+      "effective_from": "2027-01-01",
+      "effective_to": "2027-12-31"
+    }
+  ],
+  "cases": [
+    {
+      "id": "tuning-attendance_2026-01",
+      "split": "tuning",
+      "query": "In 2026, how far ahead did a family have to report an ordinary absence for a replacement lesson?",
+      "as_of": "2026-07-01",
+      "evidence": [
+        {
+          "document_key": "attendance_2026",
+          "start": 321,
+          "end": 422,
+          "text": "In 2026, an ordinary absence must be reported at least 12 hours before class to earn a makeup credit."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "attendance",
+        "single_source",
+        "archived",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "tuning-attendance_2026-02",
+      "split": "tuning",
+      "query": "How long did a 2026 replacement-class credit remain usable?",
+      "as_of": "2026-07-01",
+      "evidence": [
+        {
+          "document_key": "attendance_2026",
+          "start": 1645,
+          "end": 1748,
+          "text": "A makeup credit issued under the 2026 attendance rules expires 30 calendar days after the missed class."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "attendance",
+        "single_source",
+        "archived",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "tuning-attendance_2026-03",
+      "split": "tuning",
+      "query": "What was the deadline for providing medical evidence after a missed lesson in 2026?",
+      "as_of": "2026-07-01",
+      "evidence": [
+        {
+          "document_key": "attendance_2026",
+          "start": 2971,
+          "end": 3085,
+          "text": "The 2026 medical exception accepts a doctor’s certificate submitted within five calendar days of the missed class."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "attendance",
+        "single_source",
+        "archived",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "tuning-attendance_2026-04",
+      "split": "tuning",
+      "query": "Could a sibling use another child’s absence credit under the archived attendance policy?",
+      "as_of": "2026-07-01",
+      "evidence": [
+        {
+          "document_key": "attendance_2026",
+          "start": 4319,
+          "end": 4420,
+          "text": "A 2026 attendance makeup credit belongs to the absent student and cannot be transferred to a sibling."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "attendance",
+        "single_source",
+        "archived",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "tuning-attendance_2026-05",
+      "split": "tuning",
+      "query": "Which timestamp must the year-end 2026 attendance audit preserve?",
+      "as_of": "2026-07-01",
+      "evidence": [
+        {
+          "document_key": "attendance_2026",
+          "start": 7554,
+          "end": 7673,
+          "text": "The final 2026 attendance audit must retain the original absence timestamp rather than a later teacher reply timestamp."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "attendance",
+        "single_source",
+        "archived",
+        "end_of_document"
+      ]
+    },
+    {
+      "id": "tuning-attendance_2027-01",
+      "split": "tuning",
+      "query": "How much advance notice is needed for an ordinary missed-class credit in 2027?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "attendance_2027",
+          "start": 320,
+          "end": 421,
+          "text": "In 2027, an ordinary absence must be reported at least 24 hours before class to earn a makeup credit."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "attendance",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "tuning-attendance_2027-02",
+      "split": "tuning",
+      "query": "When does a replacement-class credit from a 2027 absence expire?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "attendance_2027",
+          "start": 1644,
+          "end": 1747,
+          "text": "A makeup credit issued under the 2027 attendance rules expires 45 calendar days after the missed class."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "attendance",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "tuning-attendance_2027-03",
+      "split": "tuning",
+      "query": "How quickly must a family supply a medical certificate for a 2027 absence exception?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "attendance_2027",
+          "start": 2970,
+          "end": 3085,
+          "text": "The 2027 medical exception accepts a doctor’s certificate submitted within three calendar days of the missed class."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "attendance",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "tuning-attendance_2027-04",
+      "split": "tuning",
+      "query": "After meeting the current ordinary-absence notice rule, may a family use the credit in a class with no vacant places?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "attendance_2027",
+          "start": 320,
+          "end": 421,
+          "text": "In 2027, an ordinary absence must be reported at least 24 hours before class to earn a makeup credit."
+        },
+        {
+          "document_key": "attendance_2027",
+          "start": 4315,
+          "end": 4410,
+          "text": "An attendance makeup may use only a class whose roster has at least one confirmed vacant place."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "attendance",
+        "same_document",
+        "condition",
+        "exception"
+      ]
+    },
+    {
+      "id": "tuning-attendance_2027-05",
+      "split": "tuning",
+      "query": "How should used and unused absence credits be separated at year end?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "attendance_2027",
+          "start": 7545,
+          "end": 7652,
+          "text": "The final 2027 attendance reconciliation must list unused credits separately from credits already redeemed."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "attendance",
+        "single_source",
+        "current",
+        "end_of_document"
+      ]
+    },
+    {
+      "id": "tuning-fees_office-01",
+      "split": "tuning",
+      "query": "Do the two active office and welcome documents agree about the annual registration charge? State both amounts.",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "fees_office",
+          "start": 318,
+          "end": 406,
+          "text": "The enrolment office schedule sets the annual registration charge at AUD 48 per student."
+        },
+        {
+          "document_key": "fees_welcome",
+          "start": 317,
+          "end": 400,
+          "text": "The welcome pack leaflet sets the annual registration charge at AUD 52 per student."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "fees",
+        "conflict",
+        "cross_document",
+        "numeric"
+      ]
+    },
+    {
+      "id": "tuning-fees_office-02",
+      "split": "tuning",
+      "query": "What conflicting due dates do the active enrolment office and welcome leaflet give for the second tuition payment?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "fees_office",
+          "start": 1635,
+          "end": 1729,
+          "text": "Under the enrolment office schedule, the second tuition instalment is due on 18 February 2027."
+        },
+        {
+          "document_key": "fees_welcome",
+          "start": 1629,
+          "end": 1716,
+          "text": "The welcome pack leaflet says the second tuition instalment is due on 25 February 2027."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "fees",
+        "conflict",
+        "cross_document",
+        "date"
+      ]
+    },
+    {
+      "id": "tuning-fees_office-03",
+      "split": "tuning",
+      "query": "Compare the two active third-sibling discount percentages and identify which fee category they exclude.",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "fees_office",
+          "start": 2956,
+          "end": 3073,
+          "text": "The enrolment office gives the third enrolled sibling a 15 percent tuition reduction, excluding registration charges."
+        },
+        {
+          "document_key": "fees_welcome",
+          "start": 2943,
+          "end": 3056,
+          "text": "The welcome pack gives the third enrolled sibling a 10 percent tuition reduction, excluding registration charges."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "fees",
+        "conflict",
+        "cross_document",
+        "exception"
+      ]
+    },
+    {
+      "id": "tuning-fees_office-04",
+      "split": "tuning",
+      "query": "Who must review conflicting active fee schedules before a charge is approved?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "fees_office",
+          "start": 4292,
+          "end": 4403,
+          "text": "Fee discrepancies between active schedules must be referred to the accounts lead before any charge is approved."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "fees",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "tuning-fees_office-05",
+      "split": "tuning",
+      "query": "Which two details are required before the office closes a student account?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "fees_office",
+          "start": 7513,
+          "end": 7650,
+          "text": "The enrolment office closes an account only after recording a receipt number and the outstanding balance, even when that balance is zero."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "fees",
+        "single_source",
+        "current",
+        "end_of_document"
+      ]
+    },
+    {
+      "id": "tuning-fees_welcome-01",
+      "split": "tuning",
+      "query": "What annual joining charge appears in the welcome pack payment leaflet?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "fees_welcome",
+          "start": 317,
+          "end": 400,
+          "text": "The welcome pack leaflet sets the annual registration charge at AUD 52 per student."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "fees",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "tuning-fees_welcome-02",
+      "split": "tuning",
+      "query": "Which date does the welcome leaflet give for the second tuition instalment?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "fees_welcome",
+          "start": 1629,
+          "end": 1716,
+          "text": "The welcome pack leaflet says the second tuition instalment is due on 25 February 2027."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "fees",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "tuning-fees_welcome-03",
+      "split": "tuning",
+      "query": "What tuition discount does the welcome leaflet promise for the third sibling?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "fees_welcome",
+          "start": 2943,
+          "end": 3056,
+          "text": "The welcome pack gives the third enrolled sibling a 10 percent tuition reduction, excluding registration charges."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "fees",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "tuning-fees_welcome-04",
+      "split": "tuning",
+      "query": "Can a teacher settle the different current registration amounts using the welcome leaflet alone, or must someone else review them?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "fees_office",
+          "start": 318,
+          "end": 406,
+          "text": "The enrolment office schedule sets the annual registration charge at AUD 48 per student."
+        },
+        {
+          "document_key": "fees_welcome",
+          "start": 317,
+          "end": 400,
+          "text": "The welcome pack leaflet sets the annual registration charge at AUD 52 per student."
+        },
+        {
+          "document_key": "fees_office",
+          "start": 4292,
+          "end": 4403,
+          "text": "Fee discrepancies between active schedules must be referred to the accounts lead before any charge is approved."
+        },
+        {
+          "document_key": "fees_welcome",
+          "start": 4280,
+          "end": 4419,
+          "text": "The welcome pack payment leaflet describes tuition collection and does not authorise staff to resolve a disagreement between fee schedules."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "fees",
+        "conflict",
+        "cross_document",
+        "condition"
+      ]
+    },
+    {
+      "id": "tuning-fees_welcome-05",
+      "split": "tuning",
+      "query": "Who receives the electronic receipt under the welcome payment instructions?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "fees_welcome",
+          "start": 7540,
+          "end": 7666,
+          "text": "The welcome pack requires electronic receipts to be sent to the nominated billing contact rather than every household contact."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "fees",
+        "single_source",
+        "current",
+        "end_of_document"
+      ]
+    },
+    {
+      "id": "tuning-transport_main-01",
+      "split": "tuning",
+      "query": "When must a Main Campus shuttle seat be reserved?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "transport_main",
+          "start": 317,
+          "end": 399,
+          "text": "Main Campus shuttle seats must be reserved by 16:00 on the preceding business day."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "transport",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "tuning-transport_main-02",
+      "split": "tuning",
+      "query": "Where must staff avoid displaying a shuttle collection password?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "transport_main",
+          "start": 1647,
+          "end": 1775,
+          "text": "The Main Campus shuttle handover password is collected privately at booking and must never appear on the public passenger sheet."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "transport",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "tuning-transport_main-03",
+      "split": "tuning",
+      "query": "What credit is issued for a timely cancellation of the Main Campus bus?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "transport_main",
+          "start": 3024,
+          "end": 3149,
+          "text": "A Main Campus shuttle reservation cancelled before 10:00 on the travel day receives a transport credit, not a tuition credit."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "transport",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "tuning-transport_main-04",
+      "split": "tuning",
+      "query": "Does an essential companion accompanying a wheelchair user need a paid Main Campus seat?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "transport_main",
+          "start": 4395,
+          "end": 4507,
+          "text": "A wheelchair user may bring one essential companion on the Main Campus shuttle without purchasing a second seat."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "transport",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "tuning-transport_main-05",
+      "split": "tuning",
+      "query": "For Main Campus shuttle MC-12, what collection location and departure time does the reference table list?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "transport_main",
+          "start": 5875,
+          "end": 5913,
+          "text": "| MC-12 | Oak community hall | 15:45 |"
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "transport",
+        "table",
+        "identifier",
+        "numeric",
+        "single_source"
+      ]
+    },
+    {
+      "id": "tuning-transport_annex-01",
+      "split": "tuning",
+      "query": "What is the booking deadline for the Riverside Annex shuttle?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "transport_annex",
+          "start": 321,
+          "end": 409,
+          "text": "Riverside Annex shuttle seats must be reserved by 12:00 two business days before travel."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "transport",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "tuning-transport_annex-02",
+      "split": "tuning",
+      "query": "Where is the pickup point for shuttle route RA-17?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "transport_annex",
+          "start": 1656,
+          "end": 1758,
+          "text": "Route RA-17 collects Riverside Annex dancers at the library side gate, not the swimming-pool entrance."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "transport",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "tuning-transport_annex-03",
+      "split": "tuning",
+      "query": "By when must an Annex bus reservation be cancelled to receive a transport credit?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "transport_annex",
+          "start": 3005,
+          "end": 3124,
+          "text": "A Riverside Annex shuttle reservation cancelled before 09:00 on the preceding business day receives a transport credit."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "transport",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "tuning-transport_annex-04",
+      "split": "tuning",
+      "query": "For a wheelchair user connecting from Riverside Annex to Main Campus, is a second paid seat needed for the essential companion and who confirms both lists?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "transport_main",
+          "start": 4395,
+          "end": 4507,
+          "text": "A wheelchair user may bring one essential companion on the Main Campus shuttle without purchasing a second seat."
+        },
+        {
+          "document_key": "transport_annex",
+          "start": 4373,
+          "end": 4509,
+          "text": "For travel connecting Riverside Annex to Main Campus, the Annex dispatcher must confirm the essential companion on both passenger lists."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "transport",
+        "cross_document",
+        "condition",
+        "exception"
+      ]
+    },
+    {
+      "id": "tuning-transport_annex-05",
+      "split": "tuning",
+      "query": "What must the Annex escort do after the final stop and before leaving the vehicle?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "transport_annex",
+          "start": 7686,
+          "end": 7789,
+          "text": "After the final Riverside Annex shuttle stop, the escort must call dispatch before leaving the vehicle."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "transport",
+        "single_source",
+        "current",
+        "end_of_document"
+      ]
+    },
+    {
+      "id": "tuning-access_main-01",
+      "split": "tuning",
+      "query": "At what time does reception open on a teaching Saturday at Main Campus?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "access_main",
+          "start": 319,
+          "end": 378,
+          "text": "Main Campus reception opens at 08:15 on teaching Saturdays."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "access",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "tuning-access_main-02",
+      "split": "tuning",
+      "query": "Which Main Campus room is designated for quiet waiting?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "access_main",
+          "start": 1586,
+          "end": 1662,
+          "text": "Main Campus room M-204 is the quiet waiting room; it is not a changing room."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "access",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "tuning-access_main-03",
+      "split": "tuning",
+      "query": "The building manual and facilities addendum disagree about the temporary-key deposit. What does each say?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "access_main",
+          "start": 2865,
+          "end": 2939,
+          "text": "The Main Campus manual lists a refundable temporary key deposit of AUD 20."
+        },
+        {
+          "document_key": "access_addendum",
+          "start": 314,
+          "end": 394,
+          "text": "The facilities desk addendum lists a refundable temporary key deposit of AUD 35."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "access",
+        "conflict",
+        "cross_document",
+        "numeric"
+      ]
+    },
+    {
+      "id": "tuning-access_main-04",
+      "split": "tuning",
+      "query": "How can a wheelchair user enter Main Campus while reception is closed?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "access_main",
+          "start": 4149,
+          "end": 4262,
+          "text": "Main Campus step-free entry is through the east courtyard ramp, which remains available when reception is closed."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "access",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "tuning-access_main-05",
+      "split": "tuning",
+      "query": "Which gate is checked after the studio doors during Main Campus lockup?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "access_main",
+          "start": 7361,
+          "end": 7461,
+          "text": "At Main Campus final lockup, the duty teacher checks the courtyard ramp gate after the studio doors."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "access",
+        "single_source",
+        "current",
+        "end_of_document"
+      ]
+    },
+    {
+      "id": "tuning-access_addendum-01",
+      "split": "tuning",
+      "query": "What temporary-key deposit is listed by the facilities desk addendum?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "access_addendum",
+          "start": 314,
+          "end": 394,
+          "text": "The facilities desk addendum lists a refundable temporary key deposit of AUD 35."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "access",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "tuning-access_addendum-02",
+      "split": "tuning",
+      "query": "If a teacher sees different temporary-key deposits in the two active access documents, what are the amounts and who must confirm the rule?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "access_main",
+          "start": 2865,
+          "end": 2939,
+          "text": "The Main Campus manual lists a refundable temporary key deposit of AUD 20."
+        },
+        {
+          "document_key": "access_addendum",
+          "start": 314,
+          "end": 394,
+          "text": "The facilities desk addendum lists a refundable temporary key deposit of AUD 35."
+        },
+        {
+          "document_key": "access_addendum",
+          "start": 1602,
+          "end": 1718,
+          "text": "When active building-access documents disagree, the facilities manager must confirm the rule before a key is issued."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "access",
+        "conflict",
+        "cross_document",
+        "condition"
+      ]
+    },
+    {
+      "id": "tuning-access_addendum-03",
+      "split": "tuning",
+      "query": "How can a visitor without a local mobile phone request entry assistance?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "access_addendum",
+          "start": 2932,
+          "end": 3048,
+          "text": "A remote visitor without a local phone may use the staffed intercom to request an escort; no mobile app is required."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "access",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "tuning-access_addendum-04",
+      "split": "tuning",
+      "query": "What timing information belongs in an assisted-entry booking, and what medical detail must be omitted?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "access_addendum",
+          "start": 4262,
+          "end": 4376,
+          "text": "A step-free entrance assistance booking must include the visitor’s arrival window but must not record a diagnosis."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "access",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "tuning-access_addendum-05",
+      "split": "tuning",
+      "query": "Which departure time must be entered when a facilities visit runs past closing?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "access_addendum",
+          "start": 7479,
+          "end": 7605,
+          "text": "The facilities desk final security entry records the actual departure time, even if it falls after the scheduled closing time."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "access",
+        "single_source",
+        "current",
+        "end_of_document"
+      ]
+    },
+    {
+      "id": "held_out-assessment_2026-01",
+      "split": "held_out",
+      "query": "When was the archived 2026 assessment portfolio due?",
+      "as_of": "2026-07-01",
+      "evidence": [
+        {
+          "document_key": "assessment_2026",
+          "start": 328,
+          "end": 410,
+          "text": "The 2026 assessment portfolio deadline is 20 September at 17:00 local studio time."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "assessment",
+        "single_source",
+        "archived",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "held_out-assessment_2026-02",
+      "split": "held_out",
+      "query": "What was the maximum technique-video duration for the 2026 assessment?",
+      "as_of": "2026-07-01",
+      "evidence": [
+        {
+          "document_key": "assessment_2026",
+          "start": 1700,
+          "end": 1772,
+          "text": "A 2026 assessment technique video may run for no more than four minutes."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "assessment",
+        "single_source",
+        "archived",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "held_out-assessment_2026-03",
+      "split": "held_out",
+      "query": "How long did students have to appeal a 2026 assessment result?",
+      "as_of": "2026-07-01",
+      "evidence": [
+        {
+          "document_key": "assessment_2026",
+          "start": 3049,
+          "end": 3140,
+          "text": "A 2026 assessment result appeal must arrive within seven calendar days of the result email."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "assessment",
+        "single_source",
+        "archived",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "held_out-assessment_2026-04",
+      "split": "held_out",
+      "query": "What evidence deadline applied to illness deferrals in the 2026 assessment?",
+      "as_of": "2026-07-01",
+      "evidence": [
+        {
+          "document_key": "assessment_2026",
+          "start": 4422,
+          "end": 4545,
+          "text": "The 2026 assessment illness deferral requires a clinician’s letter within six calendar days after the scheduled assessment."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "assessment",
+        "single_source",
+        "archived",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "held_out-assessment_2026-05",
+      "split": "held_out",
+      "query": "Which rubric version must the archived 2026 assessment record retain?",
+      "as_of": "2026-07-01",
+      "evidence": [
+        {
+          "document_key": "assessment_2026",
+          "start": 7749,
+          "end": 7853,
+          "text": "The final 2026 assessment archive must retain the rubric version printed on the examiner’s signed sheet."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "assessment",
+        "single_source",
+        "archived",
+        "end_of_document"
+      ]
+    },
+    {
+      "id": "held_out-assessment_2027-01",
+      "split": "held_out",
+      "query": "When is the 2027 assessment portfolio submission due?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "assessment_2027",
+          "start": 319,
+          "end": 401,
+          "text": "The 2027 assessment portfolio deadline is 15 September at 16:00 local studio time."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "assessment",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "held_out-assessment_2027-02",
+      "split": "held_out",
+      "query": "How long may a technique video be for the current 2027 assessment?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "assessment_2027",
+          "start": 1691,
+          "end": 1762,
+          "text": "A 2027 assessment technique video may run for no more than six minutes."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "assessment",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "held_out-assessment_2027-03",
+      "split": "held_out",
+      "query": "How much time is allowed to appeal a 2027 assessment result?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "assessment_2027",
+          "start": 3039,
+          "end": 3128,
+          "text": "A 2027 assessment result appeal must arrive within ten calendar days of the result email."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "assessment",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "held_out-assessment_2027-04",
+      "split": "held_out",
+      "query": "When must medical evidence arrive for a 2027 assessment illness deferral?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "assessment_2027",
+          "start": 4410,
+          "end": 4534,
+          "text": "The 2027 assessment illness deferral requires a clinician’s letter within four calendar days after the scheduled assessment."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "assessment",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "held_out-assessment_2027-05",
+      "split": "held_out",
+      "query": "How should examiner comments and an appeal decision be stored in the 2027 assessment archive?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "assessment_2027",
+          "start": 7738,
+          "end": 7860,
+          "text": "The final 2027 assessment archive stores the original examiner comments separately from the appeal panel’s later decision."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "assessment",
+        "single_source",
+        "current",
+        "end_of_document"
+      ]
+    },
+    {
+      "id": "held_out-costume_wardrobe-01",
+      "split": "held_out",
+      "query": "What conflicting outfit deposits appear in the two active costume documents?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "costume_wardrobe",
+          "start": 313,
+          "end": 400,
+          "text": "The wardrobe hire instructions require a costume security deposit of AUD 65 per outfit."
+        },
+        {
+          "document_key": "costume_performance",
+          "start": 318,
+          "end": 411,
+          "text": "The performance night costume brief requires a costume security deposit of AUD 80 per outfit."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "costume",
+        "conflict",
+        "cross_document",
+        "numeric"
+      ]
+    },
+    {
+      "id": "held_out-costume_wardrobe-02",
+      "split": "held_out",
+      "query": "Compare the costume return deadlines in the wardrobe instructions and the performance-night brief.",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "costume_wardrobe",
+          "start": 1652,
+          "end": 1734,
+          "text": "The wardrobe hire instructions require costume return by 18:00 on 9 November 2027."
+        },
+        {
+          "document_key": "costume_performance",
+          "start": 1663,
+          "end": 1760,
+          "text": "The performance night costume brief gives a costume return deadline of 12:00 on 10 November 2027."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "costume",
+        "conflict",
+        "cross_document",
+        "date"
+      ]
+    },
+    {
+      "id": "held_out-costume_wardrobe-03",
+      "split": "held_out",
+      "query": "The wardrobe and performance brief quote different ordinary cleaning charges. What are the two amounts?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "costume_wardrobe",
+          "start": 2988,
+          "end": 3079,
+          "text": "The wardrobe hire instructions state that an ordinary cleaning charge is AUD 14 per outfit."
+        },
+        {
+          "document_key": "costume_performance",
+          "start": 3014,
+          "end": 3111,
+          "text": "The performance night costume brief states that an ordinary cleaning charge is AUD 18 per outfit."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "costume",
+        "conflict",
+        "cross_document",
+        "numeric"
+      ]
+    },
+    {
+      "id": "held_out-costume_wardrobe-04",
+      "split": "held_out",
+      "query": "What should a dancer do if the hired outfit causes a skin reaction?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "costume_wardrobe",
+          "start": 4331,
+          "end": 4477,
+          "text": "A dancer who develops a skin reaction must stop wearing the hired costume and contact the wardrobe supervisor before trying an alternative fabric."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "costume",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "held_out-costume_wardrobe-05",
+      "split": "held_out",
+      "query": "How should loose costume accessories be counted in the final wardrobe inventory?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "costume_wardrobe",
+          "start": 7622,
+          "end": 7736,
+          "text": "The final wardrobe inventory records detached accessories individually rather than counting only complete outfits."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "costume",
+        "single_source",
+        "current",
+        "end_of_document"
+      ]
+    },
+    {
+      "id": "held_out-costume_performance-01",
+      "split": "held_out",
+      "query": "What outfit security deposit is stated in the performance-night brief?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "costume_performance",
+          "start": 318,
+          "end": 411,
+          "text": "The performance night costume brief requires a costume security deposit of AUD 80 per outfit."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "costume",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "held_out-costume_performance-02",
+      "split": "held_out",
+      "query": "What return deadline is printed in the performance-night costume brief?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "costume_performance",
+          "start": 1663,
+          "end": 1760,
+          "text": "The performance night costume brief gives a costume return deadline of 12:00 on 10 November 2027."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "costume",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "held_out-costume_performance-03",
+      "split": "held_out",
+      "query": "What ordinary cleaning amount does the performance-night brief quote?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "costume_performance",
+          "start": 3014,
+          "end": 3111,
+          "text": "The performance night costume brief states that an ordinary cleaning charge is AUD 18 per outfit."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "costume",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "held_out-costume_performance-04",
+      "split": "held_out",
+      "query": "Who must handle the disagreement between the two costume security deposits, and what are those deposits?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "costume_wardrobe",
+          "start": 313,
+          "end": 400,
+          "text": "The wardrobe hire instructions require a costume security deposit of AUD 65 per outfit."
+        },
+        {
+          "document_key": "costume_performance",
+          "start": 318,
+          "end": 411,
+          "text": "The performance night costume brief requires a costume security deposit of AUD 80 per outfit."
+        },
+        {
+          "document_key": "costume_performance",
+          "start": 4365,
+          "end": 4501,
+          "text": "Conflicting costume charges or deadlines must be sent to the production manager; teachers must not choose whichever document is cheaper."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "costume",
+        "conflict",
+        "cross_document",
+        "condition"
+      ]
+    },
+    {
+      "id": "held_out-costume_performance-05",
+      "split": "held_out",
+      "query": "Which hooks must be checked before the wardrobe crates are sealed?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "costume_performance",
+          "start": 7656,
+          "end": 7785,
+          "text": "During the final backstage costume sweep, the stage assistant checks the orchestra-door hooks before sealing the wardrobe crates."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "costume",
+        "single_source",
+        "current",
+        "end_of_document"
+      ]
+    },
+    {
+      "id": "held_out-recording_consent-01",
+      "split": "held_out",
+      "query": "Which segment may families film, and which segment is excluded?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "recording_consent",
+          "start": 322,
+          "end": 425,
+          "text": "Audience members may record only the designated family showcase segment, not the assessed solo segment."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "recording",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "held_out-recording_consent-02",
+      "split": "held_out",
+      "query": "When does withdrawing recording permission start affecting future filming?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "recording_consent",
+          "start": 1681,
+          "end": 1793,
+          "text": "A recording-consent withdrawal applies to future filming from the time the consent officer acknowledges receipt."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "recording",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "held_out-recording_consent-03",
+      "split": "held_out",
+      "query": "How long are identifiable rehearsal videos normally retained?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "recording_consent",
+          "start": 3051,
+          "end": 3165,
+          "text": "Identifiable rehearsal recordings are retained for 60 calendar days unless a documented safeguarding hold applies."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "recording",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "held_out-recording_consent-04",
+      "split": "held_out",
+      "query": "Under what consent condition may an enrolled dancer receive a private captioned rehearsal copy?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "recording_consent",
+          "start": 4421,
+          "end": 4549,
+          "text": "A captioned rehearsal copy may be supplied privately to an enrolled dancer when that dancer’s participation consent is recorded."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "recording",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "held_out-recording_consent-05",
+      "split": "held_out",
+      "query": "What may the recording deletion log retain, and what image material must it exclude?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "recording_consent",
+          "start": 7719,
+          "end": 7824,
+          "text": "The final recording deletion log retains asset identifiers and deletion dates but never thumbnail images."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "recording",
+        "single_source",
+        "current",
+        "end_of_document"
+      ]
+    },
+    {
+      "id": "held_out-recording_operations-01",
+      "split": "held_out",
+      "query": "For media codes RC-42 and RC-43, identify which segment families may film and which they may not film.",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "recording_operations",
+          "start": 5871,
+          "end": 5921,
+          "text": "| RC-42 | Family showcase | Family capture rules |"
+        },
+        {
+          "document_key": "recording_operations",
+          "start": 5922,
+          "end": 5969,
+          "text": "| RC-43 | Assessed solo | No audience capture |"
+        },
+        {
+          "document_key": "recording_consent",
+          "start": 322,
+          "end": 425,
+          "text": "Audience members may record only the designated family showcase segment, not the assessed solo segment."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "recording",
+        "cross_document",
+        "identifier",
+        "exception",
+        "table"
+      ]
+    },
+    {
+      "id": "held_out-recording_operations-02",
+      "split": "held_out",
+      "query": "What consent is needed for a private captioned rehearsal copy, and how long should its delivery link remain available?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "recording_consent",
+          "start": 4421,
+          "end": 4549,
+          "text": "A captioned rehearsal copy may be supplied privately to an enrolled dancer when that dancer’s participation consent is recorded."
+        },
+        {
+          "document_key": "recording_operations",
+          "start": 1661,
+          "end": 1779,
+          "text": "Private captioned rehearsal copies must use a seven-day expiring link sent to the enrolled dancer’s nominated contact."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "recording",
+        "cross_document",
+        "condition",
+        "accessibility"
+      ]
+    },
+    {
+      "id": "held_out-recording_operations-03",
+      "split": "held_out",
+      "query": "If rehearsal video is retained beyond the normal period for safeguarding, what is the ordinary retention period and what hold details are required?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "recording_consent",
+          "start": 3051,
+          "end": 3165,
+          "text": "Identifiable rehearsal recordings are retained for 60 calendar days unless a documented safeguarding hold applies."
+        },
+        {
+          "document_key": "recording_operations",
+          "start": 3044,
+          "end": 3163,
+          "text": "A safeguarding hold on a rehearsal recording must identify the safeguarding lead who authorised it and the review date."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "recording",
+        "cross_document",
+        "condition",
+        "exception"
+      ]
+    },
+    {
+      "id": "held_out-recording_operations-04",
+      "split": "held_out",
+      "query": "Does approval of a private accessible rehearsal copy permit a public upload?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "recording_operations",
+          "start": 4416,
+          "end": 4546,
+          "text": "An internal rehearsal recording must not be uploaded to a public channel merely because a private accessibility copy was approved."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "recording",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "held_out-recording_operations-05",
+      "split": "held_out",
+      "query": "How must the consent list and archive password be transferred at the final media handover?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "recording_operations",
+          "start": 8117,
+          "end": 8239,
+          "text": "The final media handover must transfer the consent status list separately from the password used for the transfer archive."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "recording",
+        "single_source",
+        "current",
+        "end_of_document"
+      ]
+    },
+    {
+      "id": "held_out-scholarship_award-01",
+      "split": "held_out",
+      "query": "When does the community scholarship application window close?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "scholarship_award",
+          "start": 330,
+          "end": 396,
+          "text": "Community scholarship applications close on 6 March 2027 at 15:00."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "scholarship",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "held_out-scholarship_award-02",
+      "split": "held_out",
+      "query": "Which charges remain outside a community scholarship’s tuition support?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "scholarship_award",
+          "start": 1685,
+          "end": 1798,
+          "text": "A community scholarship covers 70 percent of tuition but does not cover registration, transport, or costume hire."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "scholarship",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "held_out-scholarship_award-03",
+      "split": "held_out",
+      "query": "What period must the income documents cover for a community scholarship application?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "scholarship_award",
+          "start": 3076,
+          "end": 3172,
+          "text": "Community scholarship income evidence must cover the three most recent complete calendar months."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "scholarship",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "held_out-scholarship_award-04",
+      "split": "held_out",
+      "query": "Which pattern of missed classes triggers a community scholarship review?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "scholarship_award",
+          "start": 4453,
+          "end": 4580,
+          "text": "A community scholarship review is triggered after three unexplained absences in one term, not after medically excused absences."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "scholarship",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "held_out-scholarship_award-05",
+      "split": "held_out",
+      "query": "What should the scholarship panel record say, and which financial identifiers must it omit?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "scholarship_award",
+          "start": 7781,
+          "end": 7896,
+          "text": "The final community scholarship panel record must state reasons for the award without copying bank account numbers."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "scholarship",
+        "single_source",
+        "current",
+        "end_of_document"
+      ]
+    },
+    {
+      "id": "held_out-scholarship_admin-01",
+      "split": "held_out",
+      "query": "Can a community scholarship applicant provide missing income papers after the main cutoff, and what original-submission condition and dates apply?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "scholarship_award",
+          "start": 330,
+          "end": 396,
+          "text": "Community scholarship applications close on 6 March 2027 at 15:00."
+        },
+        {
+          "document_key": "scholarship_admin",
+          "start": 321,
+          "end": 466,
+          "text": "The scholarship desk may accept missing income evidence until 10 March 2027 only when the original application arrived before the award deadline."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "scholarship",
+        "cross_document",
+        "condition",
+        "exception"
+      ]
+    },
+    {
+      "id": "held_out-scholarship_admin-02",
+      "split": "held_out",
+      "query": "At what point is approved scholarship support applied when calculating the first payment?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "scholarship_admin",
+          "start": 1735,
+          "end": 1853,
+          "text": "The scholarship administration desk applies approved tuition support before calculating the family’s first instalment."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "scholarship",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "held_out-scholarship_admin-03",
+      "split": "held_out",
+      "query": "Before a scholarship case is referred for missed classes, what absence pattern triggers review and what medical check is required?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "scholarship_award",
+          "start": 4453,
+          "end": 4580,
+          "text": "A community scholarship review is triggered after three unexplained absences in one term, not after medically excused absences."
+        },
+        {
+          "document_key": "scholarship_admin",
+          "start": 3126,
+          "end": 3306,
+          "text": "For a community scholarship absence review, the administrator must ask the welfare lead to check whether the absences were medically excused before referring the case to the panel."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "scholarship",
+        "cross_document",
+        "condition",
+        "exception"
+      ]
+    },
+    {
+      "id": "held_out-scholarship_admin-04",
+      "split": "held_out",
+      "query": "Where should a family submit scholarship income documents?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "scholarship_admin",
+          "start": 4577,
+          "end": 4690,
+          "text": "Scholarship income documents must use the private evidence portal and must not be attached to a class-wide email."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "scholarship",
+        "single_source",
+        "current",
+        "policy_fact"
+      ]
+    },
+    {
+      "id": "held_out-scholarship_admin-05",
+      "split": "held_out",
+      "query": "Who receives the final scholarship appeal rather than the original panel chair?",
+      "as_of": "2027-07-01",
+      "evidence": [
+        {
+          "document_key": "scholarship_admin",
+          "start": 7873,
+          "end": 7993,
+          "text": "The final scholarship appeal envelope is routed to the independent bursary reviewer, not the original award panel chair."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "scholarship",
+        "single_source",
+        "current",
+        "end_of_document"
+      ]
+    },
+    {
+      "id": "tuning-no-answer-01",
+      "split": "tuning",
+      "query": "What is the price of a single adult drop-in salsa lesson in 2027?",
+      "as_of": "2027-07-01",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": false,
+      "tags": [
+        "fees",
+        "unanswerable",
+        "topic_distractor"
+      ]
+    },
+    {
+      "id": "tuning-no-answer-02",
+      "split": "tuning",
+      "query": "Which insurer covers the Riverside Annex shuttle and what is its policy number?",
+      "as_of": "2027-07-01",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": false,
+      "tags": [
+        "transport",
+        "unanswerable",
+        "topic_distractor"
+      ]
+    },
+    {
+      "id": "tuning-no-answer-03",
+      "split": "tuning",
+      "query": "What is the maximum height of a vehicle entering the Main Campus car park?",
+      "as_of": "2027-07-01",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": false,
+      "tags": [
+        "access",
+        "unanswerable",
+        "topic_distractor"
+      ]
+    },
+    {
+      "id": "tuning-no-answer-04",
+      "split": "tuning",
+      "query": "Does the studio reimburse a taxi when the Main Campus shuttle breaks down?",
+      "as_of": "2027-07-01",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": false,
+      "tags": [
+        "transport",
+        "unanswerable",
+        "topic_distractor"
+      ]
+    },
+    {
+      "id": "tuning-no-answer-05",
+      "split": "tuning",
+      "query": "How many ordinary absence credits may one student accumulate during a term?",
+      "as_of": "2027-07-01",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": false,
+      "tags": [
+        "attendance",
+        "unanswerable",
+        "topic_distractor"
+      ]
+    },
+    {
+      "id": "tuning-no-answer-06",
+      "split": "tuning",
+      "query": "What interest rate applies to overdue tuition instalments?",
+      "as_of": "2027-07-01",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": false,
+      "tags": [
+        "fees",
+        "unanswerable",
+        "topic_distractor"
+      ]
+    },
+    {
+      "id": "tuning-no-answer-07",
+      "split": "tuning",
+      "query": "Which Saturday bus stop has a heated waiting shelter?",
+      "as_of": "2027-07-01",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": false,
+      "tags": [
+        "transport",
+        "unanswerable",
+        "topic_distractor"
+      ]
+    },
+    {
+      "id": "tuning-no-answer-08",
+      "split": "tuning",
+      "query": "What is the Wi-Fi password for room M-204?",
+      "as_of": "2027-07-01",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": false,
+      "tags": [
+        "access",
+        "unanswerable",
+        "topic_distractor"
+      ]
+    },
+    {
+      "id": "tuning-date-excluded-01",
+      "split": "tuning",
+      "query": "What deadline applies to an ordinary absence?",
+      "as_of": "2025-12-31",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": true,
+      "tags": [
+        "date_excluded",
+        "empty_corpus"
+      ]
+    },
+    {
+      "id": "tuning-date-excluded-02",
+      "split": "tuning",
+      "query": "What deadline applies to an ordinary absence?",
+      "as_of": "2029-01-01",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": true,
+      "tags": [
+        "date_excluded",
+        "empty_corpus"
+      ]
+    },
+    {
+      "id": "held_out-no-answer-01",
+      "split": "held_out",
+      "query": "What numerical score is required to pass the 2027 assessment?",
+      "as_of": "2027-07-01",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": false,
+      "tags": [
+        "assessment",
+        "unanswerable",
+        "topic_distractor"
+      ]
+    },
+    {
+      "id": "held_out-no-answer-02",
+      "split": "held_out",
+      "query": "What is the buyout price if a dancer wants to purchase a hired outfit?",
+      "as_of": "2027-07-01",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": false,
+      "tags": [
+        "costume",
+        "unanswerable",
+        "topic_distractor"
+      ]
+    },
+    {
+      "id": "held_out-no-answer-03",
+      "split": "held_out",
+      "query": "Which brand of camera must teachers use for rehearsal filming?",
+      "as_of": "2027-07-01",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": false,
+      "tags": [
+        "recording",
+        "unanswerable",
+        "topic_distractor"
+      ]
+    },
+    {
+      "id": "held_out-no-answer-04",
+      "split": "held_out",
+      "query": "What household income ceiling determines community scholarship eligibility?",
+      "as_of": "2027-07-01",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": false,
+      "tags": [
+        "scholarship",
+        "unanswerable",
+        "topic_distractor"
+      ]
+    },
+    {
+      "id": "held_out-no-answer-05",
+      "split": "held_out",
+      "query": "How many scholarships will the studio award in 2027?",
+      "as_of": "2027-07-01",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": false,
+      "tags": [
+        "scholarship",
+        "unanswerable",
+        "topic_distractor"
+      ]
+    },
+    {
+      "id": "held_out-no-answer-06",
+      "split": "held_out",
+      "query": "What is the maximum file size for an assessment portfolio upload?",
+      "as_of": "2027-07-01",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": false,
+      "tags": [
+        "assessment",
+        "unanswerable",
+        "topic_distractor"
+      ]
+    },
+    {
+      "id": "held_out-no-answer-07",
+      "split": "held_out",
+      "query": "What is the repair charge for a torn costume sleeve?",
+      "as_of": "2027-07-01",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": false,
+      "tags": [
+        "costume",
+        "unanswerable",
+        "topic_distractor"
+      ]
+    },
+    {
+      "id": "held_out-no-answer-08",
+      "split": "held_out",
+      "query": "Which public social media account hosts the family showcase livestream?",
+      "as_of": "2027-07-01",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": false,
+      "tags": [
+        "recording",
+        "unanswerable",
+        "topic_distractor"
+      ]
+    },
+    {
+      "id": "held_out-date-excluded-01",
+      "split": "held_out",
+      "query": "When must an assessment portfolio be submitted?",
+      "as_of": "2025-12-31",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": true,
+      "tags": [
+        "date_excluded",
+        "empty_corpus"
+      ]
+    },
+    {
+      "id": "held_out-date-excluded-02",
+      "split": "held_out",
+      "query": "When must an assessment portfolio be submitted?",
+      "as_of": "2029-01-01",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": true,
+      "tags": [
+        "date_excluded",
+        "empty_corpus"
+      ]
+    }
+  ],
+  "notes": [
+    "All studios, policies, sums, dates, codes and people in this corpus are fictional. It is evaluation evidence, not operational policy.",
+    "Frozen before live embeddings. Tuning uses attendance, fees, transport and access families; held_out uses assessment, costume, recording and scholarship families. Shared administrative vocabulary is unavoidable, but policy facts are not duplicated across split families.",
+    "Archived 2026 and current 2027 sources are separate documents. Simultaneously active fee, access and costume contradictions are intentional: conflict questions require both statements; retrieval must not resolve authority.",
+    "Each split contains 40 answerable, 8 in-period unanswerable and 2 entirely date-excluded cases. Some individual-fact cases are replaced by multi-source evidence questions to test conditions, exceptions and contradictions.",
+    "Offsets are Unicode code-point, left-closed/right-open positions into exact UTF-8 decoded source files. Facts in appended final sections test end-of-document evidence.",
+    "Unanswerable cases deliberately have no evidence; nearest-neighbour results are not labelled correct simply because their topic resembles the query.",
+    "This is a hand-authored challenge corpus, not a random sample of production traffic; passing it is not a production reliability claim.",
+    "Corpus size: 131248 source bytes across 16 documents; fixed chunker v1/cl100k_base yields 201 passage records and 199 parent records. Fifteen Markdown sources use realistic section boundaries; scholarship_admin.txt exercises unstructured paragraph splitting."
+  ]
+}

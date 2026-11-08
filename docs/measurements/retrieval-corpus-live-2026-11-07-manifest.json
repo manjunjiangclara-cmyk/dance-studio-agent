@@ -1,0 +1,17 @@
+{
+  "schema": "retrieval_corpus_042a2027a47b4b1ca48113885daeadc6",
+  "official_openai": true,
+  "fake_providers": false,
+  "output_dir": "/Users/manjunjiang/MyApps/dance-studio-document-ingestion/backend/evaluations/results/retrieval-corpus-live-2026-11-07-042a2027",
+  "schema_cleaned": true,
+  "complete": true,
+  "cases_sha256": "5197ac038a7abbff3b844b0e652cdbad831a1156102c58b04a400c2ecd274b27",
+  "retrieval_parameters_changed": false,
+  "preparation_seconds": 7.548475832911208,
+  "preparation_requests": 16,
+  "preparation_reported_tokens": 26948,
+  "vector_count": 201,
+  "comparison_seconds": 25.032311708200723,
+  "semantic_quality_measured": true,
+  "elapsed_seconds": 32.689837832935154
+}

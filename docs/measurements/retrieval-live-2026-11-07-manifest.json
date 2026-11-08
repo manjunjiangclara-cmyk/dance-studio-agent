@@ -1,0 +1,22 @@
+{
+  "official_openai": true,
+  "fake_providers": false,
+  "schema_cleaned": true,
+  "complete": true,
+  "preparation_seconds": 4.361005665967241,
+  "preparation_requests": 1,
+  "preparation_reported_tokens": 1343,
+  "comparison_seconds": 10.54103104188107,
+  "semantic_quality_measured": true,
+  "elapsed_seconds": 15.095474541885778,
+  "provider": "OpenAI",
+  "model": "text-embedding-3-small",
+  "dimensions": 1536,
+  "document_inputs": 19,
+  "questions": 40,
+  "eligible_questions": 38,
+  "requests_total": 39,
+  "reported_input_tokens_total": 1714,
+  "database_isolation": "Fresh ephemeral schema in dedicated test database; no existing vectors reused",
+  "normal_automated_tests_use_fake_providers": true
+}
