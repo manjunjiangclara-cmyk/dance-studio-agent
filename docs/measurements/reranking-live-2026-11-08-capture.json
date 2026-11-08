@@ -1,0 +1,134 @@
+{
+  "version": "rerank-capture-v1",
+  "dataset_sha256": "ec42861e2f58c5b8b8b65cf7e1df63c89e55aa25cf7638b6d40fec9792703144",
+  "complete": true,
+  "schema_cleaned": true,
+  "schema": "reranking_a714cabeab2b4d51a4d7a8dc5663c837",
+  "cases": 150,
+  "real_openai": true,
+  "profile": {
+    "endpoint": "https://api.openai.com/v1",
+    "model": "text-embedding-3-small",
+    "dimensions": 1536,
+    "input_version": "passage-text-v1"
+  },
+  "retrieval_version": "retrieval-v1",
+  "retrieval": {
+    "candidates_per_route": 20,
+    "final": 6,
+    "rrf_k": 60,
+    "budget": 12000
+  },
+  "source_identities": [
+    {
+      "document_id": "f9a1904c-9faa-51d3-a54c-06fedde8e761",
+      "key": "attendance_2026"
+    },
+    {
+      "document_id": "bf97b588-ebc1-5bdf-9ec6-7475730639e7",
+      "key": "attendance_2027"
+    },
+    {
+      "document_id": "d5bb16f4-207b-54a6-860c-0ea42164556e",
+      "key": "fees_office"
+    },
+    {
+      "document_id": "74ca718b-f99d-55d9-83f7-64a7c5aaeb01",
+      "key": "fees_welcome"
+    },
+    {
+      "document_id": "97efc8d4-f336-5bd2-a17c-fd085ff59c6d",
+      "key": "transport_main"
+    },
+    {
+      "document_id": "fd7e8629-4d83-558b-836a-b30da0be3a08",
+      "key": "transport_annex"
+    },
+    {
+      "document_id": "f745cb9c-7168-515b-ab07-c5de3faaec20",
+      "key": "access_main"
+    },
+    {
+      "document_id": "80d8b8c7-31ec-5161-b5b2-090e51296c74",
+      "key": "access_addendum"
+    },
+    {
+      "document_id": "bb39e024-cb62-5eb0-afa2-80b9885322e8",
+      "key": "assessment_2026"
+    },
+    {
+      "document_id": "6a49a094-5da2-5264-8a7e-54e7a7cc641c",
+      "key": "assessment_2027"
+    },
+    {
+      "document_id": "60f77761-d142-53a7-97a2-cb67d30c3ac1",
+      "key": "costume_wardrobe"
+    },
+    {
+      "document_id": "58fdbe16-98f1-57a6-9332-70ac3763f41e",
+      "key": "costume_performance"
+    },
+    {
+      "document_id": "499a597d-a993-5191-a61b-7881eb55d170",
+      "key": "recording_consent"
+    },
+    {
+      "document_id": "87ac6416-d6cc-5504-b74f-6630a8143a09",
+      "key": "recording_operations"
+    },
+    {
+      "document_id": "f3f9c544-2cde-5050-abd9-2272becf63b4",
+      "key": "scholarship_award"
+    },
+    {
+      "document_id": "374a5bbd-8e07-5e9d-93ff-dc33f623f097",
+      "key": "scholarship_admin"
+    },
+    {
+      "document_id": "47ffc3a1-30b9-5d00-bb12-d08f15c177ac",
+      "key": "guest_office"
+    },
+    {
+      "document_id": "4ee1c78d-5631-5e96-9085-a3f68621d72f",
+      "key": "guest_artist"
+    },
+    {
+      "document_id": "ec686257-3e33-573a-91e2-aa7314089014",
+      "key": "instrument_store"
+    },
+    {
+      "document_id": "1e20f5fe-28c5-55c1-aa91-988a2e7a2277",
+      "key": "instrument_repair"
+    },
+    {
+      "document_id": "08a65785-f11f-5b68-ba69-f658c9a2f9b0",
+      "key": "tour_lead"
+    },
+    {
+      "document_id": "84967edf-cd1e-5cb3-b477-635f6925d4e3",
+      "key": "tour_night"
+    },
+    {
+      "document_id": "5a52afdd-37c8-50bb-9ee0-6818bd7248d2",
+      "key": "sensory_plan"
+    },
+    {
+      "document_id": "96a11982-b142-5734-8b7f-7418e1a65970",
+      "key": "sensory_room"
+    }
+  ],
+  "records_sha256": "ba5ebc4bcaf55d0d24b2bd424c611024fe269def32dd73f83efd580af5f1eab3",
+  "question_embedding": {
+    "requests": 144,
+    "attempts": 144,
+    "reported_tokens": 2282,
+    "cache_hits": 0,
+    "seconds": 30.15741695673205
+  },
+  "preparation": {
+    "requests": 24,
+    "reported_tokens": 38239,
+    "runs": 24
+  },
+  "seconds": 54.10660737496801
+}

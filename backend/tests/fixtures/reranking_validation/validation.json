@@ -1,0 +1,1129 @@
+{
+  "version": "reranking-validation-v1",
+  "documents": [
+    {
+      "key": "guest_office",
+      "title": "Guest Artist Office Handbook",
+      "file": "guest_office.md",
+      "sha256": "c2b5c4a5bc052c26e5ee34150a6f55ce7c47bb786bba1f9511cdb76f26678d8b",
+      "effective_from": "2027-01-01",
+      "effective_to": "2027-12-31"
+    },
+    {
+      "key": "guest_artist",
+      "title": "Visiting Artist Welcome and Safeguarding Notes",
+      "file": "guest_artist.md",
+      "sha256": "53f728d0cf9654d9398f31550aa79a045386e940249de6808797a24adc5380ff",
+      "effective_from": "2027-01-01",
+      "effective_to": "2027-12-31"
+    },
+    {
+      "key": "instrument_store",
+      "title": "Percussion Loan Store Procedure",
+      "file": "instrument_store.md",
+      "sha256": "a41b41e7578577b751a3db1a580338c04ac7ae4b1fe256907cea455e1c96f230",
+      "effective_from": "2027-01-01",
+      "effective_to": "2027-12-31"
+    },
+    {
+      "key": "instrument_repair",
+      "title": "Loan Instrument Repair and Recall Checklist",
+      "file": "instrument_repair.md",
+      "sha256": "1a0391ba007835fbf18c38d423b7766977d50b8f2fae063a053ec557b1bbc9a3",
+      "effective_from": "2027-01-01",
+      "effective_to": "2027-12-31"
+    },
+    {
+      "key": "tour_lead",
+      "title": "Residential Tour Leader Handbook",
+      "file": "tour_lead.md",
+      "sha256": "b9dcc8d8d10be662012012c0230c2f2cd15e7cf976659e780374f3ef2c20ac98",
+      "effective_from": "2027-01-01",
+      "effective_to": "2027-12-31"
+    },
+    {
+      "key": "tour_night",
+      "title": "Residential Night Support Notes",
+      "file": "tour_night.md",
+      "sha256": "42ffb9148449c8126c296e377fff6931d1af9c6b8acd9da7d061025347dfb8d2",
+      "effective_from": "2027-01-01",
+      "effective_to": "2027-12-31"
+    },
+    {
+      "key": "sensory_plan",
+      "title": "Sensory Support Planning Guide",
+      "file": "sensory_plan.md",
+      "sha256": "fb71951b316eb8497297c92ef357e4ee4384ef67447f5847aa72f816b6f74894",
+      "effective_from": "2027-01-01",
+      "effective_to": "2027-12-31"
+    },
+    {
+      "key": "sensory_room",
+      "title": "Quiet Room Operation and Emergency Notes",
+      "file": "sensory_room.md",
+      "sha256": "d78f15e21b66fb6a24033d4167d0a25e433541fb074ac73276b8e8938206fc57",
+      "effective_from": "2027-01-01",
+      "effective_to": "2027-12-31"
+    }
+  ],
+  "cases": [
+    {
+      "id": "rv-001",
+      "split": "fresh_validation",
+      "query": "How far ahead must our host request a workshop led by a visiting artist?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "guest_office",
+          "start": 696,
+          "end": 808,
+          "text": "The guest office requires a visiting artist booking request at least 18 calendar days before the first workshop."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "guest",
+        "lead_time"
+      ]
+    },
+    {
+      "id": "rv-002",
+      "split": "fresh_validation",
+      "query": "Can our host move a confirmed guest class without a fee, and how much notice is needed?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "guest_office",
+          "start": 1225,
+          "end": 1344,
+          "text": "A confirmed guest workshop may be moved once without an administration fee if the host gives seven full days of notice."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "guest",
+        "change"
+      ]
+    },
+    {
+      "id": "rv-003",
+      "split": "fresh_validation",
+      "query": "The visiting choreographer cancelled. What choices does the office give participants and when is a refund due?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "guest_office",
+          "start": 1734,
+          "end": 1869,
+          "text": "When a visiting artist cancels, the office offers either a replacement workshop or a full workshop-fee refund within ten business days."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "guest",
+        "cancellation"
+      ]
+    },
+    {
+      "id": "rv-004",
+      "split": "fresh_validation",
+      "query": "How early should a visiting teacher arrive for their first teaching session?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "guest_artist",
+          "start": 585,
+          "end": 673,
+          "text": "Visiting artists must check in 25 minutes before their first scheduled teaching session."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "guest",
+        "arrival"
+      ]
+    },
+    {
+      "id": "rv-005",
+      "split": "fresh_validation",
+      "query": "Can an artist message a child directly to arrange private follow-up lessons?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "guest_artist",
+          "start": 2015,
+          "end": 2137,
+          "text": "A visiting artist must not arrange private follow-up coaching with a minor through the minor's personal messaging account."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "guest",
+        "safeguarding"
+      ]
+    },
+    {
+      "id": "rv-006",
+      "split": "fresh_validation",
+      "query": "Does using a different guest teacher require new confirmation if the workshop keeps its name?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "guest_artist",
+          "start": 3303,
+          "end": 3438,
+          "text": "If the named guest is replaced by another artist, a fresh booking confirmation is required even when the workshop title stays the same."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "guest",
+        "replacement"
+      ]
+    },
+    {
+      "id": "rv-007",
+      "split": "fresh_validation",
+      "query": "Two current guest-workshop documents give different reservation deposits. What amounts do they state?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "guest_office",
+          "start": 2209,
+          "end": 2303,
+          "text": "The office handbook sets the guest-workshop reservation deposit at 35 dollars per participant."
+        },
+        {
+          "document_key": "guest_artist",
+          "start": 955,
+          "end": 1056,
+          "text": "The artist welcome handout sets the guest-workshop reservation deposit at 20 dollars per participant."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "guest",
+        "cross_document",
+        "conflict"
+      ]
+    },
+    {
+      "id": "rv-008",
+      "split": "fresh_validation",
+      "query": "When can a guest teach without a studio host, and what rule applies if a 15-year-old joins?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "guest_office",
+          "start": 3295,
+          "end": 3424,
+          "text": "Every guest workshop containing any participant under 16 must have a rostered studio host present throughout the teaching period."
+        },
+        {
+          "document_key": "guest_artist",
+          "start": 1514,
+          "end": 1650,
+          "text": "For an adult-only guest workshop, the artist may teach without a host in the room after the duty lead signs the adult-session exception."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "guest",
+        "cross_document",
+        "exception"
+      ]
+    },
+    {
+      "id": "rv-009",
+      "split": "fresh_validation",
+      "query": "We are replacing the guest rather than moving the same visit. Can we use the free move allowance or do we need a fresh booking?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "guest_office",
+          "start": 1225,
+          "end": 1344,
+          "text": "A confirmed guest workshop may be moved once without an administration fee if the host gives seven full days of notice."
+        },
+        {
+          "document_key": "guest_artist",
+          "start": 3303,
+          "end": 3438,
+          "text": "If the named guest is replaced by another artist, a fresh booking confirmation is required even when the workshop title stays the same."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "guest",
+        "cross_document",
+        "condition"
+      ]
+    },
+    {
+      "id": "rv-010",
+      "split": "fresh_validation",
+      "query": "A youth workshop is cancelled by the guest: what options do participants receive, and what host requirement would still apply to a replacement youth session?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "guest_office",
+          "start": 1734,
+          "end": 1869,
+          "text": "When a visiting artist cancels, the office offers either a replacement workshop or a full workshop-fee refund within ten business days."
+        },
+        {
+          "document_key": "guest_office",
+          "start": 3295,
+          "end": 3424,
+          "text": "Every guest workshop containing any participant under 16 must have a rostered studio host present throughout the teaching period."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "guest",
+        "cross_document",
+        "complementary"
+      ]
+    },
+    {
+      "id": "rv-011",
+      "split": "fresh_validation",
+      "query": "After a residency runs in both buildings, which envelope is used for the final host handover sheet?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "guest_office",
+          "start": 7871,
+          "end": 8004,
+          "text": "For a guest residency spanning both buildings, the final host handover sheet must be sealed in the green envelope marked GUEST NORTH."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "guest",
+        "long_tail"
+      ]
+    },
+    {
+      "id": "rv-012",
+      "split": "fresh_validation",
+      "query": "For how many calendar days can a student normally keep a borrowed percussion instrument?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "instrument_store",
+          "start": 566,
+          "end": 659,
+          "text": "A standard percussion instrument loan lasts 21 calendar days from the signed collection date."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "instrument",
+        "duration"
+      ]
+    },
+    {
+      "id": "rv-013",
+      "split": "fresh_validation",
+      "query": "How many business days before pickup must a student reserve a loan drum?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "instrument_store",
+          "start": 969,
+          "end": 1067,
+          "text": "An enrolled student must reserve a loan instrument at least three business days before collection."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "instrument",
+        "reservation"
+      ]
+    },
+    {
+      "id": "rv-014",
+      "split": "fresh_validation",
+      "query": "Does a student need to close the loan drum case outdoors on a dry day?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "instrument_store",
+          "start": 1903,
+          "end": 2012,
+          "text": "Borrowed percussion must be carried inside its closed case whenever it is outdoors, including in dry weather."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "instrument",
+        "care"
+      ]
+    },
+    {
+      "id": "rv-015",
+      "split": "fresh_validation",
+      "query": "How soon must a borrower report a split drumhead or a loose metal part?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "instrument_repair",
+          "start": 598,
+          "end": 695,
+          "text": "A borrower must report a split drumhead or loose metal fitting within 24 hours of discovering it."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "instrument",
+        "damage"
+      ]
+    },
+    {
+      "id": "rv-016",
+      "split": "fresh_validation",
+      "query": "Can I use disinfectant spray to clean a borrowed practice pad?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "instrument_repair",
+          "start": 2369,
+          "end": 2505,
+          "text": "Practice-pad surfaces are cleaned with the supplied dry microfiber cloth after each use; students must not spray them with disinfectant."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "instrument",
+        "cleaning"
+      ]
+    },
+    {
+      "id": "rv-017",
+      "split": "fresh_validation",
+      "query": "The store and repair bench disagree about the standard hand-drum kit deposit. What are the two current amounts?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "instrument_store",
+          "start": 1423,
+          "end": 1503,
+          "text": "The store procedure requires a 45 dollar refundable deposit for a hand-drum kit."
+        },
+        {
+          "document_key": "instrument_repair",
+          "start": 1885,
+          "end": 1966,
+          "text": "The repair checklist requires a 30 dollar refundable deposit for a hand-drum kit."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "instrument",
+        "cross_document",
+        "conflict"
+      ]
+    },
+    {
+      "id": "rv-018",
+      "split": "fresh_validation",
+      "query": "If a safety recall arrives during my 21-day loan, do I keep the original due date or return it sooner?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "instrument_store",
+          "start": 566,
+          "end": 659,
+          "text": "A standard percussion instrument loan lasts 21 calendar days from the signed collection date."
+        },
+        {
+          "document_key": "instrument_repair",
+          "start": 992,
+          "end": 1113,
+          "text": "A safety-recalled instrument must be returned by the end of the next business day, overriding its ordinary loan due date."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "instrument",
+        "cross_document",
+        "exception"
+      ]
+    },
+    {
+      "id": "rv-019",
+      "split": "fresh_validation",
+      "query": "May I renew a recalled instrument for the usual extra week? State the ordinary renewal condition and the recall deadline.",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "instrument_store",
+          "start": 2753,
+          "end": 2839,
+          "text": "A loan can be renewed once for seven days if no other student has reserved that asset."
+        },
+        {
+          "document_key": "instrument_repair",
+          "start": 992,
+          "end": 1113,
+          "text": "A safety-recalled instrument must be returned by the end of the next business day, overriding its ordinary loan due date."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "instrument",
+        "cross_document",
+        "exception"
+      ]
+    },
+    {
+      "id": "rv-020",
+      "split": "fresh_validation",
+      "query": "After a safety recall interrupts my loan, what substitute is offered and what normal loan period anchors the remaining time?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "instrument_store",
+          "start": 566,
+          "end": 659,
+          "text": "A standard percussion instrument loan lasts 21 calendar days from the signed collection date."
+        },
+        {
+          "document_key": "instrument_repair",
+          "start": 1420,
+          "end": 1570,
+          "text": "When a safety recall interrupts a current loan, the repair desk offers a practice pad for the remaining original loan period at no additional deposit."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "instrument",
+        "cross_document",
+        "complementary"
+      ]
+    },
+    {
+      "id": "rv-021",
+      "split": "fresh_validation",
+      "query": "For a drum transferred between campuses, what must happen before its student loan time begins?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "instrument_store",
+          "start": 7138,
+          "end": 7262,
+          "text": "For an instrument sent between campuses, the receiving clerk must sign the amber transfer card before the loan clock starts."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "instrument",
+        "long_tail"
+      ]
+    },
+    {
+      "id": "rv-022",
+      "split": "fresh_validation",
+      "query": "How far before departure is the signed residential consent form due?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "tour_lead",
+          "start": 600,
+          "end": 700,
+          "text": "A signed residential-tour consent form must reach the tour leader 28 calendar days before departure."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "tour",
+        "consent"
+      ]
+    },
+    {
+      "id": "rv-023",
+      "split": "fresh_validation",
+      "query": "What is the main luggage weight limit for the overnight studio trip and is a day bag also allowed?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "tour_lead",
+          "start": 997,
+          "end": 1107,
+          "text": "Each residential-tour participant may bring one main bag weighing at most 12 kilograms plus one small day bag."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "tour",
+        "luggage"
+      ]
+    },
+    {
+      "id": "rv-024",
+      "split": "fresh_validation",
+      "query": "Can a participant enter a friend's sleeping room on the overnight trip without staff?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "tour_lead",
+          "start": 2789,
+          "end": 2902,
+          "text": "Participants may enter only their assigned sleeping room unless a staff lead explicitly accompanies a room visit."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "tour",
+        "room"
+      ]
+    },
+    {
+      "id": "rv-025",
+      "split": "fresh_validation",
+      "query": "How many duty adults must remain awake until the last residential room check is finished?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "tour_night",
+          "start": 526,
+          "end": 629,
+          "text": "Residential night cover requires at least two awake duty adults until the final room check is complete."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "tour",
+        "supervision"
+      ]
+    },
+    {
+      "id": "rv-026",
+      "split": "fresh_validation",
+      "query": "Who must sign in a participant arriving after the residential evening handover?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "tour_night",
+          "start": 2299,
+          "end": 2449,
+          "text": "A participant arriving after the evening handover must be signed in jointly by the tour leader and night-support adult before joining a sleeping room."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "tour",
+        "late_arrival"
+      ]
+    },
+    {
+      "id": "rv-027",
+      "split": "fresh_validation",
+      "query": "What conflicting lights-out times are printed in the two current overnight-trip instructions?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "tour_lead",
+          "start": 2311,
+          "end": 2378,
+          "text": "The tour leader handbook sets residential-trip lights-out at 21:30."
+        },
+        {
+          "document_key": "tour_night",
+          "start": 953,
+          "end": 1018,
+          "text": "The night-support notes set residential-trip lights-out at 22:00."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "tour",
+        "cross_document",
+        "conflict"
+      ]
+    },
+    {
+      "id": "rv-028",
+      "split": "fresh_validation",
+      "query": "Must all medicine be handed over for the trip, or is a rescue inhaler ever allowed to stay with the participant?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "tour_lead",
+          "start": 1458,
+          "end": 1584,
+          "text": "All scheduled tour medication must be handed to the designated medicines lead in its original labelled packaging at departure."
+        },
+        {
+          "document_key": "tour_night",
+          "start": 1447,
+          "end": 1584,
+          "text": "A participant may keep a rescue inhaler on their person only when a written self-carry plan is signed by the guardian and medicines lead."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "tour",
+        "cross_document",
+        "exception"
+      ]
+    },
+    {
+      "id": "rv-029",
+      "split": "fresh_validation",
+      "query": "A student has a rescue-inhaler self-carry plan. What ordinary medicine rule still applies, and what evening check-in is required?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "tour_lead",
+          "start": 1458,
+          "end": 1584,
+          "text": "All scheduled tour medication must be handed to the designated medicines lead in its original labelled packaging at departure."
+        },
+        {
+          "document_key": "tour_night",
+          "start": 1913,
+          "end": 2036,
+          "text": "A participant using a self-carried rescue inhaler must check in with the night-support adult before the evening room check."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "tour",
+        "cross_document",
+        "condition"
+      ]
+    },
+    {
+      "id": "rv-030",
+      "split": "fresh_validation",
+      "query": "Can a rescue-inhaler plan justify keeping unrelated scheduled tablets? Explain the normal handover and the narrow permission.",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "tour_lead",
+          "start": 1458,
+          "end": 1584,
+          "text": "All scheduled tour medication must be handed to the designated medicines lead in its original labelled packaging at departure."
+        },
+        {
+          "document_key": "tour_night",
+          "start": 1447,
+          "end": 1584,
+          "text": "A participant may keep a rescue inhaler on their person only when a written self-carry plan is signed by the guardian and medicines lead."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "tour",
+        "cross_document",
+        "exception"
+      ]
+    },
+    {
+      "id": "rv-031",
+      "split": "fresh_validation",
+      "query": "How many business days ahead should a planned sensory adjustment be requested?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "sensory_plan",
+          "start": 557,
+          "end": 676,
+          "text": "A planned sensory adjustment request should reach the support coordinator five business days before the relevant class."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "sensory",
+        "lead_time"
+      ]
+    },
+    {
+      "id": "rv-032",
+      "split": "fresh_validation",
+      "query": "When is a new sensory support plan reviewed if a student misses some classes?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "sensory_plan",
+          "start": 952,
+          "end": 1044,
+          "text": "An agreed sensory support plan is reviewed after the student's first three attended classes."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "sensory",
+        "review"
+      ]
+    },
+    {
+      "id": "rv-033",
+      "split": "fresh_validation",
+      "query": "Can a student ask for a supported break without saying the reason aloud?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "sensory_plan",
+          "start": 2798,
+          "end": 2908,
+          "text": "A student can show the blue pause card to request a supported break without first explaining the reason aloud."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "sensory",
+        "communication"
+      ]
+    },
+    {
+      "id": "rv-034",
+      "split": "fresh_validation",
+      "query": "How many students can use the quiet room at once, apart from the adult?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "sensory_room",
+          "start": 559,
+          "end": 654,
+          "text": "The quiet room may support at most three students at one time, excluding the supervising adult."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "sensory",
+        "capacity"
+      ]
+    },
+    {
+      "id": "rv-035",
+      "split": "fresh_validation",
+      "query": "Which arrival and departure information belongs in the private quiet-room record?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "sensory_room",
+          "start": 1947,
+          "end": 2039,
+          "text": "The room lead records a student's arrival and departure times in the private quiet-room log."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "sensory",
+        "privacy"
+      ]
+    },
+    {
+      "id": "rv-036",
+      "split": "fresh_validation",
+      "query": "The sensory guide and room notes give different check-in intervals. What does each current document say?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "sensory_plan",
+          "start": 2299,
+          "end": 2399,
+          "text": "The sensory planning guide permits a quiet-room break of up to 15 minutes before a teacher check-in."
+        },
+        {
+          "document_key": "sensory_room",
+          "start": 976,
+          "end": 1078,
+          "text": "The room-operation notes require a teacher check-in after ten minutes of an ordinary quiet-room break."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "sensory",
+        "cross_document",
+        "conflict"
+      ]
+    },
+    {
+      "id": "rv-037",
+      "split": "fresh_validation",
+      "query": "May a student keep ear defenders on during class and during an evacuation drill, and what extra condition applies in the drill?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "sensory_plan",
+          "start": 1432,
+          "end": 1556,
+          "text": "A student may wear their own ear defenders during ordinary class exercises after the teacher confirms a visible stop signal."
+        },
+        {
+          "document_key": "sensory_room",
+          "start": 1501,
+          "end": 1629,
+          "text": "During an evacuation drill, a student using ear defenders must have a named adult within sight who can relay the evacuation cue."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "sensory",
+        "cross_document",
+        "exception"
+      ]
+    },
+    {
+      "id": "rv-038",
+      "split": "fresh_validation",
+      "query": "After using a blue pause card for a quiet break, can a student return alone, or what handover is needed?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "sensory_plan",
+          "start": 2798,
+          "end": 2908,
+          "text": "A student can show the blue pause card to request a supported break without first explaining the reason aloud."
+        },
+        {
+          "document_key": "sensory_room",
+          "start": 2334,
+          "end": 2468,
+          "text": "After a quiet-room break, the student returns with the supervising adult or through a handover directly accepted by the class teacher."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "sensory",
+        "cross_document",
+        "condition"
+      ]
+    },
+    {
+      "id": "rv-039",
+      "split": "fresh_validation",
+      "query": "What visible support is required for ordinary ear-defender use and what adult support must be in sight during a drill?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "sensory_plan",
+          "start": 1432,
+          "end": 1556,
+          "text": "A student may wear their own ear defenders during ordinary class exercises after the teacher confirms a visible stop signal."
+        },
+        {
+          "document_key": "sensory_room",
+          "start": 1501,
+          "end": 1629,
+          "text": "During an evacuation drill, a student using ear defenders must have a named adult within sight who can relay the evacuation cue."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "sensory",
+        "cross_document",
+        "complementary"
+      ]
+    },
+    {
+      "id": "rv-040",
+      "split": "fresh_validation",
+      "query": "A student requests a break without speaking; who records arrival and departure in the quiet room?",
+      "as_of": "2027-06-15",
+      "evidence": [
+        {
+          "document_key": "sensory_plan",
+          "start": 2798,
+          "end": 2908,
+          "text": "A student can show the blue pause card to request a supported break without first explaining the reason aloud."
+        },
+        {
+          "document_key": "sensory_room",
+          "start": 1947,
+          "end": 2039,
+          "text": "The room lead records a student's arrival and departure times in the private quiet-room log."
+        }
+      ],
+      "answerable": true,
+      "expected_empty": false,
+      "tags": [
+        "sensory",
+        "cross_document",
+        "complementary"
+      ]
+    },
+    {
+      "id": "rv-041",
+      "split": "fresh_validation",
+      "query": "What annual royalty percentage does the studio pay a visiting choreographer for repeating their routine?",
+      "as_of": "2027-06-15",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": false,
+      "tags": [
+        "guest",
+        "unanswerable"
+      ]
+    },
+    {
+      "id": "rv-042",
+      "split": "fresh_validation",
+      "query": "What is the studio registration number for international visiting-artist visa sponsorship?",
+      "as_of": "2027-06-15",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": false,
+      "tags": [
+        "guest",
+        "unanswerable"
+      ]
+    },
+    {
+      "id": "rv-043",
+      "split": "fresh_validation",
+      "query": "What is the fixed late-return fine per day for a borrowed hand drum?",
+      "as_of": "2027-06-15",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": false,
+      "tags": [
+        "instrument",
+        "unanswerable"
+      ]
+    },
+    {
+      "id": "rv-044",
+      "split": "fresh_validation",
+      "query": "What exact percentage of a loan drum repair bill is covered by the studio insurer?",
+      "as_of": "2027-06-15",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": false,
+      "tags": [
+        "instrument",
+        "unanswerable"
+      ]
+    },
+    {
+      "id": "rv-045",
+      "split": "fresh_validation",
+      "query": "What is the residential trip cancellation charge if a family withdraws 11 days before departure?",
+      "as_of": "2027-06-15",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": false,
+      "tags": [
+        "tour",
+        "unanswerable"
+      ]
+    },
+    {
+      "id": "rv-046",
+      "split": "fresh_validation",
+      "query": "What dose of travel-sickness medicine should a 12-year-old take on the residential coach?",
+      "as_of": "2027-06-15",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": false,
+      "tags": [
+        "tour",
+        "unanswerable"
+      ]
+    },
+    {
+      "id": "rv-047",
+      "split": "fresh_validation",
+      "query": "What is the sensory support coordinator's professional registration number?",
+      "as_of": "2027-06-15",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": false,
+      "tags": [
+        "sensory",
+        "unanswerable"
+      ]
+    },
+    {
+      "id": "rv-048",
+      "split": "fresh_validation",
+      "query": "Which brand and model of ear defenders will the studio purchase for every sensory support user?",
+      "as_of": "2027-06-15",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": false,
+      "tags": [
+        "sensory",
+        "unanswerable"
+      ]
+    },
+    {
+      "id": "rv-049",
+      "split": "fresh_validation",
+      "query": "What deposit is required for a visiting artist workshop in June 2029?",
+      "as_of": "2029-06-15",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": true,
+      "tags": [
+        "guest",
+        "date_excluded"
+      ]
+    },
+    {
+      "id": "rv-050",
+      "split": "fresh_validation",
+      "query": "How long may I borrow a hand drum in June 2029?",
+      "as_of": "2029-06-15",
+      "evidence": [],
+      "answerable": false,
+      "expected_empty": true,
+      "tags": [
+        "instrument",
+        "date_excluded"
+      ]
+    }
+  ],
+  "notes": [
+    "All sources and people are fictional. These 50 questions are a fresh validation set and must not select model or window settings.",
+    "All eight sources are simultaneously effective throughout 2027. Conflict questions deliberately require both active documents; no source precedence is supplied.",
+    "Evidence is manually authored source text with half-open Unicode character offsets, never chunk IDs or model-derived labels.",
+    "Unanswered questions have no supporting answer in the corpus. Returning a nearest neighbour is diagnostic; this experiment does not implement abstention.",
+    "Two single-paragraph cross-campus procedures deliberately place required evidence near the tail. No text or label was chosen from reranker output.",
+    "Ordinary paragraphs contain similar operational distractors but do not establish unsupported numerical fees, medical doses, clinical eligibility or source precedence.",
+    "The data is synthetic and manually authored by the implementation assistant. No external inference API or reranking model was used to create or label it."
+  ]
+}

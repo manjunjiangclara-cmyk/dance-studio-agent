@@ -196,6 +196,11 @@ def document_id(corpus, document):
 def prepare(engine, path, tokenizer, profile, *, allow_api=False, embedder=None):
     require_api(allow_api)
     corpus = load_corpus(path)
+    return _prepare_documents(engine, corpus, tokenizer, profile, embedder=embedder)
+
+
+def _prepare_documents(engine, corpus, tokenizer, profile, *, embedder=None):
+    """Shared immutable preparation after a caller validates its frozen experiment fixture."""
     provider = embedder if embedder is not None else Embedder(profile)
     # Validate the entire set before any writes. Existing source identities are immutable.
     with Session(engine) as session, session.begin():

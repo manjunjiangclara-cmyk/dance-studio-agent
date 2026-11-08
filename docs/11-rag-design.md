@@ -102,11 +102,13 @@ For the first publication version, one publication per document is active for ne
 
 ## 5. Reranking
 
+**Implemented offline:** local L6/L12 cross-encoder comparison replays frozen hybrid candidates, selects on tuning only, then validates one model on new policy families. The selected L6 improves fresh complete evidence from 36/40 to 38/40 with warm CPU p95 331 ms; it passes the declared experiment gates. Normal search remains unchanged. See the [reranking guide](15-document-reranking.md) and [consolidated test/evaluation summary](16-testing-and-evaluations.md).
+
 **Decision: establish the hybrid baseline before enabling a neural reranker.** RRF combines rankings; it is not a cross-encoder or an LLM reranker.
 
 Keep the initial online path as hybrid retrieval, RRF, and bounded evidence selection. Compare an English cross-encoder offline on the same candidates and held-out questions. Evaluate ranking quality, inference latency, memory, deployment requirements, and input truncation. Choose a particular model only after that comparison. A reranker cannot recover evidence missing from the candidate set.
 
-Do not enable a cross-encoder merely because the file is large. Adopt it only if the held-out improvement and measured resource costs justify it. LLM reranking is not the default because it adds provider calls and latency; no reranker runtime is included in the ingestion milestone.
+Do not enable a cross-encoder merely because the file is large. Adopt it only if the held-out improvement and measured resource costs justify it. LLM reranking is not the default because it adds provider calls and latency. The local runtime is an optional dependency group for offline experiments and is not loaded by ingestion or normal search.
 
 ## 6. Generation and grounding
 
