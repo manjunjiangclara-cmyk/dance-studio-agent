@@ -628,3 +628,23 @@ def test_async_trace_sdk_logs_redact_arguments_exception_stack_and_extra(logger_
     assert record.exc_info is None and record.exc_text is None and record.stack_info is None
     assert private not in caplog.text
     assert private not in repr(record.__dict__)
+
+
+def test_event_sink_open_failure_and_throwing_logger_do_not_block_task(tmp_path):
+    import logging
+
+    from studio_copilot.documents.operations import telemetry
+    from studio_copilot.documents.operations.runtime import task
+
+    class BrokenHandler(logging.Handler):
+        def emit(self, record):
+            raise RuntimeError("private logging failure")
+
+    handler = BrokenHandler()
+    telemetry.logger.addHandler(handler)
+    try:
+        with task(events_file=tmp_path / "missing-parent" / "events.jsonl") as control:
+            assert control.budget.snapshot()["attempts"] == 0
+            control.event("retrieval", "operation", items=1)
+    finally:
+        telemetry.logger.removeHandler(handler)

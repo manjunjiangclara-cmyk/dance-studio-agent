@@ -98,7 +98,10 @@ class EventSink:
                 fd = os.open(Path(events_file), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
                 self.stream = os.fdopen(fd, "w", encoding="utf-8")
             except OSError:
-                logger.warning("operations_export_failed")
+                try:
+                    logger.warning("operations_export_failed")
+                except Exception:
+                    pass
 
     def emit(self, operation_id, operation, stage, status="success", **fields):
         event = safe_event(
