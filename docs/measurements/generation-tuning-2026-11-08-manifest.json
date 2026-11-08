@@ -1,0 +1,137 @@
+{
+  "version": "generation-evaluation-v1",
+  "complete": true,
+  "cases_sha256": "5cca335eda3f1dcd8e89b8400b93361efb356de9211f2984937e2b60308ffdf5",
+  "prompt_version": "grounded-generation-v1",
+  "prompt_sha256": "0788e2c0e6e14dab32c3832c8ef70196d24ac45dea315412ce3722287073e49e",
+  "schema_sha256": "2f4f858abef46bf8dd6446f06c1f8a306046c63611de24e1990c035686dec9c2",
+  "evidence_manifest_sha256": "191cdb2c4611bada9cdc96873f02265f0304f895b2967b311f0cbfa021349e87",
+  "reports_sha256": "fed224a2a43fb9f2020e1877cfb85d4903e22de4887f06d988007ec1db3cc06b",
+  "split": "tuning",
+  "limit": null,
+  "workers": 4,
+  "compare_verification": true,
+  "real_provider": true,
+  "models": [
+    "gpt-6-luna"
+  ],
+  "returned_models": [
+    "gpt-6-luna"
+  ],
+  "requests": 152,
+  "usage": {
+    "input_tokens": 282930,
+    "output_tokens": 27222,
+    "unknown_usage_calls": 0
+  },
+  "model_seconds": 411.16061875317246,
+  "operation_usage": {
+    "generate": {
+      "requests": 76,
+      "failed": 0,
+      "input_tokens": 145430,
+      "output_tokens": 19875,
+      "unknown_usage_calls": 0,
+      "seconds": 266.9634207095951,
+      "p50_seconds": 2.6852400000207126,
+      "p95_seconds": 7.049889542162418
+    },
+    "verify": {
+      "requests": 76,
+      "failed": 0,
+      "input_tokens": 137500,
+      "output_tokens": 7347,
+      "unknown_usage_calls": 0,
+      "seconds": 144.19719804357737,
+      "p50_seconds": 1.607262333156541,
+      "p95_seconds": 4.014107499970123
+    }
+  },
+  "paired_changes": {
+    "removed_claims": 0,
+    "additional_abstentions": 0,
+    "changed_cases": 0,
+    "status_only_downgrades": 0
+  },
+  "semantic_review_status": "unreviewed",
+  "api_cost_note": "Reported tokens; monetary pricing is not inferred.",
+  "results_sha256": "2b3b01923c101d75e8c66566f20598120e2b40415487052414a54cf2233de0c2",
+  "summaries": {
+    "tuning/standard/baseline": {
+      "cases": 40,
+      "technical_failures": 0,
+      "citation_validity": 0.9818181818181818,
+      "citation_counts": {
+        "valid": 54,
+        "total": 55
+      },
+      "diagnostic_status_accuracy": 0.875,
+      "diagnostic_required_fact_coverage": 0.9523809523809523,
+      "diagnostic_correct_abstention": 0.8333333333333334,
+      "diagnostic_false_abstention": 0.0,
+      "diagnostic_complete_answer": 0.896551724137931,
+      "forbidden_pattern_cases": 0,
+      "semantic_support_rate": null,
+      "semantic_complete_answer_rate": null,
+      "semantic_appropriate_status_rate": null,
+      "semantic_review_status": "unreviewed"
+    },
+    "tuning/standard/verified": {
+      "cases": 40,
+      "technical_failures": 0,
+      "citation_validity": 0.9818181818181818,
+      "citation_counts": {
+        "valid": 54,
+        "total": 55
+      },
+      "diagnostic_status_accuracy": 0.875,
+      "diagnostic_required_fact_coverage": 0.9523809523809523,
+      "diagnostic_correct_abstention": 0.8333333333333334,
+      "diagnostic_false_abstention": 0.0,
+      "diagnostic_complete_answer": 0.896551724137931,
+      "forbidden_pattern_cases": 0,
+      "semantic_support_rate": null,
+      "semantic_complete_answer_rate": null,
+      "semantic_appropriate_status_rate": null,
+      "semantic_review_status": "unreviewed"
+    },
+    "tuning/actual/baseline": {
+      "cases": 40,
+      "technical_failures": 0,
+      "citation_validity": 0.98,
+      "citation_counts": {
+        "valid": 49,
+        "total": 50
+      },
+      "diagnostic_status_accuracy": 0.925,
+      "diagnostic_required_fact_coverage": 0.8809523809523809,
+      "diagnostic_correct_abstention": 0.8333333333333334,
+      "diagnostic_false_abstention": 0.0,
+      "diagnostic_complete_answer": 0.92,
+      "forbidden_pattern_cases": 0,
+      "semantic_support_rate": null,
+      "semantic_complete_answer_rate": null,
+      "semantic_appropriate_status_rate": null,
+      "semantic_review_status": "unreviewed"
+    },
+    "tuning/actual/verified": {
+      "cases": 40,
+      "technical_failures": 0,
+      "citation_validity": 0.98,
+      "citation_counts": {
+        "valid": 49,
+        "total": 50
+      },
+      "diagnostic_status_accuracy": 0.925,
+      "diagnostic_required_fact_coverage": 0.8809523809523809,
+      "diagnostic_correct_abstention": 0.8333333333333334,
+      "diagnostic_false_abstention": 0.0,
+      "diagnostic_complete_answer": 0.92,
+      "forbidden_pattern_cases": 0,
+      "semantic_support_rate": null,
+      "semantic_complete_answer_rate": null,
+      "semantic_appropriate_status_rate": null,
+      "semantic_review_status": "unreviewed"
+    }
+  }
+}

@@ -1,0 +1,177 @@
+{
+  "version": "generation-evaluation-v1",
+  "complete": true,
+  "cases_sha256": "5cca335eda3f1dcd8e89b8400b93361efb356de9211f2984937e2b60308ffdf5",
+  "prompt_version": "grounded-generation-v1",
+  "prompt_sha256": "0788e2c0e6e14dab32c3832c8ef70196d24ac45dea315412ce3722287073e49e",
+  "schema_sha256": "2f4f858abef46bf8dd6446f06c1f8a306046c63611de24e1990c035686dec9c2",
+  "evidence_manifest_sha256": "191cdb2c4611bada9cdc96873f02265f0304f895b2967b311f0cbfa021349e87",
+  "reports_sha256": "f0fbb8c2b351a1b61a7a469863dd8bb7c7e5e79471abecf5ef7952459fb90406",
+  "split": "held_out",
+  "limit": null,
+  "workers": 4,
+  "compare_verification": true,
+  "real_provider": true,
+  "models": [
+    "gpt-6-luna"
+  ],
+  "returned_models": [
+    "gpt-6-luna"
+  ],
+  "requests": 152,
+  "usage": {
+    "input_tokens": 311995,
+    "output_tokens": 31337,
+    "unknown_usage_calls": 0
+  },
+  "model_seconds": 420.31056424370036,
+  "operation_usage": {
+    "generate": {
+      "requests": 76,
+      "failed": 0,
+      "input_tokens": 158789,
+      "output_tokens": 23668,
+      "unknown_usage_calls": 0,
+      "seconds": 278.4858219579328,
+      "p50_seconds": 2.9347785420250148,
+      "p95_seconds": 7.560663458192721
+    },
+    "verify": {
+      "requests": 76,
+      "failed": 0,
+      "input_tokens": 153206,
+      "output_tokens": 7669,
+      "unknown_usage_calls": 0,
+      "seconds": 141.82474228576757,
+      "p50_seconds": 1.6639829999767244,
+      "p95_seconds": 3.2528692497871816
+    }
+  },
+  "paired_changes": {
+    "removed_claims": 2,
+    "additional_abstentions": 1,
+    "changed_cases": 2,
+    "status_only_downgrades": 0
+  },
+  "semantic_review_status": "unreviewed",
+  "api_cost_note": "Reported tokens; monetary pricing is not inferred.",
+  "results_sha256": "7ef35c62580a6b9c13411fd6223d22341ff9840d1b0c7266577eae743394085c",
+  "summaries": {
+    "held_out/actual/baseline": {
+      "cases": 40,
+      "technical_failures": 0,
+      "citation_validity": 1.0,
+      "citation_counts": {
+        "valid": 66,
+        "total": 66
+      },
+      "diagnostic_status_accuracy": 0.825,
+      "diagnostic_required_fact_coverage": 0.8333333333333334,
+      "diagnostic_correct_abstention": 1.0,
+      "diagnostic_false_abstention": 0.0,
+      "diagnostic_complete_answer": 0.92,
+      "forbidden_pattern_cases": 0,
+      "semantic_support_rate": null,
+      "semantic_required_fact_coverage": null,
+      "semantic_complete_answer_rate": null,
+      "semantic_appropriate_status_rate": null,
+      "semantic_review_status": "unreviewed",
+      "quality_targets": {
+        "criteria": {
+          "semantic_support": null,
+          "complete_answer": null,
+          "correct_abstention": null,
+          "false_abstention": null
+        },
+        "passed": null
+      }
+    },
+    "held_out/actual/verified": {
+      "cases": 40,
+      "technical_failures": 0,
+      "citation_validity": 1.0,
+      "citation_counts": {
+        "valid": 66,
+        "total": 66
+      },
+      "diagnostic_status_accuracy": 0.8,
+      "diagnostic_required_fact_coverage": 0.8125,
+      "diagnostic_correct_abstention": 1.0,
+      "diagnostic_false_abstention": 0.04,
+      "diagnostic_complete_answer": 0.88,
+      "forbidden_pattern_cases": 0,
+      "semantic_support_rate": null,
+      "semantic_required_fact_coverage": null,
+      "semantic_complete_answer_rate": null,
+      "semantic_appropriate_status_rate": null,
+      "semantic_review_status": "unreviewed",
+      "quality_targets": {
+        "criteria": {
+          "semantic_support": null,
+          "complete_answer": null,
+          "correct_abstention": null,
+          "false_abstention": null
+        },
+        "passed": null
+      }
+    },
+    "held_out/standard/baseline": {
+      "cases": 40,
+      "technical_failures": 0,
+      "citation_validity": 0.9666666666666667,
+      "citation_counts": {
+        "valid": 58,
+        "total": 60
+      },
+      "diagnostic_status_accuracy": 0.9,
+      "diagnostic_required_fact_coverage": 0.8333333333333334,
+      "diagnostic_correct_abstention": 1.0,
+      "diagnostic_false_abstention": 0.0,
+      "diagnostic_complete_answer": 0.9655172413793104,
+      "forbidden_pattern_cases": 0,
+      "semantic_support_rate": null,
+      "semantic_required_fact_coverage": null,
+      "semantic_complete_answer_rate": null,
+      "semantic_appropriate_status_rate": null,
+      "semantic_review_status": "unreviewed",
+      "quality_targets": {
+        "criteria": {
+          "semantic_support": null,
+          "complete_answer": null,
+          "correct_abstention": null,
+          "false_abstention": null
+        },
+        "passed": null
+      }
+    },
+    "held_out/standard/verified": {
+      "cases": 40,
+      "technical_failures": 0,
+      "citation_validity": 0.9666666666666667,
+      "citation_counts": {
+        "valid": 58,
+        "total": 60
+      },
+      "diagnostic_status_accuracy": 0.875,
+      "diagnostic_required_fact_coverage": 0.8125,
+      "diagnostic_correct_abstention": 1.0,
+      "diagnostic_false_abstention": 0.0,
+      "diagnostic_complete_answer": 0.9310344827586207,
+      "forbidden_pattern_cases": 0,
+      "semantic_support_rate": null,
+      "semantic_required_fact_coverage": null,
+      "semantic_complete_answer_rate": null,
+      "semantic_appropriate_status_rate": null,
+      "semantic_review_status": "unreviewed",
+      "quality_targets": {
+        "criteria": {
+          "semantic_support": null,
+          "complete_answer": null,
+          "correct_abstention": null,
+          "false_abstention": null
+        },
+        "passed": null
+      }
+    }
+  }
+}

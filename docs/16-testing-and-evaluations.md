@@ -1,6 +1,6 @@
 # Tests and evaluations: consolidated summary
 
-This page indexes implementation checks, performance measurements and real model evaluations. **Passing fake-model tests proves code behavior, not semantic answer quality.** Paid/live evaluations are separate from normal CI. Documents remain unavailable to the agent; reranking remains an offline experiment.
+This page indexes implementation checks, performance measurements and real model evaluations. **Passing fake-model tests proves code behavior, not semantic answer quality.** Paid/live evaluations are separate from normal CI. Documents remain unavailable to the agent; reranking and grounded generation are offline experiments.
 
 ## Automated checks
 
@@ -15,6 +15,7 @@ This page indexes implementation checks, performance measurements and real model
 | Embedding | Fake/loopback providers, cache identity, leases, resume/recovery, deletion races and vector linkage | [Embedding guide](13-document-embeddings.md) |
 | Retrieval | Exact distances, lexical/RRF behavior, effective dates, duplicate references, evidence budgets, provider failures and source-aware metrics | [Retrieval guide](14-document-retrieval.md) |
 | Reranking | Offline windowing/tails, stable scores, cache hashes, source/date/parent attribution, frozen selection, failed-case accounting and paid/download gates | [Reranking guide](15-document-reranking.md) |
+| Generation | Sealed evidence identity, exact Unicode quotes, fabricated/prefix/cross-question citations, claim removal/status downgrade, paid gates, single-call default, paired writer reuse and verifier failure handling | [Generation guide](17-document-generation.md) |
 
 Normal pytest does not call OpenAI, download reranker weights, or run real neural inference. PostgreSQL tests require `TEST_DATABASE_URL` ending `_test`; absence explicitly skips them and must not be reported as passing. Browser tests use fixtures/mock API behavior; a healthy local app alone does not establish agent quality or successful Google login.
 
@@ -60,13 +61,34 @@ Recall averages the fraction of required source spans recovered per answerable q
 
 The 2026-11-08 selected model improves fresh complete evidence by five percentage points, with warm CPU p95 331 ms. It passes the predeclared experimental adoption gates but remains off in normal search. The already inspected older held-out split is now diagnostic; it was not reused to claim fresh validation.
 
-All date exclusions passed in the real comparisons. Semantic retrieval/reranking still returns candidates for in-period unanswered questions. These experiments do not prove answerability, faithfulness, citation correctness of generated answers, or production reliability. No answers are generated in the document evaluations. Synthetic English policies and correlated question scenarios limit generalization.
+All date exclusions passed in the retrieval/reranking comparisons. Semantic retrieval/reranking still returns candidates for in-period unanswered questions. Those experiments do not prove answerability, faithfulness, citation correctness of generated answers, or production reliability. Generation is evaluated separately below. Synthetic English policies and correlated question scenarios limit generalization.
 
 Full evidence:
 
 - [Single-handbook report](measurements/retrieval-live-2026-11-07.json) and [execution manifest](measurements/retrieval-live-2026-11-07-manifest.json): 39 requests / 1,714 reported input tokens.
 - [Larger retrieval report](measurements/retrieval-corpus-live-2026-11-07.json) and [execution manifest](measurements/retrieval-corpus-live-2026-11-07-manifest.json): 112 requests / 28,362 tokens.
 - [Reranking report](measurements/reranking-live-2026-11-08.json), [frozen model selection](measurements/reranking-live-2026-11-08-selection.json), [capture/cleanup manifest](measurements/reranking-live-2026-11-08-capture.json): 168 OpenAI embedding requests / 40,521 tokens; reranking itself runs locally with no API usage.
+
+## Offline document generation — 2026-11-08
+
+Real `gpt-6-luna` evaluated 80 frozen questions (40 tuning / 40 held-out), each with retrieved or explicitly controlled evidence and standard supplemented evidence. Paired paths share one writer candidate. **304 evaluation requests**, 594,925 input tokens and 58,559 output tokens; no technical failures. A separate two-request smoke adds 4,124 tokens. Normal tests still make no paid calls.
+
+Independent AI review checked all 320 final rows / 422 claims against actually supplied sources. It is not human ground truth or verifier agreement. Held-out results:
+
+| Context | Path | Fact support | Complete answer | Correct refusal | False refusal |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Retrieved / controlled | Default | 59/60 (98.33%) | 22/25 (88%) | 6/6 | 0/25 |
+| Same | Verification | 58/59 (98.31%) | 21/25 (84%) | 6/6 | 1/25 |
+| Standard | Default | 54/55 (98.18%) | 25/29 (86.21%) | 6/6 | 0/29 |
+| Same | Verification | 53/54 (98.15%) | 24/29 (82.76%) | 6/6 | 0/29 |
+
+Both paths miss the ≥90% complete-answer target on standard contexts. Tuning also misses the strict refusal target (5/6, safe policy-only partials rather than abstention). Claim support exceeds 95%, but includes a critical missing-signature condition in one actual-context answer; this is a real gap. Some controlled sentence removals leave equivalent examples, and some gold facts exceed the direct question; independent review notes retain those limitations.
+
+Verification corrected zero reviewed errors, removed two supported claims, and caused one extra false abstention. It adds 152 requests / 305,722 tokens. **Keep verification disabled; the full quality gate is not met.** Final retained citations all resolve, while generated quotes before filtering sometimes do not. Citation validity cannot establish semantic correctness.
+
+The final combined backend run passed **986 tests**, including real PostgreSQL integration and **83 generation-specific fake-model tests**, independently designed/reviewed. Checks cover paid gates, provenance, Unicode, tables/parents, invalid citations, zero-call refusals, exact paired reuse, verifier restrictions, failure exit codes, interruption accounting and safe exports. Ruff lint/format, dependency-lock consistency, migration/model parity (`alembic check`) and patch whitespace checks passed. No API routes, UI, database models or agent behavior change, so no frontend build/restart was needed for this offline increment.
+
+See the [Generation guide and full measurements](17-document-generation.md#measured-experiment--2026-11-08), [frozen experiment contract](measurements/generation-freeze-2026-11-08.json), [held-out independent review](measurements/generation-heldout-2026-11-08-review.json) and [tuning independent review](measurements/generation-tuning-2026-11-08-review.json).
 
 ## Other paid agent evaluations
 
