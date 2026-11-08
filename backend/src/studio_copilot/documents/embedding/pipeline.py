@@ -6,11 +6,14 @@ from uuid import UUID
 from sqlalchemy import Engine
 
 from studio_copilot.documents.chunking import Chunker, Tokenizer, load_revision
+from studio_copilot.documents.operations import OperationsError, instrument
+from studio_copilot.documents.operations.runtime import estimate, preflight
 
 from .provider import Embedder, EmbeddingError, EmbeddingProfile
 from .store import Store
 
 
+@instrument("embedding")
 def plan(
     engine: Engine,
     document_id: UUID,
@@ -22,20 +25,22 @@ def plan(
     store = Store(engine, profile)
     counts = Counter()
     seen, pending = set(), {}
-    new_tokens, cached_inputs = 0, 0
+    new_tokens, cached_inputs, reserved_bytes = 0, 0, 0
     for record in chunker.records():
         counts[record["kind"]] += 1
         if record["kind"] == "passage" and record["text_sha256"] not in seen:
             seen.add(record["text_sha256"])
-            pending[record["text_sha256"]] = record["token_count"]
+            pending[record["text_sha256"]] = (record["token_count"], estimate(record["text"]))
         if len(pending) >= 64:
             cached = store.cached_hashes(pending)
             cached_inputs += len(cached)
-            new_tokens += sum(count for key, count in pending.items() if key not in cached)
+            new_tokens += sum(count[0] for key, count in pending.items() if key not in cached)
+            reserved_bytes += sum(count[1] for key, count in pending.items() if key not in cached)
             pending.clear()
     cached = store.cached_hashes(pending)
     cached_inputs += len(cached)
-    new_tokens += sum(count for key, count in pending.items() if key not in cached)
+    new_tokens += sum(count[0] for key, count in pending.items() if key not in cached)
+    reserved_bytes += sum(count[1] for key, count in pending.items() if key not in cached)
     return dict(
         document_id=str(document_id),
         revision=revision,
@@ -48,9 +53,11 @@ def plan(
         profile_hash=profile.key,
         chunker_hash=chunker.config_hash,
         dry_run=True,
+        operations=preflight((len(seen) - cached_inputs + 63) // 64, reserved_bytes, retries=3),
     )
 
 
+@instrument("embedding")
 def run(
     engine: Engine,
     document_id: UUID,
@@ -61,6 +68,7 @@ def run(
     embedder=None,
     progress=lambda value: None,
 ):
+    plan(engine, document_id, revision, tokenizer, profile)
     chunker = Chunker(load_revision(engine, document_id, revision), tokenizer)
     store = Store(engine, profile)
     run_id, token = store.claim(chunker)
@@ -100,7 +108,11 @@ def run(
         store.complete(run_id, token)
         return store.status(run_id)
     except BaseException as error:
-        code = error.code if isinstance(error, EmbeddingError) else "processing_failed"
+        code = (
+            error.code
+            if isinstance(error, (EmbeddingError, OperationsError))
+            else "processing_failed"
+        )
         try:
             store.fail(run_id, token, code)
         except Exception:

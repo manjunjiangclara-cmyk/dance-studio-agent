@@ -144,6 +144,7 @@ Alembic upgrades the consolidated initial schema through the independent-session
 - [Offline local reranking and measured adoption gates](docs/15-document-reranking.md)
 - [Consolidated tests, benchmarks, and real model evaluations](docs/16-testing-and-evaluations.md)
 - [Offline generation, exact citations and optional verification](docs/17-document-generation.md)
+- [Production foundations: ACL, query cache, task budgets and private telemetry](docs/18-production-controls.md)
 - [Offline chunking and inspection CLI](docs/12-document-chunking.md)
 
 Policies remain external resources. Financial rules, credit ledgers, email delivery, and production infrastructure remain outside the implemented workflow.

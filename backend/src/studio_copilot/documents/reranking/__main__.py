@@ -7,13 +7,14 @@ from pathlib import Path
 
 from studio_copilot.documents.chunking import Tokenizer
 from studio_copilot.documents.chunking.tokenizer import default_cache
+from studio_copilot.documents.operations.runtime import add_arguments
 
 from .compare import compare_directory
 from .prepare import capture_directory, plan
 from .runtime import RerankError, prepare_models
 
 
-def main(argv=None):
+def _main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
     prepare = commands.add_parser("prepare-models")
@@ -30,6 +31,8 @@ def main(argv=None):
     compare.add_argument("--model-cache", type=Path, required=True)
     compare.add_argument("--output-dir", type=Path, required=True)
     compare.add_argument("--tokenizer-cache", type=Path, default=default_cache())
+    for subparser in commands.choices.values():
+        add_arguments(subparser)
     args = parser.parse_args(argv)
     try:
         if args.command == "prepare-models":
@@ -71,6 +74,12 @@ def main(argv=None):
         )
         print(f"reranking: {code}: {message}", file=sys.stderr)
         return 1
+
+
+def main(argv=None):
+    from studio_copilot.documents.operations.runtime import run_cli
+
+    return run_cli(_main, argv)
 
 
 if __name__ == "__main__":

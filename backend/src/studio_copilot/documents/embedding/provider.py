@@ -14,6 +14,9 @@ from urllib.parse import urlsplit
 
 from openai import APIConnectionError, APIStatusError, OpenAI
 
+from studio_copilot.documents.operations import current, instrument
+from studio_copilot.documents.operations.runtime import estimate
+
 
 class EmbeddingError(Exception):
     def __init__(self, code, message):
@@ -117,12 +120,17 @@ class Embedder:
             client = OpenAI(base_url=profile.endpoint, timeout=30.0, max_retries=0)
         self.client = client
 
+    @instrument("embedding")
     def embed(self, texts, before_attempt=lambda: None):
         if not 1 <= len(texts) <= 64 or any(not isinstance(t, str) or not t.strip() for t in texts):
             raise EmbeddingError("invalid_input", "Embed 1–64 nonempty text passages per batch.")
         for attempt in range(3):
             # The callback checks/renews ownership immediately before EVERY paid attempt.
             before_attempt()
+            control = current()
+            ticket = control.budget.reserve(sum(estimate(t) for t in texts))
+            started = time.perf_counter()
+            control.event("embedding", "budget", attempts=1, retries=int(attempt > 0))
             try:
                 response = self.client.embeddings.create(
                     model=self.profile.model,
@@ -131,6 +139,15 @@ class Embedder:
                     input=texts,
                 )
             except (APIConnectionError, APIStatusError) as error:
+                ticket.finish()
+                control.event(
+                    "embedding",
+                    "api",
+                    "failure",
+                    seconds=time.perf_counter() - started,
+                    error_code="provider_error",
+                    unknown_usage_calls=1,
+                )
                 status = getattr(error, "status_code", None)
                 code = getattr(error, "code", None)
                 transient = status is None or status in {408, 409, 429} or status >= 500
@@ -140,6 +157,20 @@ class Embedder:
                     ) from None
                 self.sleeper(retry_delay(error, attempt))
                 continue
+            except Exception:
+                ticket.finish()
+                control.event(
+                    "embedding",
+                    "api",
+                    "failure",
+                    seconds=time.perf_counter() - started,
+                    error_code="provider_error",
+                    unknown_usage_calls=1,
+                )
+                raise EmbeddingError("provider_error", "The embedding request failed.") from None
+            usage_reported = getattr(getattr(response, "usage", None), "total_tokens", None)
+            if type(usage_reported) is int and usage_reported >= 0:
+                ticket.finish(input_tokens=usage_reported, output_tokens=0)
             try:
                 if (
                     response.model != self.profile.model
@@ -163,5 +194,13 @@ class Embedder:
                 raise EmbeddingError(
                     "invalid_vectors", "Embedding response shape is invalid."
                 ) from error
+            ticket.finish(input_tokens=usage, output_tokens=0)
+            control.event(
+                "embedding",
+                "api",
+                seconds=time.perf_counter() - started,
+                input_tokens=usage,
+                output_tokens=0,
+            )
             return [indexed[index] for index in range(len(texts))], usage
         raise AssertionError("Unreachable retry state")

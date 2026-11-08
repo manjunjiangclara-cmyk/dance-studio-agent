@@ -15,3 +15,6 @@ frontend/dist/
 frontend/test-results/
 frontend/playwright-report/
 frontend/*.tsbuildinfo
+
+# Private operational event streams and local summaries.
+backend/operations-results/

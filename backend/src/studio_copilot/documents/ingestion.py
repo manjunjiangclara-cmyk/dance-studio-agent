@@ -11,6 +11,7 @@ from python_multipart.multipart import parse_options_header
 from starlette.requests import ClientDisconnect
 
 from studio_copilot.administration.service import AdministrationError
+from studio_copilot.documents.operations import instrument
 
 MAX_BYTES = 10_000_000
 MAX_REQUEST_BYTES = MAX_BYTES + 65_536
@@ -116,6 +117,7 @@ class UploadParser:
         self.ended = True
 
 
+@instrument("ingestion")
 async def receive_upload(request: Request) -> Upload:
     # Routes have Request (not File/Form) arguments: FastAPI executes authentication
     # dependencies before this function starts reading or allocating a temporary file.

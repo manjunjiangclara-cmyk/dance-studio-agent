@@ -1,0 +1,48 @@
+{
+  "version": "operations-benchmark-v1",
+  "workload": "100 distinct queries, 3 passes",
+  "simulated_provider_delay_ms": 1,
+  "phases": [
+    {
+      "phase": "cold",
+      "queries": 100,
+      "cache_hits": 0,
+      "fake_provider_calls": 100,
+      "seconds": 0.13630904094316065
+    },
+    {
+      "phase": "warm",
+      "queries": 100,
+      "cache_hits": 100,
+      "fake_provider_calls": 0,
+      "seconds": 0.0009448749478906393
+    },
+    {
+      "phase": "warm_repeat",
+      "queries": 100,
+      "cache_hits": 100,
+      "fake_provider_calls": 0,
+      "seconds": 0.0013622920960187912
+    }
+  ],
+  "total_fake_provider_calls": 100,
+  "uncached_call_baseline": 300,
+  "calls_saved": 200,
+  "peak_process_rss_bytes": 68075520,
+  "model_calls": 0,
+  "database_calls": 0,
+  "note": "Synthetic mechanism measurement, not provider latency or semantic quality.",
+  "validation": {
+    "backend_tests_passed": 1040,
+    "skipped": 0,
+    "independent_unit_cases": 48,
+    "independent_postgresql_cases": 4,
+    "playwright_passed": 90,
+    "frontend_build": true,
+    "ruff": true,
+    "lock_consistency": true,
+    "alembic_parity": true,
+    "v1_prompts_unchanged": true,
+    "paid_model_calls": 0
+  }
+}

@@ -9,6 +9,9 @@ import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
+from studio_copilot.documents.operations import current, instrument
+from studio_copilot.documents.operations.runtime import generation_estimate, preflight, submit
+
 from .contracts import Candidate, GenerationError, Verification
 from .engine import answer, paired, require_api
 from .evidence import hash_value, load_artifact
@@ -47,6 +50,13 @@ def readable_answer(result):
 
 
 def save(path, value):
+    if (
+        current()
+        and isinstance(value, dict)
+        and Path(path).name in {"manifest.json", "plan.json", "comparison.json", "selection.json"}
+    ):
+        if Path(path).name != "plan.json" or "operations" not in value:
+            value["operations"] = current().budget.snapshot()
     Path(path).write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
@@ -100,15 +110,14 @@ def selected_inputs(evidence_dir, tokenizer, *, split=None, limit=None):
     return output
 
 
+@instrument("generation")
 def plan(evidence_dir, tokenizer, *, split=None, limit=None, compare_verification=False):
     inputs = selected_inputs(evidence_dir, tokenizer, split=split, limit=limit)
     active = [(c, a) for c, a in inputs if a["blocks"]]
     from .evidence import model_payload
 
-    tokens = sum(
-        tokenizer.count(GENERATE + json.dumps(model_payload(a), ensure_ascii=False))
-        for _, a in active
-    )
+    tokens = sum(generation_estimate(GENERATE, model_payload(a), Candidate) for _, a in active)
+
     return dict(
         artifacts=len(inputs),
         questions=len({c["id"] for c, _ in inputs}),
@@ -121,6 +130,11 @@ def plan(evidence_dir, tokenizer, *, split=None, limit=None, compare_verificatio
         split=split,
         limit=limit,
         model_requests=False,
+        operations=preflight(
+            len(active) * (2 if compare_verification else 1),
+            tokens,
+            4000 * len(active) * (2 if compare_verification else 1),
+        ),
         prompt_version=PROMPT_VERSION,
         prompt_sha256=hash_value([GENERATE, VERIFY]),
     )
@@ -443,6 +457,7 @@ def atomic_export(output_dir, callback, *, preserve_failure=False):
             shutil.rmtree(temporary)
 
 
+@instrument("generation")
 def evaluate_directory(
     evidence_dir,
     output_dir,
@@ -461,6 +476,18 @@ def evaluate_directory(
     if Path(output_dir).exists():
         raise GenerationError("output_exists", "Output already exists; choose a new directory.")
     inputs = selected_inputs(evidence_dir, tokenizer, split=split, limit=limit)
+    # Known one-shot lower bound; retries remain charged at the provider boundary.
+    from .evidence import model_payload
+
+    active = sum(bool(a["blocks"]) for _, a in inputs)
+    estimated_input = sum(
+        generation_estimate(GENERATE, model_payload(a), Candidate) for _, a in inputs if a["blocks"]
+    )
+    preflight(
+        active * (2 if compare_verification else 1),
+        estimated_input,
+        active * (2 if compare_verification else 1) * 4000,
+    )
 
     def run(item):
         case, artifact = item
@@ -512,7 +539,7 @@ def evaluate_directory(
             (directory / "reports.jsonl").open("w", encoding="utf-8") as report_stream,
         ):
             with ThreadPoolExecutor(max_workers=workers) as pool:
-                futures = [pool.submit(run, item) for item in inputs]
+                futures = [submit(pool, run, item) for item in inputs]
                 written = set()
 
                 def persist(future):
@@ -579,7 +606,7 @@ def evaluate_directory(
             )
         manifest = dict(
             version="generation-evaluation-v1",
-            complete=True,
+            complete=not current().budget.exhausted,
             cases_sha256=CASES_SHA256,
             prompt_version=PROMPT_VERSION,
             prompt_sha256=hash_value([GENERATE, VERIFY]),
@@ -605,6 +632,7 @@ def evaluate_directory(
             operation_usage=operations,
             paired_changes=changes,
             semantic_review_status="unreviewed",
+            operations=current().budget.snapshot(),
             api_cost_note="Reported tokens; monetary pricing is not inferred.",
         )
         _write_report(directory, records, manifest)
@@ -613,6 +641,7 @@ def evaluate_directory(
     return atomic_export(output_dir, export, preserve_failure=True)
 
 
+@instrument("generation")
 def answer_directory(evidence_file, output_dir, tokenizer, *, allow_api=False, verify=False):
     require_api(allow_api)
     if Path(output_dir).exists():

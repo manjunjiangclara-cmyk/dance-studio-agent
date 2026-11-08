@@ -4,6 +4,8 @@ import copy
 import json
 import time
 
+from studio_copilot.documents.operations import OperationsError, instrument
+
 from .contracts import Candidate, GenerationError, Verification
 from .evidence import model_payload, resolve_quote, validate_artifact
 from .provider import GENERATE, VERIFY, GenerationProvider
@@ -162,7 +164,11 @@ def _run(artifact, tokenizer, *, allow_api=False, verify=False, provider=None):
         report["raw_candidate"] = candidate.model_dump(mode="json")
         report["baseline"] = validate_candidate(artifact, candidate)
     except Exception as error:
-        code = error.code if isinstance(error, GenerationError) else "generation_failed"
+        code = (
+            error.code
+            if isinstance(error, (GenerationError, OperationsError))
+            else "generation_failed"
+        )
         report["baseline"] = failure(code)
         if verify:
             report["verified"] = failure(code)
@@ -201,7 +207,9 @@ def _run(artifact, tokenizer, *, allow_api=False, verify=False, provider=None):
             report["verified"] = apply_verification(baseline, verdict)
         except Exception as error:
             report["verified"] = failure(
-                error.code if isinstance(error, GenerationError) else "verification_failed"
+                error.code
+                if isinstance(error, (GenerationError, OperationsError))
+                else "verification_failed"
             )
     report.update(
         calls=copy.deepcopy(getattr(model, "calls", [])),
@@ -212,6 +220,7 @@ def _run(artifact, tokenizer, *, allow_api=False, verify=False, provider=None):
     return report
 
 
+@instrument("generation")
 def answer(artifact, tokenizer, *, allow_api=False, verify=False, provider=None):
     report = _run(artifact, tokenizer, allow_api=allow_api, verify=verify, provider=provider)
     return dict(
@@ -227,5 +236,6 @@ def answer(artifact, tokenizer, *, allow_api=False, verify=False, provider=None)
     )
 
 
+@instrument("generation")
 def paired(artifact, tokenizer, *, allow_api=False, provider=None):
     return _run(artifact, tokenizer, allow_api=allow_api, verify=True, provider=provider)

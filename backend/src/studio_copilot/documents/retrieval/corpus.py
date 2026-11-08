@@ -18,6 +18,8 @@ from studio_copilot.documents.chunking import Chunker, Source, Tokenizer
 from studio_copilot.documents.chunking.tokenizer import default_cache
 from studio_copilot.documents.embedding.pipeline import run
 from studio_copilot.documents.embedding.provider import Embedder, EmbeddingError, EmbeddingProfile
+from studio_copilot.documents.operations import instrument
+from studio_copilot.documents.operations.runtime import add_arguments, estimate, preflight, run_cli
 from studio_copilot.persistence.database import make_engine
 from studio_copilot.persistence.models import Document, DocumentRevision, EmbeddingRun
 
@@ -137,9 +139,11 @@ def measures(labels, ranked_spans, k):
     )
 
 
+@instrument("retrieval")
 def plan(path, tokenizer, profile):
     corpus = load_corpus(path)
     inputs = {}
+    input_bytes = {}
     passages = parents = byte_size = 0
     for document in corpus["documents"]:
         byte_size += len(document["text"].encode("utf-8"))
@@ -147,6 +151,7 @@ def plan(path, tokenizer, profile):
             if record["kind"] == "passage":
                 passages += 1
                 inputs[record["text_sha256"]] = record["token_count"]
+                input_bytes[record["text_sha256"]] = estimate(record["text"])
             else:
                 parents += 1
     queries = {
@@ -157,6 +162,11 @@ def plan(path, tokenizer, profile):
     return dict(
         version=VERSION_CORPUS,
         dry_run=True,
+        operations=preflight(
+            (len(inputs) + 63) // 64 + len(queries),
+            sum(input_bytes.values()) + sum(estimate(q) for q in queries),
+            retries=3,
+        ),
         source_sha256=corpus["source_sha256"],
         documents=len(corpus["documents"]),
         cases=len(corpus["cases"]),
@@ -193,6 +203,7 @@ def document_id(corpus, document):
     )
 
 
+@instrument("retrieval")
 def prepare(engine, path, tokenizer, profile, *, allow_api=False, embedder=None):
     require_api(allow_api)
     corpus = load_corpus(path)
@@ -279,6 +290,7 @@ def _prepare_documents(engine, corpus, tokenizer, profile, *, embedder=None):
     return runs
 
 
+@instrument("retrieval")
 def compare(
     engine,
     run_ids,
@@ -502,7 +514,7 @@ def compare(
     )
 
 
-def main(argv=None):
+def _main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("plan", "prepare", "compare"))
     parser.add_argument("--cases", type=Path, required=True)
@@ -510,6 +522,7 @@ def main(argv=None):
     parser.add_argument("--allow-api", action="store_true")
     parser.add_argument("--run-id", type=UUID, action="append", default=[])
     parser.add_argument("--document-vectors-verified", action="store_true")
+    add_arguments(parser)
     args = parser.parse_args(argv)
     engine = None
     try:
@@ -550,6 +563,10 @@ def main(argv=None):
     finally:
         if engine is not None:
             engine.dispose()
+
+
+def main(argv=None):
+    return run_cli(_main, argv)
 
 
 if __name__ == "__main__":

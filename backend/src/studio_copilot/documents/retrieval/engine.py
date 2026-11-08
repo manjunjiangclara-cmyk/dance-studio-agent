@@ -14,6 +14,7 @@ from studio_copilot.documents.embedding.provider import (
     EmbeddingProfile,
     validate_vector,
 )
+from studio_copilot.documents.operations import current, instrument
 
 VERSION = "retrieval-v1"
 CANDIDATES = 20
@@ -235,6 +236,7 @@ def _pack(results, tokenizer, load_parent):
     return evidence, count, sorted(set(warnings))
 
 
+@instrument("retrieval")
 def search(
     engine, run_ids, query, as_of, tokenizer, *, mode="hybrid", allow_api=False, embedder=None
 ):
@@ -243,6 +245,7 @@ def search(
     )
 
 
+@instrument("retrieval")
 def capture_candidates(engine, run_ids, query, as_of, tokenizer, *, allow_api=False, embedder=None):
     """Offline inspection: materialize the full bounded union and parents in one snapshot."""
     return _search(
@@ -317,15 +320,30 @@ def _search(
         provider = embedder if embedder is not None else Embedder(profile)
         before = time.perf_counter()
         try:
-            vectors, usage = provider.embed([query])
-            if len(vectors) != 1:
-                raise EmbeddingError("invalid_vectors", "Expected one query embedding.")
-            query_vector = validate_vector(vectors[0])
+
+            def compute():
+                nonlocal usage
+                vectors, usage = provider.embed([query])
+                if len(vectors) != 1:
+                    raise EmbeddingError("invalid_vectors", "Expected one query embedding.")
+                return validate_vector(vectors[0])
+
+            control = current()
+            if getattr(provider, "query_cache_managed", False):
+                before_hits = provider.cache_hits
+                query_vector = compute()
+                hit = provider.cache_hits > before_hits
+            else:
+                query_vector, hit = control.cache.get_or_compute(
+                    control.operation_id, profile, query, compute
+                )
+            control.event("retrieval", "cache", cache_hits=int(hit), cache_misses=int(not hit))
         except EmbeddingError as error:
             if mode != "hybrid" or error.code not in {"provider_error", "invalid_vectors"}:
                 raise
             degraded = True
             warnings.append("embedding_unavailable_keyword_only")
+            current().event("retrieval", "api", "degraded", error_code="provider_error")
         finally:
             timings["embedding_seconds"] = time.perf_counter() - before
     # Revalidate all selected runs after the API call, in the same read-only snapshot
@@ -427,7 +445,15 @@ def _search(
         ]
         timings["context_seconds"] = time.perf_counter() - before
     timings["total_seconds"] = time.perf_counter() - started
+    current().event(
+        "retrieval",
+        "context",
+        evidence_tokens=count,
+        truncations=sum(w == "parent_context_budget_limited" for w in warnings),
+        candidates=len(results),
+    )
     output = dict(
+        operations=current().budget.snapshot(),
         version=VERSION,
         mode=mode,
         as_of=as_of.isoformat(),
