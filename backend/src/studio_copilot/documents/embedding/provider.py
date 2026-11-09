@@ -125,10 +125,16 @@ class Embedder:
         if not 1 <= len(texts) <= 64 or any(not isinstance(t, str) or not t.strip() for t in texts):
             raise EmbeddingError("invalid_input", "Embed 1–64 nonempty text passages per batch.")
         for attempt in range(3):
-            # The callback checks/renews ownership immediately before EVERY paid attempt.
-            before_attempt()
             control = current()
             ticket = control.budget.reserve(sum(estimate(t) for t in texts))
+            # Denied budgets must not increment ownership/experiment attempt counters.
+            # A failed ownership gate has sent nothing, so release only that reservation.
+            try:
+                before_attempt()
+            except BaseException:
+                ticket.cancel_before_send()
+                raise
+            ticket.mark_sent()
             started = time.perf_counter()
             control.event("embedding", "budget", attempts=1, retries=int(attempt > 0))
             try:

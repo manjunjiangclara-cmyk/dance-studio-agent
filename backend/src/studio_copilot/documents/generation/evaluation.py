@@ -110,13 +110,26 @@ def selected_inputs(evidence_dir, tokenizer, *, split=None, limit=None):
     return output
 
 
+def input_minimums(inputs, compare_verification):
+    """Known serialized request input; the generated verifier candidate is extra."""
+    from .evidence import model_payload
+
+    generation = verification = 0
+    for _, artifact in inputs:
+        if not artifact["blocks"]:
+            continue
+        payload = model_payload(artifact)
+        generation += generation_estimate(GENERATE, payload, Candidate)
+        if compare_verification:
+            verification += generation_estimate(VERIFY, payload, Verification)
+    return generation, verification
+
+
 @instrument("generation")
 def plan(evidence_dir, tokenizer, *, split=None, limit=None, compare_verification=False):
     inputs = selected_inputs(evidence_dir, tokenizer, split=split, limit=limit)
     active = [(c, a) for c, a in inputs if a["blocks"]]
-    from .evidence import model_payload
-
-    tokens = sum(generation_estimate(GENERATE, model_payload(a), Candidate) for _, a in active)
+    tokens, verification_tokens = input_minimums(inputs, compare_verification)
 
     return dict(
         artifacts=len(inputs),
@@ -125,14 +138,19 @@ def plan(evidence_dir, tokenizer, *, split=None, limit=None, compare_verificatio
         generation_requests=len(active),
         verification_requests_max=len(active) if compare_verification else 0,
         estimated_generation_input_tokens=tokens,
-        verification_input_tokens_note="Evidence plus generated candidate; known after generation.",
+        estimated_verification_input_tokens_min=verification_tokens,
+        estimated_total_input_tokens_min=tokens + verification_tokens,
+        verification_input_tokens_note=(
+            "Minimum includes verifier instructions, evidence and schema; "
+            "the generated candidate adds input reserved at execution."
+        ),
         output_tokens_limit_per_request=4000,
         split=split,
         limit=limit,
         model_requests=False,
         operations=preflight(
             len(active) * (2 if compare_verification else 1),
-            tokens,
+            tokens + verification_tokens,
             4000 * len(active) * (2 if compare_verification else 1),
         ),
         prompt_version=PROMPT_VERSION,
@@ -476,16 +494,13 @@ def evaluate_directory(
     if Path(output_dir).exists():
         raise GenerationError("output_exists", "Output already exists; choose a new directory.")
     inputs = selected_inputs(evidence_dir, tokenizer, split=split, limit=limit)
-    # Known one-shot lower bound; retries remain charged at the provider boundary.
-    from .evidence import model_payload
-
+    # Both stages' known input is checked before constructing a provider or exporting.
     active = sum(bool(a["blocks"]) for _, a in inputs)
-    estimated_input = sum(
-        generation_estimate(GENERATE, model_payload(a), Candidate) for _, a in inputs if a["blocks"]
-    )
+    generation_input, verification_input = input_minimums(inputs, compare_verification)
+
     preflight(
         active * (2 if compare_verification else 1),
-        estimated_input,
+        generation_input + verification_input,
         active * (2 if compare_verification else 1) * 4000,
     )
 

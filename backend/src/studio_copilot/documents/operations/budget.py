@@ -26,9 +26,31 @@ class Limits:
 
 
 class Ticket:
-    def __init__(self, budget):
+    def __init__(self, budget, input_tokens, output_tokens):
         self.budget = budget
+        self.reserved_input = input_tokens
+        self.reserved_output = output_tokens
         self.finished = False
+        self.sent = False
+
+    def mark_sent(self):
+        with self.budget.lock:
+            if self.finished:
+                raise RuntimeError("Cannot send a settled reservation.")
+            self.sent = True
+
+    def cancel_before_send(self):
+        """Release only a reservation whose ownership gate prevented an SDK call."""
+        with self.budget.lock:
+            if self.sent:
+                raise RuntimeError("Cannot cancel an attempted provider request.")
+            if self.finished:
+                return
+            self.finished = True
+            self.budget.attempts -= 1
+            self.budget.reserved_input_tokens -= self.reserved_input
+            self.budget.reserved_output_tokens -= self.reserved_output
+            self.budget.unknown_usage_calls -= 1
 
     def finish(self, input_tokens=None, output_tokens=None):
         with self.budget.lock:
@@ -76,7 +98,7 @@ class Budget:
             self.reserved_input_tokens += input_tokens
             self.reserved_output_tokens += output_tokens
             self.unknown_usage_calls += 1
-        return Ticket(self)
+        return Ticket(self, input_tokens, output_tokens)
 
     def snapshot(self):
         with self.lock:

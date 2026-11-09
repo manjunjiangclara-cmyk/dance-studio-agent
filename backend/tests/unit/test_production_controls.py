@@ -522,7 +522,7 @@ def test_generation_batch_budget_failure_preserves_success_and_uses_shared_worke
     from studio_copilot.documents.generation import provider as generation_provider
     from studio_copilot.documents.generation.contracts import Candidate
     from studio_copilot.documents.operations.runtime import Task, task
-    from tests.unit.test_generation_engine import candidate
+    from tests.unit.test_generation_engine import candidate, verification
     from tests.unit.test_generation_evidence import Characters, artifact
     from tests.unit.test_generation_provider import client
     from tests.unit.test_generation_workflow import evidence_set
@@ -534,7 +534,9 @@ def test_generation_batch_budget_failure_preserves_success_and_uses_shared_worke
     labels["cases"][0]["required_facts"].append(dict(patterns=[[gold_sentinel]]))
 
     def estimate(instructions, payload, schema):
-        return 100 if schema is Candidate else 200
+        return (
+            200 if schema is not Candidate and payload.get("candidate", {}).get("claims") else 100
+        )
 
     monkeypatch.setattr(evaluation, "generation_estimate", estimate)
     monkeypatch.setattr(generation_provider, "generation_estimate", estimate)
@@ -542,11 +544,20 @@ def test_generation_batch_budget_failure_preserves_success_and_uses_shared_worke
 
     def factory():
         sdk = client()
-        sdk.responses.response.output_parsed = candidate(artifact())
+        original_parse = sdk.responses.parse
+
+        def parse(**kwargs):
+            response = original_parse(**kwargs)
+            response.output_parsed = (
+                candidate(artifact()) if kwargs["text_format"] is Candidate else verification()
+            )
+            return response
+
+        sdk.responses.parse = parse
         clients.append(sdk)
         return generation_provider.GenerationProvider(client=sdk, model="fixture-model")
 
-    control = Task(limits=Limits(max_estimated_input_tokens=200))
+    control = Task(limits=Limits(max_estimated_input_tokens=400))
     output = tmp_path / "result"
     with task(control=control):
         manifest = evaluation.evaluate_directory(
@@ -559,17 +570,17 @@ def test_generation_batch_budget_failure_preserves_success_and_uses_shared_worke
             workers=1,
         )
     assert manifest["complete"] is False
-    assert manifest["requests"] == 1
-    assert sum(len(sdk.responses.calls) for sdk in clients) == 1
+    assert manifest["requests"] == 3
+    assert sum(len(sdk.responses.calls) for sdk in clients) == 3
     assert gold_sentinel not in repr([sdk.responses.calls for sdk in clients])
     records = [json.loads(line) for line in (output / "results.jsonl").read_text().splitlines()]
     assert len(records) == 4
-    assert sum(row["result"]["execution_status"] == "completed" for row in records) == 1
+    assert sum(row["result"]["execution_status"] == "completed" for row in records) == 3
     failed = [row for row in records if row["result"]["execution_status"] == "failed"]
     assert all(row["result"]["error_code"] == "budget_exceeded" for row in failed)
     assert all(row["result"]["status"] is None for row in failed)
     assert (output / "reports.jsonl").exists()
-    assert control.budget.snapshot()["attempts"] == 1
+    assert control.budget.snapshot()["attempts"] == 3
 
 
 def test_langsmith_constructor_failure_never_leaks_content_or_breaks_operation(monkeypatch, caplog):
@@ -648,3 +659,101 @@ def test_event_sink_open_failure_and_throwing_logger_do_not_block_task(tmp_path)
             control.event("retrieval", "operation", items=1)
     finally:
         telemetry.logger.removeHandler(handler)
+
+
+@pytest.mark.parametrize("action", ["plan", "evaluate"])
+def test_paired_generation_known_verifier_input_rejects_writer_only_budget_before_provider(
+    tmp_path, monkeypatch, action
+):
+    from studio_copilot.documents.generation import evaluation
+    from studio_copilot.documents.generation.contracts import Candidate
+    from studio_copilot.documents.operations.runtime import Task, task
+    from tests.unit.test_generation_evidence import Characters
+    from tests.unit.test_generation_workflow import evidence_set
+
+    evidence = evidence_set(tmp_path, monkeypatch)
+
+    def estimate(instructions, payload, schema):
+        return 100 if schema is Candidate else 150
+
+    monkeypatch.setattr(evaluation, "generation_estimate", estimate)
+    provider_factory = Mock(side_effect=AssertionError("Known oversized input reached provider"))
+    control = Task(limits=Limits(max_estimated_input_tokens=200))
+    output = tmp_path / "answer"
+    with task(control=control), pytest.raises(OperationsError) as caught:
+        if action == "plan":
+            evaluation.plan(evidence, Characters(), compare_verification=True)
+        else:
+            evaluation.evaluate_directory(
+                evidence,
+                output,
+                Characters(),
+                compare_verification=True,
+                allow_api=True,
+                provider_factory=provider_factory,
+            )
+    assert caught.value.code == "budget_exceeded"
+    provider_factory.assert_not_called()
+    assert control.budget.snapshot()["attempts"] == 0
+    assert not output.exists()
+
+
+def test_denied_embedding_retry_does_not_run_attempt_callback(monkeypatch):
+    from studio_copilot.documents.embedding import provider as embedding_provider
+    from studio_copilot.documents.operations.runtime import Task, task
+    from tests.unit.test_embedding_provider import embedder, status_error
+
+    monkeypatch.setattr(embedding_provider, "estimate", lambda text: 7)
+    subject, create = embedder(status_error(503), status_error(503), status_error(503))
+    before_attempt = Mock()
+    control = Task(limits=Limits(max_api_requests=2))
+    with task(control=control), pytest.raises(OperationsError):
+        subject.embed(["private input"], before_attempt=before_attempt)
+    assert (
+        before_attempt.call_count == create.call_count == control.budget.snapshot()["attempts"] == 2
+    )
+
+
+def test_ownership_failure_still_prevents_sdk_request_after_budget_gate(monkeypatch):
+    from studio_copilot.documents.embedding import provider as embedding_provider
+    from studio_copilot.documents.embedding.provider import EmbeddingError
+    from studio_copilot.documents.operations.runtime import Task, task
+    from tests.unit.test_embedding_provider import embedder, response
+
+    monkeypatch.setattr(embedding_provider, "estimate", lambda text: 7)
+    subject, create = embedder(response(unit_vector()))
+    callback = Mock(side_effect=EmbeddingError("lease_lost", "Lease lost"))
+    control = Task()
+    with task(control=control), pytest.raises(EmbeddingError) as caught:
+        subject.embed(["private input"], before_attempt=callback)
+    assert caught.value.code == "lease_lost"
+    callback.assert_called_once()
+    create.assert_not_called()
+    snapshot = control.budget.snapshot()
+    assert snapshot["attempts"] == snapshot["reserved_input_tokens"] == 0
+    assert snapshot["unknown_usage_calls"] == 0
+
+
+def test_only_unsent_reservation_can_be_cancelled_and_cancel_is_idempotent():
+    budget = Budget(Limits(max_api_requests=1))
+    unsent = budget.reserve(100, 4000)
+    unsent.cancel_before_send()
+    unsent.cancel_before_send()
+    snapshot = budget.snapshot()
+    assert (
+        snapshot["attempts"]
+        == snapshot["reserved_input_tokens"]
+        == snapshot["reserved_output_tokens"]
+        == 0
+    )
+    assert snapshot["unknown_usage_calls"] == 0
+    sent = budget.reserve(100, 4000)
+    sent.mark_sent()
+    with pytest.raises(RuntimeError):
+        sent.cancel_before_send()
+    snapshot = budget.snapshot()
+    assert snapshot["attempts"] == 1
+    assert snapshot["reserved_input_tokens"] == 100 and snapshot["reserved_output_tokens"] == 4000
+    assert snapshot["unknown_usage_calls"] == 1
+    with pytest.raises(OperationsError):
+        budget.reserve(1)

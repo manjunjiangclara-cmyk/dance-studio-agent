@@ -92,3 +92,72 @@ def test_embedding_preflight_uses_same_input_reservation_as_provider(db_engine, 
         pipeline.plan(db_engine, document_id, 1, tokenizer, EmbeddingProfile())
     assert caught.value.code == "budget_exceeded"
     assert control.budget.snapshot()["attempts"] == 0
+
+
+def test_embedding_retry_budget_matches_persisted_attempts_and_sdk_calls(db_engine, tokenizer):
+    from sqlalchemy import select
+
+    from studio_copilot.documents.embedding import pipeline
+    from studio_copilot.documents.embedding.provider import EmbeddingProfile
+    from studio_copilot.documents.operations import Limits, OperationsError
+    from studio_copilot.documents.operations.runtime import Task
+    from tests.integration.test_embeddings import create_source
+    from tests.unit.test_embedding_provider import embedder, status_error
+
+    document_id = create_source(db_engine, "# Attendance\nNotice is needed for cancellation.\n")
+    subject, create = embedder(status_error(503), status_error(503), status_error(503))
+    control = Task(limits=Limits(max_api_requests=2))
+    with task(control=control), pytest.raises(OperationsError) as caught:
+        pipeline.run(db_engine, document_id, 1, tokenizer, EmbeddingProfile(), embedder=subject)
+    assert caught.value.code == "budget_exceeded"
+    with Session(db_engine) as session:
+        persisted = session.scalar(
+            select(EmbeddingRun).where(EmbeddingRun.document_id == document_id)
+        )
+        assert persisted.attempts == create.call_count == control.budget.snapshot()["attempts"] == 2
+        assert persisted.status == "failed"
+    assert control.budget.snapshot()["unknown_usage_calls"] == 2
+
+
+def test_corpus_cli_budget_exhaustion_exports_all_case_denominators(
+    db_engine, tokenizer, tmp_path, monkeypatch, capsys
+):
+    from studio_copilot.documents.embedding.provider import EmbeddingProfile
+    from studio_copilot.documents.retrieval import corpus
+    from tests.integration.test_embeddings import unit_vector
+    from tests.integration.test_retrieval_corpus import CORPUS, CountingFake
+    from tests.unit.test_embedding_provider import embedder, response
+
+    runs = corpus.prepare(
+        db_engine, CORPUS, tokenizer, EmbeddingProfile(), allow_api=True, embedder=CountingFake()
+    )
+    subject, create = embedder(response(unit_vector()), response(unit_vector()))
+    monkeypatch.setattr(corpus, "make_engine", lambda: db_engine)
+    monkeypatch.setattr(corpus, "Embedder", lambda profile: subject)
+    monkeypatch.setattr(corpus, "Tokenizer", lambda path: tokenizer)
+    argv = ["compare", "--cases", str(CORPUS), "--allow-api", "--max-api-requests", "2"]
+    for run_id in runs:
+        argv += ["--run-id", str(run_id)]
+    assert corpus.main(argv) == 1
+    import json
+
+    printed = capsys.readouterr().out
+    output = tmp_path / "comparison.json"
+    output.write_text(printed, encoding="utf-8")
+    report = json.loads(output.read_text())
+    assert report["complete"] is False
+    assert report["semantic_quality_measured"] is False
+    assert create.call_count == 2
+    assert report["question_embedding"]["attempts"] == 2
+    keyword = report["modes"]["keyword"]
+    assert keyword["complete"] is True
+    assert len(keyword["cases"]) == 100
+    for mode in ("vector", "hybrid"):
+        results = report["modes"][mode]
+        assert len(results["cases"]) == 100
+        assert results["complete"] is False
+        assert any(case.get("error_code") == "budget_exceeded" for case in results["cases"])
+        for split in ("tuning", "held_out"):
+            summary = results["summaries"][split]
+            assert summary["cases"] == 50
+            assert summary["failed"] > 0

@@ -197,12 +197,16 @@ class PairedProvider:
 
         def compute():
             nonlocal usage
-            self.requests += 1
+            requested = False
             started = time.perf_counter()
 
             def attempted():
-                self.attempts += 1
+                nonlocal requested
                 before_attempt()
+                self.attempts += 1
+                if not requested:
+                    self.requests += 1
+                    requested = True
 
             try:
                 vectors, usage = self.provider.embed(texts, before_attempt=attempted)

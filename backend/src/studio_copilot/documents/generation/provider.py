@@ -80,6 +80,7 @@ class GenerationProvider:
         record = dict(operation=operation, input_tokens=None, output_tokens=None, succeeded=False)
         self.calls.append(record)
         try:
+            ticket.mark_sent()
             response = self.client.responses.parse(
                 model=self.model,
                 store=False,

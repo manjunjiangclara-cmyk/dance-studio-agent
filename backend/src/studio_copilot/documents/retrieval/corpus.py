@@ -18,7 +18,7 @@ from studio_copilot.documents.chunking import Chunker, Source, Tokenizer
 from studio_copilot.documents.chunking.tokenizer import default_cache
 from studio_copilot.documents.embedding.pipeline import run
 from studio_copilot.documents.embedding.provider import Embedder, EmbeddingError, EmbeddingProfile
-from studio_copilot.documents.operations import instrument
+from studio_copilot.documents.operations import OperationsError, current, instrument
 from studio_copilot.documents.operations.runtime import add_arguments, estimate, preflight, run_cli
 from studio_copilot.persistence.database import make_engine
 from studio_copilot.persistence.models import Document, DocumentRevision, EmbeddingRun
@@ -449,7 +449,7 @@ def compare(
                 else:
                     entry["returned_without_answer_label"] = bool(result["results"])
                 cases.append(entry)
-            except (SQLAlchemyError, RetrievalError, EmbeddingError) as error:
+            except (SQLAlchemyError, RetrievalError, EmbeddingError, OperationsError) as error:
                 cases.append(
                     failed_case(
                         case,
@@ -469,6 +469,7 @@ def compare(
         reports[mode]["target_met"] &= mode == "keyword" or paired.real_provider
     return dict(
         version=VERSION_CORPUS,
+        operations=current().budget.snapshot(),
         created_at=datetime.now(UTC).isoformat(),
         complete=all(r["complete"] for r in reports.values()),
         semantic_quality_measured=paired.real_provider
