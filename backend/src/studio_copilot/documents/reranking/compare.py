@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from studio_copilot.documents.chunking import Tokenizer
+from studio_copilot.documents.operations import instrument
 
 from .artifacts import load_capture, records, save
 from .experiment import adoption, evaluate_case, summarize_cases
@@ -73,6 +74,7 @@ def select_model(development):
     return max(MODELS, key=quality)
 
 
+@instrument("reranking")
 def compare_directory(capture_dir, cache, output, tokenizer_cache):
     capture_dir, cache, output = Path(capture_dir), Path(cache), Path(output)
     manifest, dataset = load_capture(capture_dir)

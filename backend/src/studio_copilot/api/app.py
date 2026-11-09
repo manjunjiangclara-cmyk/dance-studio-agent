@@ -30,6 +30,7 @@ from studio_copilot.api import (
 )
 from studio_copilot.api.common import Db
 from studio_copilot.api.website import install_website
+from studio_copilot.documents.operations.admission import UploadLimiter
 from studio_copilot.persistence.database import make_engine, make_session_factory
 
 bearer = HTTPBearer(auto_error=False)
@@ -41,9 +42,21 @@ def require_admin(
 ) -> None:
     if credential is not None:
         if compare_digest(credential.credentials.encode(), request.app.state.admin_token.encode()):
+            _upload_admission(request)
             return
         raise HTTPException(401, "A valid admin bearer token is required.")
     auth.require_browser_access(request)
+    _upload_admission(request)
+
+
+def _upload_admission(request):
+    path = request.url.path
+    if (request.method == "POST" and path == "/api/v1/documents/upload") or (
+        request.method == "PUT"
+        and path.startswith("/api/v1/documents/")
+        and path.endswith("/upload")
+    ):
+        request.app.state.document_upload_limiter.check()
 
 
 def create_app(
@@ -72,6 +85,7 @@ def create_app(
         description="Staff administration and teacher-reviewed AI drafts. No email delivery.",
         lifespan=lifespan,
     )
+    application.state.document_upload_limiter = UploadLimiter()
     owner_settings = auth.OwnerSettings.from_env()
     auth.configure_oauth(application, owner_settings)
     application.add_middleware(

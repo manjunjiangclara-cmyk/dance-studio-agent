@@ -153,14 +153,9 @@ Ingestion already has deterministic unit, PostgreSQL integration, and desktop/mo
 
 **Existing foundation:** single-studio owner/admin authorization, browser origin/CSRF checks, bounded ingestion, version conflict checks, and optional content-restricted tracing for the agent. Ingestion adds no anonymous document access or model calls.
 
-**Planned additions:**
+**Implemented foundations:** authenticated upload admission before body reads (30/minute per process); a task-scoped 128-entry/5-minute query-vector LRU cache with exact-input/profile identity and concurrent request coalescing; atomic per-attempt request/input/output reservations shared by CLI worker threads; and strict content-free events, optional LangSmith tracing and offline operational summaries. Existing document-vector reuse remains in PostgreSQL. Cache hits still revalidate source eligibility and require explicit paid-mode permission. Neither retrieval results nor student replies are cached. See the [Production controls guide](18-production-controls.md).
 
-- Apply the same permission boundary to publication, search preview, retrieval, citation inspection, and caches. Multi-tenant isolation requires an explicit future design.
-- Reuse passage embeddings by complete embedding-input identity. Bound query-embedding caches. Key retrieval caches by permission scope, publication-set version, target period, and retrieval configuration; invalidate on publication changes. Do not cache final student replies.
-- Extend allowlisted logs and optional tracing with ingestion/indexing/retrieval timing, counts, retries, cache hits, degradation, token usage, and generic failures. Do not export document text, student emails, prompts, or full tool results.
-- Expose worker heartbeats, job progress, queue age, and indexing failures. Track p95 retrieval latency, context truncation, and teacher-handoff trends without treating all handoffs as failures.
-- Bound batch sizes, worker concurrency, retries, candidate counts, and evidence tokens. Show estimated embedding input tokens before publication and retain actual usage. Select cost and latency budgets from measured workloads rather than promising an unmeasured SLA.
-- Keep source snapshots, run evidence, and backups under documented retention rules. Removing library content from retrieval is distinct from deleting retained evidence.
+**Remaining production work:** publication/retirement lifecycle, authorization for future online retrieval/citation inspection, distributed/global budgets, worker heartbeats and queue monitoring, operational dashboards and backup/retention automation. Multi-tenant isolation needs a separate design. No online RAG or business workflow is enabled by these controls; latency and cost targets still require representative measured workloads.
 
 ## Delivery sequence and acceptance
 
@@ -173,7 +168,7 @@ Ingestion already has deterministic unit, PostgreSQL integration, and desktop/mo
 | 3a. Retrieval CLI         | Implemented                | Explicit runs/date, keyword and exact vector search, RRF, bounded parent context, source references, and labelled evaluation tooling |
 | 3b. Owner retrieval preview | Planned                   | Publication-aware owner API/UI and measured live semantic recall                                 |
 | 4. Grounded enquiry drafts | Planned                    | Question-level retrieval, retained passage citations, safe missing-evidence behavior, teacher inspection, and approval-time publication checks   |
-| 5. Quality and operations  | Planned                    | Held-out evaluation, large-file measurements, cache/tracing controls, and evidence-based reranking decision                                      |
+| 5. Quality and operations | Offline foundations implemented; online lifecycle deferred | Existing evaluations and measurements, task cache/budget/tracing controls; no production quality or unmeasured SLA claim |
 
 Implement incrementally. Later milestones may refine interfaces after evaluation, but must not silently change the business-authority boundary, expose unpublished content, or relabel planned work as implemented.
 

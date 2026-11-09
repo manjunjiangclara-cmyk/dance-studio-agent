@@ -17,6 +17,7 @@ from sqlalchemy.engine import make_url
 from studio_copilot.documents.chunking import Tokenizer
 from studio_copilot.documents.chunking.tokenizer import default_cache
 from studio_copilot.documents.embedding.provider import EmbeddingProfile
+from studio_copilot.documents.operations.runtime import add_arguments, run_cli
 from studio_copilot.documents.retrieval import corpus
 
 BACKEND = Path(__file__).resolve().parents[1]
@@ -141,11 +142,12 @@ def execute(args):
             save("manifest.json", manifest)
 
 
-def main(argv=None):
+def _main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--allow-api", action="store_true")
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--tokenizer-cache", type=Path, default=default_cache())
+    add_arguments(parser)
     args = parser.parse_args(argv)
     try:
         return execute(args)
@@ -158,6 +160,10 @@ def main(argv=None):
         )
         print(f"corpus evaluation: {message}")
         return 1
+
+
+def main(argv=None):
+    return run_cli(_main, argv)
 
 
 if __name__ == "__main__":

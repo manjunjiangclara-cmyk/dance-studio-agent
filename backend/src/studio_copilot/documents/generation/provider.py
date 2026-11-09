@@ -6,6 +6,9 @@ import time
 
 from openai import OpenAI
 
+from studio_copilot.documents.operations import OperationsError, current, instrument
+from studio_copilot.documents.operations.runtime import generation_estimate
+
 from .contracts import Candidate, GenerationError, Verification
 
 PROMPT_VERSION = "grounded-generation-v1"
@@ -68,11 +71,16 @@ class GenerationProvider:
         self.calls = []
         self.real_provider = client is None
 
+    @instrument("generation")
     def _call(self, operation, payload, schema, instructions):
+        control = current()
+        ticket = control.budget.reserve(generation_estimate(instructions, payload, schema), 4000)
+        control.event("generation", "budget", attempts=1)
         started = time.perf_counter()
         record = dict(operation=operation, input_tokens=None, output_tokens=None, succeeded=False)
         self.calls.append(record)
         try:
+            ticket.mark_sent()
             response = self.client.responses.parse(
                 model=self.model,
                 store=False,
@@ -94,7 +102,7 @@ class GenerationProvider:
             parsed = schema.model_validate(response.output_parsed)
             record["succeeded"] = True
             return parsed
-        except GenerationError:
+        except (GenerationError, OperationsError):
             raise
         except Exception:
             raise GenerationError(
@@ -102,6 +110,17 @@ class GenerationProvider:
             ) from None
         finally:
             record["seconds"] = time.perf_counter() - started
+            ticket.finish(record["input_tokens"], record["output_tokens"])
+            control.event(
+                "generation",
+                "api",
+                "success" if record["succeeded"] else "failure",
+                seconds=record["seconds"],
+                input_tokens=record["input_tokens"],
+                output_tokens=record["output_tokens"],
+                unknown_usage_calls=int(record["input_tokens"] is None),
+                **({} if record["succeeded"] else {"error_code": "provider_error"}),
+            )
 
     def generate(self, payload):
         return self._call("generate", payload, Candidate, GENERATE)

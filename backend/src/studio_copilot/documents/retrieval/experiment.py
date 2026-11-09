@@ -12,7 +12,7 @@ from dataclasses import asdict
 from datetime import UTC, date, datetime
 from pathlib import Path
 from statistics import mean
-from uuid import NAMESPACE_URL, UUID, uuid5
+from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -22,6 +22,8 @@ from studio_copilot.documents.chunking import Chunker, Source, Tokenizer
 from studio_copilot.documents.chunking.tokenizer import default_cache
 from studio_copilot.documents.embedding.pipeline import run
 from studio_copilot.documents.embedding.provider import Embedder, EmbeddingError, EmbeddingProfile
+from studio_copilot.documents.operations import QueryEmbeddingCache, current, instrument
+from studio_copilot.documents.operations.runtime import add_arguments, estimate, preflight, run_cli
 from studio_copilot.persistence.database import make_engine
 from studio_copilot.persistence.models import Document, DocumentRevision, EmbeddingRun
 
@@ -55,18 +57,26 @@ def applicable(case, labels):
     ) and (not labels["effective_to"] or value <= date.fromisoformat(labels["effective_to"]))
 
 
+@instrument("retrieval")
 def plan(cases_path, tokenizer, profile):
     """Local-only fresh preparation estimate, not a billing quote or cache inspection."""
     labels, source = fixture(cases_path)
     chunker = Chunker(source, tokenizer)
     inputs = {}
+    input_bytes = {}
     for record in chunker.records():
         if record["kind"] == "passage":
             inputs[record["text_sha256"]] = record["token_count"]
+            input_bytes[record["text_sha256"]] = estimate(record["text"])
     queries = {c["query"] for c in labels["cases"] if applicable(c, labels)}
     return dict(
         version=EXPERIMENT_VERSION,
         dry_run=True,
+        operations=preflight(
+            (len(inputs) + 63) // 64 + len(queries),
+            sum(input_bytes.values()) + sum(estimate(q) for q in queries),
+            retries=3,
+        ),
         source_sha256=source.sha256,
         cases_sha256=CASES_SHA256,
         cases=len(labels["cases"]),
@@ -96,6 +106,7 @@ def require_api(allow_api):
         raise RetrievalError("api_permission", "This experiment requires explicit --allow-api.")
 
 
+@instrument("retrieval")
 def prepare(engine, cases_path, tokenizer, profile, *, allow_api=False, embedder=None):
     """Explicitly create only the frozen fictional source; never overwrite documents."""
     require_api(allow_api)
@@ -166,42 +177,55 @@ def prepare(engine, cases_path, tokenizer, profile, *, allow_api=False, embedder
 
 
 class PairedProvider:
-    """One profile, one comparison, no disk/DB cache and no query logging."""
+    """Bounded exact-byte cache with accounting for paired historical reports."""
+
+    query_cache_managed = True
 
     def __init__(self, provider, *, real_provider=False):
         self.provider, self.real_provider = provider, real_provider
-        self.cache = {}
+        control = current()
+        self.cache = control.cache if control else QueryEmbeddingCache()
+        self.scope = control.operation_id if control else str(uuid4())
+        self.profile = getattr(provider, "profile", None) or EmbeddingProfile.from_env()
         self.requests = self.cache_hits = self.reported_tokens = self.attempts = 0
         self.embedding_seconds = 0.0
 
     def embed(self, texts, before_attempt=lambda: None):
         if len(texts) != 1:
             raise EmbeddingError("invalid_input", "Paired evaluation expects one question.")
-        query = texts[0]
-        if query in self.cache:
-            self.cache_hits += 1
-            return [self.cache[query]], 0
-        self.requests += 1
-        started = time.perf_counter()
+        usage = 0
 
-        def attempted():
-            self.attempts += 1
-            before_attempt()
+        def compute():
+            nonlocal usage
+            requested = False
+            started = time.perf_counter()
 
-        try:
-            vectors, usage = self.provider.embed(texts, before_attempt=attempted)
-            from studio_copilot.documents.embedding.provider import validate_vector
+            def attempted():
+                nonlocal requested
+                before_attempt()
+                self.attempts += 1
+                if not requested:
+                    self.requests += 1
+                    requested = True
 
-            if len(vectors) != 1:
-                raise EmbeddingError("invalid_vectors", "Expected one question vector.")
-            vector = validate_vector(vectors[0])
-            self.cache[query] = vector
-            self.reported_tokens += usage
-            return [vector], usage
-        finally:
-            self.embedding_seconds += time.perf_counter() - started
+            try:
+                vectors, usage = self.provider.embed(texts, before_attempt=attempted)
+                if len(vectors) != 1:
+                    raise EmbeddingError("invalid_vectors", "Expected one question vector.")
+                from studio_copilot.documents.embedding.provider import validate_vector
+
+                vector = validate_vector(vectors[0])
+                self.reported_tokens += usage
+                return vector
+            finally:
+                self.embedding_seconds += time.perf_counter() - started
+
+        vector, hit = self.cache.get_or_compute(self.scope, self.profile, texts[0], compute)
+        self.cache_hits += int(hit)
+        return [vector], usage
 
 
+@instrument("retrieval")
 def compare(
     engine,
     run_id,
@@ -348,7 +372,7 @@ def compare(
     )
 
 
-def main(argv=None):
+def _main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
     for name in ("plan", "prepare", "compare"):
@@ -364,6 +388,8 @@ def main(argv=None):
                 action="store_true",
                 help="Attest document vectors came from the real provider, without fake cache.",
             )
+    for subparser in commands.choices.values():
+        add_arguments(subparser)
     args = parser.parse_args(argv)
     engine = None
     try:
@@ -402,6 +428,10 @@ def main(argv=None):
     finally:
         if engine is not None:
             engine.dispose()
+
+
+def main(argv=None):
+    return run_cli(_main, argv)
 
 
 if __name__ == "__main__":

@@ -575,9 +575,24 @@ def test_real_cli_plan_run_and_status_use_isolated_database_and_fake_http_provid
         assert len(received) == 1
         assert received[0]["dimensions"] == 1536 and received[0]["encoding_format"] == "float"
         child_env.pop("OPENAI_API_KEY")
+        # Persisted run state is stable; operations describes this CLI invocation.
+        completed_operations = completed.pop("operations")
+        assert completed_operations["attempts"] == 1
+        assert completed_operations["input_tokens"] == 23
+        assert completed_operations["unknown_usage_calls"] == 0
         status = invoke("status", ["--run-id", completed["run_id"]])
+        status_operations = status.pop("operations")
+        assert status_operations["attempts"] == 0
+        assert status_operations["input_tokens"] == status_operations["output_tokens"] == 0
+        assert status_operations["limits"] == completed_operations["limits"]
         assert status == completed
-        assert invoke("run", common) == completed and len(received) == 1
+        resumed = invoke("run", common)
+        resumed_operations = resumed.pop("operations")
+        assert resumed_operations["attempts"] == 0
+        assert resumed_operations["input_tokens"] == resumed_operations["output_tokens"] == 0
+        assert resumed_operations["unknown_usage_calls"] == 0
+        assert resumed_operations["limits"] == completed_operations["limits"]
+        assert resumed == completed and len(received) == 1
 
 
 def test_failure_rechecks_expiry_after_acquiring_ownership(db_engine, tokenizer, monkeypatch):

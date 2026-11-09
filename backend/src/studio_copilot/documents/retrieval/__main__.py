@@ -12,6 +12,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from studio_copilot.documents.chunking import Tokenizer
 from studio_copilot.documents.chunking.tokenizer import default_cache
 from studio_copilot.documents.embedding.provider import EmbeddingError
+from studio_copilot.documents.operations.runtime import add_arguments
 from studio_copilot.persistence.database import make_engine
 
 from .engine import RetrievalError, search
@@ -49,7 +50,7 @@ def render(result):
     return "\n".join(lines)
 
 
-def main(argv=None):
+def _main(argv=None):
     parser = argparse.ArgumentParser(description="Inspect explicitly selected document revisions.")
     commands = parser.add_subparsers(dest="command", required=True)
     command = commands.add_parser("search")
@@ -69,6 +70,8 @@ def main(argv=None):
     evaluator.add_argument("--allow-api", action="store_true")
     evaluator.add_argument("--tokenizer-cache", type=Path, default=default_cache())
     evaluator.set_defaults(format="json")
+    for subparser in commands.choices.values():
+        add_arguments(subparser)
     args = parser.parse_args(argv)
     engine = None
     try:
@@ -108,6 +111,12 @@ def main(argv=None):
     finally:
         if engine is not None:
             engine.dispose()
+
+
+def main(argv=None):
+    from studio_copilot.documents.operations.runtime import run_cli
+
+    return run_cli(_main, argv)
 
 
 if __name__ == "__main__":

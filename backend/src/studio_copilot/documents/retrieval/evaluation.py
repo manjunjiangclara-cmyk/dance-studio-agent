@@ -12,6 +12,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from studio_copilot.documents.embedding.provider import EmbeddingError
+from studio_copilot.documents.operations import OperationsError, current, instrument
 
 from .engine import RetrievalError, search, snapshot
 
@@ -81,6 +82,7 @@ def load_fixture(cases_path, *, expected_sha256=None):
     return fixture, original
 
 
+@instrument("retrieval")
 def evaluate(
     engine,
     run_id,
@@ -150,8 +152,8 @@ def evaluate(
                     "evaluation_degraded",
                     "Do not report hybrid quality using degraded keyword-only searches.",
                 )
-        except (RetrievalError, EmbeddingError, SQLAlchemyError) as error:
-            if not continue_on_error:
+        except (RetrievalError, EmbeddingError, SQLAlchemyError, OperationsError) as error:
+            if not continue_on_error and not isinstance(error, OperationsError):
                 raise
             reports.append(
                 failed_case(
@@ -245,7 +247,11 @@ def evaluate(
         else:
             entry["returned_without_answer_label"] = bool(result["results"])
         reports.append(entry)
-    return summarize(reports, mode, fixture, embedder)
+    result = summarize(reports, mode, fixture, embedder)
+    result["operations"] = current().budget.snapshot()
+    if current().budget.exhausted:
+        result["complete"] = False
+    return result
 
 
 def failed_case(case, mode, code, *, timings=None, reported_tokens=None):

@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from studio_copilot.documents.chunking.tokenizer import Tokenizer, default_cache
+from studio_copilot.documents.operations.runtime import add_arguments
 
 from .contracts import GenerationError
 from .engine import require_api
@@ -14,7 +15,7 @@ from .evaluation import answer_directory, evaluate_directory, plan, review_direc
 from .prepare import prepare_evidence
 
 
-def main(argv=None):
+def _main(argv=None):
     parser = argparse.ArgumentParser(
         description="Offline grounded generation and optional verification."
     )
@@ -45,6 +46,8 @@ def main(argv=None):
     command.add_argument("--results-dir", type=Path, required=True)
     command.add_argument("--adjudication-file", type=Path, required=True)
     command.add_argument("--output-dir", type=Path, required=True)
+    for subparser in commands.choices.values():
+        add_arguments(subparser)
     args = parser.parse_args(argv)
     try:
         if args.command in {"answer", "evaluate"}:
@@ -107,6 +110,12 @@ def main(argv=None):
             file=sys.stderr,
         )
         return 1
+
+
+def main(argv=None):
+    from studio_copilot.documents.operations.runtime import run_cli
+
+    return run_cli(_main, argv)
 
 
 if __name__ == "__main__":

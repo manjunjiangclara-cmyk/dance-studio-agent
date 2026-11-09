@@ -13,6 +13,8 @@ from sqlalchemy.engine import make_url
 
 from studio_copilot.documents.chunking import Chunker
 from studio_copilot.documents.embedding.provider import Embedder, EmbeddingProfile
+from studio_copilot.documents.operations import current, instrument
+from studio_copilot.documents.operations.runtime import estimate, preflight
 from studio_copilot.documents.retrieval.corpus import _prepare_documents, document_id, source
 from studio_copilot.documents.retrieval.experiment import PairedProvider, require_api
 from studio_copilot.documents.retrieval.isolation import initialize
@@ -23,18 +25,26 @@ from .dataset import BACKEND, load_dataset
 from .runtime import RerankError, digest
 
 
+@instrument("reranking")
 def plan(tokenizer):
     dataset = load_dataset()
     inputs = {}
+    input_bytes = {}
     for document in dataset["documents"]:
         for record in Chunker(source(document), tokenizer).records():
             if record["kind"] == "passage":
                 inputs[record["text_sha256"]] = record["token_count"]
+                input_bytes[record["text_sha256"]] = estimate(record["text"])
     return dict(
         dataset_sha256=dataset["source_sha256"],
         documents=len(dataset["documents"]),
         cases=len(dataset["cases"]),
         distinct_passages=len(inputs),
+        operations=preflight(
+            (len(inputs) + 63) // 64 + len(dataset["cases"]),
+            sum(input_bytes.values()) + sum(estimate(c["query"]) for c in dataset["cases"]),
+            retries=3,
+        ),
         document_tokens=sum(inputs.values()),
         question_tokens=sum(
             tokenizer.count(c["query"]) for c in dataset["cases"] if not c["expected_empty"]
@@ -42,6 +52,7 @@ def plan(tokenizer):
     )
 
 
+@instrument("reranking")
 def capture_directory(output, tokenizer, *, allow_api=False):
     require_api(allow_api)
     url = make_url(os.environ.get("TEST_DATABASE_URL", ""))
@@ -65,6 +76,7 @@ def capture_directory(output, tokenizer, *, allow_api=False):
         dataset_sha256=dataset["source_sha256"],
         complete=False,
         schema_cleaned=False,
+        operations=current().budget.snapshot(),
         schema=schema,
         cases=0,
         real_openai=True,

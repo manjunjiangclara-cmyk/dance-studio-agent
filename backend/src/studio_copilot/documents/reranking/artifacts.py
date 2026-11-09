@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
+from studio_copilot.documents.operations import current
 from studio_copilot.documents.retrieval.corpus import applicable
 
 from .dataset import load_dataset
@@ -11,6 +12,13 @@ from .runtime import RerankError, digest
 
 
 def save(path, value):
+    if (
+        current()
+        and isinstance(value, dict)
+        and Path(path).name in {"manifest.json", "plan.json", "comparison.json", "selection.json"}
+    ):
+        if Path(path).name != "plan.json" or "operations" not in value:
+            value["operations"] = current().budget.snapshot()
     Path(path).write_text(
         json.dumps(value, indent=2, ensure_ascii=False, default=str) + "\n", encoding="utf-8"
     )

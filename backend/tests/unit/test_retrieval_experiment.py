@@ -94,7 +94,7 @@ def test_failed_or_invalid_vectors_never_enter_ephemeral_cache():
     for _ in range(2):
         with pytest.raises(EmbeddingError, match="unit norm"):
             paired.embed(["question"])
-    assert fake.calls == 2 and paired.cache == {} and paired.cache_hits == 0
+    assert fake.calls == 2 and not paired.cache.entries and paired.cache_hits == 0
 
 
 def test_fixture_edit_requires_new_reviewed_experiment(tmp_path):
