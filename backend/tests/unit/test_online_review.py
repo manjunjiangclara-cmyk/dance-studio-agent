@@ -13,6 +13,7 @@ import pytest
 
 from studio_copilot.agent.document_answers import document_draft
 from studio_copilot.agent.enquiry import validate_answers
+from studio_copilot.agent.workflow.nodes import WorkflowNodes
 from studio_copilot.documents import online
 
 
@@ -288,3 +289,18 @@ def test_document_generation_instructions_use_teacher_voice_and_structured_citat
     assert "teacher speaking directly to the student" in instructions
     assert "warm" in instructions and "collaborative" in instructions
     assert "evidence ids and citations in their structured fields" in instructions
+
+
+@pytest.mark.parametrize(
+    "body",
+    ["", " ", "x" * 20_001, "See [Eabcdef0123456789abcdef01]", "teacher_answer:secret"],
+)
+def test_invalid_composition_uses_grounded_fallback_without_losing_citations(body):
+    value = state(1)
+    value["warnings"] = []
+    value["evidence"] = [result_evidence(value, 0)]
+    model = SimpleNamespace(compose_document_email=lambda context: body)
+    draft = WorkflowNodes(SimpleNamespace(engine=None), model).draft(value)["draft"]
+    assert "Supported answer 0." in draft["body"]
+    assert draft["references"] == ["document:0-0"]
+    assert "composition" in draft["rationale"].lower()

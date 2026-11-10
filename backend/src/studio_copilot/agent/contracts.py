@@ -122,6 +122,16 @@ class Draft(StrictModel):
     required_question_ids: list[str] = Field(default_factory=list, max_length=20)
 
 
+class DocumentEmail(StrictModel):
+    body: str = Field(min_length=1, max_length=20_000)
+
+
+class DocumentEmailCheck(StrictModel):
+    supported: bool
+    complete: bool
+    decisions_preserved: bool
+
+
 class ToolCall(StrictModel):
     call_id: str
     name: str
@@ -160,4 +170,6 @@ class Model(Protocol):
     def interpret_enquiry(self, context: dict) -> EnquiryInterpretation: ...
     def choose_tools(self, context: dict, transcript: list[dict]) -> ToolTurn: ...
     def draft(self, context: dict) -> Draft: ...
+
+    def compose_document_email(self, context: dict) -> str: ...
     def reconcile(self, context: dict) -> ReviewedMemory: ...

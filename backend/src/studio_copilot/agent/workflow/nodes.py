@@ -17,7 +17,7 @@ from studio_copilot.agent.contracts import (
     Routing,
     State,
 )
-from studio_copilot.agent.document_answers import document_draft
+from studio_copilot.agent.document_answers import EVIDENCE_MARKER, document_draft
 from studio_copilot.agent.enquiry import safe_body, validate_answers
 from studio_copilot.agent.makeup import clarification_body, validated_candidate_ids
 from studio_copilot.agent.persistence.store import WorkflowStore
@@ -229,13 +229,45 @@ class WorkflowNodes:
         }
         try:
             draft = document_draft(state)
+            document_mode = draft is not None
             if draft is None:
                 draft = self.model.draft(context)
         except ModelError:
             draft = _fallback_draft(state)
+            document_mode = False
         draft = _validate_booking_proposal(
             _validate_references(validate_answers(draft, state), state), state
         )
+        if document_mode:
+            composition_context = {
+                "student": state["context"].get("student", {}),
+                "source": state["context"].get("source", {}),
+                "answers": [
+                    {"question": item.question, "status": item.status, "answer": item.answer}
+                    for item in draft.answers
+                ],
+                "question_resolutions": resolved_question_context(
+                    state["interpretation"], state.get("question_resolutions", [])
+                ),
+                "requested_actions": state["interpretation"].get("requested_actions", []),
+            }
+            try:
+                body = self.model.compose_document_email(composition_context)
+                if (
+                    not isinstance(body, str)
+                    or not body.strip()
+                    or len(body) > 20_000
+                    or EVIDENCE_MARKER.search(body)
+                    or "teacher_answer:" in body
+                    or "teacher_deferral:" in body
+                ):
+                    raise ModelError("The composed email is invalid.")
+                draft.body = body.strip()
+            except (ModelError, ValueError, TypeError, AttributeError):
+                draft.rationale += (
+                    " Email composition or its support check failed; "
+                    "the teacher should review the fallback draft."
+                )
         return {"draft": draft.model_dump(mode="json")}
 
     def persist_draft(self, state: State) -> dict:
