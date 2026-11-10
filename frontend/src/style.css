@@ -2994,6 +2994,22 @@ h3 {
 .review-main .eyebrow {
   font-size: 12px;
 }
+.review-concerns {
+  margin-top: 18px;
+  padding: 16px 20px;
+  border: 1px solid #d3ad56;
+  border-radius: 8px;
+  background: #fff8e7;
+  overflow-wrap: anywhere;
+}
+.review-concerns h3,
+.review-concerns p {
+  margin: 0 0 8px;
+}
+.review-concerns ul {
+  margin: 0;
+  padding-left: 22px;
+}
 .review-main .editor-label {
   display: block;
   margin: 20px 0;

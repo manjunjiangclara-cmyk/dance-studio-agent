@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 from studio_copilot.administration.service import conflict
 from studio_copilot.agent.contracts import (
+    DocumentEmailComposition,
     Draft,
     EnquiryInterpretation,
     MakeupInterpretation,
@@ -253,9 +254,10 @@ class WorkflowNodes:
                 "requested_actions": state["interpretation"].get("requested_actions", []),
             }
             try:
-                body = self.model.compose_document_email(composition_context)
-                if isinstance(body, str):
-                    body = normalize_unknown_greeting(body, composition_context["student"])
+                composed = DocumentEmailComposition.model_validate(
+                    self.model.compose_document_email(composition_context)
+                )
+                body = normalize_unknown_greeting(composed.body, composition_context["student"])
                 if (
                     not isinstance(body, str)
                     or not body.strip()
@@ -271,6 +273,7 @@ class WorkflowNodes:
                 ):
                     raise ModelError("The composed email is invalid.")
                 draft.body = body.strip()
+                draft.review_concerns = composed.review_concerns
             except (ModelError, ValueError, TypeError, AttributeError):
                 draft.rationale += (
                     " Email composition or its support check failed; "

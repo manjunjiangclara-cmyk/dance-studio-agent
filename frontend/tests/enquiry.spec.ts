@@ -161,6 +161,45 @@ function expectedDecisions(run: Run): QuestionResolution[] {
   ];
 }
 
+test("review concerns appear separately from the student response", async ({
+  page,
+}) => {
+  const run = structuredClone(example);
+  run.draft_details.review_concerns = [
+    "Confirm the trial fee before sending.",
+    "<strong>Check the class time.</strong>",
+  ];
+  await mockOwner(page, run);
+  await page.goto(`/workspace/reviews/${run.id}`);
+
+  const concerns = page.getByRole("region", { name: "Points to review" });
+  await expect(concerns).toBeVisible();
+  await expect(concerns.locator("li")).toHaveCount(2);
+  await expect(concerns).toContainText(
+    "<strong>Check the class time.</strong>",
+  );
+  await expect(concerns.locator("strong")).toHaveCount(0);
+  await expect(page.getByLabel("Final response")).toHaveValue(
+    run.draft_details.body!,
+  );
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
+
+test("older drafts without review concerns remain usable", async ({ page }) => {
+  const run = structuredClone(example);
+  delete run.draft_details.review_concerns;
+  await mockOwner(page, run);
+  await page.goto(`/workspace/reviews/${run.id}`);
+  await expect(
+    page.getByRole("region", { name: "Points to review" }),
+  ).toHaveCount(0);
+  await expect(page.getByLabel("Final response")).toBeVisible();
+});
+
 test("public enquiry shows each question and evidence without owner controls or API access", async ({
   page,
 }) => {

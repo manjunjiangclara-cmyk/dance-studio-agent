@@ -299,8 +299,31 @@ def test_invalid_composition_uses_grounded_fallback_without_losing_citations(bod
     value = state(1)
     value["warnings"] = []
     value["evidence"] = [result_evidence(value, 0)]
-    model = SimpleNamespace(compose_document_email=lambda context: body)
+    model = SimpleNamespace(
+        compose_document_email=lambda context: {"body": body, "review_concerns": []}
+    )
     draft = WorkflowNodes(SimpleNamespace(engine=None), model).draft(value)["draft"]
     assert "Supported answer 0." in draft["body"]
     assert draft["references"] == ["document:0-0"]
     assert "composition" in draft["rationale"].lower()
+
+
+def test_composition_concerns_stay_separate_from_email_and_keep_references():
+    from studio_copilot.agent.contracts import DocumentEmailComposition
+
+    value = state(1)
+    value["warnings"] = []
+    value["evidence"] = [result_evidence(value, 0)]
+    body = "Hi there,\n\nHere is the supported answer."
+    concern = "Please check the price."
+    model = SimpleNamespace(
+        compose_document_email=lambda context: DocumentEmailComposition(
+            body=body, review_concerns=[concern]
+        )
+    )
+    draft = WorkflowNodes(SimpleNamespace(engine=None), model).draft(value)["draft"]
+    assert draft["body"] == body
+    assert draft["review_concerns"] == [concern]
+    assert concern not in draft["body"]
+    assert draft["references"] == ["document:0-0"]
+    assert draft["answers"][0]["answer"] == "Supported answer 0."

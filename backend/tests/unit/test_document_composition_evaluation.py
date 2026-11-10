@@ -52,10 +52,14 @@ def test_composition_evaluation_sends_proposed_email_and_source_to_independent_c
         calls.append((data, schema, instructions))
         if schema is DocumentEmail:
             return DocumentEmail(body=proposed)
-        return DocumentEmailCheck(supported=True, complete=True, decisions_preserved=True)
+        return DocumentEmailCheck(
+            supported=True, complete=True, decisions_preserved=True, issues=[]
+        )
 
     monkeypatch.setattr(model, "_parse", parse)
-    assert model.compose_document_email(context) == proposed
+    result = model.compose_document_email(context)
+    assert result.body == proposed
+    assert result.review_concerns == []
     assert len(calls) == 2
     assert calls[1][0]["proposed_email"] == proposed
     assert calls[1][0]["answers"] == context["answers"]
@@ -63,7 +67,7 @@ def test_composition_evaluation_sends_proposed_email_and_source_to_independent_c
 
 
 @pytest.mark.parametrize("failed", ["supported", "complete", "decisions_preserved"])
-def test_composition_evaluation_rejects_each_negative_verdict(monkeypatch, failed):
+def test_composition_evaluation_surfaces_each_negative_verdict(monkeypatch, failed):
     model = OpenAIModel.__new__(OpenAIModel)
 
     def parse(data, schema, instructions):
@@ -71,11 +75,13 @@ def test_composition_evaluation_rejects_each_negative_verdict(monkeypatch, faile
             return DocumentEmail(body="A proposed email.")
         checks = dict(supported=True, complete=True, decisions_preserved=True)
         checks[failed] = False
-        return DocumentEmailCheck(**checks)
+        return DocumentEmailCheck(**checks, issues=["Please check the trial price."])
 
     monkeypatch.setattr(model, "_parse", parse)
-    with pytest.raises(ModelError):
-        model.compose_document_email({"answers": [], "question_resolutions": []})
+    result = model.compose_document_email({"answers": [], "question_resolutions": []})
+    assert result.body == "A proposed email."
+    assert "Please check the trial price." in result.review_concerns
+    assert "Please check the trial price." not in result.body
 
 
 def test_unknown_sender_uses_neutral_greeting_through_privacy_adapter(monkeypatch):
@@ -88,7 +94,7 @@ def test_unknown_sender_uses_neutral_greeting_through_privacy_adapter(monkeypatc
     responses = iter(
         [
             DocumentEmail(body="Hi New enquirer,\n\nA trial is $20."),
-            DocumentEmailCheck(supported=True, complete=True, decisions_preserved=True),
+            DocumentEmailCheck(supported=True, complete=True, decisions_preserved=True, issues=[]),
         ]
     )
     monkeypatch.setattr(
@@ -101,6 +107,55 @@ def test_unknown_sender_uses_neutral_greeting_through_privacy_adapter(monkeypatc
         "question_resolutions": [],
         "requested_actions": [],
     }
-    body = model.compose_document_email(context)
-    assert body.startswith("Hi there,")
-    assert "New enquirer" not in body
+    result = model.compose_document_email(context)
+    assert result.body.startswith("Hi there,")
+    assert "New enquirer" not in result.body
+
+
+def test_negative_check_without_details_has_generic_teacher_warning(monkeypatch):
+    model = OpenAIModel.__new__(OpenAIModel)
+
+    def parse(data, schema, instructions):
+        if schema is DocumentEmail:
+            return DocumentEmail(body="Hi there,\n\nA trial costs $20.")
+        return DocumentEmailCheck(
+            supported=False, complete=True, decisions_preserved=True, issues=[]
+        )
+
+    monkeypatch.setattr(model, "_parse", parse)
+    result = model.compose_document_email({"answers": [], "question_resolutions": []})
+    assert result.body == "Hi there,\n\nA trial costs $20."
+    assert result.review_concerns
+    assert all(concern not in result.body for concern in result.review_concerns)
+
+
+def test_checker_failure_keeps_email_and_warns_teacher(monkeypatch):
+    model = OpenAIModel.__new__(OpenAIModel)
+
+    def parse(data, schema, instructions):
+        if schema is DocumentEmail:
+            return DocumentEmail(body="Hi there,\n\nA trial costs $20.")
+        raise ModelError("provider failure")
+
+    monkeypatch.setattr(model, "_parse", parse)
+    result = model.compose_document_email({"answers": [], "question_resolutions": []})
+    assert result.body == "Hi there,\n\nA trial costs $20."
+    assert result.review_concerns
+    assert "provider failure" not in str(result.review_concerns)
+
+
+def test_all_specific_issues_survive_negative_verdicts(monkeypatch):
+    model = OpenAIModel.__new__(OpenAIModel)
+    issues = [f"Please review item {number}." for number in range(12)]
+
+    def parse(data, schema, instructions):
+        if schema is DocumentEmail:
+            return DocumentEmail(body="A proposed email.")
+        return DocumentEmailCheck(
+            supported=False, complete=False, decisions_preserved=False, issues=issues
+        )
+
+    monkeypatch.setattr(model, "_parse", parse)
+    result = model.compose_document_email({"answers": [], "question_resolutions": []})
+    assert len(result.review_concerns) == 15
+    assert all(issue in result.review_concerns for issue in issues)

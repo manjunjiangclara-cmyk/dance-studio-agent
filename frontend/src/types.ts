@@ -100,6 +100,7 @@ export interface Run extends RecordBase {
   draft_details: {
     body?: string;
     rationale?: string;
+    review_concerns?: string[];
     questions?: string[];
     references?: string[];
     booking_session_id?: string | null;

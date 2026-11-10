@@ -129,7 +129,10 @@ def online_rig(rig, scenario, db_engine, monkeypatch):
     def compose(context):
         model.composition_contexts.append(context)
         answers = [item["answer"] for item in context["answers"] if item["status"] == "answered"]
-        return "Hi there,\n\n" + "\n\n".join(answers) + "\n\nWarmly,\nYour teacher"
+        return {
+            "body": "Hi there,\n\n" + "\n\n".join(answers) + "\n\nWarmly,\nYour teacher",
+            "review_concerns": [],
+        }
 
     model.compose_document_email = compose
 
@@ -414,3 +417,25 @@ def test_no_enabled_documents_uses_existing_enquiry_path(online_rig, rig, scenar
     assert run["status"] == "awaiting_review"
     assert all(item["tool"] != "document_answer" for item in run["evidence"])
     assert writer.calls == vectors.calls == []
+
+
+def test_composition_concerns_are_separate_from_reviewable_email_and_citations(
+    online_rig, rig, scenario
+):
+    from studio_copilot.agent.contracts import DocumentEmailComposition
+
+    body = "Hi there,\n\nA trial costs $20. We'd love to see you!"
+    concern = "Check whether the trial price includes the booking fee."
+    rig[1].compose_document_email = lambda context: DocumentEmailComposition(
+        body=body, review_concerns=[concern]
+    )
+    run = start(rig, scenario)
+    draft = run["draft_details"]
+    assert draft["body"] == body
+    assert concern in draft["review_concerns"]
+    assert concern not in draft["body"]
+    assert draft["references"]
+    assert draft["answers"][0]["status"] == "answered"
+    assert run["approved_response_id"] is None
+    response = review(rig[0], run, "approve")
+    assert response.status_code == 200, response.text
