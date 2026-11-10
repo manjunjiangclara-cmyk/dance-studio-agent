@@ -11,7 +11,7 @@ from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
-from studio_copilot.agent.contracts import EnquiryInterpretation, Routing
+from studio_copilot.agent.contracts import EnquiryInterpretation, ModelError, Routing
 from studio_copilot.documents import online
 from studio_copilot.documents.chunking import Tokenizer
 from studio_copilot.documents.chunking.tokenizer import default_cache
@@ -124,6 +124,14 @@ def online_rig(rig, scenario, db_engine, monkeypatch):
     )
     model.draft = lambda context: pytest.fail("Grounded answers must not be freely rewritten")
     model.choose_tools = lambda *args: pytest.fail("Document path must not run model tools")
+    model.composition_contexts = []
+
+    def compose(context):
+        model.composition_contexts.append(context)
+        answers = [item["answer"] for item in context["answers"] if item["status"] == "answered"]
+        return "Hi there,\n\n" + "\n\n".join(answers) + "\n\nWarmly,\nYour teacher"
+
+    model.compose_document_email = compose
 
     class OnlineVectors(LocalVectors):
         expected_connections = 1
@@ -175,6 +183,10 @@ def test_question_automatically_gets_exact_citations_and_remains_a_draft(
     result = run["evidence"][0]["result"]
     assert len(writer.calls) == len(vectors.calls) == 1
     assert result["status"] == "answered" and result["verification_applied"] is False
+    context = rig[1].composition_contexts[0]
+    assert "evidence" not in context
+    assert context["answers"][0]["answer"] == "A trial costs $20."
+    assert "Hi there" in run["draft_details"]["body"]
     assert "[E" not in run["draft_details"]["body"]
     assert all("[E" not in answer["answer"] for answer in run["draft_details"]["answers"])
     citation = result["claims"][0]["citations"][0]
@@ -254,6 +266,8 @@ def test_partial_or_bad_quotes_require_teacher_and_support_answer_or_deferral(
     answer = run["draft_details"]["answers"][0]
     assert answer["status"] == "needs_teacher"
     assert "$20" not in run["draft_details"]["body"]
+    assert "$20" not in str(rig[1].composition_contexts[0]["answers"])
+    assert "evidence" not in rig[1].composition_contexts[0]
     assert review(rig[0], run, "approve").status_code == 409
     response = review(
         rig[0],
@@ -270,8 +284,44 @@ def test_partial_or_bad_quotes_require_teacher_and_support_answer_or_deferral(
     assert response.status_code == 200, response.text
     revised = response.json()
     assert len(writer.calls) == 1  # A resolved question does not pay for generation again.
+    assert any(
+        item["answer"] == "The teacher confirms a $25 trial."
+        for item in rig[1].composition_contexts[-1]["answers"]
+    )
     assert "$25" in revised["draft_details"]["body"]
     assert review(rig[0], revised, "approve").status_code == 200
+
+
+def test_teacher_deferral_is_passed_to_composer_with_question(online_rig, rig, scenario):
+    _, _, writer, _ = online_rig
+    writer.status = "partial"
+    run = start(rig, scenario)
+    answer = run["draft_details"]["answers"][0]
+    response = review(
+        rig[0],
+        run,
+        "revise",
+        question_resolutions=[dict(question_id=answer["question_id"], decision="defer")],
+    )
+    assert response.status_code == 200, response.text
+    context = rig[1].composition_contexts[-1]
+    assert any(
+        item["decision"] == "defer" and item["question"] == QUESTION
+        for item in context["question_resolutions"]
+    )
+    assert "$20" not in str(context["answers"])
+
+
+def test_composition_failure_preserves_validated_answer_and_citations(online_rig, rig, scenario):
+    def unavailable(context):
+        raise ModelError("Composition unavailable")
+
+    rig[1].compose_document_email = unavailable
+    run = start(rig, scenario)
+    assert "A trial costs $20." in run["draft_details"]["body"]
+    assert run["draft_details"]["answers"][0]["status"] == "answered"
+    assert run["draft_details"]["references"]
+    assert review(rig[0], run, "approve").status_code == 200
 
 
 def test_delete_during_generation_never_leaves_a_supported_draft(
