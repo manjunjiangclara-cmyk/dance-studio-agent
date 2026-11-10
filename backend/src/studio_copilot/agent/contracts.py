@@ -146,12 +146,15 @@ class ToolTurn(StrictModel):
 class Review(StrictModel):
     action: Literal["approve", "revise", "reject"]
     expected_revision: int = Field(ge=1)
+    regenerate: bool = False
     body: str | None = Field(default=None, min_length=1, max_length=20_000)
     feedback: str | None = Field(default=None, min_length=1, max_length=4000)
     question_resolutions: list[QuestionResolution] = Field(default_factory=list, max_length=20)
 
     @model_validator(mode="after")
     def revision_resolutions(self):
+        if self.regenerate and self.action != "revise":
+            raise ValueError("Only a draft revision can regenerate a response.")
         if self.question_resolutions and self.action != "revise":
             raise ValueError("Question resolutions must be applied by updating the draft first.")
         ids = [item.question_id for item in self.question_resolutions]

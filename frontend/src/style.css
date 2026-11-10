@@ -3010,6 +3010,9 @@ h3 {
   margin-top: 8px;
   color: var(--muted);
 }
+.review-main .editor-label > button {
+  margin-top: 12px;
+}
 .review-main .input-needed {
   margin-top: 24px;
   padding: 18px 20px;

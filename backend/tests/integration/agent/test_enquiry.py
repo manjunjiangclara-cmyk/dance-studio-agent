@@ -128,6 +128,51 @@ def defer_teacher_questions(client, run):
     return response.json()
 
 
+def test_regenerate_without_feedback_creates_reviewable_revision(rig, scenario, db_engine):
+    client, model, _, _ = rig
+    captured = configure_enquiry(model)
+    run = start(rig, scenario)
+    before = business_records(db_engine)
+    original_drafts = len(captured["drafts"])
+
+    response = review(client, run, "revise", regenerate=True)
+    assert response.status_code == 200, response.text
+    revised = response.json()
+    assert revised["status"] == "awaiting_review"
+    assert revised["revision"] == run["revision"] + 1
+    assert revised["approved_response_id"] is None
+    assert len(captured["drafts"]) == original_drafts + 1
+    assert captured["drafts"][-1]["teacher_feedback"] == ""
+    assert business_records(db_engine) == before
+
+    stale = review(client, run, "revise", regenerate=True)
+    assert stale.status_code == 409
+    fee_id = revised["draft_details"]["answers"][2]["question_id"]
+    answered = review(
+        client,
+        revised,
+        "revise",
+        question_resolutions=[
+            {"question_id": fee_id, "decision": "answer", "answer": "The fee is $25."}
+        ],
+    ).json()
+    prompted = review(client, answered, "revise", feedback="Keep it concise.").json()
+    regenerated = review(client, prompted, "revise", regenerate=True)
+    assert regenerated.status_code == 200, regenerated.text
+    final_draft = regenerated.json()
+    assert final_draft["revision"] == prompted["revision"] + 1
+    assert captured["drafts"][-1]["teacher_feedback"] == "Keep it concise."
+    assert final_draft["draft_details"]["answers"][2]["answer"] == "The fee is $25."
+    assert "The fee is $25." in final_draft["draft_details"]["body"]
+    assert (
+        final_draft["draft_details"]["question_resolutions"]
+        == prompted["draft_details"]["question_resolutions"]
+    )
+    closed = review(client, final_draft, "reject")
+    assert closed.status_code == 200
+    assert review(client, final_draft, "revise", regenerate=True).status_code == 409
+
+
 def test_multiquestion_enquiry_persists_review_and_memory_without_business_writes(
     rig, scenario, db_engine
 ):

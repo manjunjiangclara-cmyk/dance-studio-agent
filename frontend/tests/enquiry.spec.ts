@@ -17,6 +17,7 @@ interface ReviewRequest {
   expected_revision: number;
   body?: string;
   feedback?: string;
+  regenerate?: boolean;
   question_resolutions?: QuestionResolution[];
 }
 
@@ -188,12 +189,76 @@ test("public enquiry shows each question and evidence without owner controls or 
   await expect(
     page.getByRole("button", { name: "Update draft", exact: true }),
   ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Regenerate response", exact: true }),
+  ).toHaveCount(0);
   expect(calls).toEqual([]);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
+});
+
+test("teacher can regenerate a response without entering a change prompt", async ({
+  page,
+}) => {
+  const run = structuredClone(example);
+  run.draft_details.required_question_ids = [];
+  run.draft_details.answers = [];
+  const originalRevision = run.revision;
+  const { reviews } = await mockOwner(page, run);
+  await page.goto(`/workspace/reviews/${run.id}`);
+  const regenerate = page.getByRole("button", { name: "Regenerate response" });
+  await expect(regenerate).toBeEnabled();
+  await regenerate.click();
+  await expect(page.getByLabel("Final response", { exact: true })).toHaveValue(
+    generatedBody,
+  );
+  await expect(page.locator("#review-response .eyebrow")).toContainText(
+    `REVISION ${originalRevision + 1}`,
+  );
+  expect(reviews[0]).toEqual({
+    action: "revise",
+    expected_revision: originalRevision,
+    regenerate: true,
+  });
+  await page.getByRole("button", { name: "Approve and save response" }).click();
+  expect(reviews[1]).toEqual({
+    action: "approve",
+    expected_revision: originalRevision + 1,
+    body: generatedBody,
+  });
+});
+
+test("regeneration asks before replacing text edits and applies teacher answers", async ({
+  page,
+}) => {
+  const run = structuredClone(example);
+  const { reviews } = await mockOwner(page, run);
+  await page.goto(`/workspace/reviews/${run.id}`);
+  await enterDecisions(page);
+  await page.getByLabel("Final response", { exact: true }).fill("My wording");
+  await page.getByRole("button", { name: "Regenerate response" }).click();
+  await expect(page.getByRole("alertdialog")).toBeVisible();
+  expect(reviews).toEqual([]);
+  await page.getByRole("button", { name: "Keep editing" }).click();
+  await expect(page.getByLabel("Final response", { exact: true })).toHaveValue(
+    "My wording",
+  );
+  await page.getByRole("button", { name: "Regenerate response" }).click();
+  await page
+    .getByRole("button", { name: "Replace and regenerate response" })
+    .click();
+  expect(reviews[0]).toEqual({
+    action: "revise",
+    expected_revision: example.revision,
+    regenerate: true,
+    question_resolutions: expectedDecisions(run),
+  });
+  await expect(page.getByLabel("Final response", { exact: true })).toHaveValue(
+    generatedBody,
+  );
 });
 
 test("response references show class, session, and studio names instead of IDs", async ({

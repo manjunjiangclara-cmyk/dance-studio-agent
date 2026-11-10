@@ -50,7 +50,7 @@ Routes have prefix `/api/v1` and require the admin bearer token, or an authorize
 | POST `/conversations/{id}/agent-runs` | `{"source_message_id":"UUID"}`. Source must be the latest student email in that conversation. Runs synchronously to review or failure; repeat starts return the existing run. |
 | GET `/agent-runs/{id}` | Returns status, revision, interpretation, evidence, policy snapshot, draft details, linked message IDs, and a safe error if processing failed. |
 | POST `/agent-runs/{id}/review` | `{"action":"approve","expected_revision":1,"body":"Final teacher response"}`. Body is optional; defaults to the current draft. Rechecks and books any validated proposal, stores a teacher response, then updates memory. |
-| POST `/agent-runs/{id}/review` | `{"action":"revise","expected_revision":1,"feedback":"Please ask which location they prefer."}`. Provide feedback or structured question resolutions; generates a new draft revision with a fresh bounded query budget. |
+| POST `/agent-runs/{id}/review` | `{"action":"revise","expected_revision":1,"feedback":"Please ask which location they prefer."}`. Provide feedback, structured question resolutions, or `"regenerate":true` to request a new draft without a change prompt. Generates a new draft revision with a fresh bounded query budget. |
 | POST `/agent-runs/{id}/review` | `{"action":"reject","expected_revision":1}`. Closes review without a rejection message/event and removes checkpoints. |
 | POST `/agent-runs/{id}/retry` | No body. Resumes failed or interrupted processing from its checkpoint. Cannot restart a closed, approved, superseded, or question-limit-failed run. |
 
