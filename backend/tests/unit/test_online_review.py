@@ -97,7 +97,9 @@ def test_current_source_check_uses_only_retained_document_citations(monkeypatch)
         evidence=[dict(tool="document_answer", result=item) for item in [retained, discarded]],
         draft_details=dict(references=["document:kept", "teacher_answer:other"]),
     )
-    monkeypatch.setattr(online.Configuration, "from_env", classmethod(lambda cls: config()))
+    monkeypatch.setattr(
+        online.Configuration, "from_env", classmethod(lambda cls, *a, **kw: config())
+    )
     checks = []
     monkeypatch.setattr(
         online,
@@ -113,7 +115,7 @@ def test_disabling_after_draft_revokes_retained_citations(monkeypatch):
         evidence=[dict(tool="document_answer", result=dict(references=["document:kept"]))],
         draft_details=dict(references=["document:kept"]),
     )
-    monkeypatch.setattr(online.Configuration, "from_env", classmethod(lambda cls: None))
+    monkeypatch.setattr(online.Configuration, "from_env", classmethod(lambda cls, *a, **kw: None))
     with pytest.raises(online.OnlineError) as error:
         online.require_current_sources(object(), run)
     assert error.value.code == "source_revoked"
@@ -220,3 +222,69 @@ def test_all_teacher_resolved_questions_skip_sources_resources_and_providers(mon
     monkeypatch.setattr(online, "resources", forbidden)
     monkeypatch.setattr(online, "question_answer", forbidden)
     assert online.gather(object(), value, config=config()) == dict(evidence=[], warnings=[])
+
+
+def test_document_draft_hides_citation_tokens_but_keeps_teacher_references():
+    value = state(1)
+    evidence = result_evidence(value, 0)
+    evidence["result"].update(
+        answer="A trial costs $20. [E0123456789abcdef01234567] [Eabcdef0123456789abcdef01]",
+        claims=[
+            {
+                "text": "A trial costs $20. [E0123456789abcdef01234567]",
+                "citations": [
+                    {"evidence_id": "E0123456789abcdef01234567", "quote": "A trial costs $20."},
+                    {"evidence_id": "Eabcdef0123456789abcdef01", "quote": "A trial costs $20."},
+                ],
+            }
+        ],
+        references=["document:E0123456789abcdef01234567", "document:Eabcdef0123456789abcdef01"],
+    )
+    value["evidence"] = [evidence]
+    before = deepcopy(evidence)
+    draft = document_draft(value)
+    assert "A trial costs $20." in draft.body
+    assert "A trial costs $20." in draft.answers[0].answer
+    for token in (
+        "[E0123456789abcdef01234567]",
+        "[Eabcdef0123456789abcdef01]",
+        "document:E0123456789abcdef01234567",
+        "document:Eabcdef0123456789abcdef01",
+    ):
+        assert token not in draft.body
+        assert token not in draft.answers[0].answer
+    assert draft.references == [
+        "document:E0123456789abcdef01234567",
+        "document:Eabcdef0123456789abcdef01",
+    ]
+    assert draft.answers[0].references == draft.references
+    assert value["evidence"][0] == before
+
+
+@pytest.mark.parametrize(
+    "marker",
+    [
+        "[Eabcdef0123456789abcdef01]",
+        "Eabcdef0123456789abcdef01",
+        "document:Eabcdef0123456789abcdef01",
+        "[document:Eabcdef0123456789abcdef01]",
+    ],
+)
+def test_unexpected_internal_ids_are_removed_from_student_claims(marker):
+    value = state(1)
+    evidence = result_evidence(value, 0)
+    evidence["result"]["claims"][0]["text"] = f"A trial costs $20. {marker}"
+    value["evidence"] = [evidence]
+    draft = document_draft(value)
+    assert draft.answers[0].answer == "A trial costs $20."
+    assert marker not in draft.body
+    assert draft.references == evidence["result"]["references"]
+
+
+def test_document_generation_instructions_use_teacher_voice_and_structured_citations():
+    from studio_copilot.documents.generation.provider import GENERATE
+
+    instructions = " ".join(GENERATE.lower().split())
+    assert "teacher speaking directly to the student" in instructions
+    assert "warm" in instructions and "collaborative" in instructions
+    assert "evidence ids and citations in their structured fields" in instructions

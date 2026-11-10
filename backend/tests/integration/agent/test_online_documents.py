@@ -20,13 +20,14 @@ from studio_copilot.documents.embedding.provider import EmbeddingProfile
 from studio_copilot.persistence.models import (
     AgentRun,
     Document,
+    DocumentActivation,
     DocumentRevision,
     EmbeddingRun,
     Message,
 )
 from tests.integration.test_retrieval import LocalVectors
 
-from .helpers import review, start
+from .helpers import FakeModel, review, start
 
 pytestmark = pytest.mark.integration
 TEXT = "# Trial policy\r\n\r\nA trial costs $20. Café 💃.\r\n"
@@ -96,11 +97,14 @@ def online_rig(rig, scenario, db_engine, monkeypatch):
     prepared = pipeline.run(
         db_engine, document_id, 1, tokenizer, EmbeddingProfile(), embedder=LocalVectors(db_engine)
     )
-    run_id = prepared["run_id"]
-    with Session(db_engine) as db:
+    run_id = UUID(prepared["run_id"])
+    with Session(db_engine) as db, db.begin():
         online.source_rows(db, [run_id], date(2027, 2, 7))
+        db.add(
+            DocumentActivation(document_id=document_id, revision=1, status="enabled", run_id=run_id)
+        )
     monkeypatch.setenv("STUDIO_DOCUMENT_ANSWERS", "true")
-    monkeypatch.setenv("STUDIO_DOCUMENT_RUN_IDS", str(run_id))
+    monkeypatch.delenv("STUDIO_DOCUMENT_RUN_IDS", raising=False)
     monkeypatch.setenv("STUDIO_TOKENIZER_CACHE", str(default_cache()))
     monkeypatch.setenv("STUDIO_RERANKER_CACHE", "/not-downloaded")
     model = rig[1]
@@ -143,6 +147,23 @@ def online_rig(rig, scenario, db_engine, monkeypatch):
     return document_id, run_id, writer, vectors
 
 
+def test_stale_other_document_does_not_block_current_source(online_rig, rig, scenario, db_engine):
+    from studio_copilot.persistence.models import Document, DocumentActivation
+
+    _, run_id, _, _ = online_rig
+    with Session(db_engine) as db, db.begin():
+        stale = Document(
+            title="Changed", filename="changed.md", content="Changed", current_revision=2
+        )
+        db.add(stale)
+        db.flush()
+        db.add(
+            DocumentActivation(document_id=stale.id, revision=1, status="enabled", run_id=run_id)
+        )
+    result = start(rig, scenario)["evidence"][0]["result"]
+    assert result["status"] == "answered"
+
+
 def test_question_automatically_gets_exact_citations_and_remains_a_draft(
     online_rig,
     rig,
@@ -154,10 +175,12 @@ def test_question_automatically_gets_exact_citations_and_remains_a_draft(
     result = run["evidence"][0]["result"]
     assert len(writer.calls) == len(vectors.calls) == 1
     assert result["status"] == "answered" and result["verification_applied"] is False
-    assert "[E" in run["draft_details"]["body"]
+    assert "[E" not in run["draft_details"]["body"]
+    assert all("[E" not in answer["answer"] for answer in run["draft_details"]["answers"])
     citation = result["claims"][0]["citations"][0]
     assert TEXT[citation["start"] : citation["end"]] == citation["quote"]
     assert citation["document_id"] == str(document_id) and citation["revision"] == 1
+    assert "document:" + citation["evidence_id"] in run["draft_details"]["references"]
     assert result["evidence"][0]["text"].endswith(TEXT)
     assert run["approved_response_id"] is None
     response = review(rig[0], run, "approve")
@@ -191,7 +214,9 @@ def test_stale_sources_block_approval_without_changing_the_review(
     elif mutation == "disable":
         monkeypatch.setenv("STUDIO_DOCUMENT_ANSWERS", "false")
     elif mutation == "revoke":
-        monkeypatch.setenv("STUDIO_DOCUMENT_RUN_IDS", "00000000-0000-0000-0000-000000000099")
+        with Session(db_engine) as db, db.begin():
+            activation = db.get(DocumentActivation, document_id)
+            activation.status, activation.run_id = "disabled", None
     else:
         with Session(db_engine) as db, db.begin():
             if mutation == "delete":
@@ -281,7 +306,8 @@ def test_incoming_email_automatically_retrieves_without_a_separate_search_reques
     assert response.status_code == 200, response.text
     run = response.json()
     assert run["status"] == "awaiting_review"
-    assert "[E" in run["draft_details"]["body"]
+    assert "[E" not in run["draft_details"]["body"]
+    assert all("[E" not in answer["answer"] for answer in run["draft_details"]["answers"])
     assert len(writer.calls) == len(vectors.calls) == 1
     assert run["approved_response_id"] is None
 
@@ -324,3 +350,17 @@ def test_approval_source_locks_prevent_concurrent_replacement(online_rig, rig, s
         concurrent.execute(
             update(Document).where(Document.id == document_id).values(current_revision=2)
         )
+
+
+def test_no_enabled_documents_uses_existing_enquiry_path(online_rig, rig, scenario, db_engine):
+    document_id, _, writer, vectors = online_rig
+    with Session(db_engine) as db, db.begin():
+        activation = db.get(DocumentActivation, document_id)
+        activation.status, activation.run_id = "disabled", None
+    model = rig[1]
+    model.draft = FakeModel.draft.__get__(model)
+    model.choose_tools = FakeModel.choose_tools.__get__(model)
+    run = start(rig, scenario)
+    assert run["status"] == "awaiting_review"
+    assert all(item["tool"] != "document_answer" for item in run["evidence"])
+    assert writer.calls == vectors.calls == []

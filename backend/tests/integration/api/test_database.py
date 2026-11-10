@@ -39,6 +39,7 @@ def test_database_catalog_and_every_stored_column(client, records, db_engine):
         "embedding_runs",
         "embedding_vectors",
         "document_chunks",
+        "document_activations",
     }
     assert "session_bookings" not in {table["name"] for table in catalog.json()}
     sessions = next(table for table in catalog.json() if table["name"] == "class_sessions")
@@ -91,5 +92,6 @@ def test_database_pagination_and_table_allowlist(client, records):
         "embedding_runs",
         "embedding_vectors",
         "document_chunks",
+        "document_activations",
     ]:
         assert client.get(f"/api/v1/database/{name}").status_code == 404

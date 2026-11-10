@@ -233,7 +233,8 @@ when evidence is sufficient or only the student/teacher can supply the remaining
             Draft,
             """
 Write the email body as the teacher speaking directly to the student in first person: warm,
-concise, natural, and helpful. Never refer to 'your teacher' as a third party or mention an AI.
+collaborative, concise, natural, and helpful. Never refer to 'your teacher' as a third party or
+mention an AI. Keep internal reference IDs in the structured references, not in the email body.
 Keep reasoning, caveats about system capabilities, and staff tasks in the staff-facing rationale.
 For enquiry and teacher_handoff, use retrieved timetable facts to answer as far as possible;
 teacher handling limits actions, not read-only answers about classes and their schedules.

@@ -20,6 +20,8 @@ async function documentsApi(page: Page, failFirst = false) {
     history: new Map<string, Doc[]>(),
     fail: failFirst,
     conflict: false,
+    activation: "disabled" as "disabled" | "preparing" | "enabled" | "failed",
+    activationError: null as string | null,
   };
   await page.route("**/auth/me", (route) =>
     route.fulfill({
@@ -37,6 +39,18 @@ async function documentsApi(page: Page, failFirst = false) {
       id = parts[0];
     const found = state.docs.find((item) => item.id === id),
       method = req.method();
+    if (parts[1] === "answer-activation") {
+      if (method !== "GET")
+        expect(req.headers()["x-csrf-token"]).toBe("test-csrf");
+      if (method === "POST") {
+        state.activation = "preparing";
+        state.activationError = null;
+      }
+      if (method === "DELETE") state.activation = "disabled";
+      return route.fulfill({
+        json: { status: state.activation, error: state.activationError },
+      });
+    }
     if (method === "GET") {
       if (!id) return route.fulfill({ json: state.docs });
       if (!found) return route.fulfill({ status: 404, json: {} });
@@ -156,7 +170,9 @@ test("owner manages documents and retains a draft on errors", async ({
   await expect(page.getByRole("alert")).toContainText("Save failed");
   await expect(page.getByLabel("Document text")).toHaveValue("Hello studio");
   await page.getByRole("button", { name: "Save document" }).click();
-  await expect(page.getByRole("status")).toContainText("Document saved");
+  await expect(
+    page.getByText("Document saved. Uploading does not enable it for answers."),
+  ).toBeVisible();
   expect(state.docs[0].effective_from).toBe("2027-01-01");
   await page.reload();
   await page.getByRole("button", { name: "Welcome", exact: true }).click();
@@ -357,4 +373,41 @@ test("revision mismatch while loading does not overwrite local replacement text"
   await expect(
     page.getByText("Unsaved changes", { exact: true }),
   ).toBeVisible();
+});
+
+test("document activation reports progress, failure, retry and disabling", async ({
+  page,
+}) => {
+  const state = await documentsApi(page);
+  await page.goto("/workspace/knowledge/documents");
+  await page.getByLabel(/Upload a document/).setInputFiles({
+    name: "handbook.md",
+    mimeType: "text/markdown",
+    buffer: Buffer.from("Studio handbook"),
+  });
+  await page.getByRole("button", { name: "Save document" }).click();
+  await page.getByRole("button", { name: "Enable for answers" }).click();
+  await expect(page.getByText("Preparing document for answers…")).toBeVisible();
+  await page.getByRole("button", { name: "Cancel preparation" }).click();
+  await expect(page.getByText("Not enabled for answers.")).toBeVisible();
+  await page.getByRole("button", { name: "Enable for answers" }).click();
+  await expect(page.getByText("Preparing document for answers…")).toBeVisible();
+  state.activation = "failed";
+  state.activationError = "Check model configuration";
+  await expect(
+    page.getByText(/Preparation failed: Check model configuration/),
+  ).toBeVisible({ timeout: 10000 });
+  await page.getByRole("button", { name: "Retry preparation" }).click();
+  await expect(page.getByText("Preparing document for answers…")).toBeVisible();
+  state.activation = "enabled";
+  await expect(page.getByText("Enabled for answers.")).toBeVisible({
+    timeout: 10000,
+  });
+  await page.getByRole("button", { name: "Disable for answers" }).click();
+  await expect(page.getByText("Not enabled for answers.")).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
 });
