@@ -952,6 +952,38 @@ test("document answers show revision-bound quotes as safe text", async ({
   ).toBeUndefined();
 });
 
+test("missing reranker dependencies explain failed supporting evidence", async ({
+  page,
+}) => {
+  const run = structuredClone(example);
+  run.evidence = [
+    {
+      tool: "document_answer",
+      finding: "What should I wear to class?",
+      result: {
+        status: "failed",
+        error_code: "reranker_dependency_missing",
+        answer: "",
+        claims: [],
+        references: [],
+      },
+    },
+  ];
+  await mockOwner(page, run);
+  await page.goto(`/workspace/reviews/${run.id}`);
+  await page
+    .getByText("Student, classification and supporting evidence", {
+      exact: true,
+    })
+    .click();
+  const evidence = page.getByRole("region", {
+    name: "Document answer and citations",
+  });
+  await expect(evidence).toContainText("Document answer: failed");
+  await expect(evidence).toContainText("missing local reranker dependencies");
+  await expect(evidence).toContainText("retry this run");
+});
+
 test("source-change approval conflict preserves the teacher's edited reply", async ({
   page,
 }) => {

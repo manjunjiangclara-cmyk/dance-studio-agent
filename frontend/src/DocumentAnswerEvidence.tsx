@@ -21,8 +21,9 @@ export function DocumentAnswerEvidence({ result }: { result: unknown }) {
       </p>
       {value.status === "failed" && (
         <p>
-          Document lookup could not be completed. Teacher verification is
-          required.
+          {value.error_code === "reranker_dependency_missing"
+            ? "Document lookup could not start because the server is missing local reranker dependencies. Ask an administrator to install the backend rerank dependency group, then retry this run. Teacher verification is required until it succeeds."
+            : "Document lookup could not be completed. Teacher verification is required."}
         </p>
       )}
       {text(value.answer) && (

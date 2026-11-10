@@ -172,6 +172,34 @@ def test_missing_resources_gives_reviewable_failure_without_provider(monkeypatch
     assert gathered["warnings"]
 
 
+def test_missing_reranker_dependency_has_actionable_safe_error(monkeypatch):
+    online._resources.cache_clear()
+    monkeypatch.setattr(online, "Session", lambda engine: nullcontext(object()))
+    monkeypatch.setattr(online, "source_rows", lambda *args: [])
+    monkeypatch.setattr(online, "Tokenizer", lambda path: object())
+
+    def missing_torch(*args):
+        raise ModuleNotFoundError("private install path", name="torch")
+
+    monkeypatch.setattr(online, "LocalReranker", missing_torch)
+    monkeypatch.setattr(
+        online,
+        "question_answer",
+        lambda *args, **kwargs: pytest.fail("provider path ran after dependency failure"),
+    )
+    try:
+        gathered = online.gather(object(), state(), config=config())
+    finally:
+        online._resources.cache_clear()
+    assert len(gathered["evidence"]) == 2
+    assert all(
+        item["result"]["error_code"] == "reranker_dependency_missing"
+        for item in gathered["evidence"]
+    )
+    assert gathered["evidence"][-1]["result"]["operations"]["attempts"] == 0
+    assert "private install path" not in str(gathered)
+
+
 def test_concurrent_cold_resources_constructs_one_local_model(monkeypatch):
     online._resources.cache_clear()
     ready, release, start = Event(), Event(), Barrier(5)

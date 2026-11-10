@@ -54,6 +54,7 @@ ERROR_CODES = {
     "invalid_evidence",
     "retrieval_failed",
     "reranking_failed",
+    "reranker_dependency_missing",
     "generation_failed",
     "budget_exceeded",
     "question_limit",
@@ -162,7 +163,14 @@ class Configuration:
 @lru_cache(maxsize=1)
 def _resources(tokenizer_cache, reranker_cache):
     # Both constructors verify prepared local assets; neither downloads anything.
-    return Tokenizer(tokenizer_cache), LocalReranker(reranker_cache, L6)
+    tokenizer = Tokenizer(tokenizer_cache)
+    try:
+        reranker = LocalReranker(reranker_cache, L6)
+    except ModuleNotFoundError as error:
+        if error.name in {"torch", "transformers", "tokenizers", "safetensors"}:
+            raise OnlineError("reranker_dependency_missing") from None
+        raise
+    return tokenizer, reranker
 
 
 def resources(tokenizer_cache, reranker_cache):
