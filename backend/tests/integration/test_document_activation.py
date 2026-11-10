@@ -1,5 +1,6 @@
 """Teacher-facing activation uses durable state and protects owner mutations."""
 
+import os
 from uuid import UUID, uuid4
 
 import pytest
@@ -202,3 +203,139 @@ def test_interrupted_preparation_can_be_retried(activation_client, db_engine):
     assert len(calls) == 2
     with Session(db_engine) as db:
         assert db.get(DocumentActivation, UUID(document_id)).token != previous_token
+
+
+def test_cancel_stops_embedding_batches_and_new_claim_resumes(
+    activation_client, db_engine, monkeypatch
+):
+    from sqlalchemy import select
+
+    from studio_copilot.documents.chunking.tokenizer import default_cache
+    from studio_copilot.documents.embedding import pipeline
+    from studio_copilot.persistence.models import EmbeddingRun
+    from tests.integration.test_embeddings import FakeEmbedder, create_source, large_source
+
+    client, calls = activation_client
+    document_id = create_source(db_engine, large_source())
+    path = f"/api/v1/documents/{document_id}/answer-activation"
+    auth = {"Authorization": "Bearer test"}
+    monkeypatch.setenv(
+        "STUDIO_TOKENIZER_CACHE", os.environ.get("STUDIO_TOKENIZER_CACHE", str(default_cache()))
+    )
+
+    def cancel_and_reenable(attempt, texts):
+        if attempt == 1:
+            assert client.delete(path, headers=auth).json()["status"] == "disabled"
+            assert client.post(path, headers=auth).json()["status"] == "preparing"
+
+    fake = FakeEmbedder(db_engine, hook=cancel_and_reenable)
+    monkeypatch.setattr(pipeline, "Embedder", lambda profile: fake)
+    assert client.post(path, headers=auth).json()["status"] == "preparing"
+    assert len(calls) == 1
+    ACTUAL_WORKER(*calls[0])
+
+    # Cancellation takes effect at the next checkpoint: no second paid batch,
+    # the embedding lease is released, and the replacement activation stays pending.
+    assert len(fake.calls) == 1
+    assert len(calls) == 2
+    with Session(db_engine) as db:
+        row = db.get(DocumentActivation, document_id)
+        run = db.scalar(select(EmbeddingRun).where(EmbeddingRun.document_id == document_id))
+        assert row.status == "preparing" and row.token == calls[1][3]
+        assert run.status == "failed" and run.lease_token is None
+
+    # Resuming uses the first committed batch and needs only the remaining passages.
+    ACTUAL_WORKER(*calls[1])
+    assert [len(batch) for batch in fake.calls] == [64, 16]
+    with Session(db_engine) as db:
+        row = db.get(DocumentActivation, document_id)
+        run = db.scalar(select(EmbeddingRun).where(EmbeddingRun.document_id == document_id))
+        assert row.status == "enabled" and row.run_id == run.id
+        assert run.status == "complete" and run.lease_token is None
+
+
+def test_cancel_prevents_provider_retry(activation_client, db_engine, monkeypatch):
+    from studio_copilot.documents.chunking.tokenizer import default_cache
+    from studio_copilot.documents.embedding import pipeline
+    from tests.integration.test_embeddings import create_source
+
+    client, calls = activation_client
+    document_id = create_source(db_engine)
+    path = f"/api/v1/documents/{document_id}/answer-activation"
+    auth = {"Authorization": "Bearer test"}
+    monkeypatch.setenv(
+        "STUDIO_TOKENIZER_CACHE", os.environ.get("STUDIO_TOKENIZER_CACHE", str(default_cache()))
+    )
+    attempts = []
+
+    class RetryingEmbedder:
+        def embed(self, texts, before_attempt):
+            before_attempt()
+            attempts.append("first paid attempt")
+            assert client.delete(path, headers=auth).json()["status"] == "disabled"
+            before_attempt()
+            attempts.append("retry")
+            raise AssertionError("Cancellation should prevent a paid retry")
+
+    monkeypatch.setattr(pipeline, "Embedder", lambda profile: RetryingEmbedder())
+    assert client.post(path, headers=auth).json()["status"] == "preparing"
+    ACTUAL_WORKER(*calls[0])
+    assert attempts == ["first paid attempt"]
+    assert client.get(path, headers=auth).json()["status"] == "disabled"
+
+
+def test_reenabled_worker_waits_for_cancelled_worker_to_release_embedding_lease(
+    activation_client, db_engine, monkeypatch
+):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+
+    from studio_copilot.documents.chunking.tokenizer import default_cache
+    from studio_copilot.documents.embedding import pipeline
+    from studio_copilot.documents.embedding.provider import EmbeddingError
+    from studio_copilot.documents.embedding.store import Store
+    from tests.integration.test_embeddings import FakeEmbedder, create_source, large_source
+
+    client, calls = activation_client
+    document_id = create_source(db_engine, large_source())
+    path = f"/api/v1/documents/{document_id}/answer-activation"
+    auth = {"Authorization": "Bearer test"}
+    monkeypatch.setenv(
+        "STUDIO_TOKENIZER_CACHE", os.environ.get("STUDIO_TOKENIZER_CACHE", str(default_cache()))
+    )
+    in_flight, release, busy_seen = Event(), Event(), Event()
+    original_claim = Store.claim
+
+    def observe_busy(store, chunker):
+        try:
+            return original_claim(store, chunker)
+        except EmbeddingError as error:
+            if error.code == "busy":
+                busy_seen.set()
+            raise
+
+    def pause_first_batch(attempt, texts):
+        if attempt == 1:
+            in_flight.set()
+            assert release.wait(20), "test did not release the first embedding call"
+
+    fake = FakeEmbedder(db_engine, hook=pause_first_batch)
+    monkeypatch.setattr(Store, "claim", observe_busy)
+    monkeypatch.setattr(pipeline, "Embedder", lambda profile: fake)
+    assert client.post(path, headers=auth).json()["status"] == "preparing"
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        old = pool.submit(ACTUAL_WORKER, *calls[0])
+        try:
+            assert in_flight.wait(20), "first worker did not start embedding"
+            assert client.delete(path, headers=auth).json()["status"] == "disabled"
+            assert client.post(path, headers=auth).json()["status"] == "preparing"
+            new = pool.submit(ACTUAL_WORKER, *calls[1])
+            assert busy_seen.wait(20), "new worker never encountered the existing lease"
+        finally:
+            release.set()
+        old.result(timeout=30)
+        new.result(timeout=30)
+    assert [len(batch) for batch in fake.calls] == [64, 16]
+    with Session(db_engine) as db:
+        row = db.get(DocumentActivation, document_id)
+        assert row.status == "enabled" and row.run_id is not None

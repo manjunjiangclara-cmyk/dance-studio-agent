@@ -1,16 +1,17 @@
 """Explicit, revision-pinned publication for document answers."""
 
 import os
+import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import UUID
 
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from studio_copilot.documents.chunking import Tokenizer
 from studio_copilot.documents.embedding.pipeline import run
-from studio_copilot.documents.embedding.provider import EmbeddingProfile
+from studio_copilot.documents.embedding.provider import EmbeddingError, EmbeddingProfile
 from studio_copilot.documents.operations import task
 from studio_copilot.documents.reranking.runtime import verify_model
 from studio_copilot.persistence.models import Document, DocumentActivation, EmbeddingRun
@@ -59,19 +60,45 @@ def worker(engine, document_id, revision, token):
     def progress(_value):
         with Session(engine) as db, db.begin():
             row = db.get(DocumentActivation, document_id, with_for_update=True)
-            if row is not None and row.token == token and row.status == "preparing":
-                row.lease_expires_at = datetime.now(UTC) + LEASE
+            if row is None or row.token != token or row.status != "preparing":
+                raise PreparationCancelled()
+            row.lease_expires_at = datetime.now(UTC) + LEASE
 
     try:
         with task():
-            result = run(
-                engine,
-                document_id,
-                revision,
-                Tokenizer(Path(os.environ["STUDIO_TOKENIZER_CACHE"])),
-                EmbeddingProfile.from_env(),
-                progress=progress,
-            )
+            tokenizer = Tokenizer(Path(os.environ["STUDIO_TOKENIZER_CACHE"]))
+            profile = EmbeddingProfile.from_env()
+            deadline = time.monotonic() + 120
+            while True:
+                progress({})
+                try:
+                    result = run(
+                        engine, document_id, revision, tokenizer, profile, progress=progress
+                    )
+                    break
+                except EmbeddingError as error:
+                    if error.code != "busy":
+                        raise
+                    # A cancelled predecessor may still be finishing an in-flight request.
+                    while True:
+                        progress({})
+                        with Session(engine) as db:
+                            busy = db.scalar(
+                                select(EmbeddingRun.id)
+                                .where(
+                                    EmbeddingRun.document_id == document_id,
+                                    EmbeddingRun.revision == revision,
+                                    EmbeddingRun.profile_hash == profile.key,
+                                    EmbeddingRun.lease_token.is_not(None),
+                                    EmbeddingRun.lease_expires_at > func.clock_timestamp(),
+                                )
+                                .limit(1)
+                            )
+                        if busy is None:
+                            break
+                        if time.monotonic() >= deadline:
+                            raise error
+                        time.sleep(1)
         run_id = UUID(result["run_id"])
         if result["status"] != "complete" or not result["prepared"]:
             raise ValueError("Preparation did not complete")
@@ -125,3 +152,7 @@ def worker(engine, document_id, revision, token):
                     None,
                     PROCESS_ERROR,
                 )
+
+
+class PreparationCancelled(Exception):
+    """The teacher revoked this worker's activation claim."""

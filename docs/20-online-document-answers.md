@@ -16,7 +16,7 @@ The enabled path is intentionally document-only: it does not use document text t
 
 ## Explicit activation
 
-In **Studio Knowledge → Documents**, save a document and choose **Enable for answers**. The server prepares its current revision in the background, then enables it only after preparation succeeds. The page shows progress and offers a retry if preparation fails or is interrupted. Preparation may incur embedding API costs; answer generation may also incur API costs. Uploading alone does not enable a document. Choose **Disable for answers** to revoke it.
+In **Studio Knowledge → Documents**, save a document and choose **Enable for answers**. The server prepares its current revision in the background, then enables it only after preparation succeeds. The page shows progress and offers a retry if preparation fails or is interrupted. Preparation may incur embedding API costs; answer generation may also incur API costs. Uploading alone does not enable a document. Choose **Disable for answers** to revoke it. You can cancel preparation; an already-sent request may finish, but further batches and retries stop at the next checkpoint. If you immediately enable it again, preparation waits briefly for the earlier worker to release its lease.
 
 An administrator must install and prepare the local inference dependencies and assets before teachers can enable documents:
 

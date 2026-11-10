@@ -86,6 +86,7 @@ def run(
                 if len(batch) == 64:
                     store.save_chunks(run_id, token, batch)
                     batch.clear()
+                    progress({})
             if batch:
                 store.save_chunks(run_id, token, batch)
             store.prepared(run_id, token, total, passages)
@@ -100,9 +101,12 @@ def run(
             if embedder is None:
                 # No API key/client is needed when all vectors are already cached.
                 embedder = Embedder(profile)
-            vectors, usage = embedder.embed(
-                texts, before_attempt=lambda: store.heartbeat(run_id, token, attempt=True)
-            )
+
+            def before_attempt():
+                progress({})
+                store.heartbeat(run_id, token, attempt=True)
+
+            vectors, usage = embedder.embed(texts, before_attempt=before_attempt)
             store.save_vectors(run_id, token, texts, vectors, usage)
             progress(store.status(run_id))
         store.complete(run_id, token)
