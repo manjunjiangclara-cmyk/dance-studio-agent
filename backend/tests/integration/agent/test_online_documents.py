@@ -20,13 +20,14 @@ from studio_copilot.documents.embedding.provider import EmbeddingProfile
 from studio_copilot.persistence.models import (
     AgentRun,
     Document,
+    DocumentActivation,
     DocumentRevision,
     EmbeddingRun,
     Message,
 )
 from tests.integration.test_retrieval import LocalVectors
 
-from .helpers import review, start
+from .helpers import FakeModel, review, start
 
 pytestmark = pytest.mark.integration
 TEXT = "# Trial policy\r\n\r\nA trial costs $20. Café 💃.\r\n"
@@ -96,11 +97,14 @@ def online_rig(rig, scenario, db_engine, monkeypatch):
     prepared = pipeline.run(
         db_engine, document_id, 1, tokenizer, EmbeddingProfile(), embedder=LocalVectors(db_engine)
     )
-    run_id = prepared["run_id"]
-    with Session(db_engine) as db:
+    run_id = UUID(prepared["run_id"])
+    with Session(db_engine) as db, db.begin():
         online.source_rows(db, [run_id], date(2027, 2, 7))
+        db.add(
+            DocumentActivation(document_id=document_id, revision=1, status="enabled", run_id=run_id)
+        )
     monkeypatch.setenv("STUDIO_DOCUMENT_ANSWERS", "true")
-    monkeypatch.setenv("STUDIO_DOCUMENT_RUN_IDS", str(run_id))
+    monkeypatch.delenv("STUDIO_DOCUMENT_RUN_IDS", raising=False)
     monkeypatch.setenv("STUDIO_TOKENIZER_CACHE", str(default_cache()))
     monkeypatch.setenv("STUDIO_RERANKER_CACHE", "/not-downloaded")
     model = rig[1]
@@ -191,7 +195,9 @@ def test_stale_sources_block_approval_without_changing_the_review(
     elif mutation == "disable":
         monkeypatch.setenv("STUDIO_DOCUMENT_ANSWERS", "false")
     elif mutation == "revoke":
-        monkeypatch.setenv("STUDIO_DOCUMENT_RUN_IDS", "00000000-0000-0000-0000-000000000099")
+        with Session(db_engine) as db, db.begin():
+            activation = db.get(DocumentActivation, document_id)
+            activation.status, activation.run_id = "disabled", None
     else:
         with Session(db_engine) as db, db.begin():
             if mutation == "delete":
@@ -324,3 +330,17 @@ def test_approval_source_locks_prevent_concurrent_replacement(online_rig, rig, s
         concurrent.execute(
             update(Document).where(Document.id == document_id).values(current_revision=2)
         )
+
+
+def test_no_enabled_documents_uses_existing_enquiry_path(online_rig, rig, scenario, db_engine):
+    document_id, _, writer, vectors = online_rig
+    with Session(db_engine) as db, db.begin():
+        activation = db.get(DocumentActivation, document_id)
+        activation.status, activation.run_id = "disabled", None
+    model = rig[1]
+    model.draft = FakeModel.draft.__get__(model)
+    model.choose_tools = FakeModel.choose_tools.__get__(model)
+    run = start(rig, scenario)
+    assert run["status"] == "awaiting_review"
+    assert all(item["tool"] != "document_answer" for item in run["evidence"])
+    assert writer.calls == vectors.calls == []

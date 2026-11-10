@@ -1,6 +1,6 @@
 # Online document answers
 
-The server can now turn interpreted enquiry questions into document-grounded, cited drafts in the existing teacher-review workflow. This is opt-in and single-studio. Uploading or indexing a file alone never enables it. No new public chat endpoint, automatic email delivery, database tables, indexing workers or publication UI are added.
+The server can now turn interpreted enquiry questions into document-grounded, cited drafts in the existing teacher-review workflow. This is opt-in and single-studio. Uploading or indexing a file alone never enables it. No new public chat endpoint or automatic email delivery is added.
 
 ## Request flow
 
@@ -16,33 +16,27 @@ The enabled path is intentionally document-only: it does not use document text t
 
 ## Explicit activation
 
-Use the current revision returned by document metadata, then prepare it with the existing [embedding CLI](13-document-embeddings.md). Review the policy, its effective dates and the returned completed run ID. This preparation is separate from request handling and its paid mode must be enabled explicitly.
+In **Studio Knowledge → Documents**, save a document and choose **Enable for answers**. The server prepares its current revision in the background, then enables it only after preparation succeeds. The page shows progress and offers a retry if preparation fails or is interrupted. Preparation may incur embedding API costs; answer generation may also incur API costs. Uploading alone does not enable a document. Choose **Disable for answers** to revoke it.
 
-Install optional local inference dependencies and prepare assets deliberately:
+An administrator must install and prepare the local inference dependencies and assets before teachers can enable documents:
 
 ```bash
 # backend/
 uv sync --locked --group rerank
-# Follow the chunking guide to prepare the tokenizer and the reranking guide
-# to prepare/verify model assets. Request handling never downloads resources.
+# Follow the chunking and reranking guides to prepare and verify local assets.
 ```
 
-Set these in the server's private environment and restart the backend:
+Set these in the private server environment and restart the backend:
 
 ```dotenv
 STUDIO_DOCUMENT_ANSWERS=true
-STUDIO_DOCUMENT_RUN_IDS=<approved-completed-run-uuid>,<another-approved-run-uuid>
 STUDIO_TOKENIZER_CACHE=/absolute/path/to/prepared-tokenizer
 STUDIO_RERANKER_CACHE=/absolute/path/to/prepared-reranker-models
 ```
 
-The server also needs the existing `OPENAI_API_KEY`, `OPENAI_MODEL` and embedding profile configuration matching the selected runs. Enabling this server flag authorizes real query embedding and generation for incoming authenticated runs; offline CLI `--allow-api` remains separate. Normal tests inject fake providers and never enable paid evaluation.
+The server also needs `OPENAI_API_KEY`, `OPENAI_MODEL` and an embedding profile. Request handling never downloads model assets. Run the database migration before using the new controls. The selected runs are stored in PostgreSQL and shared across server processes; `STUDIO_DOCUMENT_RUN_IDS` is no longer used by the online workflow. With no enabled documents, enquiries use the existing non-document workflow. A maximum of 100 compatible documents can be enabled.
 
-IDs identify sources; they are not credentials. Existing owner/admin and browser CSRF controls protect run creation, review and evidence. API responses/checkpoints deliberately retain controlled evidence text; ordinary logs/traces do not. Restrict database access, backups and review access accordingly.
-
-Select 1–100 unique run UUIDs, at most one per document, with a compatible embedding profile. The selected run must reference the document's current revision. Missing, malformed, incomplete, changed or unavailable sources produce reviewable technical failures, rather than falling back to ungrounded text. Date-ineligible revisions contribute no evidence. A failed query embedding does not silently downgrade this online path to keyword-only results.
-
-To replace a policy, save the new revision, prepare its embeddings explicitly, review it, and update the configured run ID. Saving a revision immediately invalidates the old selected revision; **this transitional mechanism deliberately has no availability-preserving atomic publication switch**. Use a coordinated maintenance window. Removing a run from configuration or disabling the feature also prevents approval of old drafts that still retain its claims. Restart all server processes consistently; configuration revocation is not a distributed registry.
+Answers remain drafts for teacher review. Effective dates and source identity are checked during retrieval and approval. Disabling a source prevents approval of drafts that still rely on it. If a document changes, its old revision cannot be used; prepare its current revision again. An interrupted preparation can be retried after its lease expires. Explicit CLI preparation remains available for inspection, but does not enable a source.
 
 ## Bounds and visibility
 

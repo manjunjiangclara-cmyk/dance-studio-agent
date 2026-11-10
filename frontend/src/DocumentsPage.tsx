@@ -18,6 +18,10 @@ type Summary = {
   duplicates?: { id: string; title: string }[];
 };
 type Revision = Summary & { revision: number; created_at: string };
+type Activation = {
+  status: "disabled" | "preparing" | "enabled" | "failed";
+  error: string | null;
+};
 type Draft = {
   title: string;
   filename: string;
@@ -76,6 +80,10 @@ export function DocumentsPage({
   const [conflict, setConflict] = useState(false);
   const [busy, setBusy] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const [activation, setActivation] = useState<Activation>();
+  const [activationError, setActivationError] = useState("");
+  const [activationBusy, setActivationBusy] = useState(false);
+  const [activationRefresh, setActivationRefresh] = useState(0);
   const dirty =
     workspace &&
     !!draft &&
@@ -95,6 +103,35 @@ export function DocumentsPage({
       active = false;
     };
   }, [workspace, attempt]);
+  useEffect(() => {
+    if (!workspace || !saved) {
+      setActivation(undefined);
+      return;
+    }
+    let active = true;
+    let timer: number | undefined;
+    setActivation(undefined);
+    setActivationError("");
+    async function refresh() {
+      try {
+        const value = await request<Activation>(
+          `${root}/${saved!.id}/answer-activation`,
+        );
+        if (!active) return;
+        setActivation(value);
+        setActivationError("");
+        if (value.status === "preparing")
+          timer = window.setTimeout(refresh, 3000);
+      } catch (err) {
+        if (active) setActivationError((err as Error).message);
+      }
+    }
+    void refresh();
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [workspace, saved?.id, saved?.current_revision, activationRefresh]);
   useEffect(() => {
     const handler = (event: BeforeUnloadEvent) => {
       if (dirty) event.preventDefault();
@@ -295,6 +332,22 @@ export function DocumentsPage({
       setBusy(false);
     }
   }
+  async function changeActivation(method: "POST" | "DELETE") {
+    if (!saved || activationBusy || dirty) return;
+    setActivationBusy(true);
+    setActivationError("");
+    try {
+      await request<Activation>(`${root}/${saved.id}/answer-activation`, {
+        method,
+        headers: { "X-CSRF-Token": csrf },
+      });
+      setActivationRefresh((value) => value + 1);
+    } catch (err) {
+      setActivationError((err as Error).message);
+    } finally {
+      setActivationBusy(false);
+    }
+  }
   async function remove() {
     if (
       !saved ||
@@ -468,8 +521,62 @@ export function DocumentsPage({
               {saved.ingestion_status === "ready"
                 ? "Ingestion complete"
                 : "Needs correction"}
-              . Not published.
+              .
             </p>
+          )}
+          {workspace && saved && (
+            <section aria-label="Answers activation" className="notice">
+              <h3>Use for answers</h3>
+              <p>
+                Preparing this document may incur embedding API costs. Answers
+                remain drafts for teacher review.
+              </p>
+              {!activation && !activationError && (
+                <p role="status">Loading answer status…</p>
+              )}
+              {activation && (
+                <p role="status">
+                  {activation.status === "disabled" &&
+                    "Not enabled for answers."}
+                  {activation.status === "preparing" &&
+                    "Preparing document for answers…"}
+                  {activation.status === "enabled" && "Enabled for answers."}
+                  {activation.status === "failed" &&
+                    `Preparation failed${activation.error ? `: ${activation.error}` : "."}`}
+                </p>
+              )}
+              {activationError && <p role="alert">{activationError}</p>}
+              {dirty && (
+                <p>Save or discard changes before changing answer status.</p>
+              )}
+              {activation && activation.status !== "preparing" && (
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={busy || activationBusy || dirty}
+                  onClick={() =>
+                    void changeActivation(
+                      activation.status === "enabled" ? "DELETE" : "POST",
+                    )
+                  }
+                >
+                  {activation.status === "enabled"
+                    ? "Disable for answers"
+                    : activation.status === "failed"
+                      ? "Retry preparation"
+                      : "Enable for answers"}
+                </button>
+              )}
+              {!activation && activationError && (
+                <button
+                  type="button"
+                  className="button secondary"
+                  onClick={() => setActivationRefresh((value) => value + 1)}
+                >
+                  Retry loading status
+                </button>
+              )}
+            </section>
           )}
           {saved?.ingestion_status === "needs_correction" && (
             <p className="notice">

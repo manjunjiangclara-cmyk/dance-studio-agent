@@ -97,7 +97,9 @@ def test_current_source_check_uses_only_retained_document_citations(monkeypatch)
         evidence=[dict(tool="document_answer", result=item) for item in [retained, discarded]],
         draft_details=dict(references=["document:kept", "teacher_answer:other"]),
     )
-    monkeypatch.setattr(online.Configuration, "from_env", classmethod(lambda cls: config()))
+    monkeypatch.setattr(
+        online.Configuration, "from_env", classmethod(lambda cls, *a, **kw: config())
+    )
     checks = []
     monkeypatch.setattr(
         online,
@@ -113,7 +115,7 @@ def test_disabling_after_draft_revokes_retained_citations(monkeypatch):
         evidence=[dict(tool="document_answer", result=dict(references=["document:kept"]))],
         draft_details=dict(references=["document:kept"]),
     )
-    monkeypatch.setattr(online.Configuration, "from_env", classmethod(lambda cls: None))
+    monkeypatch.setattr(online.Configuration, "from_env", classmethod(lambda cls, *a, **kw: None))
     with pytest.raises(online.OnlineError) as error:
         online.require_current_sources(object(), run)
     assert error.value.code == "source_revoked"

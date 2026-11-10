@@ -97,6 +97,12 @@ def require_browser_access(request: Request) -> None:
     policy_write = request.method == "PUT" and request.url.path == "/api/v1/policy"
     document_write = (
         (
+            request.method in {"POST", "DELETE"}
+            and re.fullmatch(
+                r"/api/v1/documents/[0-9a-fA-F-]{36}/answer-activation", request.url.path
+            )
+        )
+        or (
             request.method == "POST"
             and request.url.path in {"/api/v1/documents", "/api/v1/documents/upload"}
         )

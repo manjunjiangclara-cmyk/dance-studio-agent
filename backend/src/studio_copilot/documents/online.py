@@ -1,6 +1,6 @@
 """Opt-in document answers for the existing, authenticated teacher-review workflow.
 
-Configuration is a deployment allowlist, not a publication registry. Uploads and
+Teachers select completed sources through the activation registry. Uploads and
 completed indexing alone never enable a source. No provider runs inside a DB transaction.
 """
 
@@ -32,7 +32,12 @@ from studio_copilot.documents.operations import Limits, instrument, task
 from studio_copilot.documents.reranking.capture import capture
 from studio_copilot.documents.reranking.runtime import LocalReranker
 from studio_copilot.documents.retrieval.engine import pack_from_records
-from studio_copilot.persistence.models import Document, DocumentRevision, EmbeddingRun
+from studio_copilot.persistence.models import (
+    Document,
+    DocumentActivation,
+    DocumentRevision,
+    EmbeddingRun,
+)
 
 ZONE = ZoneInfo("Australia/Melbourne")
 MAX_QUESTIONS = 8
@@ -115,15 +120,30 @@ class Configuration:
     reranker_cache: Path
 
     @classmethod
-    def from_env(cls):
+    def from_env(cls, db=None, *, lock=False):
         enabled = os.environ.get("STUDIO_DOCUMENT_ANSWERS", "false").lower()
         if enabled == "false":
             return None
         if enabled != "true":
             raise OnlineError("configuration")
         try:
-            raw = os.environ["STUDIO_DOCUMENT_RUN_IDS"].split(",")
-            runs = tuple(UUID(value.strip()) for value in raw)
+            if db is None:  # Compatibility for callers constructing an explicit configuration.
+                raw = os.environ["STUDIO_DOCUMENT_RUN_IDS"].split(",")
+                runs = tuple(UUID(value.strip()) for value in raw)
+            else:
+                statement = (
+                    select(DocumentActivation)
+                    .where(DocumentActivation.status == "enabled")
+                    .order_by(DocumentActivation.document_id)
+                )
+                if lock:
+                    statement = statement.with_for_update(read=True)
+                rows = db.scalars(statement).all()
+                if not rows:
+                    return None
+                runs = tuple(row.run_id for row in rows)
+                if any(run_id is None for run_id in runs):
+                    raise ValueError
             if not 1 <= len(runs) <= 100 or len(set(runs)) != len(runs):
                 raise ValueError
             return cls(
@@ -325,7 +345,9 @@ def gather(
     if state.get("flow") not in {"enquiry", "teacher_handoff"}:
         return None
     try:
-        config = config or Configuration.from_env()
+        if config is None:
+            with Session(engine) as db:
+                config = Configuration.from_env(db)
     except OnlineError:
         config = False
     if config is None:
@@ -423,7 +445,7 @@ def require_current_sources(db, run):
     entries = [item for item in entries if used.intersection(item.get("references", []))]
     if not entries:
         return
-    config = Configuration.from_env()
+    config = Configuration.from_env(db, lock=True)
     if config is None:
         raise OnlineError("source_revoked")
     today = datetime.now(ZONE).date()

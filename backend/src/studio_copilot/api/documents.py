@@ -1,24 +1,90 @@
-"""Owner-managed, revisioned source documents. Not used by the agent."""
+"""Owner-managed, revisioned documents and explicit answer activation."""
 
 import base64
 import binascii
 import hashlib
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from pathlib import PurePosixPath
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Request
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 from sqlalchemy import func, select
 from starlette.concurrency import run_in_threadpool
 
 from studio_copilot.administration.service import AdministrationError
 from studio_copilot.api.common import Db
+from studio_copilot.documents import activation
 from studio_copilot.documents.ingestion import INLINE_BYTES, receive_upload, validate_text
-from studio_copilot.persistence.models import Document, DocumentRevision
+from studio_copilot.persistence.models import Document, DocumentActivation, DocumentRevision
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 MAX_BYTES = INLINE_BYTES  # Legacy base64 contract.
+
+
+@router.get("/{document_id}/answer-activation")
+def answer_activation(document_id: UUID, db: Db):
+    document = db.get(Document, document_id)
+    if document is None:
+        raise HTTPException(404, "Document not found.")
+    row = db.get(DocumentActivation, document_id)
+    if row and row.status == "enabled" and row.revision != document.current_revision:
+        return {
+            "status": "failed",
+            "error": "The document changed. Prepare its current revision again.",
+        }
+    return activation.view(row)
+
+
+@router.post("/{document_id}/answer-activation")
+def enable_answers(document_id: UUID, background: BackgroundTasks, request: Request, db: Db):
+    try:
+        activation.check_setup()
+    except Exception:
+        raise HTTPException(503, activation.SETUP_ERROR) from None
+    row = db.get(DocumentActivation, document_id, with_for_update=True)
+    document = db.get(Document, document_id, with_for_update=True)
+    if document is None:
+        raise HTTPException(404, "Document not found.")
+    if row is None:
+        # The document lock serializes concurrent creation of the first activation.
+        row = db.get(DocumentActivation, document_id, with_for_update=True)
+    if (
+        row
+        and row.revision == document.current_revision
+        and activation.view(row)["status"] in {"preparing", "enabled"}
+    ):
+        return activation.view(row)
+    if row is None:
+        row = DocumentActivation(
+            document_id=document_id, revision=document.current_revision, status="disabled"
+        )
+        db.add(row)
+    token = uuid4()
+    row.revision, row.status, row.run_id = document.current_revision, "preparing", None
+    row.token, row.lease_expires_at, row.error = token, datetime.now(UTC) + activation.LEASE, None
+    revision = row.revision
+    db.commit()
+    background.add_task(activation.worker, request.app.state.engine, document_id, revision, token)
+    return {"status": "preparing", "error": None}
+
+
+@router.delete("/{document_id}/answer-activation")
+def disable_answers(document_id: UUID, db: Db):
+    row = db.get(DocumentActivation, document_id, with_for_update=True)
+    document = db.get(Document, document_id, with_for_update=True)
+    if document is None:
+        raise HTTPException(404, "Document not found.")
+    if row is not None:
+        row.status, row.run_id, row.token, row.lease_expires_at, row.error = (
+            "disabled",
+            None,
+            None,
+            None,
+            None,
+        )
+        db.commit()
+    return {"status": "disabled", "error": None}
 
 
 class MetadataInput(BaseModel):

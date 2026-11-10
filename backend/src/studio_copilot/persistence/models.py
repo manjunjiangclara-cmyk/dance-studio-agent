@@ -130,6 +130,26 @@ class EmbeddingRun(Record, Base):
     error_code: Mapped[str | None] = mapped_column(String(40))
 
 
+class DocumentActivation(Base):
+    __tablename__ = "document_activations"
+    __table_args__ = (
+        CheckConstraint("status IN ('preparing','enabled','failed','disabled')", name="status"),
+        {"info": {"database_browser": False}},
+    )
+
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("documents.id", ondelete="CASCADE"), primary_key=True
+    )
+    revision: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(16))
+    run_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("embedding_runs.id", ondelete="SET NULL")
+    )
+    token: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    error: Mapped[str | None] = mapped_column(String(200))
+
+
 class EmbeddingVector(Base):
     """Project-local shared cache. No original text or publication authority."""
 
