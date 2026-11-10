@@ -380,14 +380,16 @@ test("document activation reports progress, failure, retry and disabling", async
 }) => {
   const state = await documentsApi(page);
   await page.goto("/workspace/knowledge/documents");
-  await page
-    .getByLabel(/Upload a document/)
-    .setInputFiles({
-      name: "handbook.md",
-      mimeType: "text/markdown",
-      buffer: Buffer.from("Studio handbook"),
-    });
+  await page.getByLabel(/Upload a document/).setInputFiles({
+    name: "handbook.md",
+    mimeType: "text/markdown",
+    buffer: Buffer.from("Studio handbook"),
+  });
   await page.getByRole("button", { name: "Save document" }).click();
+  await page.getByRole("button", { name: "Enable for answers" }).click();
+  await expect(page.getByText("Preparing document for answers…")).toBeVisible();
+  await page.getByRole("button", { name: "Cancel preparation" }).click();
+  await expect(page.getByText("Not enabled for answers.")).toBeVisible();
   await page.getByRole("button", { name: "Enable for answers" }).click();
   await expect(page.getByText("Preparing document for answers…")).toBeVisible();
   state.activation = "failed";

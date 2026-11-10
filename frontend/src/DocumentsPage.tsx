@@ -549,22 +549,27 @@ export function DocumentsPage({
               {dirty && (
                 <p>Save or discard changes before changing answer status.</p>
               )}
-              {activation && activation.status !== "preparing" && (
+              {activation && (
                 <button
                   type="button"
                   className="button secondary"
                   disabled={busy || activationBusy || dirty}
                   onClick={() =>
                     void changeActivation(
-                      activation.status === "enabled" ? "DELETE" : "POST",
+                      activation.status === "enabled" ||
+                        activation.status === "preparing"
+                        ? "DELETE"
+                        : "POST",
                     )
                   }
                 >
                   {activation.status === "enabled"
                     ? "Disable for answers"
-                    : activation.status === "failed"
-                      ? "Retry preparation"
-                      : "Enable for answers"}
+                    : activation.status === "preparing"
+                      ? "Cancel preparation"
+                      : activation.status === "failed"
+                        ? "Retry preparation"
+                        : "Enable for answers"}
                 </button>
               )}
               {!activation && activationError && (

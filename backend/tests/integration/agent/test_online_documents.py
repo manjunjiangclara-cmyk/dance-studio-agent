@@ -147,6 +147,23 @@ def online_rig(rig, scenario, db_engine, monkeypatch):
     return document_id, run_id, writer, vectors
 
 
+def test_stale_other_document_does_not_block_current_source(online_rig, rig, scenario, db_engine):
+    from studio_copilot.persistence.models import Document, DocumentActivation
+
+    _, run_id, _, _ = online_rig
+    with Session(db_engine) as db, db.begin():
+        stale = Document(
+            title="Changed", filename="changed.md", content="Changed", current_revision=2
+        )
+        db.add(stale)
+        db.flush()
+        db.add(
+            DocumentActivation(document_id=stale.id, revision=1, status="enabled", run_id=run_id)
+        )
+    result = start(rig, scenario)["evidence"][0]["result"]
+    assert result["status"] == "answered"
+
+
 def test_question_automatically_gets_exact_citations_and_remains_a_draft(
     online_rig,
     rig,

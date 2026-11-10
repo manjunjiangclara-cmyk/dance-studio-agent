@@ -133,11 +133,15 @@ class Configuration:
             else:
                 statement = (
                     select(DocumentActivation)
-                    .where(DocumentActivation.status == "enabled")
+                    .join(Document, Document.id == DocumentActivation.document_id)
+                    .where(
+                        DocumentActivation.status == "enabled",
+                        DocumentActivation.revision == Document.current_revision,
+                    )
                     .order_by(DocumentActivation.document_id)
                 )
                 if lock:
-                    statement = statement.with_for_update(read=True)
+                    statement = statement.with_for_update(read=True, of=DocumentActivation)
                 rows = db.scalars(statement).all()
                 if not rows:
                     return None

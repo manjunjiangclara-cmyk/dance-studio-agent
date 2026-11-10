@@ -85,8 +85,12 @@ def worker(engine, document_id, revision, token):
             prepared = db.get(EmbeddingRun, run_id)
             enabled = db.execute(
                 select(DocumentActivation, EmbeddingRun)
+                .join(Document, Document.id == DocumentActivation.document_id)
                 .outerjoin(EmbeddingRun, EmbeddingRun.id == DocumentActivation.run_id)
-                .where(DocumentActivation.status == "enabled")
+                .where(
+                    DocumentActivation.status == "enabled",
+                    DocumentActivation.revision == Document.current_revision,
+                )
             ).all()
             if (
                 document is None
