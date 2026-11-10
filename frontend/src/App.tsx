@@ -1294,6 +1294,20 @@ function ReviewDetail({ id }: { id: string }) {
             </div>
             <FileText size={18} />
           </div>
+          {canReview && !!run.draft_details.review_concerns?.length && (
+            <section
+              className="review-concerns"
+              aria-labelledby="review-concerns-heading"
+            >
+              <h3 id="review-concerns-heading">Points to review</h3>
+              <p>Check these points before approving the response.</p>
+              <ul>
+                {run.draft_details.review_concerns.map((concern, index) => (
+                  <li key={index}>{concern}</li>
+                ))}
+              </ul>
+            </section>
+          )}
           {approved ? (
             <>
               <div className="saved-response prose">{approved.body}</div>

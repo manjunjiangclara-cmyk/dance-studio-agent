@@ -120,6 +120,7 @@ class Draft(StrictModel):
     answers: list[EnquiryAnswer] = Field(default_factory=list, max_length=20)
     question_resolutions: list[QuestionResolution] = Field(default_factory=list, max_length=20)
     required_question_ids: list[str] = Field(default_factory=list, max_length=20)
+    review_concerns: list[str] = Field(default_factory=list, max_length=15)
 
 
 class DocumentEmail(StrictModel):
@@ -130,6 +131,14 @@ class DocumentEmailCheck(StrictModel):
     supported: bool
     complete: bool
     decisions_preserved: bool
+    issues: list[Annotated[str, Field(min_length=1, max_length=500)]] = Field(max_length=12)
+
+
+class DocumentEmailComposition(StrictModel):
+    body: str = Field(min_length=1, max_length=20_000)
+    review_concerns: list[Annotated[str, Field(min_length=1, max_length=500)]] = Field(
+        max_length=15
+    )
 
 
 class ToolCall(StrictModel):
@@ -174,5 +183,5 @@ class Model(Protocol):
     def choose_tools(self, context: dict, transcript: list[dict]) -> ToolTurn: ...
     def draft(self, context: dict) -> Draft: ...
 
-    def compose_document_email(self, context: dict) -> str: ...
+    def compose_document_email(self, context: dict) -> DocumentEmailComposition: ...
     def reconcile(self, context: dict) -> ReviewedMemory: ...
