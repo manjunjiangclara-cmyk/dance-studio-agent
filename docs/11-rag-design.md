@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-This document records the agreed design for document-based retrieval-augmented generation (RAG). **Ingestion, offline chunking, PostgreSQL embedding preparation, explicit CLI retrieval inspection, offline reranking and grounded generation are implemented.** Chunking exports local inspection files; embedding reads an explicit immutable revision and saves chunks/vectors in PostgreSQL. Documents are not yet published or supplied to the agent. CLI retrieval requires explicit completed embedding runs and a target date. Generation replays saved evidence without database access. The sections below explicitly distinguish existing behavior from planned work.
+This document records the agreed design for document-based retrieval-augmented generation (RAG). **Ingestion, offline chunking, PostgreSQL embedding preparation, explicit CLI retrieval inspection, offline reranking and grounded generation are implemented.** Chunking exports local inspection files; embedding reads an explicit immutable revision and saves chunks/vectors in PostgreSQL. Online document answers are opt-in through an explicit server allowlist of current, complete revisions; uploads alone remain inactive. See [online integration](20-online-document-answers.md). A publication UI and automatic indexing remain deferred. CLI retrieval requires explicit completed embedding runs and a target date. Generation replays saved evidence without database access. The sections below explicitly distinguish existing behavior from planned work.
 
 The initial scope is English Markdown and plain text, up to **10,000,000 bytes per file**, answering specific questions. Whole-document analysis, PDF/DOCX extraction, OCR, external document synchronization, and multi-tenant access are deferred. The sample studio handbook is an example, not the structure every document must follow or an authoritative policy to load automatically.
 
@@ -72,7 +72,7 @@ Semantic boundary detection using another model is deferred. These sizes are ini
 
 ## 3. Embedding
 
-**Implemented preparation:** an explicit revision-pinned CLI uses `text-embedding-3-small` with 1,536 dimensions and a PostgreSQL/pgvector shared cache. See the [embedding guide](13-document-embeddings.md) for setup, paid-call boundaries, lease fencing, recovery, and measurements. Explicit CLI search and query embeddings are implemented; online agent retrieval remains planned. The intended retrieval metric is cosine distance. Questions and document passages use the same model configuration. OpenAI embeddings are unit-normalized; the baseline does not manually truncate or renormalize vectors.
+**Implemented preparation:** an explicit revision-pinned CLI uses `text-embedding-3-small` with 1,536 dimensions and a PostgreSQL/pgvector shared cache. See the [embedding guide](13-document-embeddings.md) for setup, paid-call boundaries, lease fencing, recovery, and measurements. Explicit CLI search and query embeddings are implemented; online agent retrieval is available through the explicit server selection described below. The intended retrieval metric is cosine distance. Questions and document passages use the same model configuration. OpenAI embeddings are unit-normalized; the baseline does not manually truncate or renormalize vectors.
 
 Validate response counts, dimensions, and finite numeric values. Record the model, dimensions, input hash, and preprocessing version. Process at most 64 passages per batch, checkpoint completed work, and keep provider calls outside database write transactions. Reuse unchanged embedding inputs, including their title/heading prefixes, rather than assuming an unchanged body always has an unchanged embedding.
 
@@ -82,7 +82,7 @@ Changing models requires a separately built compatible index, evaluation, and an
 
 ## 4. Retrieval
 
-**Implemented inspection baseline:** an explicit CLI searches selected completed embedding runs using PostgreSQL full-text search plus exact pgvector cosine search, fused with reciprocal rank fusion (RRF). See the [retrieval guide](14-document-retrieval.md). A frozen-corpus experiment now provides local-only planning, explicitly paid fictional-source preparation, and paired keyword/vector/hybrid comparison with invocation-local question-vector reuse and provenance/failed-case reporting. The first real-provider comparison is recorded below. It adds no reranker, publication, search API/UI, or agent access. The publication-filtered online path below remains planned.
+**Implemented inspection baseline:** an explicit CLI searches selected completed embedding runs using PostgreSQL full-text search plus exact pgvector cosine search, fused with reciprocal rank fusion (RRF). See the [retrieval guide](14-document-retrieval.md). A frozen-corpus experiment now provides local-only planning, explicitly paid fictional-source preparation, and paired keyword/vector/hybrid comparison with invocation-local question-vector reuse and provenance/failed-case reporting. The first real-provider comparison is recorded below. It adds no reranker, publication, search API/UI, or agent access. The automatic publication-filtered path below remains planned; the current online adapter uses server-selected runs.
 
 **Measured on 2026-11-07:** real OpenAI embeddings on the frozen fictional handbook achieved held-out Recall@6 of 100% for vector-only and hybrid, versus 27.78% keyword-only (18 answerable questions). Vector-only MRR@6 was 0.9722; hybrid was 0.9444. Both still returned candidates for questions without source answers. See the [live comparison and limitations](14-document-retrieval.md#live-openai-comparison--2026-11-07); these small-fixture results are not a production reliability claim.
 
@@ -106,7 +106,7 @@ For the first publication version, one publication per document is active for ne
 
 **Decision: establish the hybrid baseline before enabling a neural reranker.** RRF combines rankings; it is not a cross-encoder or an LLM reranker.
 
-Keep the initial online path as hybrid retrieval, RRF, and bounded evidence selection. Compare an English cross-encoder offline on the same candidates and held-out questions. Evaluate ranking quality, inference latency, memory, deployment requirements, and input truncation. Choose a particular model only after that comparison. A reranker cannot recover evidence missing from the candidate set.
+The online adapter uses hybrid retrieval, RRF, the selected MiniLM-L6 reranker, and bounded evidence selection. The original evaluation approach was: Compare an English cross-encoder offline on the same candidates and held-out questions. Evaluate ranking quality, inference latency, memory, deployment requirements, and input truncation. Choose a particular model only after that comparison. A reranker cannot recover evidence missing from the candidate set.
 
 Do not enable a cross-encoder merely because the file is large. Adopt it only if the held-out improvement and measured resource costs justify it. LLM reranking is not the default because it adds provider calls and latency. The local runtime is an optional dependency group for offline experiments and is not loaded by ingestion or normal search.
 
@@ -155,7 +155,7 @@ Ingestion already has deterministic unit, PostgreSQL integration, and desktop/mo
 
 **Implemented foundations:** authenticated upload admission before body reads (30/minute per process); a task-scoped 128-entry/5-minute query-vector LRU cache with exact-input/profile identity and concurrent request coalescing; atomic per-attempt request/input/output reservations shared by CLI worker threads; and strict content-free events, optional LangSmith tracing and offline operational summaries. Existing document-vector reuse remains in PostgreSQL. Cache hits still revalidate source eligibility and require explicit paid-mode permission. Neither retrieval results nor student replies are cached. See the [Production controls guide](18-production-controls.md).
 
-**Remaining production work:** publication/retirement lifecycle, authorization for future online retrieval/citation inspection, distributed/global budgets, worker heartbeats and queue monitoring, operational dashboards and backup/retention automation. Multi-tenant isolation needs a separate design. No online RAG or business workflow is enabled by these controls; latency and cost targets still require representative measured workloads.
+**Remaining production work:** publication/retirement lifecycle, a publication registry and finer-grained online authorization, distributed/global budgets, worker heartbeats and queue monitoring, operational dashboards and backup/retention automation. Multi-tenant isolation needs a separate design. These controls alone do not enable sources. The separate online adapter uses explicit server selection and rechecks sources before approval; latency and cost targets still require representative measured workloads.
 
 ## Delivery sequence and acceptance
 
@@ -167,7 +167,7 @@ Ingestion already has deterministic unit, PostgreSQL integration, and desktop/mo
 | 2c. Indexing/publication   | Planned                    | Background scheduling, full-text/vector retrieval indexes, and explicit atomic publication                                            |
 | 3a. Retrieval CLI         | Implemented                | Explicit runs/date, keyword and exact vector search, RRF, bounded parent context, source references, and labelled evaluation tooling |
 | 3b. Owner retrieval preview | Planned                   | Publication-aware owner API/UI and measured live semantic recall                                 |
-| 4. Grounded enquiry drafts | Planned                    | Question-level retrieval, retained passage citations, safe missing-evidence behavior, teacher inspection, and approval-time publication checks   |
+| 4. Grounded enquiry drafts | Implemented, opt-in                    | Question-level retrieval, retained passage citations, safe missing-evidence behavior, teacher inspection, and approval-time selected-source checks   |
 | 5. Quality and operations | Offline foundations implemented; online lifecycle deferred | Existing evaluations and measurements, task cache/budget/tracing controls; no production quality or unmeasured SLA claim |
 
 Implement incrementally. Later milestones may refine interfaces after evaluation, but must not silently change the business-authority boundary, expose unpublished content, or relabel planned work as implemented.
@@ -180,3 +180,9 @@ Implement incrementally. Later milestones may refine interfaces after evaluation
 - [pgvector: hybrid search and vector indexing](https://github.com/pgvector/pgvector)
 - [Sentence Transformers: retrieve and rerank](https://www.sbert.net/examples/sentence_transformer/applications/retrieve_rerank/README.html)
 - [Ragas: faithfulness](https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/faithfulness/)
+
+## Online document answers
+
+[The online adapter](20-online-document-answers.md) connects interpreted enquiry and handoff questions to hybrid capture, local MiniLM-L6, six passages with parent expansion, and existing v1 generation. It composes validated claims directly into a teacher-reviewed draft. In this opt-in document path, live-record and incomplete answers need teacher confirmation; the disabled default preserves existing tool exploration. Makeup execution remains on the deterministic workflow. No extra tables, indexing jobs, publication UI, automatic email delivery or v2 prompt are introduced.
+
+The server allowlist is a transitional activation boundary, not an implementation of the background publication lifecycle above. A changed current revision invalidates the selected old run until an operator prepares and selects the new revision. Deletion/revocation/expiry blocks new use and approval of retained document claims; historical review evidence remains available through existing authenticated run APIs.

@@ -184,7 +184,7 @@ test("knowledge navigation protects unsaved rules and preserves old links", asyn
   await page.getByRole("button", { name: /leave/i }).click();
   await expect(page).toHaveURL(/\/workspace\/knowledge\/documents$/);
   await expect(
-    page.getByText(/Documents are not yet used by the agent/),
+    page.getByText(/Uploading does not enable a document/),
   ).toBeVisible();
   await page.goto("/workspace/documents");
   await expect(page).toHaveURL(/\/workspace\/knowledge\/documents$/);

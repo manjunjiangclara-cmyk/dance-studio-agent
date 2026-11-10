@@ -62,7 +62,7 @@ class Document(Record, Base):
 
 
 class DocumentRevision(Record, Base):
-    """Immutable source snapshot. Documents remain outside the agent knowledge base."""
+    """Immutable source snapshot. Online use requires explicit server selection."""
 
     __tablename__ = "document_revisions"
     __table_args__ = (

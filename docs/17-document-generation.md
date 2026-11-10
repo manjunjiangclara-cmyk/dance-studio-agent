@@ -65,7 +65,7 @@ Coverage regexes are lexical diagnostics. Final fact support requires independen
 | `evaluation.py` | Frozen-set preflight, streaming exports, diagnostic metrics and review |
 | `__main__.py` | Offline command-line interface and paid gate |
 
-Source-retirement validation during future approval, live business facts, publication/ACL policy and UI integration remain future work. This offline artifact experiment does not establish production safety.
+The separate [online adapter](20-online-document-answers.md) now checks retained document sources during teacher approval and renders citation details in the existing review UI. This CLI remains unchanged. Automatic publication, live business evidence in document generation and end-to-end quality measurement remain future work. This offline artifact experiment does not establish production safety.
 
 ## Measured experiment — 2026-11-08
 
