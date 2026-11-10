@@ -1,6 +1,6 @@
 # Tests and evaluations: consolidated summary
 
-This page indexes implementation checks, performance measurements and real model evaluations. **Passing fake-model tests proves code behavior, not semantic answer quality.** Paid/live evaluations are separate from normal CI. Documents remain unavailable to the agent; reranking and grounded generation are offline experiments.
+This page indexes implementation checks, performance measurements and real model evaluations. **Passing fake-model tests proves code behavior, not semantic answer quality.** Paid/live evaluations are separate from normal CI. Documents remain disabled by default; a separately configured online adapter can retrieve approved revisions for teacher-reviewed drafts. The existing measured semantic evaluations remain offline experiments.
 
 ## Automated checks
 
@@ -109,3 +109,13 @@ See [Production controls and operating limits](18-production-controls.md). Cache
 ## Other paid agent evaluations
 
 Email-drafting and business-workflow evaluations live in `backend/evaluations/` and `backend/workflow_evaluations/`, separately from pytest. The [agent guide](08-agent-api.md) documents opt-in execution and graders. Their model understanding, booking behavior and teacher-review results must be assessed separately from document retrieval. They were not rerun merely to add offline reranking, and this page makes no new claim about their current live quality.
+
+## Online document-answer integration — 2026-11-09
+
+The opt-in [online adapter](20-online-document-answers.md) now handles interpreted questions through hybrid capture, MiniLM-L6, parent expansion, v1 generation and exact citation checks before teacher review. It introduces no new tables or public answer endpoint. The source allowlist is server configuration; uploading/indexing alone never activates a document.
+
+The final full backend suite passed **1,084 tests** (112.07 seconds), including all dedicated PostgreSQL integration tests. New regression coverage: **36 passing tests**, comprising **23 unit tests** (12 independently designed/reviewed) and **13 real PostgreSQL workflow tests**. Checks cover disabled/makeup behavior, configuration, query identity privacy, initialized-once local resources, owned SDK cleanup, shared request/token limits, preserved unknown usage, per-question citations/teacher answers, incoming-email automatic retrieval, exact Unicode/CRLF ranges, partial/invalid-quote review, date-ineligible zero calls, source deletion during generation, and approval after deletion/replacement/disable/revocation/expiry/incomplete indexing. A concurrent PostgreSQL test proves replacement is blocked while approval holds source locks.
+
+**94 desktop/mobile Playwright tests passed**, including four new checks for readable revision-bound citations, HTML-looking quotes rendered as inert text, and preserving local reply edits after a stale-source 409. Ruff lint/format, frontend format/build, dependency-lock consistency, Markdown local-link checks and Alembic schema parity passed. The frontend and backend were refreshed on the existing ports; health, the same-origin auth proxy and updated built assets were verified. No migrations, seeds or environment-file changes were applied to the running application.
+
+All new inference providers are fake; **no paid embedding/generation evaluation or real neural inference was run**. These results establish integration behavior and regression protection, not live semantic support, recall, latency or teacher acceptance. The v1 prompt and default-off verifier are unchanged. Existing measured offline quality results above retain their original scope. The inspected local application database contains no documents or completed runs, so online document answers remain disabled until approved sources are supplied and configured.

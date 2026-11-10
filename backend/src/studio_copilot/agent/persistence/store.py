@@ -224,6 +224,15 @@ class WorkflowStore:
             run = _active_run(db, run_id)
             # A retry after storing the response reuses it before reconciling memory.
             if run.approved_response_id is None:
+                from studio_copilot.documents.online import OnlineError, require_current_sources
+
+                try:
+                    require_current_sources(db, run)
+                except OnlineError:
+                    conflict(
+                        "Document sources changed or were disabled. "
+                        "Regenerate the draft before approval."
+                    )
                 require_resolved_questions(run)
                 proposal = run.draft_details.get("booking_session_id")
                 if proposal:

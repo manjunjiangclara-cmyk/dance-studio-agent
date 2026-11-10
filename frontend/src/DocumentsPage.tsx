@@ -281,7 +281,7 @@ export function DocumentsPage({
       setOriginal(next);
       setDraft(next);
       setConflict(false);
-      setMessage("Document saved. Not published or used by the agent.");
+      setMessage("Document saved. Uploading does not enable it for answers.");
       try {
         await loadDocument(value.id);
       } catch {
@@ -364,8 +364,8 @@ export function DocumentsPage({
         <div>
           <h2>Documents</h2>
           <p>
-            Manage studio reference material. Documents are not yet used by the
-            agent.
+            Manage studio reference material. Uploading does not enable a
+            document for answers.
           </p>
         </div>
       </div>

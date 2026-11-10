@@ -46,6 +46,8 @@ python -m studio_copilot.documents.retrieval search \
 
 ## Operational telemetry and summaries
 
+See [Tracing and observability](19-tracing-and-observability.md) for fields, trace differences and troubleshooting.
+
 Explicit stage events cover ingestion, embedding, retrieval, local reranking and generation. An opaque operation UUID correlates one task. Allowed stage names are `operation`, `api`, `budget`, `cache`, and `context`. Events contain only fixed operation/stage/status/error categories, finite nonnegative durations, and nonnegative counts: attempts, retries, tokens/unknown usage, cache hits/misses/waits, candidates, evidence tokens, truncations and items. Unused counters are not fabricated. Budget configuration/actual accounting also accompany execution artifacts.
 
 Neither log/trace events nor aggregate summaries include questions, document text, filenames, student identities, prompts, answers, cache keys/vectors, tool payloads, source IDs or exception text. Existing evidence and evaluation exports intentionally contain source material for controlled local inspection: they are not operational logs. Keep sensitive exports private and avoid shell history for sensitive CLI query arguments.

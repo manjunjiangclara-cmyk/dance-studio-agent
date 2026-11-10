@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 class State(TypedDict, total=False):
     """Checkpoint payload shared by graph nodes; values stay JSON-serializable."""
 
+    document_answers_enabled: bool
     run_id: str
     context: dict
     interpretation: dict

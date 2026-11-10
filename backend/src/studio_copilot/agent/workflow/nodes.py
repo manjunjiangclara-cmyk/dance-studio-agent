@@ -17,6 +17,7 @@ from studio_copilot.agent.contracts import (
     Routing,
     State,
 )
+from studio_copilot.agent.document_answers import document_draft
 from studio_copilot.agent.enquiry import safe_body, validate_answers
 from studio_copilot.agent.makeup import clarification_body, validated_candidate_ids
 from studio_copilot.agent.persistence.store import WorkflowStore
@@ -227,7 +228,9 @@ class WorkflowNodes:
             ),
         }
         try:
-            draft = self.model.draft(context)
+            draft = document_draft(state)
+            if draft is None:
+                draft = self.model.draft(context)
         except ModelError:
             draft = _fallback_draft(state)
         draft = _validate_booking_proposal(

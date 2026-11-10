@@ -39,6 +39,15 @@ class QueryRunner:
                     ],
                     "warnings": [warning],
                 }
+        from studio_copilot.documents.online import gather as gather_documents
+
+        document_result = gather_documents(self.engine, state)
+        if document_result is not None:
+            if state.get("question_resolutions"):
+                document_result["evidence"].append(
+                    resolution_evidence(state["question_resolutions"])
+                )
+            return dict(document_result, document_answers_enabled=True)
         context = {
             **state["context"],
             "interpretation": state["interpretation"],
@@ -121,7 +130,7 @@ class QueryRunner:
                     },
                 }
             )
-        return {"evidence": evidence, "warnings": warnings}
+        return {"evidence": evidence, "warnings": warnings, "document_answers_enabled": False}
 
     @staticmethod
     def _execute_call(db, context: dict, call: ToolCall, seen: set[str]) -> dict | None:

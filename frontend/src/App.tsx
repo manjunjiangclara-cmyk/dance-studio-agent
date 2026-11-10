@@ -47,6 +47,7 @@ import { all, ApiError, examples, get, post, request } from "./data";
 import { confirmedSessions } from "./attendance";
 import { PolicyPage } from "./PolicyPage";
 import { DocumentsPage } from "./DocumentsPage";
+import { DocumentAnswerEvidence } from "./DocumentAnswerEvidence";
 import { ClassificationPanel, IntentBadges } from "./Classification";
 import { EnquiryPanel, missingTeacherDecisions } from "./EnquiryPanel";
 import type { QuestionResolution } from "./types";
@@ -1079,6 +1080,11 @@ function ReviewDetail({ id }: { id: string }) {
     }
     if (kind === "policy")
       return { raw, label: "Studio policy used for this draft" };
+    if (kind === "document")
+      return {
+        raw,
+        label: `Document citation [${id}] · See supporting evidence`,
+      };
     if (kind === "teacher_answer" || kind === "teacher_deferral") {
       const question = run.draft_details.answers?.find(
         (answer) => answer.question_id === id,
@@ -1648,6 +1654,9 @@ function ReviewDetail({ id }: { id: string }) {
                       >
                         View session <ArrowUpRight size={13} />
                       </Link>
+                    )}
+                    {item.tool === "document_answer" && (
+                      <DocumentAnswerEvidence result={item.result} />
                     )}
                     <details>
                       <summary>Inspect result</summary>

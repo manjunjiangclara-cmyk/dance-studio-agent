@@ -791,3 +791,92 @@ test("applied decision disappears while unanswered questions remain and can be c
     feeAnswer,
   );
 });
+
+test("document answers show revision-bound quotes as safe text", async ({
+  page,
+}) => {
+  const run = structuredClone(example);
+  const quote = '<img src=x onerror="window.__documentInjected=true"> Café 💃';
+  run.evidence = [
+    {
+      tool: "document_answer",
+      finding: "What does a trial cost?",
+      result: {
+        status: "answered",
+        as_of: "2026-11-09",
+        answer: "A trial costs $20. [Etrial]",
+        missing_information: [],
+        references: ["document:Etrial"],
+        claims: [
+          {
+            text: "A trial costs $20.",
+            citations: [
+              {
+                evidence_id: "Etrial",
+                title: "Trial handbook",
+                revision: 3,
+                document_id: "00000000-0000-0000-0000-000000000001",
+                start: 20,
+                end: 80,
+                quote,
+              },
+            ],
+          },
+        ],
+      },
+    },
+  ];
+  run.draft_details.references = ["document:Etrial"];
+  await mockOwner(page, run);
+  await page.goto(`/workspace/reviews/${run.id}`);
+  await page
+    .getByText("Student, classification and supporting evidence", {
+      exact: true,
+    })
+    .click();
+  const evidence = page.getByRole("region", {
+    name: "Document answer and citations",
+  });
+  // section receives an accessible region name from aria-label.
+  await expect(evidence).toContainText("Trial handbook");
+  await expect(evidence).toContainText("Revision 3");
+  await expect(evidence).toContainText("Characters 20–80");
+  await expect(evidence.locator("blockquote")).toHaveText(quote);
+  await expect(evidence.locator("img")).toHaveCount(0);
+  expect(
+    await page.evaluate(() => Reflect.get(window, "__documentInjected")),
+  ).toBeUndefined();
+});
+
+test("source-change approval conflict preserves the teacher's edited reply", async ({
+  page,
+}) => {
+  const run = structuredClone(example);
+  run.draft_details.answers = [];
+  run.draft_details.required_question_ids = [];
+  run.draft_details.questions = [];
+  await mockOwner(page, run, (request) =>
+    request?.action === "approve"
+      ? {
+          status: 409,
+          json: {
+            detail:
+              "Document sources changed or were disabled. Regenerate the draft before approval.",
+          },
+        }
+      : undefined,
+  );
+  await page.goto(`/workspace/reviews/${run.id}`);
+  const reply = page.getByLabel("Final response", { exact: true });
+  await reply.fill("My local teacher edits must stay here.");
+  await page
+    .getByRole("button", { name: "Approve and save response", exact: true })
+    .click();
+  await expect(
+    page.getByText(
+      "Document sources changed or were disabled. Regenerate the draft before approval.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(reply).toHaveValue("My local teacher edits must stay here.");
+});
