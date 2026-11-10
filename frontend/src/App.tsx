@@ -829,6 +829,9 @@ function ReviewDetail({ id }: { id: string }) {
     [actionError, setActionError] = useState<Error>();
   const [message, setMessage] = useState("");
   const [confirmReplaceEdits, setConfirmReplaceEdits] = useState(false);
+  const [revisionKind, setRevisionKind] = useState<"revise" | "regenerate">(
+    "revise",
+  );
   const [resolutionEdits, setResolutionEdits] = useState<
     Record<string, QuestionResolution>
   >({});
@@ -884,7 +887,9 @@ function ReviewDetail({ id }: { id: string }) {
     return () => window.removeEventListener("beforeunload", handler);
   }, [dirty]);
   const blocker = useBlocker(dirty);
-  async function action(action: "approve" | "revise" | "reject" | "retry") {
+  async function action(
+    action: "approve" | "revise" | "regenerate" | "reject" | "retry",
+  ) {
     if (!value || busy) return;
     setBusy(true);
     setActionError(undefined);
@@ -896,12 +901,13 @@ function ReviewDetail({ id }: { id: string }) {
         action === "retry"
           ? undefined
           : {
-              action,
+              action: action === "regenerate" ? "revise" : action,
               expected_revision: revision.current,
               ...(action === "approve"
                 ? { body: draft }
-                : action === "revise"
+                : action === "revise" || action === "regenerate"
                   ? {
+                      ...(action === "regenerate" ? { regenerate: true } : {}),
                       ...(feedback.trim() ? { feedback } : {}),
                       ...(Object.keys(resolutionEdits).length
                         ? {
@@ -909,7 +915,8 @@ function ReviewDetail({ id }: { id: string }) {
                               Object.values(resolutionEdits),
                           }
                         : {}),
-                      ...(!feedback.trim() &&
+                      ...(action === "revise" &&
+                      !feedback.trim() &&
                       !Object.keys(resolutionEdits).length
                         ? {
                             feedback:
@@ -948,7 +955,7 @@ function ReviewDetail({ id }: { id: string }) {
             ? "The run needs attention. Inspect its current state before retrying."
             : result.status === "finalizing"
               ? "The response is stored. Student memory is still being reconciled."
-              : action === "revise"
+              : action === "revise" || action === "regenerate"
                 ? "A new draft revision is ready."
                 : action === "reject"
                   ? "Review closed without approving a response."
@@ -1100,12 +1107,13 @@ function ReviewDetail({ id }: { id: string }) {
   });
   const draftEditsPending =
     canReview && draft !== (run.draft_details.body || "");
-  function requestRevision() {
+  function requestRevision(kind: "revise" | "regenerate") {
     if (draftEditsPending) {
+      setRevisionKind(kind);
       setConfirmReplaceEdits(true);
       return;
     }
-    void action("revise");
+    void action(kind);
   }
   const approvalBlockedReason = busy
     ? "A review action is in progress."
@@ -1176,8 +1184,9 @@ function ReviewDetail({ id }: { id: string }) {
           >
             <h2 id="replace-draft-title">Replace your text edits?</h2>
             <p>
-              Updating the draft will replace the response text you edited. Your
-              teacher answers and change prompt will be sent to the copilot.
+              {revisionKind === "regenerate"
+                ? "Regenerating will replace the response text you edited. Your teacher answers and change prompt will be sent to the copilot."
+                : "Updating the draft will replace the response text you edited. Your teacher answers and change prompt will be sent to the copilot."}
             </p>
             <div className="button-row">
               <button
@@ -1191,10 +1200,12 @@ function ReviewDetail({ id }: { id: string }) {
                 className="button primary"
                 onClick={() => {
                   setConfirmReplaceEdits(false);
-                  void action("revise");
+                  void action(revisionKind);
                 }}
               >
-                Replace and update draft
+                {revisionKind === "regenerate"
+                  ? "Replace and regenerate response"
+                  : "Replace and update draft"}
               </button>
             </div>
           </div>
@@ -1292,9 +1303,10 @@ function ReviewDetail({ id }: { id: string }) {
               </p>
             </>
           ) : canReview ? (
-            <label className="editor-label">
-              Final response
+            <div className="editor-label">
+              <label htmlFor="final-response">Final response</label>
               <textarea
+                id="final-response"
                 aria-label="Final response"
                 maxLength={20000}
                 value={draft}
@@ -1310,7 +1322,15 @@ function ReviewDetail({ id }: { id: string }) {
                   ? "Your wording edits are saved when you approve. Updating the draft will ask before replacing them."
                   : "Edit the wording here, or ask the copilot to change it below."}
               </small>
-            </label>
+              <button
+                className="button secondary"
+                disabled={busy || pendingInvalid}
+                onClick={() => requestRevision("regenerate")}
+              >
+                <RefreshCw size={14} />
+                Regenerate response
+              </button>
+            </div>
           ) : (
             <div className="saved-response prose">
               {run.draft_details.body ||
@@ -1390,7 +1410,7 @@ function ReviewDetail({ id }: { id: string }) {
                   pendingInvalid ||
                   (!feedback.trim() && !pendingChoices && !legacyQuestions)
                 }
-                onClick={requestRevision}
+                onClick={() => requestRevision("revise")}
               >
                 <RefreshCw size={14} />
                 Update draft

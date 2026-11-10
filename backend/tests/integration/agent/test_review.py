@@ -13,6 +13,26 @@ from .helpers import review, start
 pytestmark = pytest.mark.integration
 
 
+def test_makeup_response_can_regenerate_without_feedback(rig, scenario, db_engine):
+    client, model, _, _ = rig
+    run = start(rig, scenario)
+
+    response = review(client, run, "revise", regenerate=True)
+    assert response.status_code == 200, response.text
+    regenerated = response.json()
+    assert regenerated["status"] == "awaiting_review"
+    assert regenerated["revision"] == run["revision"] + 1
+    assert regenerated["draft_message_id"] != run["draft_message_id"]
+    assert regenerated["approved_response_id"] is None
+    assert model.query_count == 0  # Makeup lookups remain deterministic.
+    with Session(db_engine) as db:
+        assert db.get(AgentRun, UUID(run["id"])).approved_response_id is None
+        assert {message.kind for message in db.scalars(select(Message))} == {
+            "student_email",
+            "assistant_draft",
+        }
+
+
 def test_revision_is_explicit_and_rejection_leaves_no_record_or_checkpoint(
     rig, scenario, db_engine
 ):

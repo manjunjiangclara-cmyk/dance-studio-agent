@@ -179,8 +179,15 @@ class AgentService:
                 if latest_email(db, run.conversation_id).id != run.source_message_id:
                     conflict("A newer student email has superseded this draft.")
             if review.action == "revise":
-                if not review.feedback and not review.question_resolutions:
-                    invalid("Revision requires teacher feedback or a question answer/deferral.")
+                if (
+                    not review.feedback
+                    and not review.question_resolutions
+                    and not review.regenerate
+                ):
+                    invalid(
+                        "Revision requires teacher feedback, a question decision, "
+                        "or a regeneration request."
+                    )
                 validate_resolution_update(
                     run.interpretation,
                     run.draft_details,

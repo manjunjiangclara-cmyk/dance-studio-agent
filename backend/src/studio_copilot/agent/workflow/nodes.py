@@ -299,7 +299,9 @@ class WorkflowNodes:
 
     def revision(self, state: State) -> dict:
         feedback = state["decision"].get("feedback") or ""
-        if state.get("flow") != "makeup" and state.get("feedback"):
+        if state.get("feedback") and not feedback:
+            feedback = state["feedback"]
+        elif state.get("flow") != "makeup" and state.get("feedback"):
             feedback = (
                 state["feedback"]
                 + "\n\nLatest teacher feedback (supersedes conflicting earlier feedback):\n"
