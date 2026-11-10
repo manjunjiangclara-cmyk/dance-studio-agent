@@ -27,7 +27,7 @@ from studio_copilot.documents.generation.evidence import (
     seal_artifact,
     validate_artifact,
 )
-from studio_copilot.documents.generation.provider import GenerationProvider
+from studio_copilot.documents.generation.provider import PROMPT_VERSION, GenerationProvider
 from studio_copilot.documents.operations import Limits, instrument, task
 from studio_copilot.documents.reranking.capture import capture
 from studio_copilot.documents.reranking.runtime import LocalReranker
@@ -338,7 +338,7 @@ def question_answer(
         warnings=warnings,
         model=result["model"],
         verification_applied=False,
-        prompt_version="grounded-generation-v1",
+        prompt_version=PROMPT_VERSION,
     )
 
 

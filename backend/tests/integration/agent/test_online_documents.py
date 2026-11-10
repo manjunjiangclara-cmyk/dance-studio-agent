@@ -175,10 +175,12 @@ def test_question_automatically_gets_exact_citations_and_remains_a_draft(
     result = run["evidence"][0]["result"]
     assert len(writer.calls) == len(vectors.calls) == 1
     assert result["status"] == "answered" and result["verification_applied"] is False
-    assert "[E" in run["draft_details"]["body"]
+    assert "[E" not in run["draft_details"]["body"]
+    assert all("[E" not in answer["answer"] for answer in run["draft_details"]["answers"])
     citation = result["claims"][0]["citations"][0]
     assert TEXT[citation["start"] : citation["end"]] == citation["quote"]
     assert citation["document_id"] == str(document_id) and citation["revision"] == 1
+    assert "document:" + citation["evidence_id"] in run["draft_details"]["references"]
     assert result["evidence"][0]["text"].endswith(TEXT)
     assert run["approved_response_id"] is None
     response = review(rig[0], run, "approve")
@@ -304,7 +306,8 @@ def test_incoming_email_automatically_retrieves_without_a_separate_search_reques
     assert response.status_code == 200, response.text
     run = response.json()
     assert run["status"] == "awaiting_review"
-    assert "[E" in run["draft_details"]["body"]
+    assert "[E" not in run["draft_details"]["body"]
+    assert all("[E" not in answer["answer"] for answer in run["draft_details"]["answers"])
     assert len(writer.calls) == len(vectors.calls) == 1
     assert run["approved_response_id"] is None
 
