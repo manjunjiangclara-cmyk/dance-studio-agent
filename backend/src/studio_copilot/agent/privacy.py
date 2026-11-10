@@ -10,6 +10,15 @@ import unicodedata
 from uuid import UUID
 
 EMAIL = re.compile(r"[\w.!#$%&'*+/=?^`{|}~\-]+@[\w\-]+(?:\.[\w\-]+)+", re.UNICODE)
+UNKNOWN_GREETING = re.compile(
+    r"(?im)^(\s*(?:hi|hello|dear|hey)\s+)(?:new enquirer|new|enquirer)(?=[!,\.\s]|$)"
+)
+
+
+def normalize_unknown_greeting(body: str, student: dict) -> str:
+    if str(student.get("name") or "").strip().casefold() != "new enquirer":
+        return body
+    return UNKNOWN_GREETING.sub(r"\1there", body)
 
 
 def _normalized(value: str) -> str:

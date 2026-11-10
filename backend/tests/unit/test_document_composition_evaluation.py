@@ -76,3 +76,31 @@ def test_composition_evaluation_rejects_each_negative_verdict(monkeypatch, faile
     monkeypatch.setattr(model, "_parse", parse)
     with pytest.raises(ModelError):
         model.compose_document_email({"answers": [], "question_resolutions": []})
+
+
+def test_unknown_sender_uses_neutral_greeting_through_privacy_adapter(monkeypatch):
+    from types import SimpleNamespace
+
+    from studio_copilot.agent.contracts import DocumentEmail, DocumentEmailCheck
+
+    client = SimpleNamespace(responses=SimpleNamespace(parse=object()))
+    model = OpenAIModel(client=client, model="test-model")
+    responses = iter(
+        [
+            DocumentEmail(body="Hi New enquirer,\n\nA trial is $20."),
+            DocumentEmailCheck(supported=True, complete=True, decisions_preserved=True),
+        ]
+    )
+    monkeypatch.setattr(
+        model, "_request", lambda *args, **kwargs: SimpleNamespace(output_parsed=next(responses))
+    )
+    context = {
+        "student": {"name": "New enquirer", "email": "unknown@example.com"},
+        "source": {"body": "How much is a trial?"},
+        "answers": [{"question": "Trial cost?", "status": "answered", "answer": "$20."}],
+        "question_resolutions": [],
+        "requested_actions": [],
+    }
+    body = model.compose_document_email(context)
+    assert body.startswith("Hi there,")
+    assert "New enquirer" not in body

@@ -21,6 +21,7 @@ from studio_copilot.agent.document_answers import EVIDENCE_MARKER, document_draf
 from studio_copilot.agent.enquiry import safe_body, validate_answers
 from studio_copilot.agent.makeup import clarification_body, validated_candidate_ids
 from studio_copilot.agent.persistence.store import WorkflowStore
+from studio_copilot.agent.privacy import normalize_unknown_greeting
 from studio_copilot.agent.proposals import confirmation_body
 from studio_copilot.agent.question_resolutions import (
     RevisionExtractionError,
@@ -253,6 +254,8 @@ class WorkflowNodes:
             }
             try:
                 body = self.model.compose_document_email(composition_context)
+                if isinstance(body, str):
+                    body = normalize_unknown_greeting(body, composition_context["student"])
                 if (
                     not isinstance(body, str)
                     or not body.strip()
@@ -260,6 +263,11 @@ class WorkflowNodes:
                     or EVIDENCE_MARKER.search(body)
                     or "teacher_answer:" in body
                     or "teacher_deferral:" in body
+                    or (
+                        str(composition_context["student"].get("name") or "").strip().casefold()
+                        == "new enquirer"
+                        and "new enquirer" in body.casefold()
+                    )
                 ):
                     raise ModelError("The composed email is invalid.")
                 draft.body = body.strip()
