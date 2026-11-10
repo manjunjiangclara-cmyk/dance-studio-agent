@@ -203,6 +203,37 @@ def test_question_automatically_gets_exact_citations_and_remains_a_draft(
     assert response.json()["status"] == "approved"
 
 
+def test_regenerate_after_document_failure_uses_new_cited_answer(
+    online_rig, rig, scenario, monkeypatch
+):
+    _, _, writer, _ = online_rig
+    generate = writer.generate
+    attempts = 0
+
+    def fail_once(payload):
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise RuntimeError("Temporary document provider failure")
+        return generate(payload)
+
+    monkeypatch.setattr(writer, "generate", fail_once)
+    first = start(rig, scenario)
+    assert first["evidence"][0]["result"]["status"] == "failed"
+    assert first["draft_details"]["answers"][0]["status"] == "needs_teacher"
+    assert first["draft_details"]["required_question_ids"]
+
+    response = review(rig[0], first, "revise", regenerate=True)
+    assert response.status_code == 200, response.text
+    revised = response.json()
+    assert attempts == 2
+    assert revised["evidence"][0]["result"]["status"] == "answered"
+    assert revised["draft_details"]["answers"][0]["status"] == "answered"
+    assert revised["draft_details"]["required_question_ids"] == []
+    assert revised["draft_details"]["references"]
+    assert "A trial costs $20." in revised["draft_details"]["body"]
+
+
 @pytest.mark.parametrize(
     "mutation", ["delete", "replace", "disable", "revoke", "expire", "incomplete"]
 )

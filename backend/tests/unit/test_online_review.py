@@ -80,6 +80,38 @@ def test_teacher_answer_remains_scoped_and_does_not_fill_other_question():
     assert draft.body.count("TEACHER_FIRST_QUESTION_ONLY") == 1
 
 
+def test_regeneration_clears_prior_document_failure_when_new_answers_are_cited():
+    value = state()
+    questions = value["interpretation"]["questions"]
+    question_ids = value["interpretation"]["question_ids"]
+    value["draft"] = dict(
+        required_question_ids=list(question_ids.values()),
+        answers=[dict(question=question, status="needs_teacher") for question in questions],
+    )
+    value["evidence"] = [result_evidence(value, index) for index in range(2)]
+
+    draft = validate_answers(document_draft(value), value)
+
+    assert all(answer.status == "answered" for answer in draft.answers)
+    assert draft.required_question_ids == []
+    assert draft.references == ["document:0-0", "document:1-0"]
+    assert "Supported answer 0." in draft.body
+    assert "Supported answer 1." in draft.body
+
+
+def test_regeneration_keeps_current_unanswered_document_question_in_review():
+    value = state()
+    value["draft"] = dict(
+        required_question_ids=list(value["interpretation"]["question_ids"].values())
+    )
+    value["evidence"] = [result_evidence(value, 0), result_evidence(value, 1, status="failed")]
+
+    draft = validate_answers(document_draft(value), value)
+
+    assert [answer.status for answer in draft.answers] == ["answered", "needs_teacher"]
+    assert draft.required_question_ids == [value["interpretation"]["question_ids"]["Question 1?"]]
+
+
 @pytest.mark.parametrize("status", ["partial", "needs_clarification", "abstained", "failed"])
 def test_noncomplete_results_stay_reviewable_and_out_of_final_claims(status):
     value = state(1)
