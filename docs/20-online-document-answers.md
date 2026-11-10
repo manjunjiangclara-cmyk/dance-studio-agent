@@ -26,7 +26,7 @@ uv sync --locked --group rerank
 # Follow the chunking and reranking guides to prepare and verify local assets.
 ```
 
-Install the `rerank` dependency group in the virtual environment that actually runs the backend. If it is missing, affected supporting evidence reports `reranker_dependency_missing` and the draft stays in teacher review. After installing the group and restarting that backend, retry the run; no document citations were collected by the failed attempt.
+Install the `rerank` dependency group in the virtual environment that actually runs the backend. If it is missing, affected supporting evidence reports `reranker_dependency_missing` and the draft stays in teacher review. After installing the group and restarting that backend, use **Regenerate response** in the review; no document citations were collected by the failed attempt.
 
 Set these in the private server environment and restart the backend:
 

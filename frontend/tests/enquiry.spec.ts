@@ -969,7 +969,7 @@ test("missing reranker dependencies explain failed supporting evidence", async (
       },
     },
   ];
-  await mockOwner(page, run);
+  const { reviews, writes } = await mockOwner(page, run);
   await page.goto(`/workspace/reviews/${run.id}`);
   await page
     .getByText("Student, classification and supporting evidence", {
@@ -981,7 +981,14 @@ test("missing reranker dependencies explain failed supporting evidence", async (
   });
   await expect(evidence).toContainText("Document answer: failed");
   await expect(evidence).toContainText("missing local reranker dependencies");
-  await expect(evidence).toContainText("retry this run");
+  await expect(evidence).toContainText("Regenerate response");
+  await expect(
+    page.getByRole("button", { name: "Retry this run" }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Regenerate response" }).click();
+  await expect.poll(() => reviews.length).toBe(1);
+  expect(reviews[0]).toMatchObject({ action: "revise", regenerate: true });
+  expect(writes).toContain(`/agent-runs/${run.id}/review`);
 });
 
 test("source-change approval conflict preserves the teacher's edited reply", async ({
