@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useBlocker } from "react-router-dom";
+import { useBlocker, useSearchParams } from "react-router-dom";
 import { ApiError, request } from "./data";
 import "./documents.css";
 
@@ -66,6 +66,10 @@ export function DocumentsPage({
   workspace: boolean;
   csrf: string;
 }) {
+  const [searchParams] = useSearchParams();
+  const linkedDocument = workspace ? searchParams.get("document") : null;
+  const linkedRevision = searchParams.get("revision");
+  const linkedOffset = searchParams.get("offset");
   const [documents, setDocuments] = useState<Summary[]>();
   const [saved, setSaved] = useState<Summary>();
   const [original, setOriginal] = useState<Draft>();
@@ -144,7 +148,10 @@ export function DocumentsPage({
     setError((err as Error).message);
     setConflict(err instanceof ApiError && err.status === 409);
   }
-  async function loadDocument(id: string) {
+  async function loadDocument(
+    id: string,
+    target?: { revision: number; offset: number },
+  ) {
     const value = workspace
       ? await request<Summary>(`${root}/${id}/metadata`)
       : example;
@@ -166,9 +173,11 @@ export function DocumentsPage({
         409,
       );
     }
+    if (target && !history.some((item) => item.revision === target.revision))
+      throw new Error("The cited document revision is no longer available.");
     const first = workspace
       ? await request<Preview>(
-          `${root}/${id}/revisions/${value.current_revision}/preview`,
+          `${root}/${id}/revisions/${target?.revision ?? value.current_revision}/preview?offset=${target?.offset ?? 0}`,
         )
       : {
           revision: 1,
@@ -188,6 +197,31 @@ export function DocumentsPage({
     setPreviousOffsets([]);
     setConflict(false);
   }
+  useEffect(() => {
+    if (!linkedDocument) return;
+    const revision = Number(linkedRevision);
+    const offset = Number(linkedOffset);
+    if (
+      !linkedRevision ||
+      !linkedOffset ||
+      !Number.isSafeInteger(revision) ||
+      revision < 1 ||
+      !Number.isSafeInteger(offset) ||
+      offset < 0
+    ) {
+      setError("This document citation link is invalid.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    void loadDocument(linkedDocument, { revision, offset })
+      .catch(fail)
+      .finally(() => setBusy(false));
+  }, [linkedDocument, linkedRevision, linkedOffset]);
+  useEffect(() => {
+    if (linkedDocument && preview)
+      document.getElementById("revision-preview")?.scrollIntoView();
+  }, [linkedDocument, preview?.revision, preview?.offset]);
   async function selectDocument(id: string) {
     if (
       dirty &&
@@ -712,7 +746,11 @@ export function DocumentsPage({
         </form>
       )}
       {saved && preview && (
-        <section className="panel policy-form" aria-label="Revision preview">
+        <section
+          className="panel policy-form"
+          aria-label="Revision preview"
+          id="revision-preview"
+        >
           <h2>Saved revision preview</h2>
           {revisions.length > 0 && (
             <label>

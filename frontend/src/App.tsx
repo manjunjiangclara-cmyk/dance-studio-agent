@@ -47,7 +47,11 @@ import { all, ApiError, examples, get, post, request } from "./data";
 import { confirmedSessions } from "./attendance";
 import { PolicyPage } from "./PolicyPage";
 import { DocumentsPage } from "./DocumentsPage";
-import { DocumentAnswerEvidence } from "./DocumentAnswerEvidence";
+import {
+  DocumentAnswerEvidence,
+  documentCitations,
+  documentCitationUrl,
+} from "./DocumentAnswerEvidence";
 import { ClassificationPanel, IntentBadges } from "./Classification";
 import { EnquiryPanel, missingTeacherDecisions } from "./EnquiryPanel";
 import type { QuestionResolution } from "./types";
@@ -1024,6 +1028,14 @@ function ReviewDetail({ id }: { id: string }) {
         (action): action is string => typeof action === "string",
       )
     : [];
+  const citedDocuments = new Map<string, Record<string, unknown>>();
+  for (const item of run.evidence) {
+    if (item.tool !== "document_answer") continue;
+    for (const citation of documentCitations(item.result)) {
+      if (typeof citation.evidence_id === "string")
+        citedDocuments.set(citation.evidence_id, citation);
+    }
+  }
   const references: {
     raw: string;
     label: string;
@@ -1087,11 +1099,16 @@ function ReviewDetail({ id }: { id: string }) {
     }
     if (kind === "policy")
       return { raw, label: "Studio policy used for this draft" };
-    if (kind === "document")
+    if (kind === "document") {
+      const citation = citedDocuments.get(id);
       return {
         raw,
-        label: `Document citation [${id}] · See supporting evidence`,
+        label: citation
+          ? `${String(citation.title)} · Revision ${String(citation.revision)}`
+          : `Document citation [${id}] · See supporting evidence`,
+        to: workspace ? documentCitationUrl(citation) : undefined,
       };
+    }
     if (kind === "teacher_answer" || kind === "teacher_deferral") {
       const question = run.draft_details.answers?.find(
         (answer) => answer.question_id === id,
@@ -1690,7 +1707,10 @@ function ReviewDetail({ id }: { id: string }) {
                       </Link>
                     )}
                     {item.tool === "document_answer" && (
-                      <DocumentAnswerEvidence result={item.result} />
+                      <DocumentAnswerEvidence
+                        result={item.result}
+                        workspace={workspace}
+                      />
                     )}
                     <details>
                       <summary>Inspect result</summary>

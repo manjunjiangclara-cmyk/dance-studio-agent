@@ -1,3 +1,6 @@
+import { ArrowUpRight } from "lucide-react";
+import { Link } from "react-router-dom";
+
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -8,7 +11,43 @@ function text(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
-export function DocumentAnswerEvidence({ result }: { result: unknown }) {
+export function documentCitations(result: unknown) {
+  const claims = record(result).claims;
+  if (!Array.isArray(claims)) return [];
+  return claims.flatMap((claim) => {
+    const citations = record(claim).citations;
+    return Array.isArray(citations) ? citations.map(record) : [];
+  });
+}
+
+export function documentCitationUrl(value: unknown) {
+  const citation = record(value);
+  const id = text(citation.document_id);
+  const revision = citation.revision;
+  const offset = citation.start;
+  if (
+    !id ||
+    !Number.isSafeInteger(revision) ||
+    Number(revision) < 1 ||
+    !Number.isSafeInteger(offset) ||
+    Number(offset) < 0
+  )
+    return undefined;
+  const query = new URLSearchParams({
+    document: id,
+    revision: String(revision),
+    offset: String(offset),
+  });
+  return `/workspace/knowledge/documents?${query}#revision-preview`;
+}
+
+export function DocumentAnswerEvidence({
+  result,
+  workspace,
+}: {
+  result: unknown;
+  workspace: boolean;
+}) {
   const value = record(result);
   const claims = Array.isArray(value.claims) ? value.claims : [];
   return (
@@ -36,10 +75,18 @@ export function DocumentAnswerEvidence({ result }: { result: unknown }) {
             <p>{text(claim.text)}</p>
             {citations.map((rawCitation, citationIndex) => {
               const citation = record(rawCitation);
+              const url = workspace ? documentCitationUrl(citation) : undefined;
               return (
                 <div key={citationIndex}>
                   <p>
-                    <strong>{text(citation.title)}</strong>
+                    {url ? (
+                      <Link className="inline-link" to={url}>
+                        <strong>{text(citation.title)}</strong>
+                        <ArrowUpRight size={13} />
+                      </Link>
+                    ) : (
+                      <strong>{text(citation.title)}</strong>
+                    )}
                     {` · Revision ${Number(citation.revision)} · Characters ${Number(citation.start)}–${Number(citation.end)}`}
                   </p>
                   <blockquote style={{ whiteSpace: "pre-wrap" }}>
