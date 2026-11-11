@@ -2,7 +2,7 @@
 
 The local backend runs one LangGraph graph with the OpenAI Responses API for new and existing students. Teachers review drafts through the staff API. Query tools are read-only; a verified makeup proposal can be booked only on teacher approval. The system has no email delivery tool.
 
-This diagram shows the user-facing workflow, including teacher review actions outside the graph. The question statuses describe the draft checklist; they are not separate graph nodes.
+This diagram shows the user-facing workflow, including teacher review actions outside the graph. The question statuses and draft checks describe work within nodes; they are not separate graph nodes.
 
 ```mermaid
 flowchart TD
@@ -13,19 +13,19 @@ flowchart TD
     B --> C[Save student-stated memory]
     X --> C
     C --> D[Verify makeup evidence or gather read-only enquiry facts]
-    D --> E[Draft response and supporting evidence]
-    E -->|Enquiry or handoff| K["Enquiry checklist: answered, needs student clarification, or needs teacher input"]
+    D --> E[Draft response from evidence and teacher decisions]
+    E -->|Enquiry or handoff| K["Validate answers, citations and teacher decisions; prepare checklist"]
     K --> F[Pause for teacher review]
     E -->|Makeup draft| F
-    F -->|Feedback or teacher answer / confirm later| V[Update draft and retain teacher decisions]
+    F -->|Feedback, teacher answer, or Confirm later| V[Retain decisions; reinterpret the request]
     V --> D
     F -->|Approve after required teacher decisions| G[Store response; recheck and book only a valid makeup proposal]
     G --> H[Reconcile and save teacher-reviewed memory]
     H --> J[Approved response saved; no email sent]
-    F -->|Reject| I[Close run and remove graph checkpoints]
+    F -.->|Reject outside graph| I[Close run and remove graph checkpoints]
 ```
 
-For `needs_student`, the draft asks the student for clarification; no separate teacher answer is required for that question. For `needs_teacher`, the teacher supplies an answer or explicitly chooses **Confirm later**, then updates the draft before approval. Confirming later does not create a reminder or send a follow-up. A later student email starts a new run using the conversation history.
+For `needs_student`, the draft asks the student for clarification; no separate teacher answer is required for that question. For `needs_teacher`, the teacher supplies an answer or explicitly chooses **Confirm later**, then updates the draft before approval. Each supplied answer returns to drafting with its original question. Draft validation checks the answer checklist and evidence references before teacher review. Confirming later does not create a reminder or send a follow-up. A later student email starts a new run using the conversation history.
 
 ## Routing before interpretation
 
