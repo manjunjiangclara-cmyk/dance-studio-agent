@@ -202,6 +202,7 @@ export function DocumentsPage({
   }
   useEffect(() => {
     const sequence = ++loadSequence.current;
+    setBusy(false);
     if (!linkedDocument) return;
     if (dirty) {
       setError(
@@ -441,12 +442,14 @@ export function DocumentsPage({
     direction: "next" | "previous" | "revision" = "revision",
   ) {
     if (!saved) return;
+    const sequence = ++loadSequence.current;
     setBusy(true);
     setError("");
     try {
       const value = await request<Preview>(
         `${root}/${saved.id}/revisions/${revision}/preview?offset=${offset}`,
       );
+      if (sequence !== loadSequence.current) return;
       setPreviousOffsets((current) =>
         direction === "next"
           ? [...current, preview?.offset || 0]
@@ -456,9 +459,9 @@ export function DocumentsPage({
       );
       setPreview(value);
     } catch (err) {
-      fail(err);
+      if (sequence === loadSequence.current) fail(err);
     } finally {
-      setBusy(false);
+      if (sequence === loadSequence.current) setBusy(false);
     }
   }
   return (
