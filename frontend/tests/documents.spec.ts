@@ -65,17 +65,20 @@ async function documentsApi(page: Page, failFirst = false) {
             (item) => item.current_revision === Number(parts[2]),
           )!;
           const offset = Number(url.searchParams.get("offset") || 0),
-            content = snapshot.content.slice(offset, offset + 20_000);
+            content = Array.from(snapshot.content)
+              .slice(offset, offset + 20_000)
+              .join("");
           return route.fulfill({
             json: {
               revision: snapshot.current_revision,
               content,
               offset,
               next_offset:
-                offset + content.length < snapshot.content.length
-                  ? offset + content.length
+                offset + Array.from(content).length <
+                Array.from(snapshot.content).length
+                  ? offset + Array.from(content).length
                   : null,
-              total_characters: snapshot.content.length,
+              total_characters: Array.from(snapshot.content).length,
             },
           });
         }
@@ -206,6 +209,54 @@ test("owner manages documents and retains a draft on errors", async ({
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Delete document" }).click();
   await expect(page.getByText("No documents yet.")).toBeVisible();
+});
+
+test("citation link opens the exact saved revision at its character offset", async ({
+  page,
+}) => {
+  const state = await documentsApi(page);
+  const id = "11111111-1111-4111-8111-111111111111";
+  const oldContent = "Intro 🩰\nWear comfortable clothes and bring water.";
+  const currentContent = "The current revision has different advice.";
+  const summary: Doc = {
+    id,
+    title: "Trial handbook",
+    filename: "trial.md",
+    content: currentContent,
+    current_revision: 2,
+    byte_size: Buffer.byteLength(currentContent),
+    sha256: "0".repeat(64),
+    hash_origin: "upload_bytes",
+    ingestion_status: "ready",
+    effective_from: null,
+    effective_to: null,
+    updated_at: "2027-01-02T00:00:00Z",
+  };
+  state.docs.push(summary);
+  state.history.set(id, [
+    summary,
+    { ...summary, content: oldContent, current_revision: 1 },
+  ]);
+  await page.goto(
+    `/workspace/knowledge/documents?document=${id}&revision=1&offset=8#revision-preview`,
+  );
+
+  await expect(
+    page.getByRole("combobox", { name: "Revision", exact: true }),
+  ).toHaveValue("1");
+  await expect(page.getByLabel("Revision preview")).toContainText(
+    "Characters 8–",
+  );
+  await expect(page.locator(".document-preview")).toHaveText(
+    "Wear comfortable clothes and bring water.",
+  );
+  await page.goto(
+    `/workspace/knowledge/documents?document=${id}&revision=3&offset=8#revision-preview`,
+  );
+  await expect(page.getByRole("alert")).toContainText(
+    "The cited document revision is no longer available.",
+  );
+  await expect(page.getByLabel("Revision preview")).toHaveCount(0);
 });
 
 test("large files use bounded previews and preserve edits on conflicts", async ({
