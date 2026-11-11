@@ -269,7 +269,7 @@ test("citation link opens the exact saved revision at its character offset", asy
   await expect(page.getByLabel("Revision preview")).toHaveCount(0);
 });
 
-test("a delayed citation response cannot replace a newer source", async ({
+test("delayed citation and revision requests cannot replace a newer source", async ({
   page,
 }) => {
   const state = await documentsApi(page);
@@ -284,7 +284,7 @@ test("a delayed citation response cannot replace a newer source", async ({
       title,
       filename: "source.md",
       content: title,
-      current_revision: 1,
+      current_revision: id === firstId ? 2 : 1,
       byte_size: title.length,
       sha256: "0".repeat(64),
       hash_origin: "upload_bytes",
@@ -294,7 +294,10 @@ test("a delayed citation response cannot replace a newer source", async ({
       updated_at: "2027-01-02T00:00:00Z",
     };
     state.docs.push(doc);
-    state.history.set(id, [doc]);
+    state.history.set(
+      id,
+      id === firstId ? [doc, { ...doc, current_revision: 1 }] : [doc],
+    );
   }
   let releaseFirst!: () => void;
   let firstStarted!: () => void;
@@ -334,6 +337,52 @@ test("a delayed citation response cannot replace a newer source", async ({
   await expect(page.getByLabel("Revision preview")).toContainText(
     "Second source",
   );
+
+  await page.evaluate((url) => {
+    window.history.pushState(null, "", url);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  }, `/workspace/knowledge/documents?document=${firstId}&revision=1&offset=0`);
+  await expect(page.locator(".document-preview")).toHaveText("First source");
+
+  let releaseRevision!: () => void;
+  let revisionStarted!: () => void;
+  const heldRevision = new Promise<void>(
+    (resolve) => (releaseRevision = resolve),
+  );
+  const startedRevision = new Promise<void>(
+    (resolve) => (revisionStarted = resolve),
+  );
+  await page.route(
+    `**/api/v1/documents/${firstId}/revisions/2/preview?*`,
+    async (route) => {
+      revisionStarted();
+      await heldRevision;
+      await route.fulfill({
+        json: {
+          revision: 2,
+          content: "First source revision 2",
+          offset: 0,
+          next_offset: null,
+          total_characters: 23,
+        },
+      });
+    },
+  );
+  await page
+    .getByRole("combobox", { name: "Revision", exact: true })
+    .selectOption("2");
+  await startedRevision;
+  await page.evaluate((url) => {
+    window.history.pushState(null, "", url);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  }, `/workspace/knowledge/documents?document=${secondId}&revision=1&offset=0`);
+  await expect(page.locator(".document-preview")).toHaveText("Second source");
+  const staleRevision = page.waitForResponse((response) =>
+    response.url().includes(`${firstId}/revisions/2/preview`),
+  );
+  releaseRevision();
+  await staleRevision;
+  await expect(page.locator(".document-preview")).toHaveText("Second source");
 });
 
 test("large files use bounded previews and preserve edits on conflicts", async ({
