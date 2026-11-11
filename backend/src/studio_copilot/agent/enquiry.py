@@ -45,12 +45,16 @@ def validate_answers(draft: Draft, state: dict) -> Draft:
         QuestionResolution.model_validate(item) for item in state.get("question_resolutions", [])
     ]
     applied = {str(item.question_id): item for item in resolutions}
-    required = set(state.get("draft", {}).get("required_question_ids", []))
-    required.update(
-        question_ids.get(item["question"])
-        for item in state.get("draft", {}).get("answers", [])
-        if item.get("status") == "needs_teacher"
-    )
+    # Document questions are re-evaluated against fresh evidence on regeneration.
+    # A previous technical failure must not keep a now-cited answer in review.
+    required = set()
+    if not state.get("document_answers_enabled"):
+        required.update(state.get("draft", {}).get("required_question_ids", []))
+        required.update(
+            question_ids.get(item["question"])
+            for item in state.get("draft", {}).get("answers", [])
+            if item.get("status") == "needs_teacher"
+        )
     allowed = {"policy:" + state["context"]["policy"]["version"]}
     for item in state.get("evidence", []):
         if "error" not in item["result"]:
