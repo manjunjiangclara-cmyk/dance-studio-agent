@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useBlocker, useSearchParams } from "react-router-dom";
 import { ApiError, request } from "./data";
 import "./documents.css";
@@ -67,6 +67,7 @@ export function DocumentsPage({
   csrf: string;
 }) {
   const [searchParams] = useSearchParams();
+  const loadSequence = useRef(0);
   const linkedDocument = workspace ? searchParams.get("document") : null;
   const linkedRevision = searchParams.get("revision");
   const linkedOffset = searchParams.get("offset");
@@ -151,6 +152,7 @@ export function DocumentsPage({
   async function loadDocument(
     id: string,
     target?: { revision: number; offset: number },
+    sequence = ++loadSequence.current,
   ) {
     const value = workspace
       ? await request<Summary>(`${root}/${id}/metadata`)
@@ -159,7 +161,7 @@ export function DocumentsPage({
       workspace
         ? request<Revision[]>(`${root}/${id}/revisions`)
         : Promise.resolve([]),
-      value.byte_size <= 1_000_000
+      !target && value.byte_size <= 1_000_000
         ? workspace
           ? request<{ content: string; current_revision: number }>(
               `${root}/${id}`,
@@ -186,10 +188,11 @@ export function DocumentsPage({
           next_offset: null,
           total_characters: example.content.length,
         };
+    if (sequence !== loadSequence.current) return;
     const next = makeDraft(value, content?.content);
     setSaved(value);
-    setOriginal(next);
-    setDraft(next);
+    setOriginal(target ? undefined : next);
+    setDraft(target ? undefined : next);
     setFile(undefined);
     setFileText(undefined);
     setRevisions(history);
@@ -198,7 +201,15 @@ export function DocumentsPage({
     setConflict(false);
   }
   useEffect(() => {
+    const sequence = ++loadSequence.current;
     if (!linkedDocument) return;
+    if (dirty) {
+      setError(
+        "Save or discard your document edits before opening this citation.",
+      );
+      return;
+    }
+    close();
     const revision = Number(linkedRevision);
     const offset = Number(linkedOffset);
     if (
@@ -214,9 +225,13 @@ export function DocumentsPage({
     }
     setBusy(true);
     setError("");
-    void loadDocument(linkedDocument, { revision, offset })
-      .catch(fail)
-      .finally(() => setBusy(false));
+    void loadDocument(linkedDocument, { revision, offset }, sequence)
+      .catch((error) => {
+        if (sequence === loadSequence.current) fail(error);
+      })
+      .finally(() => {
+        if (sequence === loadSequence.current) setBusy(false);
+      });
   }, [linkedDocument, linkedRevision, linkedOffset]);
   useEffect(() => {
     if (linkedDocument && preview)
@@ -228,15 +243,16 @@ export function DocumentsPage({
       !window.confirm("Discard unsaved changes and load the current version?")
     )
       return;
+    const sequence = ++loadSequence.current;
     setBusy(true);
     setError("");
     setMessage("");
     try {
-      await loadDocument(id);
+      await loadDocument(id, undefined, sequence);
     } catch (err) {
-      fail(err);
+      if (sequence === loadSequence.current) fail(err);
     } finally {
-      setBusy(false);
+      if (sequence === loadSequence.current) setBusy(false);
     }
   }
   async function chooseFile(selected?: File, newDocument = false) {
@@ -751,7 +767,7 @@ export function DocumentsPage({
           aria-label="Revision preview"
           id="revision-preview"
         >
-          <h2>Saved revision preview</h2>
+          <h2>Saved revision preview · {saved.title}</h2>
           {revisions.length > 0 && (
             <label>
               Revision

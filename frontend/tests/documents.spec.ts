@@ -215,6 +215,14 @@ test("citation link opens the exact saved revision at its character offset", asy
   page,
 }) => {
   const state = await documentsApi(page);
+  const currentContentReads: string[] = [];
+  page.on("request", (request) => {
+    if (
+      new URL(request.url()).pathname ===
+      "/api/v1/documents/11111111-1111-4111-8111-111111111111"
+    )
+      currentContentReads.push(request.url());
+  });
   const id = "11111111-1111-4111-8111-111111111111";
   const oldContent = "Intro 🩰\nWear comfortable clothes and bring water.";
   const currentContent = "The current revision has different advice.";
@@ -250,13 +258,82 @@ test("citation link opens the exact saved revision at its character offset", asy
   await expect(page.locator(".document-preview")).toHaveText(
     "Wear comfortable clothes and bring water.",
   );
-  await page.goto(
-    `/workspace/knowledge/documents?document=${id}&revision=3&offset=8#revision-preview`,
-  );
+  expect(currentContentReads).toEqual([]);
+  await page.evaluate((url) => {
+    window.history.pushState(null, "", url);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  }, `/workspace/knowledge/documents?document=${id}&revision=3&offset=8#revision-preview`);
   await expect(page.getByRole("alert")).toContainText(
     "The cited document revision is no longer available.",
   );
   await expect(page.getByLabel("Revision preview")).toHaveCount(0);
+});
+
+test("a delayed citation response cannot replace a newer source", async ({
+  page,
+}) => {
+  const state = await documentsApi(page);
+  const firstId = "11111111-1111-4111-8111-111111111111";
+  const secondId = "22222222-2222-4222-8222-222222222222";
+  for (const [id, title] of [
+    [firstId, "First source"],
+    [secondId, "Second source"],
+  ]) {
+    const doc: Doc = {
+      id,
+      title,
+      filename: "source.md",
+      content: title,
+      current_revision: 1,
+      byte_size: title.length,
+      sha256: "0".repeat(64),
+      hash_origin: "upload_bytes",
+      ingestion_status: "ready",
+      effective_from: null,
+      effective_to: null,
+      updated_at: "2027-01-02T00:00:00Z",
+    };
+    state.docs.push(doc);
+    state.history.set(id, [doc]);
+  }
+  let releaseFirst!: () => void;
+  let firstStarted!: () => void;
+  const held = new Promise<void>((resolve) => (releaseFirst = resolve));
+  const started = new Promise<void>((resolve) => (firstStarted = resolve));
+  await page.route(
+    `**/api/v1/documents/${firstId}/revisions/1/preview?*`,
+    async (route) => {
+      firstStarted();
+      await held;
+      await route.fulfill({
+        json: {
+          revision: 1,
+          content: "First source",
+          offset: 0,
+          next_offset: null,
+          total_characters: 12,
+        },
+      });
+    },
+  );
+  await page.goto(
+    `/workspace/knowledge/documents?document=${firstId}&revision=1&offset=0`,
+  );
+  await started;
+  await page.evaluate((url) => {
+    window.history.pushState(null, "", url);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  }, `/workspace/knowledge/documents?document=${secondId}&revision=1&offset=0`);
+  await expect(page.locator(".document-preview")).toHaveText("Second source");
+  const oldResponse = page.waitForResponse((response) =>
+    response.url().includes(`${firstId}/revisions/1/preview`),
+  );
+  releaseFirst();
+  await oldResponse;
+  await expect(page.locator(".document-preview")).toHaveText("Second source");
+  await expect(page.getByLabel("Revision preview")).toContainText(
+    "Second source",
+  );
 });
 
 test("large files use bounded previews and preserve edits on conflicts", async ({
