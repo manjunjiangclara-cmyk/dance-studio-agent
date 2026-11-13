@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useBlocker } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useBlocker, useSearchParams } from "react-router-dom";
 import { ApiError, request } from "./data";
 import "./documents.css";
 
@@ -66,6 +66,11 @@ export function DocumentsPage({
   workspace: boolean;
   csrf: string;
 }) {
+  const [searchParams] = useSearchParams();
+  const loadSequence = useRef(0);
+  const linkedDocument = workspace ? searchParams.get("document") : null;
+  const linkedRevision = searchParams.get("revision");
+  const linkedOffset = searchParams.get("offset");
   const [documents, setDocuments] = useState<Summary[]>();
   const [saved, setSaved] = useState<Summary>();
   const [original, setOriginal] = useState<Draft>();
@@ -144,7 +149,11 @@ export function DocumentsPage({
     setError((err as Error).message);
     setConflict(err instanceof ApiError && err.status === 409);
   }
-  async function loadDocument(id: string) {
+  async function loadDocument(
+    id: string,
+    target?: { revision: number; offset: number },
+    sequence = ++loadSequence.current,
+  ) {
     const value = workspace
       ? await request<Summary>(`${root}/${id}/metadata`)
       : example;
@@ -152,7 +161,7 @@ export function DocumentsPage({
       workspace
         ? request<Revision[]>(`${root}/${id}/revisions`)
         : Promise.resolve([]),
-      value.byte_size <= 1_000_000
+      !target && value.byte_size <= 1_000_000
         ? workspace
           ? request<{ content: string; current_revision: number }>(
               `${root}/${id}`,
@@ -166,9 +175,11 @@ export function DocumentsPage({
         409,
       );
     }
+    if (target && !history.some((item) => item.revision === target.revision))
+      throw new Error("The cited document revision is no longer available.");
     const first = workspace
       ? await request<Preview>(
-          `${root}/${id}/revisions/${value.current_revision}/preview`,
+          `${root}/${id}/revisions/${target?.revision ?? value.current_revision}/preview?offset=${target?.offset ?? 0}`,
         )
       : {
           revision: 1,
@@ -177,10 +188,11 @@ export function DocumentsPage({
           next_offset: null,
           total_characters: example.content.length,
         };
+    if (sequence !== loadSequence.current) return;
     const next = makeDraft(value, content?.content);
     setSaved(value);
-    setOriginal(next);
-    setDraft(next);
+    setOriginal(target ? undefined : next);
+    setDraft(target ? undefined : next);
     setFile(undefined);
     setFileText(undefined);
     setRevisions(history);
@@ -188,21 +200,60 @@ export function DocumentsPage({
     setPreviousOffsets([]);
     setConflict(false);
   }
+  useEffect(() => {
+    const sequence = ++loadSequence.current;
+    setBusy(false);
+    if (!linkedDocument) return;
+    if (dirty) {
+      setError(
+        "Save or discard your document edits before opening this citation.",
+      );
+      return;
+    }
+    close();
+    const revision = Number(linkedRevision);
+    const offset = Number(linkedOffset);
+    if (
+      !linkedRevision ||
+      !linkedOffset ||
+      !Number.isSafeInteger(revision) ||
+      revision < 1 ||
+      !Number.isSafeInteger(offset) ||
+      offset < 0
+    ) {
+      setError("This document citation link is invalid.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    void loadDocument(linkedDocument, { revision, offset }, sequence)
+      .catch((error) => {
+        if (sequence === loadSequence.current) fail(error);
+      })
+      .finally(() => {
+        if (sequence === loadSequence.current) setBusy(false);
+      });
+  }, [linkedDocument, linkedRevision, linkedOffset]);
+  useEffect(() => {
+    if (linkedDocument && preview)
+      document.getElementById("revision-preview")?.scrollIntoView();
+  }, [linkedDocument, preview?.revision, preview?.offset]);
   async function selectDocument(id: string) {
     if (
       dirty &&
       !window.confirm("Discard unsaved changes and load the current version?")
     )
       return;
+    const sequence = ++loadSequence.current;
     setBusy(true);
     setError("");
     setMessage("");
     try {
-      await loadDocument(id);
+      await loadDocument(id, undefined, sequence);
     } catch (err) {
-      fail(err);
+      if (sequence === loadSequence.current) fail(err);
     } finally {
-      setBusy(false);
+      if (sequence === loadSequence.current) setBusy(false);
     }
   }
   async function chooseFile(selected?: File, newDocument = false) {
@@ -391,12 +442,14 @@ export function DocumentsPage({
     direction: "next" | "previous" | "revision" = "revision",
   ) {
     if (!saved) return;
+    const sequence = ++loadSequence.current;
     setBusy(true);
     setError("");
     try {
       const value = await request<Preview>(
         `${root}/${saved.id}/revisions/${revision}/preview?offset=${offset}`,
       );
+      if (sequence !== loadSequence.current) return;
       setPreviousOffsets((current) =>
         direction === "next"
           ? [...current, preview?.offset || 0]
@@ -406,9 +459,9 @@ export function DocumentsPage({
       );
       setPreview(value);
     } catch (err) {
-      fail(err);
+      if (sequence === loadSequence.current) fail(err);
     } finally {
-      setBusy(false);
+      if (sequence === loadSequence.current) setBusy(false);
     }
   }
   return (
@@ -712,8 +765,12 @@ export function DocumentsPage({
         </form>
       )}
       {saved && preview && (
-        <section className="panel policy-form" aria-label="Revision preview">
-          <h2>Saved revision preview</h2>
+        <section
+          className="panel policy-form"
+          aria-label="Revision preview"
+          id="revision-preview"
+        >
+          <h2>Saved revision preview · {saved.title}</h2>
           {revisions.length > 0 && (
             <label>
               Revision
@@ -797,7 +854,10 @@ export function DocumentsPage({
               </button>
               <button
                 className="button secondary"
-                onClick={() => blocker.proceed()}
+                onClick={() => {
+                  close();
+                  blocker.proceed();
+                }}
               >
                 Leave page
               </button>

@@ -46,7 +46,7 @@ These limits cover the **document pipeline only**, not the pre-existing route/in
 
 Local resources are verified and loaded lazily, once per cached path pair; cold initialization and CPU inference are serialized within a process. Missing resources never trigger downloads. The query-vector cache is task-scoped (128 entries, five-minute TTL); it does not cache sources or answers, and source validation still runs on cache hits. No latency or production throughput SLA is claimed.
 
-Existing content-free document events cover retrieval/cache, reranking, generation/API attempts and usage; existing agent spans cover routing and review. See [tracing and observability](19-tracing-and-observability.md). Evidence stores the policy date, model, prompt version, artifact hash, exact provided blocks, source identities, resolved quotes and character ranges. The review UI renders quotes as plain React text, including HTML-looking source content.
+Existing content-free document events cover retrieval/cache, reranking, generation/API attempts and usage; existing agent spans cover routing and review. See [tracing and observability](19-tracing-and-observability.md). Evidence stores the policy date, model, prompt version, artifact hash, exact provided blocks, source identities, resolved quotes and character ranges. In the owner review, document citations link to the saved source revision at the cited character offset; the link stays in the teacher-facing interface and does not enter the student email. The review UI renders quotes as plain React text, including HTML-looking source content.
 
 ## Validation
 

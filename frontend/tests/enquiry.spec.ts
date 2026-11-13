@@ -190,6 +190,85 @@ test("review concerns appear separately from the student response", async ({
   ).toBe(true);
 });
 
+test("document citations link to their source revision in the owner library", async ({
+  page,
+}) => {
+  const run = structuredClone(example);
+  const documentId = "11111111-1111-4111-8111-111111111111";
+  const citation = {
+    evidence_id: "Etrial",
+    document_id: documentId,
+    revision: 2,
+    title: "Trial handbook",
+    start: 42,
+    end: 60,
+    quote: "Wear comfortable clothes.",
+  };
+  run.evidence = [
+    {
+      tool: "document_answer",
+      result: {
+        status: "answered",
+        claims: [{ text: citation.quote, citations: [citation] }],
+      },
+    },
+  ];
+  run.draft_details.references = ["document:Etrial"];
+  await mockOwner(page, run);
+  await page.route("**/api/v1/documents**", (route) => {
+    const url = new URL(route.request().url());
+    const summary = {
+      id: documentId,
+      title: citation.title,
+      filename: "trial.md",
+      current_revision: 2,
+      byte_size: 70,
+      ingestion_status: "ready",
+      effective_from: null,
+      effective_to: null,
+    };
+    if (url.pathname.endsWith("/answer-activation"))
+      return route.fulfill({ json: { status: "disabled", error: null } });
+    if (url.pathname.endsWith("/metadata"))
+      return route.fulfill({ json: summary });
+    if (url.pathname.endsWith("/revisions"))
+      return route.fulfill({ json: [{ ...summary, revision: 2 }] });
+    if (url.pathname.endsWith("/preview"))
+      return route.fulfill({
+        json: {
+          revision: 2,
+          offset: 42,
+          content: citation.quote,
+          next_offset: null,
+          total_characters: 42 + citation.quote.length,
+        },
+      });
+    return route.fulfill({ json: [summary] });
+  });
+  await page.goto(`/workspace/reviews/${run.id}`);
+  await page.locator(".review-support > summary").click();
+  await page.locator(".response-support > summary").click();
+
+  const target = `/workspace/knowledge/documents?document=${documentId}&revision=2&offset=42#revision-preview`;
+  await expect(
+    page
+      .getByRole("region", { name: "Document answer and citations" })
+      .getByRole("link", { name: "Trial handbook" }),
+  ).toHaveAttribute("href", target);
+  await expect(
+    page.getByRole("link", { name: "Trial handbook · Revision 2" }),
+  ).toHaveAttribute("href", target);
+  await page
+    .getByRole("region", { name: "Document answer and citations" })
+    .getByRole("link", { name: "Trial handbook" })
+    .click();
+  await expect(page).toHaveURL(new RegExp("/workspace/knowledge/documents\\?"));
+  await expect(page.getByLabel("Revision preview")).toContainText(
+    "Revision 2 · Characters 42–",
+  );
+  await expect(page.locator(".document-preview")).toHaveText(citation.quote);
+});
+
 test("older drafts without review concerns remain usable", async ({ page }) => {
   const run = structuredClone(example);
   delete run.draft_details.review_concerns;
