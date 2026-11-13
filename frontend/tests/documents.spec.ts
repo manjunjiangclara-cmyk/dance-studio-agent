@@ -269,6 +269,49 @@ test("citation link opens the exact saved revision at its character offset", asy
   await expect(page.getByLabel("Revision preview")).toHaveCount(0);
 });
 
+test("confirmed back navigation discards edits and opens the cited revision", async ({
+  page,
+}) => {
+  const state = await documentsApi(page);
+  const id = "11111111-1111-4111-8111-111111111111";
+  const current: Doc = {
+    id,
+    title: "Trial handbook",
+    filename: "trial.md",
+    content: "Current advice",
+    current_revision: 2,
+    byte_size: 14,
+    sha256: "0".repeat(64),
+    hash_origin: "upload_bytes",
+    ingestion_status: "ready",
+    effective_from: null,
+    effective_to: null,
+    updated_at: "2027-01-02T00:00:00Z",
+  };
+  state.docs.push(current);
+  state.history.set(id, [
+    current,
+    { ...current, current_revision: 1, content: "Cited advice" },
+  ]);
+  const citation = `/workspace/knowledge/documents?document=${id}&revision=1&offset=0`;
+  await page.goto(citation);
+  await expect(page.locator(".document-preview")).toHaveText("Cited advice");
+  await page.getByRole("link", { name: "Documents", exact: true }).click();
+  await page.getByRole("button", { name: "Trial handbook" }).click();
+  await page.getByLabel("Document text").fill("Unsaved advice");
+
+  await page.evaluate(() => window.history.back());
+  await expect(
+    page.getByRole("dialog", { name: "Leave without saving?" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Leave page" }).click();
+
+  await expect(page).toHaveURL(citation);
+  await expect(page.locator(".document-preview")).toHaveText("Cited advice");
+  await expect(page.getByLabel("Document text")).toHaveCount(0);
+  await expect(page.getByRole("alert")).toHaveCount(0);
+});
+
 test("delayed citation and revision requests cannot replace a newer source", async ({
   page,
 }) => {

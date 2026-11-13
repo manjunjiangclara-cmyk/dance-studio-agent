@@ -854,7 +854,10 @@ export function DocumentsPage({
               </button>
               <button
                 className="button secondary"
-                onClick={() => blocker.proceed()}
+                onClick={() => {
+                  close();
+                  blocker.proceed();
+                }}
               >
                 Leave page
               </button>
