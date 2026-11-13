@@ -191,7 +191,7 @@ def prepare_documents(client, engine, budget, *, include_attack=False):
     return prepared
 
 
-def run_case(client, engine, case, budget):
+def run_case(client, engine, case, budget, model=None):
     """Create a dated fictional email, then use the authenticated start-run API."""
     before = snapshot(engine)
     at = datetime.combine(date.fromisoformat(case["as_of"]), clock_time(12), ZONE)
@@ -212,6 +212,8 @@ def run_case(client, engine, case, budget):
         db.flush()
         conversation_id, source_id = str(conversation.id), str(source.id)
     started = time.monotonic()
+    prior_failures = len(model.failures) if model is not None else 0
+    prior_calls = len(model.calls) if model is not None else 0
     response = client.post(
         f"/api/v1/conversations/{conversation_id}/agent-runs",
         json={"source_message_id": source_id},
@@ -221,9 +223,23 @@ def run_case(client, engine, case, budget):
     document_evidence = [item for item in run["evidence"] if item.get("tool") == "document_answer"]
     draft = run.get("draft_details") or {}
     after = snapshot(engine)
+    model_failures = model.failures[prior_failures:] if model is not None else []
+    incomplete_model_calls = (
+        [call["operation"] for call in model.calls[prior_calls:] if not call["completed"]]
+        if model is not None
+        else []
+    )
+    failed_document_answers = [
+        item.get("result", {}).get("error_code", "document_answer_failed")
+        for item in document_evidence
+        if item.get("result", {}).get("status") == "failed"
+    ]
+    technical_failures = [*model_failures, *incomplete_model_calls, *failed_document_answers]
     result = dict(
         id=case["id"],
-        status="completed" if run["status"] == "awaiting_review" and before == after else "failed",
+        status="completed"
+        if run["status"] == "awaiting_review" and before == after and not technical_failures
+        else "failed",
         run_status=run["status"],
         run_id=run["id"],
         source_message_id=source_id,
@@ -237,6 +253,7 @@ def run_case(client, engine, case, budget):
         document_evidence=document_evidence,
         interpretation=run["interpretation"],
         error=run.get("error"),
+        technical_failures=technical_failures,
         no_business_change=before == after,
         no_email_delivery=True,  # There is no delivery integration in this API.
         latency_ms=elapsed,
@@ -298,7 +315,7 @@ def execute(url, cases, budget, output, *, dataset_hash, phase):
                     if budget.exhausted:
                         break
                     try:
-                        row = run_case(client, engine, case, budget)
+                        row = run_case(client, engine, case, budget, model)
                     except BudgetExceeded:
                         budget.exhausted = True
                         row = dict(

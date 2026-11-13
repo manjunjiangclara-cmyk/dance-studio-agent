@@ -15,8 +15,8 @@ def merge(report, review):
         raise ValueError("Independent review must cover every result exactly once")
     for row in rows:
         judgment = by_id[row["id"]]
-        expected = row.get("output_sha256") or output_hash(row)
-        if judgment.get("output_sha256") != expected:
+        expected = output_hash(row)
+        if row.get("output_sha256") != expected or judgment.get("output_sha256") != expected:
             raise ValueError("Independent judgment refers to a different draft or evidence")
         if not isinstance(judgment.get("issues"), list):
             raise ValueError("Every judgment needs an issue list")

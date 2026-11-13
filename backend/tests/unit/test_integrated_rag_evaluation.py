@@ -181,6 +181,7 @@ def test_review_requires_exact_output_hash_and_complete_case_coverage():
         "document_evidence": [{"quote": "Source text"}],
         "review": None,
     }
+    row["output_sha256"] = output_hash(row)
     judgment = {
         "id": "one",
         "output_sha256": output_hash(row),
@@ -196,6 +197,9 @@ def test_review_requires_exact_output_hash_and_complete_case_coverage():
         merge({"results": [row.copy()]}, {"results": []})
     with pytest.raises(ValueError):
         merge({"results": [row.copy()]}, {"results": [dict(judgment, output_sha256="bad")]})
+    tampered = {**row, "draft": {"body": "Changed after review"}}
+    with pytest.raises(ValueError):
+        merge({"results": [tampered]}, {"results": [judgment]})
     merged = merge({"results": [row.copy()]}, {"results": [judgment]})
     assert merged["results"][0]["review"]["supported"] is True
     assert merged["decision"] == "hold: incomplete case set"

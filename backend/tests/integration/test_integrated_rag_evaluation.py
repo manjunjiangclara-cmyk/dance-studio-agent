@@ -89,3 +89,52 @@ def test_run_case_records_source_date_and_no_business_changes(db_engine):
     row = execute.run_case(Client(), db_engine, case, RunBudget(10, 10_000, 10_000))
     assert row["status"] == "completed" and row["no_business_change"]
     assert row["as_of"] == "2027-06-01" and row["draft"]["body"] == "A trial costs $20."
+
+
+@pytest.mark.parametrize("model_failure", [False, True])
+def test_run_case_marks_hidden_provider_failure_as_failed(db_engine, model_failure):
+    class Model:
+        failures = ["interpret_enquiry"] if model_failure else []
+        calls = [{"operation": "parse", "completed": False}] if model_failure else []
+
+    class Client:
+        def post(self, url, json):
+            if model_failure:
+                Model.failures.append("compose_document_email")
+                Model.calls.append({"operation": "parse", "completed": False})
+            return type(
+                "Response",
+                (),
+                {
+                    "status_code": 200,
+                    "json": lambda self: {
+                        "id": "run-id",
+                        "status": "awaiting_review",
+                        "draft_details": {"body": "Please ask the teacher.", "answers": []},
+                        "evidence": []
+                        if model_failure
+                        else [
+                            {
+                                "tool": "document_answer",
+                                "result": {"status": "failed", "error_code": "provider_error"},
+                            }
+                        ],
+                        "interpretation": {},
+                        "error": None,
+                    },
+                },
+            )()
+
+    case = dict(
+        id="rag-hidden-failure-model" if model_failure else "rag-hidden-failure-document",
+        as_of="2027-06-01",
+        question="What does a trial cost?",
+        expected_status="answered",
+        required_facts=[],
+        forbidden_patterns=[],
+        tags=["single_source"],
+    )
+    result = execute.run_case(Client(), db_engine, case, RunBudget(10, 10_000, 10_000), Model())
+    assert result["run_status"] == "awaiting_review"
+    assert result["status"] == "failed"
+    assert result["technical_failures"]
