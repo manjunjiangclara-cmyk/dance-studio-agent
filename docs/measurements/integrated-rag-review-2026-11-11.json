@@ -1,0 +1,402 @@
+{
+  "version": "integrated-rag-independent-review-v1",
+  "source_report": "integrated-rag-evaluation-2026-11-11.json",
+  "dataset_sha256": "2cd7fe5dbe8682a4ec98682b56e289370ffdcb4db1c719b70e988a0af16b0658",
+  "method": "Independent AI review of final email, question-level claims/citations, actually supplied evidence, and frozen facts. Model support checks were not treated as proof.",
+  "results": [
+    {
+      "id": "rag-held_out-01",
+      "output_sha256": "d8c98f12b5db3c0e35b2797f5bd90b042de3390f493c7eabec16b24591db0a81",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-02",
+      "output_sha256": "14bf362e71d65266653fd47f60da306aa5dc155ef0726bb2e7f7d5142cb5017e",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-03",
+      "output_sha256": "d5d2f097c835532aaf14eab7d0a9516d8d0b292f4002e973be2ae98734dfe798",
+      "supported": false,
+      "complete": false,
+      "correct_refusal": null,
+      "false_refusal": true,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "Refund due date is available in the first answer evidence (within ten business days), but the split second query retrieves unrelated passages and the final email says timing cannot be confirmed."
+      ],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-04",
+      "output_sha256": "e799d2f2f6b3d7908f58417a38d3b931cba511a33184917e393042c829697112",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "Email ends after “Best,” with no teacher signature; it needs an edit before sending."
+      ],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-05",
+      "output_sha256": "b61e3fc48970fd89b5370aec66f72bc08f4b0c1cb09f9f59b61045b5b059c15e",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-06",
+      "output_sha256": "27d4e56e65da2b38063f97700e5f404a86cf91e54c497508059c946170ddddd0",
+      "supported": true,
+      "complete": false,
+      "correct_refusal": null,
+      "false_refusal": true,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "The exact fresh-confirmation rule is retrieved and cited, but the answer is marked partial for an unasked nuance and the final email withholds the answer."
+      ],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-07",
+      "output_sha256": "3a8b891ca28b5bd971fa9eebf07f0caa85b04f1ce886fa23594e5842bb091ae9",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "The policy answer is supported, but the email ends with the template placeholder “[Your Name]”."
+      ],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-08",
+      "output_sha256": "5faa70c30bb6828eae2a79cacb290aaf4914c122623c4f7d590bee44230c90c0",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "The answer is supported, but the email has no sign-off or teacher signature."
+      ],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-09",
+      "output_sha256": "73f0451d287f95a0c3eaa2ffb353180ad682c3870132456775c8d354cd2d9b97",
+      "supported": false,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "The email says the office will offer the cancellation options within ten business days. The supplied source attaches that timing to the full workshop-fee refund, not to making the offer."
+      ],
+      "critical": true
+    },
+    {
+      "id": "rag-held_out-10",
+      "output_sha256": "d6a1b2dfed2b60d90b4b3866ad9d3a4984b64ba6ec0f3d63e0b0a4af34096951",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-11",
+      "output_sha256": "c78b7d861a7f24815ffcc49a9bbfac7dd31e9540b9614f0e24a63370c1adb337",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [
+        "The checker flags omission of “standard”, but “normally” in the final email preserves the usual-loan scope. This concern appears to be a false positive."
+      ],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-12",
+      "output_sha256": "898efa6a76db32410209d34ecfeef1de49d133209ede505fa78975b055ac48c4",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-13",
+      "output_sha256": "dc857d095f8bf07f5739bbd82f840593ea0c85fb2544acc548f44848021bb84d",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-14",
+      "output_sha256": "99039414dbaae08756bacc3e5b800c9e68c45dbf055c6f1d8269a63a6665dc50",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-15",
+      "output_sha256": "5c819cc9c9dc35de342aa59f7c9a1cee2ad0523bb66e7e010b2c6182657c4aea",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-16",
+      "output_sha256": "9855d68bb89a8c69dd34a1f470b189ba35fa1ec7217674c999599d0dbec3e6ad",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-17",
+      "output_sha256": "498c18f6278b6c646372353cb36e8187dd77a2b35c15c9718b544b5bedd0536b",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "The policy answer is supported, but the email ends with the template placeholder “[Teacher]”."
+      ],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-18",
+      "output_sha256": "e27f1d031495519153f3d372e79a3ffd5c7bb5c998e3d04ce10dfc2abe2c5783",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-19",
+      "output_sha256": "70277f3eabf18c6bfd45bb5cfb236d170a0ae32e785308deef75329eff3e04ae",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-20",
+      "output_sha256": "afcc003531180fb58e4a79b8fcc6680523aa31bb7fe3979ff1d36b307f8de0af",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-21",
+      "output_sha256": "ece520278a5287bf1998d4eb1226df3db0b0a9d39a65e0fa367f349d6641103e",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-22",
+      "output_sha256": "522895289843542a4458d8c1902ca94303b782b8cd1e1395a4e58d24cf7e13ae",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-29",
+      "output_sha256": "6a5d7502f5951d11ec50cae9f198228066975333fefc8979f815da8680bec726",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": true,
+      "false_refusal": null,
+      "citation_relevant": false,
+      "teacher_ready": false,
+      "issues": [
+        "The second question retrieves and cites costume-deposit amounts, unrelated to the guest-workshop deposit. The final email avoids those wrong amounts and correctly withholds authority, but its question-level evidence is contaminated.",
+        "The email has no sign-off or teacher signature.",
+        "The authoritative charge remains unresolved, so a teacher must decide or explicitly defer it before approval."
+      ],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-30",
+      "output_sha256": "ea5182153ed0f9919ae30871c9ff1e999f8e424583972dbaad22eacc6efca2bd",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": true,
+      "false_refusal": null,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "Both deposit amounts are presented correctly, but the authoritative charge remains unresolved and requires a teacher decision or explicit deferral before approval."
+      ],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-31",
+      "output_sha256": "50176a4a3064155aeff4fde1f173d462bf088553763ba47fabd32bf67c590160",
+      "supported": true,
+      "complete": false,
+      "correct_refusal": true,
+      "false_refusal": true,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "Both 10-minute and 15-minute quiet-room intervals are present in supplied evidence, yet the final email omits both and only says the conflict needs verification."
+      ],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-32",
+      "output_sha256": "a1918058b31597205e60f999f708778e9a8e57c50bd5daa514fb560ce10c9866",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": true,
+      "false_refusal": null,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "Correctly withholds an unsupported royalty percentage, but the email ends after “Best,” without a teacher signature.",
+        "The price is unavailable from the supplied evidence; a teacher must answer or explicitly defer the open question before approval."
+      ],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-35",
+      "output_sha256": "07a5f3f095e04da613c571d806a11deabaa6062beeb1ca6e355c939959875468",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": true,
+      "false_refusal": null,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "The June 2029 source is date-ineligible, so a teacher must answer or explicitly defer the open question before approval."
+      ],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-39",
+      "output_sha256": "52ec3b70645579c8fcd0c2f31248ceabe8f88d54245cafc2fee2de1aab681958",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": true,
+      "false_refusal": null,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "Asset availability and reservations require live records; a teacher must answer or explicitly defer both open questions before approval."
+      ],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-40",
+      "output_sha256": "c2bc7a7264531e1308d766daafc586ee4392db3b0e30f3c354ce7cf4598101a2",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-mixed-business-01",
+      "output_sha256": "b634628a257a485adffaf51d55e608ede1c30a14fb5d3f717ae3fe59426189db",
+      "supported": false,
+      "complete": false,
+      "correct_refusal": null,
+      "false_refusal": null,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "The policy deadline is supported, and the run made no booking change, but the email asserts that the current booking remains unchanged without authoritative live booking status.",
+        "The cancellation request has no teacher decision or approved deferral; the email cannot be approved as a complete response."
+      ],
+      "critical": true
+    }
+  ]
+}
