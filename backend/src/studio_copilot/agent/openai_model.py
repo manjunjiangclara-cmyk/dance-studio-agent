@@ -69,6 +69,8 @@ class OpenAIModel:
                     input_tokens=response.usage.input_tokens,
                     output_tokens=response.usage.output_tokens,
                 )
+            if response.status != "completed":
+                raise ModelError("The model returned an incomplete response.")
             return response
 
     def _request_traced(self, operation, **kwargs):
@@ -94,8 +96,6 @@ class OpenAIModel:
                 "output_tokens": usage.output_tokens if usage else None,
             },
         )
-        if response.status != "completed":
-            raise ModelError("The model returned an incomplete response.")
         return response
 
     def _parse(self, context, schema, instruction):

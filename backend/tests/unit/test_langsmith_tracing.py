@@ -11,7 +11,7 @@ from langsmith import get_tracing_context
 
 from studio_copilot.agent import tools as agent_tools
 from studio_copilot.agent import tracing
-from studio_copilot.agent.openai_model import OpenAIModel
+from studio_copilot.agent.openai_model import ModelError, OpenAIModel
 from studio_copilot.agent.workflow.graph import _traced
 
 RUN_ID = "abf8de4c-2282-42ed-a498-b284a97d91b6"
@@ -290,3 +290,16 @@ def test_real_runtree_preserves_usage_and_model_metadata(monkeypatch):
     assert call["extra"]["metadata"]["ls_model_name"] == "test-model"
     assert call["extra"]["metadata"]["ls_provider"] == "openai"
     assert call["outputs"] == {"usage_metadata": {"input_tokens": 10, "output_tokens": 5}}
+
+
+def test_incomplete_response_records_usage_and_failure(tracing_env):
+    model = OpenAIModel(client=object(), model="test-model")
+    response = SimpleNamespace(
+        usage=SimpleNamespace(input_tokens=9, output_tokens=3), status="incomplete", output=SECRET
+    )
+    with pytest.raises(ModelError), tracing.workflow_trace(RUN_ID, "start"):
+        model._request(lambda **kwargs: response, input=SECRET)
+    end = tracing_env.instances[0].children[0].events[-2][1]
+    assert end["outputs"] == {"usage_metadata": {"input_tokens": 9, "output_tokens": 3}}
+    assert end["metadata"]["status"] == "failure"
+    assert SECRET not in json.dumps([run.events for run in tracing_env.instances])
