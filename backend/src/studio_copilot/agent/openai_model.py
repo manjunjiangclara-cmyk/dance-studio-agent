@@ -64,6 +64,7 @@ class OpenAIModel:
         with span("model_call", kind="llm", metadata={"model": self.model}) as trace:
             response = self._request_traced(operation, **kwargs)
             if response.usage:
+                trace.set_usage(response.usage)
                 trace.update(
                     input_tokens=response.usage.input_tokens,
                     output_tokens=response.usage.output_tokens,
