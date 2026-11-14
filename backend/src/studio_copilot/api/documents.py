@@ -27,6 +27,8 @@ def answer_activation(document_id: UUID, db: Db):
     document = db.get(Document, document_id)
     if document is None:
         raise HTTPException(404, "Document not found.")
+    if document.archived_at is not None:
+        return {"status": "disabled", "error": None}
     row = db.get(DocumentActivation, document_id)
     if row and row.status == "enabled" and row.revision != document.current_revision:
         return {
@@ -42,10 +44,11 @@ def enable_answers(document_id: UUID, background: BackgroundTasks, request: Requ
         activation.check_setup()
     except Exception:
         raise HTTPException(503, activation.SETUP_ERROR) from None
+    document = find(db, document_id, lock=True)
     row = db.get(DocumentActivation, document_id, with_for_update=True)
-    document = db.get(Document, document_id, with_for_update=True)
     if document is None:
         raise HTTPException(404, "Document not found.")
+    require_editable(document)
     if row is None:
         # The document lock serializes concurrent creation of the first activation.
         row = db.get(DocumentActivation, document_id, with_for_update=True)
@@ -71,8 +74,8 @@ def enable_answers(document_id: UUID, background: BackgroundTasks, request: Requ
 
 @router.delete("/{document_id}/answer-activation")
 def disable_answers(document_id: UUID, db: Db):
+    document = find(db, document_id, lock=True)
     row = db.get(DocumentActivation, document_id, with_for_update=True)
-    document = db.get(Document, document_id, with_for_update=True)
     if document is None:
         raise HTTPException(404, "Document not found.")
     if row is not None:
@@ -174,6 +177,7 @@ class DocumentSummary(BaseModel):
     created_at: datetime
     updated_at: datetime
     current_revision: int
+    archived_at: datetime | None
     byte_size: int
     sha256: str
     hash_origin: str
@@ -196,6 +200,30 @@ def find(db, document_id, *, lock=False):
     return document
 
 
+def require_editable(document):
+    if document.archived_at is not None:
+        raise AdministrationError(409, "document_archived", "Archived documents are read-only.")
+
+
+def prepare_revision(db, document, background, engine):
+    """Register the replacement claim while holding the source document lock."""
+    row = db.get(DocumentActivation, document.id, with_for_update=True)
+    if row is None:
+        row = DocumentActivation(document_id=document.id)
+        db.add(row)
+    row.revision, row.run_id = document.current_revision, None
+    row.token, row.lease_expires_at, row.error = None, None, None
+    try:
+        activation.check_setup()
+    except Exception:
+        row.status, row.error = "failed", activation.SETUP_ERROR
+        return
+    token = uuid4()
+    row.status, row.token = "preparing", token
+    row.lease_expires_at = datetime.now(UTC) + activation.LEASE
+    background.add_task(activation.worker, engine, document.id, document.current_revision, token)
+
+
 def revision_for(db, document, revision=None):
     result = db.scalar(
         select(DocumentRevision).where(
@@ -213,7 +241,7 @@ def summary(document, revision):
     return {
         **{
             key: getattr(document, key)
-            for key in ("id", "created_at", "updated_at", "current_revision")
+            for key in ("id", "created_at", "updated_at", "current_revision", "archived_at")
         },
         **{
             key: getattr(revision, key)
@@ -240,7 +268,11 @@ def metadata(db, document):
             (DocumentRevision.document_id == Document.id)
             & (DocumentRevision.revision == Document.current_revision),
         )
-        .where(DocumentRevision.sha256 == revision.sha256, Document.id != document.id)
+        .where(
+            DocumentRevision.sha256 == revision.sha256,
+            Document.id != document.id,
+            Document.archived_at.is_(None),
+        )
         .order_by(Document.id)
         .limit(20)
     ).all()
@@ -257,10 +289,13 @@ def save_revision(
     hash_origin="stored_text_utf8",
     sha256=None,
     byte_size=None,
+    background=None,
+    engine=None,
 ):
     # Called only after upload and validation. Lock/commit never span network reads.
     document = find(db, document_id, lock=True) if document_id else None
     if document is not None:
+        require_editable(document)
         if expected_revision is None:
             raise AdministrationError(
                 409,
@@ -315,6 +350,8 @@ def save_revision(
         **values,
     )
     db.add(revision)
+    if document_id is not None:
+        prepare_revision(db, document, background, engine)
     db.flush()
     # Freeze primitive response values while this request still owns the document
     # lock. After commit a competing writer may advance the mutable pointer.
@@ -324,7 +361,7 @@ def save_revision(
 
 
 @router.get("", response_model=list[DocumentSummary])
-def list_documents(db: Db):
+def list_documents(db: Db, archived: bool = False):
     rows = db.execute(
         select(Document, DocumentRevision)
         .join(
@@ -332,22 +369,25 @@ def list_documents(db: Db):
             (DocumentRevision.document_id == Document.id)
             & (DocumentRevision.revision == Document.current_revision),
         )
+        .where(Document.archived_at.is_not(None) if archived else Document.archived_at.is_(None))
         .order_by(Document.updated_at.desc(), Document.id)
     )
     return [summary(document, revision) for document, revision in rows]
 
 
 @router.post("/upload", status_code=201)
-async def upload_document(request: Request, db: Db):
-    return await upload(request, db)
+async def upload_document(request: Request, background: BackgroundTasks, db: Db):
+    return await upload(request, db, background=background)
 
 
 @router.put("/{document_id}/upload")
-async def replace_document(document_id: UUID, request: Request, db: Db):
-    return await upload(request, db, document_id)
+async def replace_document(
+    document_id: UUID, request: Request, background: BackgroundTasks, db: Db
+):
+    return await upload(request, db, document_id, background=background)
 
 
-async def upload(request, db, document_id=None):
+async def upload(request, db, document_id=None, *, background=None):
     source = await receive_upload(request)
     try:
         fields = {key: value or None for key, value in source.fields.items()}
@@ -380,6 +420,8 @@ async def upload(request, db, document_id=None):
         hash_origin="upload_bytes",
         sha256=source.sha256,
         byte_size=source.byte_size,
+        background=background,
+        engine=request.app.state.engine,
     )
 
 
@@ -397,7 +439,9 @@ def read_metadata(document_id: UUID, db: Db):
 
 
 @router.patch("/{document_id}/metadata")
-def update_metadata(document_id: UUID, body: MetadataUpdate, db: Db):
+def update_metadata(
+    document_id: UUID, body: MetadataUpdate, request: Request, background: BackgroundTasks, db: Db
+):
     document = find(db, document_id, lock=True)
     previous = revision_for(db, document)
     values = {
@@ -414,12 +458,20 @@ def update_metadata(document_id: UUID, body: MetadataUpdate, db: Db):
             422, "invalid_document", "Check the document title and effective dates."
         ) from error
     return save_revision(
-        db, values, None, document_id=document_id, expected_revision=body.expected_revision
+        db,
+        values,
+        None,
+        document_id=document_id,
+        expected_revision=body.expected_revision,
+        background=background,
+        engine=request.app.state.engine,
     )
 
 
 @router.put("/{document_id}/text")
-def update_text(document_id: UUID, body: TextInput, db: Db):
+def update_text(
+    document_id: UUID, body: TextInput, request: Request, background: BackgroundTasks, db: Db
+):
     document = find(db, document_id)
     if revision_for(db, document).byte_size > MAX_BYTES:
         raise AdministrationError(
@@ -433,6 +485,8 @@ def update_text(document_id: UUID, body: TextInput, db: Db):
         body.content,
         document_id=document_id,
         expected_revision=body.expected_revision,
+        background=background,
+        engine=request.app.state.engine,
     )
 
 
@@ -501,24 +555,55 @@ def read_document(document_id: UUID, db: Db):
 
 
 @router.put("/{document_id}", response_model=DocumentDetail)
-def update_document(document_id: UUID, body: DocumentInput, db: Db):
+def update_document(
+    document_id: UUID, body: DocumentInput, request: Request, background: BackgroundTasks, db: Db
+):
     result = save_revision(
         db,
         body.model_dump(include=set(FileMetadata.model_fields)),
         body.content(),
         document_id=document_id,
         expected_revision=body.expected_revision,
+        background=background,
+        engine=request.app.state.engine,
     )
     return {**result, "content": body.content()}
 
 
+class ArchiveInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expected_revision: int = Field(ge=1)
+
+
+def archive(db, document_id, expected_revision=None):
+    document = find(db, document_id, lock=True)
+    if expected_revision is not None and document.current_revision != expected_revision:
+        raise AdministrationError(
+            409, "document_revision_conflict", "Reload the current revision before archiving."
+        )
+    if document.archived_at is None:
+        document.archived_at = datetime.now(UTC)
+    row = db.get(DocumentActivation, document_id, with_for_update=True)
+    if row is not None:
+        row.status, row.run_id, row.token, row.lease_expires_at, row.error = (
+            "disabled",
+            None,
+            None,
+            None,
+            None,
+        )
+    db.flush()
+    response = metadata(db, document)
+    db.commit()
+    return response
+
+
+@router.post("/{document_id}/archive")
+def archive_document(document_id: UUID, body: ArchiveInput, db: Db):
+    return archive(db, document_id, body.expected_revision)
+
+
 @router.delete("/{document_id}")
 def delete_document(document_id: UUID, db: Db):
-    document = find(db, document_id, lock=True)
-    # Explicit deletion also keeps SQLite-based API tests consistent with PostgreSQL cascades.
-    from sqlalchemy import delete
-
-    db.execute(delete(DocumentRevision).where(DocumentRevision.document_id == document_id))
-    db.delete(document)
-    db.commit()
+    archive(db, document_id)
     return {"deleted": True}

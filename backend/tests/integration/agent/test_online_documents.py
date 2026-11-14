@@ -12,7 +12,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from studio_copilot.agent.contracts import EnquiryInterpretation, ModelError, Routing
-from studio_copilot.documents import online
+from studio_copilot.documents import activation, online
 from studio_copilot.documents.chunking import Tokenizer
 from studio_copilot.documents.chunking.tokenizer import default_cache
 from studio_copilot.documents.embedding import pipeline
@@ -235,7 +235,8 @@ def test_regenerate_after_document_failure_uses_new_cited_answer(
 
 
 @pytest.mark.parametrize(
-    "mutation", ["delete", "replace", "disable", "revoke", "expire", "incomplete"]
+    "mutation",
+    ["delete", "replace", "disable", "revoke", "expire", "incomplete", "archive_api", "update_api"],
 )
 def test_stale_sources_block_approval_without_changing_the_review(
     mutation,
@@ -249,7 +250,20 @@ def test_stale_sources_block_approval_without_changing_the_review(
     run = start(rig, scenario)
     with Session(db_engine) as db:
         before = db.scalar(select(func.count()).select_from(Message))
-    if mutation == "expire":
+    if mutation == "archive_api":
+        response = rig[0].post(
+            f"/api/v1/documents/{document_id}/archive", json={"expected_revision": 1}
+        )
+        assert response.status_code == 200, response.text
+    elif mutation == "update_api":
+        monkeypatch.setattr(activation, "check_setup", lambda: None)
+        monkeypatch.setattr(activation, "worker", lambda *args: None)
+        response = rig[0].patch(
+            f"/api/v1/documents/{document_id}/metadata",
+            json={"title": "Updated trial policy", "expected_revision": 1},
+        )
+        assert response.status_code == 200, response.text
+    elif mutation == "expire":
 
         class Future(datetime):
             @classmethod
@@ -261,8 +275,8 @@ def test_stale_sources_block_approval_without_changing_the_review(
         monkeypatch.setenv("STUDIO_DOCUMENT_ANSWERS", "false")
     elif mutation == "revoke":
         with Session(db_engine) as db, db.begin():
-            activation = db.get(DocumentActivation, document_id)
-            activation.status, activation.run_id = "disabled", None
+            claim = db.get(DocumentActivation, document_id)
+            claim.status, claim.run_id = "disabled", None
     else:
         with Session(db_engine) as db, db.begin():
             if mutation == "delete":

@@ -105,22 +105,24 @@ def worker(engine, document_id, revision, token):
         check_setup()
         with Session(engine) as db, db.begin():
             db.execute(text("SELECT pg_advisory_xact_lock(582910742)"))
+            document = db.get(Document, document_id, with_for_update=True)
             row = db.get(DocumentActivation, document_id, with_for_update=True)
             if row is None or row.token != token or row.status != "preparing":
                 return
-            document = db.get(Document, document_id, with_for_update=True)
             prepared = db.get(EmbeddingRun, run_id)
             enabled = db.execute(
                 select(DocumentActivation, EmbeddingRun)
                 .join(Document, Document.id == DocumentActivation.document_id)
                 .outerjoin(EmbeddingRun, EmbeddingRun.id == DocumentActivation.run_id)
                 .where(
+                    Document.archived_at.is_(None),
                     DocumentActivation.status == "enabled",
                     DocumentActivation.revision == Document.current_revision,
                 )
             ).all()
             if (
                 document is None
+                or document.archived_at is not None
                 or document.current_revision != revision
                 or prepared is None
                 or prepared.document_id != document_id

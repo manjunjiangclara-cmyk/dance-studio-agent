@@ -89,7 +89,13 @@
       "name": "documents",
       "label": "Studio documents",
       "page": "documents",
-      "fields": ["title", "filename", "content", "current_revision"]
+      "fields": [
+        "title",
+        "filename",
+        "content",
+        "current_revision",
+        "archived_at"
+      ]
     },
     {
       "name": "document_revisions",

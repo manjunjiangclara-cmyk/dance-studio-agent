@@ -99,7 +99,8 @@ def require_browser_access(request: Request) -> None:
         (
             request.method in {"POST", "DELETE"}
             and re.fullmatch(
-                r"/api/v1/documents/[0-9a-fA-F-]{36}/answer-activation", request.url.path
+                r"/api/v1/documents/[0-9a-fA-F-]{36}/(?:answer-activation|archive)",
+                request.url.path,
             )
         )
         or (

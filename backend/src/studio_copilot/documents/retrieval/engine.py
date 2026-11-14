@@ -24,8 +24,10 @@ BUDGET = 12_000
 ELIGIBLE = """
  FROM document_chunks c
  JOIN embedding_runs r ON r.id = c.run_id
+ JOIN documents source ON source.id = r.document_id
  JOIN document_revisions d ON d.document_id = r.document_id AND d.revision = r.revision
  WHERE c.run_id = ANY(:run_ids) AND r.status = 'complete'
+ AND source.archived_at IS NULL
  AND c.kind = 'passage' AND c.vector_key IS NOT NULL
  AND d.ingestion_status = 'ready'
  AND (d.effective_from IS NULL OR d.effective_from <= :as_of)

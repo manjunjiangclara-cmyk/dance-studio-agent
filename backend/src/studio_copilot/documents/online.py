@@ -135,6 +135,7 @@ class Configuration:
                     select(DocumentActivation)
                     .join(Document, Document.id == DocumentActivation.document_id)
                     .where(
+                        Document.archived_at.is_(None),
                         DocumentActivation.status == "enabled",
                         DocumentActivation.revision == Document.current_revision,
                     )
@@ -206,7 +207,8 @@ def source_rows(db, run_ids, as_of, *, lock=False):
         except (TypeError, ValueError):
             raise OnlineError("profile_mismatch") from None
         if (
-            run.status != "complete"
+            document.archived_at is not None
+            or run.status != "complete"
             or not run.prepared
             or revision.ingestion_status != "ready"
             or document.current_revision != revision.revision
@@ -449,6 +451,17 @@ def require_current_sources(db, run):
     entries = [item for item in entries if used.intersection(item.get("references", []))]
     if not entries:
         return
+    # All lifecycle writes lock documents before activations. Match that order
+    # so approval cannot deadlock with an update or archive.
+    document_ids = sorted(
+        {UUID(source["document_id"]) for item in entries for source in item["sources"]}
+    )
+    db.scalars(
+        select(Document)
+        .where(Document.id.in_(document_ids))
+        .order_by(Document.id)
+        .with_for_update(read=True)
+    ).all()
     config = Configuration.from_env(db, lock=True)
     if config is None:
         raise OnlineError("source_revoked")

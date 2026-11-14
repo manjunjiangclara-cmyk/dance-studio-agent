@@ -390,15 +390,15 @@ def test_document_deleted_while_receiving_replacement_is_not_recreated(
         client, b"Replacement received later.", document_id=document_id, expected_revision="1"
     )
     assert deletions == [200]
-    assert response.status_code == 404, response.text
-    assert client.get(f"{ROOT}/{document_id}/metadata").status_code == 404
+    assert response.status_code == 409, response.text
+    assert client.get(f"{ROOT}/{document_id}/metadata").json()["archived_at"] is not None
     with db_engine.connect() as connection:
         assert (
             connection.execute(
                 text("SELECT count(*) FROM document_revisions WHERE document_id = :id"),
                 {"id": document_id},
             ).scalar_one()
-            == 0
+            == 1
         )
 
 
@@ -437,13 +437,14 @@ def test_failed_revision_insert_rolls_back_document_creation_or_replacement(
     assert len(revisions(client, document_id)) == 1
 
 
-def test_delete_removes_document_and_all_revision_previews(client):
+def test_delete_archives_document_and_retains_revision_previews(client):
     created = upload(client)
     assert created.status_code == 201, created.text
     document_id = created.json()["id"]
     assert client.delete(f"{ROOT}/{document_id}").status_code == 200
+    assert client.get(ROOT).json() == []
     for suffix in ("metadata", "revisions", "revisions/1/preview"):
-        assert client.get(f"{ROOT}/{document_id}/{suffix}").status_code == 404
+        assert client.get(f"{ROOT}/{document_id}/{suffix}").status_code == 200
 
 
 def test_legacy_read_remains_pinned_when_file_is_replaced_with_large_content(client, monkeypatch):
