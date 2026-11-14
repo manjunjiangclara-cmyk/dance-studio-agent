@@ -1,6 +1,7 @@
 """Workflow steps: model decisions and state updates, with persistence delegated to the store."""
 
 import logging
+import re
 from datetime import datetime
 
 from langgraph.types import interrupt
@@ -18,7 +19,11 @@ from studio_copilot.agent.contracts import (
     Routing,
     State,
 )
-from studio_copilot.agent.document_answers import EVIDENCE_MARKER, document_draft
+from studio_copilot.agent.document_answers import (
+    EVIDENCE_MARKER,
+    document_draft,
+    document_safe_body,
+)
 from studio_copilot.agent.enquiry import safe_body, validate_answers
 from studio_copilot.agent.makeup import clarification_body, validated_candidate_ids
 from studio_copilot.agent.persistence.store import WorkflowStore
@@ -26,6 +31,7 @@ from studio_copilot.agent.privacy import normalize_unknown_greeting
 from studio_copilot.agent.proposals import confirmation_body
 from studio_copilot.agent.question_resolutions import (
     RevisionExtractionError,
+    deferral_text,
     identify_questions,
     merge_resolutions,
     resolved_question_context,
@@ -34,6 +40,81 @@ from studio_copilot.agent.question_resolutions import (
 from studio_copilot.agent.workflow.queries import QueryRunner
 
 logger = logging.getLogger(__name__)
+
+SIGNATURE = re.compile(
+    r"\n\s*(?:best(?: regards)?|kind regards|warm regards|warmly|sincerely|thanks),?"
+    r"(?:\s*\n\s*[^\n]*)?\s*$",
+    re.IGNORECASE,
+)
+PLACEHOLDER = re.compile(r"\[(?:your name|teacher(?:'s)? name|studio name)\]", re.IGNORECASE)
+PROMISE = re.compile(
+    r"\b(?:I|we)(?:['’]ll| will)\s+(?:check|confirm|follow up|get back|look into|"
+    r"email|write|reply|call|contact|reach out|let you know|send (?:you )?(?:an? )?update|"
+    r"be in touch|ask (?:the )?office)",
+    re.IGNORECASE,
+)
+NUMBER = re.compile(
+    r"\b(?:\d+(?:\.\d+)?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b"
+)
+TOPICS = ("refund", "offer", "deposit", "booking", "payment", "credit", "cancellation")
+
+
+def _unsigned_email(body: str, *, has_signature: bool) -> tuple[str, bool]:
+    if has_signature:
+        return body, False
+    cleaned = SIGNATURE.sub("", body).rstrip()
+    cleaned = PLACEHOLDER.sub("", cleaned).rstrip()
+    return cleaned, cleaned != body
+
+
+def _composition_concerns(body: str, facts: list[dict], *, deferred: bool) -> list[str]:
+    concerns = []
+    if not deferred and PROMISE.search(body):
+        concerns.append("The draft promises a follow-up without an explicit teacher deferral.")
+    for fact in facts:
+        source = fact["text"].lower()
+        source_topics = {topic for topic in TOPICS if topic in source}
+        if not source_topics:
+            continue
+        for number in set(NUMBER.findall(source)):
+            for sentence in re.split(r"(?<=[.!?])\s+|\n+", body.lower()):
+                if number not in NUMBER.findall(sentence):
+                    continue
+                draft_topics = {topic for topic in TOPICS if topic in sentence}
+                if draft_topics and draft_topics.isdisjoint(source_topics):
+                    span = re.search(rf"\b{re.escape(number)}\b(?:\s+\w+){{0,3}}", source)
+                    phrase = span.group(0) if span else number
+                    concerns.append(
+                        f"Check that {phrase} remains attached to the documented "
+                        f"{', '.join(sorted(source_topics))} condition "
+                        f"for question {fact['question_id']}."
+                    )
+    return list(dict.fromkeys(concerns))
+
+
+def _remove_unapproved_promises(body: str, deferred_questions: list[str]) -> tuple[str, bool]:
+    """Keep only the teacher's explicit question-scoped deferral wording."""
+    protected = {}
+    for index, question in enumerate(deferred_questions):
+        wording = deferral_text(question)
+        marker = f"__approved_deferral_{index}__."
+        if wording in body:
+            protected[marker] = wording
+            body = body.replace(wording, marker)
+    pieces = re.split(r"(?<=[.!?])(\s+)", body)
+    retained = []
+    removed = False
+    for index in range(0, len(pieces), 2):
+        sentence = pieces[index]
+        if PROMISE.search(sentence):
+            removed = True
+            continue
+        separator = pieces[index - 1] if index and retained else ""
+        retained.append(separator + sentence)
+    body = "".join(retained)
+    for marker, wording in protected.items():
+        body = body.replace(marker, wording)
+    return body.strip(), removed
 
 
 def select_flow(routing: Routing) -> str:
@@ -241,11 +322,44 @@ class WorkflowNodes:
             _validate_references(validate_answers(draft, state), state), state
         )
         if document_mode:
+            results = {
+                item["result"].get("question_id"): item["result"]
+                for item in state.get("evidence", [])
+                if item.get("tool") == "document_answer"
+            }
+            facts = [
+                {
+                    "question_id": item.question_id,
+                    "question": item.question,
+                    "text": claim.get("text", ""),
+                    "citations": item.references,
+                    "status": item.status,
+                }
+                for item in draft.answers
+                if item.references and all(ref.startswith("document:") for ref in item.references)
+                for claim in results.get(item.question_id, {}).get("claims", [])
+                if claim.get("text")
+            ]
+            live_state_questions = [
+                item.question
+                for item in draft.answers
+                if results.get(item.question_id, {}).get("reason_code") == "requires_live_data"
+            ]
             composition_context = {
                 "student": state["context"].get("student", {}),
                 "source": state["context"].get("source", {}),
+                "original_request": state["context"].get("source", {}).get("body", ""),
+                "facts": facts,
+                "unresolved_actions": state["interpretation"].get("requested_actions", []),
+                "live_state_questions": live_state_questions,
                 "answers": [
-                    {"question": item.question, "status": item.status, "answer": item.answer}
+                    {
+                        "question_id": item.question_id,
+                        "question": item.question,
+                        "status": item.status,
+                        "answer": item.answer,
+                        "references": item.references,
+                    }
                     for item in draft.answers
                 ],
                 "question_resolutions": resolved_question_context(
@@ -254,10 +368,31 @@ class WorkflowNodes:
                 "requested_actions": state["interpretation"].get("requested_actions", []),
             }
             try:
-                composed = DocumentEmailComposition.model_validate(
-                    self.model.compose_document_email(composition_context)
-                )
+                if composition_context["unresolved_actions"] or live_state_questions:
+                    handoff = document_safe_body(draft.answers)
+                    if "I can't confirm" not in handoff:
+                        handoff += "\n\nI can't confirm the requested change or live status yet."
+                    composed = DocumentEmailComposition(
+                        body=handoff,
+                        review_concerns=[
+                            "The live status or requested record change needs a teacher decision; "
+                            "no current state or completed action was confirmed."
+                        ],
+                    )
+                else:
+                    composed = DocumentEmailComposition.model_validate(
+                        self.model.compose_document_email(composition_context)
+                    )
                 body = normalize_unknown_greeting(composed.body, composition_context["student"])
+                deferred_questions = [
+                    item["question"]
+                    for item in composition_context["question_resolutions"]
+                    if item.get("decision") == "defer"
+                ]
+                body, promise_removed = _remove_unapproved_promises(body, deferred_questions)
+                body, signature_removed = _unsigned_email(
+                    body, has_signature=bool(state["context"].get("teacher_signature"))
+                )
                 if (
                     not isinstance(body, str)
                     or not body.strip()
@@ -273,7 +408,26 @@ class WorkflowNodes:
                 ):
                     raise ModelError("The composed email is invalid.")
                 draft.body = body.strip()
-                draft.review_concerns = composed.review_concerns
+                draft.review_concerns = list(composed.review_concerns)
+                draft.review_concerns.extend(
+                    _composition_concerns(
+                        draft.body,
+                        facts,
+                        deferred=any(
+                            item.get("decision") == "defer"
+                            for item in state.get("question_resolutions", [])
+                        ),
+                    )
+                )
+                if signature_removed:
+                    draft.review_concerns.append(
+                        "An unconfigured signature or name placeholder was removed."
+                    )
+                if promise_removed:
+                    draft.review_concerns.append(
+                        "An unapproved follow-up promise was removed from the draft."
+                    )
+                draft.review_concerns = list(dict.fromkeys(draft.review_concerns))
             except (ModelError, ValueError, TypeError, AttributeError):
                 draft.rationale += (
                     " Email composition or its support check failed; "

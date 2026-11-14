@@ -1,0 +1,390 @@
+{
+  "version": "integrated-rag-review-v2",
+  "source_report": "/Users/manjunjiang/MyApps/dance-studio-rag-evaluation-pr/backend/evaluations/results/integrated-rag-fresh-validation-2026-11-13.json",
+  "dataset_sha256": "23a21438429cf096b4c04a71830a4632218f4b734b408adb127832e15939cb0c",
+  "method": "Independent AI case review of final drafts against the actual supplied evidence, frozen expected facts, question-scoped citations, and teacher checklist. Exact citation validity and checker verdicts were not treated as semantic proof.",
+  "results": [
+    {
+      "id": "fresh-01",
+      "output_sha256": "644744cb228d784ec8dce4616096b35cb2fb6b9c0fef3cc89c3a49f1a1d47040",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": true,
+      "false_refusal": null,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "The eligibility answer is conditional on beginner status and current space; the teacher checklist remains open. The draft correctly gives the age rule but cannot be approved without resolving or deferring that question."
+      ],
+      "critical": false
+    },
+    {
+      "id": "fresh-02",
+      "output_sha256": "69bae5f8d8730c5ba88eaa8b0662230499b58d75e90e0220b209104fdd4a2ec2",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-03",
+      "output_sha256": "d9255677acad8668857193087dbfdce849082081bf018b35416f8b4846d263dd",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-04",
+      "output_sha256": "b6fbf7056fe25ca682b9f4a136413179ee47b19a3ca0afbc0cb5b9d3915301da",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-05",
+      "output_sha256": "9faa7b509a2ba8204755817e6c5da10f549aadbaffe120f80f97767d0ad34dff",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-06",
+      "output_sha256": "d09a8616cad8d66272987157c4195e7cf9aab4739428e2b408d450afd0d18947",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-07",
+      "output_sha256": "6488e35c48b4595fc6d2bb81f58d8925daa04f7407d7f8972f37a7a195cdb74e",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-08",
+      "output_sha256": "1ba0268228933aef4056731bd2e514d22132311e087a13644aac9d27a8aadd90",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-09",
+      "output_sha256": "d8ab57c0823ed435c5bcb325ff7bb9f66bf8b6c395b92203283f9092edf6b734",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-10",
+      "output_sha256": "ed9e310bf51401bc9ad632a7b2af59c42c076083b51fb857da07a4afd994296b",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-11",
+      "output_sha256": "7d3f88a9636addc92d99f5eb7a31735af313365ad4b5e8f12856508d475b7d52",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-12",
+      "output_sha256": "c8047ccf5d6de778555fcb103b92e8e480a266895af957f4f5d9e4d3edcaf79c",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-13",
+      "output_sha256": "f795cd750447178c234ed6fbfaf7164dc7c8e7d5da3d482305170ddcadfca20c",
+      "supported": false,
+      "complete": false,
+      "correct_refusal": true,
+      "false_refusal": true,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "The due date is supplied correctly, but the payment question omits the supplied office-receipt guidance (answer omission).",
+        "The email says “I’ll need to verify” the payment without an explicit teacher deferral, creating an unsupported checking commitment (composition). The current payment state is correctly left unknown."
+      ],
+      "critical": false
+    },
+    {
+      "id": "fresh-14",
+      "output_sha256": "2ed671a0c20a16b86ed153deb376b4b5685513da5d9d0082258c4ece11c60389",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-15",
+      "output_sha256": "a1ab8ec0baf6325de7110a29f426fb5552203db1492cc3f23f436d099c5ba5d0",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-16",
+      "output_sha256": "06bec3950a1567642ff670256b05aca0cae1b882f429977b1d510c50ad2e4a80",
+      "supported": false,
+      "complete": false,
+      "correct_refusal": null,
+      "false_refusal": true,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "Critical composition failure: the answer and cited passages establish 15:30 arrival (30 minutes before the 16:00 rehearsal), but the final email says the arrival time is unconfirmed. The supplied fact was dropped and replaced by an unsupported negative claim."
+      ],
+      "critical": true
+    },
+    {
+      "id": "fresh-17",
+      "output_sha256": "d65cf1d6ba7497ec341bda6b7356a714d184bb6e5ec31db5a37e0cee21bb14ed",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-18",
+      "output_sha256": "c3b609b5911bb532301f0256f24583293e9765bc2a63b77754f6c3aef7492af7",
+      "supported": false,
+      "complete": false,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "Critical condition change in composition: the source says festival photography consent must be filed by 20 July 2028. The email makes filing conditional on choosing to provide consent, while the question also concerns declining photography. The source does not support that exemption."
+      ],
+      "critical": true
+    },
+    {
+      "id": "fresh-19",
+      "output_sha256": "79808e99b777827d0009bf49ed15dee816edc1d6f4d3cc1a98905ca820eff521",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": true,
+      "false_refusal": null,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "The fixed departure and absence of a fixed return time are conveyed accurately. The actual return time remains unresolved and the teacher checklist must be handled before approval."
+      ],
+      "critical": false
+    },
+    {
+      "id": "fresh-20",
+      "output_sha256": "1440749aa1e395a49aa570019340cb7462e44df3f58fd87a52d959d310e09ded",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-21",
+      "output_sha256": "734f6acbeaea85903847f64648e743a1372023cc4bf3f3082e742326e3057f3a",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-22",
+      "output_sha256": "c3a75e69cc358de7a00663019d920bfb62199b26a26c9e543165e67de9238761",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-23",
+      "output_sha256": "30477b946341d589fd40fde6d02a0cbdd8a6d4dcde6d9ab661731a124141ec66",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-24",
+      "output_sha256": "a77fa63b3f9117a67ddfc225947ecf446129fcc33119b95a9542cb951a157962",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-25",
+      "output_sha256": "2cc48f78fb2ad6b1b31705f89d7103abfaa8dce1738f192fbaabc33470a79e73",
+      "supported": false,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "The closing invites the family to have the office arrange a shuttle ride. The cited rule establishes who must reserve tickets, but does not establish an available ride or an office commitment to arrange one on request (composition)."
+      ],
+      "critical": false
+    },
+    {
+      "id": "fresh-26",
+      "output_sha256": "50b88eafb70a995a0c9046430bb46cbee0dc380f0c324e99cc3b9b9d6e16f73b",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-27",
+      "output_sha256": "ee1fbb61e5c3e1e783bef06001e4571bd759bce20b86ac3f26ab763100d0db91",
+      "supported": true,
+      "complete": false,
+      "correct_refusal": true,
+      "false_refusal": true,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "The live booking state was correctly withheld, but the final email omitted two supplied policy facts: a teacher must confirm a replacement before booking changes, and the absence form records only a request. The answer stage abstained despite those passages being supplied."
+      ],
+      "critical": false
+    },
+    {
+      "id": "fresh-28",
+      "output_sha256": "3e0a4a9ba345b1fd78190d445f437f3da11e0d6054469161ff667febf35a83b9",
+      "supported": true,
+      "complete": false,
+      "correct_refusal": true,
+      "false_refusal": null,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "Critical omitted condition in composition: the 24-hour welcome-note deadline is stated without “before class,” even though the cited source and generated answer include that condition. Both conflicting values and the unresolved authority are otherwise presented accurately. The teacher checklist remains open."
+      ],
+      "critical": true
+    },
+    {
+      "id": "fresh-29",
+      "output_sha256": "b5190ce34fdb251a1b5ef5e6e335c4d771a554425f1f33ffca133ece29cc6582",
+      "supported": false,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "The $24 current price is cited and correct. The final email additionally asserts that the reported $19 came from the archived 2027 note, but that note was not supplied to the answer or writer; the assertion relies only on the student message (composition)."
+      ],
+      "critical": false
+    },
+    {
+      "id": "fresh-30",
+      "output_sha256": "74b49e3b2807b73ce5478d459d370692697ca685066a1ca9da2a69828e8e3b9e",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": true,
+      "false_refusal": null,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "The water-bottle fact is supported and the refund status remains unknown. The teacher must resolve or defer the live refund question before approval. The checker concern about saying the visitor appendix alone cannot confirm refund status is a false positive: it does not assert a refund outcome."
+      ],
+      "critical": false
+    }
+  ],
+  "refusal_metric_scope": "Correct refusal covers six cases with a legitimately unresolved conclusion; false refusal covers 24 otherwise answerable cases plus fresh-13 and fresh-27, where a legitimate live-state refusal also omitted supplied answerable facts. Properly withheld conclusions in fresh-01, fresh-19, fresh-28 and fresh-30 are excluded from the false-refusal denominator."
+}

@@ -6,14 +6,56 @@ import re
 
 import pytest
 
-from integrated_rag_evaluation.review import merge
+from integrated_rag_evaluation.__main__ import VALIDATION_CASES, VALIDATION_SOURCES
+from integrated_rag_evaluation.review import decision, merge
 from integrated_rag_evaluation.runner import (
     BudgetExceeded,
     RunBudget,
     fingerprint,
+    load_dataset,
     output_hash,
     summarize,
 )
+
+
+def test_fresh_validation_is_frozen_and_separate_from_regressions():
+    cases = load_dataset(VALIDATION_CASES, VALIDATION_SOURCES)
+    assert len(cases["smoke"]) == 5
+    assert len(cases["evaluation"]) == 30
+    assert {case["id"] for case in cases["smoke"]}.isdisjoint(
+        {case["id"] for case in cases["evaluation"]}
+    )
+    assert all(case["id"].startswith("fresh-") for case in cases["evaluation"])
+    assert fingerprint(VALIDATION_CASES, VALIDATION_SOURCES)
+
+
+def test_pilot_decision_requires_teacher_adjudication_and_readiness():
+    fields = {
+        "supported": True,
+        "complete": True,
+        "correct_refusal": True,
+        "false_refusal": False,
+        "citation_relevant": True,
+        "teacher_ready": True,
+        "critical": False,
+        "teacher_adjudicated": False,
+    }
+    rows = [
+        {
+            "id": f"case-{index}",
+            "status": "completed",
+            "expected_status": "answered",
+            "review": dict(fields),
+        }
+        for index in range(30)
+    ]
+    assert decision(summarize(rows), rows, "evaluation") == "hold: teacher adjudication pending"
+    for row in rows:
+        row["review"]["teacher_adjudicated"] = True
+    assert decision(summarize(rows), rows, "evaluation").startswith("pilot candidate")
+    for row in rows[:7]:
+        row["review"]["teacher_ready"] = False
+    assert "teacher_ready" in decision(summarize(rows), rows, "evaluation")
 
 
 def test_fingerprint_is_content_based_and_reproducible(tmp_path):

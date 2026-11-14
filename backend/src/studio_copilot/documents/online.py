@@ -296,10 +296,25 @@ def check_identities(db, config, identities, as_of, *, lock=False):
 
 
 def question_answer(
-    engine, config, question, case_id, as_of, tokenizer, reranker, *, embedder=None, provider=None
+    engine,
+    config,
+    question,
+    case_id,
+    as_of,
+    tokenizer,
+    reranker,
+    *,
+    embedder=None,
+    provider=None,
+    request_context="",
 ):
+    # Retrieval sees the full request so short extracted subquestions retain their
+    # subject and conditions. Reranking and generation still target this question.
+    query = question
+    if request_context and request_context.strip() != question.strip():
+        query = f"{question}\nOriginal request context: {request_context[:2000]}"
     snapshot = capture(
-        engine, config.run_ids, question, as_of, tokenizer, allow_api=True, embedder=embedder
+        engine, config.run_ids, query, as_of, tokenizer, allow_api=True, embedder=embedder
     )
     if snapshot["degraded"]:
         raise OnlineError("retrieval_failed")
@@ -404,6 +419,9 @@ def gather(
                     reranker,
                     embedder=embedder,
                     provider=provider,
+                    request_context=privacy.redact(
+                        state["context"].get("source", {}).get("body", "")
+                    ),
                 )
                 # Quotes and their ranges remain byte-for-byte source text. Identity
                 # aliases in answers stay neutral rather than restoring facts from a model.

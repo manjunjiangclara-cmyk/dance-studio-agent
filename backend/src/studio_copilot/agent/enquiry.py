@@ -94,7 +94,16 @@ def validate_answers(draft: Draft, state: dict) -> Draft:
         answer.question_id = question_id
         if answer.status == "needs_teacher" and question_id:
             required.add(question_id)
-        if question_id in required and question_id not in applied:
+        if (
+            question_id in required
+            and question_id not in applied
+            and not (
+                state.get("document_answers_enabled")
+                and answer.status == "needs_teacher"
+                and answer.references
+                and answer.answer.strip()
+            )
+        ):
             answer.status = "needs_teacher"
             answer.answer = "The teacher needs to verify this before replying."
             answer.references = []
@@ -120,7 +129,12 @@ def validate_answers(draft: Draft, state: dict) -> Draft:
     draft.question_resolutions = resolutions
     if unsafe or resolutions:
         try:
-            draft.body = safe_body(answers, actions, resolutions)
+            if state.get("document_answers_enabled"):
+                from studio_copilot.agent.document_answers import document_safe_body
+
+                draft.body = document_safe_body(answers)
+            else:
+                draft.body = safe_body(answers, actions, resolutions)
         except ModelError:
             # Regeneration can expand previously concise model answers after the
             # submitted teacher choices passed the preflight size check. Keep
