@@ -45,6 +45,7 @@ import {
 } from "lucide-react";
 import { all, ApiError, examples, get, post, request } from "./data";
 import { confirmedSessions } from "./attendance";
+import { GuidedTour } from "./GuidedTour";
 import { PolicyPage } from "./PolicyPage";
 import { DocumentsPage } from "./DocumentsPage";
 import {
@@ -292,7 +293,7 @@ export default function App() {
     ["timetable", "Timetable", CalendarDays],
     ["database", "Database", Database],
     ["knowledge", "Studio knowledge", BookOpen],
-    ["test-email", "Test email", Send],
+    ["test-email", workspace ? "Test email" : "Email walkthrough", Send],
   ] as const;
   async function logout() {
     try {
@@ -440,6 +441,8 @@ export default function App() {
                 <ErrorBox error={authError} />
                 {page === "overview" ? (
                   <Overview />
+                ) : page === "tour" && !workspace ? (
+                  <GuidedTour />
                 ) : page === "reviews" ? (
                   id ? (
                     <ReviewDetail key={`${base}-${id}`} id={id} />
@@ -573,14 +576,24 @@ function Overview() {
             The copilot connects the conversation, student history, and class
             timetable to prepare a draft for a teacher to review.
           </p>
-          <Link className="button primary" to={`${base}/reviews`}>
-            {workspace ? "Open review queue" : "Explore the review queue"}
+          <Link
+            className="button primary"
+            to={workspace ? `${base}/reviews` : "/demo/tour"}
+          >
+            {workspace ? "Open review queue" : "Try the guided demo"}
             <ArrowRight size={17} />
           </Link>
+          {!workspace && (
+            <p>
+              <Link className="inline-link" to="/demo/reviews">
+                Explore the records <ArrowRight size={16} />
+              </Link>
+            </p>
+          )}
           <span className="hero-caption">
             {workspace
               ? "Approval books a proposed session and saves the response."
-              : "No sign-in required. All public records are fictional."}
+              : "Two minutes. No sign-in or live model calls. Fictional examples."}
           </span>
         </div>
         <div
@@ -669,6 +682,47 @@ function Overview() {
           value && <RunRows runs={value.runs.items} />
         )}
       </section>
+      {!workspace && (
+        <section className="panel">
+          <div className="eyebrow">BEHIND THE EXPERIENCE</div>
+          <h2>Engineering and measured limits</h2>
+          <p>
+            FastAPI, PostgreSQL, LangGraph and React connect deterministic
+            booking checks, document retrieval and teacher review.
+          </p>
+          <nav className="engineering-links" aria-label="Engineering resources">
+            <a
+              className="inline-link"
+              href="https://github.com/manjunjiangclara-cmyk/dance-studio-agent"
+            >
+              GitHub repository
+            </a>
+            <a
+              className="inline-link"
+              href="https://github.com/manjunjiangclara-cmyk/dance-studio-agent/blob/master/docs/04-architecture.md"
+            >
+              Architecture
+            </a>
+            <a
+              className="inline-link"
+              href="https://github.com/manjunjiangclara-cmyk/dance-studio-agent/blob/master/docs/measurements/integrated-rag-2026-11-11.md"
+            >
+              Integrated evaluation report
+            </a>
+          </nav>
+          <p>
+            11 November 2026: a live integrated evaluation reached teacher
+            review in 30/30 fictional cases. Independent AI review judged 27/30
+            emails supported and 16/30 ready without correction. The report
+            recommends holding routine use pending quality improvements.
+          </p>
+          <p className="muted">
+            This small synthetic evaluation is not human ground truth or
+            evidence of production reliability. The guided demo uses curated
+            fixtures, not those live results.
+          </p>
+        </section>
+      )}
       {!workspace && (
         <div className="example-footnote">
           <CircleHelp size={16} />

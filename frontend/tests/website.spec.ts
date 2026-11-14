@@ -30,7 +30,7 @@ test("public examples work without touching the workspace API", async ({
     fullPage: true,
   });
   await page
-    .getByRole("link", { name: "Explore the review queue", exact: true })
+    .getByRole("link", { name: "Explore the records", exact: true })
     .click();
   await page.getByLabel("Search enquiries").fill("Alex");
   await expect(page.locator(".run-row")).toHaveCount(2);
