@@ -57,6 +57,31 @@ NUMBER = re.compile(
     r"\b(?:\d+(?:\.\d+)?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b"
 )
 TOPICS = ("refund", "offer", "deposit", "booking", "payment", "credit", "cancellation")
+PERSONAL_RECORD = re.compile(
+    r"\b(?:my|our|me|us)\b.*\b(?:booking|payment|balance|refund|attendance|credit|"
+    r"enrolment|reservation|invoice)\b|"
+    r"\b(?:booking|payment|balance|refund|attendance|credit|enrolment|reservation|invoice)"
+    r"\b.*\b(?:my|our|me|us)\b",
+    re.IGNORECASE,
+)
+LIVE_STATUS = re.compile(
+    r"\b(?:has|have|is|was|did|received|paid|booked|confirmed|approved|changed|"
+    r"cancelled|processed|issued|current|status|recorded)\b",
+    re.IGNORECASE,
+)
+
+
+def _live_record_question(question: str) -> bool:
+    return bool(PERSONAL_RECORD.search(question) and LIVE_STATUS.search(question))
+
+
+def _claim_references(claim: dict, answer_references: list[str]) -> list[str]:
+    citations = [
+        "document:" + str(citation["evidence_id"])
+        for citation in claim.get("citations", [])
+        if isinstance(citation, dict) and citation.get("evidence_id")
+    ]
+    return list(dict.fromkeys(citations)) if citations else answer_references
 
 
 def _unsigned_email(body: str, *, has_signature: bool) -> tuple[str, bool]:
@@ -327,23 +352,40 @@ class WorkflowNodes:
                 for item in state.get("evidence", [])
                 if item.get("tool") == "document_answer"
             }
+            applied_ids = {
+                str(item.get("question_id")) for item in state.get("question_resolutions", [])
+            }
+            live_state_questions = []
+            for item in draft.answers:
+                if item.question_id in applied_ids:
+                    continue
+                if results.get(item.question_id, {}).get(
+                    "reason_code"
+                ) == "requires_live_data" or _live_record_question(item.question):
+                    live_state_questions.append(item.question)
+                    item.status = "needs_teacher"
+                    item.answer = "The teacher needs to verify this before replying."
+                    item.references = []
+                    if item.question_id:
+                        draft.required_question_ids.append(item.question_id)
+                    if item.question not in draft.questions:
+                        draft.questions.append(item.question)
+            draft.required_question_ids = sorted(set(draft.required_question_ids))
+            draft.references = list(
+                dict.fromkeys(ref for item in draft.answers for ref in item.references)
+            )
             facts = [
                 {
                     "question_id": item.question_id,
                     "question": item.question,
                     "text": claim.get("text", ""),
-                    "citations": item.references,
+                    "citations": _claim_references(claim, item.references),
                     "status": item.status,
                 }
                 for item in draft.answers
                 if item.references and all(ref.startswith("document:") for ref in item.references)
                 for claim in results.get(item.question_id, {}).get("claims", [])
                 if claim.get("text")
-            ]
-            live_state_questions = [
-                item.question
-                for item in draft.answers
-                if results.get(item.question_id, {}).get("reason_code") == "requires_live_data"
             ]
             composition_context = {
                 "student": state["context"].get("student", {}),

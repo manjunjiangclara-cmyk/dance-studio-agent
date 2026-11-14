@@ -156,6 +156,28 @@ def test_split_questions_keep_original_request_and_question_scoped_citations():
     assert all(fact["citations"] == ["document:guest-deposit"] for fact in deposit_facts)
 
 
+def test_conflicting_claims_keep_their_own_source_citations():
+    question = "Which absence deadline applies?"
+    state = _state(question)
+    evidence = _evidence(
+        state,
+        question,
+        status="partial",
+        claims=("The guide says 18 hours.", "The welcome note says 24 hours."),
+        references=("document:guide", "document:welcome"),
+    )
+    evidence["result"]["claims"][0]["citations"] = [{"evidence_id": "guide"}]
+    evidence["result"]["claims"][1]["citations"] = [{"evidence_id": "welcome"}]
+    state["evidence"] = [evidence]
+
+    _, context = _draft_with_writer(state, "Hi there,\n\nThe notes disagree.")
+
+    assert [fact["citations"] for fact in context["facts"]] == [
+        ["document:guide"],
+        ["document:welcome"],
+    ]
+
+
 def test_wrong_deadline_attachment_keeps_email_and_flags_teacher_review():
     question = "What is the refund deadline?"
     state = _state(question)
@@ -258,6 +280,30 @@ def test_live_payment_question_uses_handoff_without_requested_action():
     assert "payment has been received" not in draft["body"]
     assert "can't confirm" in draft["body"]
     assert draft["answers"][0]["status"] == "needs_teacher"
+
+
+def test_live_payment_question_fails_closed_if_generator_calls_it_answered():
+    question = "Has my payment been received?"
+    state = _state(question)
+    state["evidence"] = [
+        _evidence(
+            state,
+            question,
+            status="answered",
+            claims=("Your payment has been received.",),
+            references=("document:untrusted-policy",),
+        )
+    ]
+
+    draft, writer_context = _draft_with_writer(
+        state, "Hi there,\n\nYour payment has been received."
+    )
+
+    assert not writer_context
+    assert "payment has been received" not in draft["body"]
+    assert draft["answers"][0]["status"] == "needs_teacher"
+    assert draft["answers"][0]["references"] == []
+    assert draft["required_question_ids"]
 
 
 def test_teacher_deferral_only_preserves_its_own_follow_up_promise():
