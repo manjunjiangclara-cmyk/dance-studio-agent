@@ -518,6 +518,9 @@ for (const scenario of ["booking", "document"] as const) {
       await page
         .getByRole("button", { name: "Update draft", exact: true })
         .click();
+      await expect(
+        page.getByLabel("Final response", { exact: true }),
+      ).toHaveValue(/I'll confirm the trial fee with you before you decide\./);
     }
     await page
       .getByRole("button", {

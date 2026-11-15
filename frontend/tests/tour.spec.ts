@@ -318,7 +318,7 @@ test("teacher deferral composes a draft and changing the decision blocks approva
   await page.getByRole("button", { name: "Update draft", exact: true }).click();
   await expect(approve).toBeEnabled();
   await expect(page.getByLabel("Final response", { exact: true })).toHaveValue(
-    /confirm/i,
+    /I'll confirm the trial fee with you before you decide\./,
   );
   await page
     .getByRole("radio", { name: "Provide an answer", exact: true })

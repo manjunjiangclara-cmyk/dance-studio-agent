@@ -71,7 +71,7 @@ export function documentDraft(
   return base.replace("[Teacher decision needed: trial fee]", () =>
     decision === "answer"
       ? `About the trial fee: ${answer.trim()}`
-      : "Our teacher will confirm the trial fee with you before you decide.",
+      : "I'll confirm the trial fee with you before you decide.",
   );
 }
 
