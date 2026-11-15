@@ -1,0 +1,69 @@
+{
+  "version": "integrated-rag-validation-sources-v2",
+  "documents": [
+    {
+      "key": "classes",
+      "title": "Copper Wren Movement Studio 2029 Class and Trial Guide",
+      "file": "classes.md",
+      "sha256": "9d5c665b7cf8213fe71ddda7f7ca9e56470d4a3d5dee1777cb84b75044e7a943",
+      "effective_from": "2029-01-01",
+      "effective_to": "2029-12-31"
+    },
+    {
+      "key": "payments",
+      "title": "Copper Wren Movement Studio 2029 Tuition and Hire Guide",
+      "file": "payments.md",
+      "sha256": "022cf2fb01c91721d06603f448a812fdb617ab5558f0622cc4697c1bd8589aac",
+      "effective_from": "2029-01-01",
+      "effective_to": "2029-12-31"
+    },
+    {
+      "key": "showcase",
+      "title": "Copper Wren Movement Studio 2029 Rooftop Showcase Handbook",
+      "file": "showcase.md",
+      "sha256": "8326e33f8928a687ceb8ab57d10b68b90d9e12ca97568c09d9fa4490fa047a0f",
+      "effective_from": "2029-01-01",
+      "effective_to": "2029-12-31"
+    },
+    {
+      "key": "venue",
+      "title": "Copper Wren Movement Studio 2029 Rooms and Travel Note",
+      "file": "venue.md",
+      "sha256": "482df698d764d9f830894e7ad1c2b85b0190dde0c553f79fe9e30143348cb12a",
+      "effective_from": "2029-01-01",
+      "effective_to": "2029-12-31"
+    },
+    {
+      "key": "credits",
+      "title": "Copper Wren Movement Studio 2029 Missed Class and Credit Policy",
+      "file": "credits.md",
+      "sha256": "ac84ad1fd69ffcbfee9f72e1cb5689cd28b58af521e63aa9b837b1166e7a918b",
+      "effective_from": "2029-01-01",
+      "effective_to": "2029-12-31"
+    },
+    {
+      "key": "welcome",
+      "title": "Copper Wren Movement Studio 2029 Family Welcome Letter",
+      "file": "welcome.md",
+      "sha256": "6f78d570c89b9472e2a7fdcdacb2af5c169a614440b6a332f8dc85b7e5f119f4",
+      "effective_from": "2029-01-01",
+      "effective_to": "2029-12-31"
+    },
+    {
+      "key": "archive",
+      "title": "Copper Wren Movement Studio 2028 Archived Trial and Travel Circular",
+      "file": "archive.md",
+      "sha256": "29d1655bd5702df3c1ae1ce1e61d5b63b1227a9c130d7072e4d6cac04634b634",
+      "effective_from": "2028-01-01",
+      "effective_to": "2028-12-31"
+    },
+    {
+      "key": "visitor",
+      "title": "Copper Wren Movement Studio 2029 Public Visitor Appendix",
+      "file": "visitor.md",
+      "sha256": "8c9a680cfc9c51338b93b57354016a2edd2d0592d635d429390fb17cc7763100",
+      "effective_from": "2029-01-01",
+      "effective_to": "2029-12-31"
+    }
+  ]
+}
