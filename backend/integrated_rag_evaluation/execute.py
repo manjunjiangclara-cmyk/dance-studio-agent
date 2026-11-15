@@ -146,8 +146,8 @@ def check_response(response):
     return response.json()
 
 
-def prepare_documents(client, engine, budget, *, include_attack=False):
-    dataset = load_sources()
+def prepare_documents(client, engine, budget, *, include_attack=False, source_documents=None):
+    dataset = {"documents": source_documents} if source_documents is not None else load_sources()
     documents = list(dataset["documents"])
     if include_attack:
         attack = FIXTURES / "generation_attack.txt"
@@ -235,6 +235,17 @@ def run_case(client, engine, case, budget, model=None):
         if item.get("result", {}).get("status") == "failed"
     ]
     technical_failures = [*model_failures, *incomplete_model_calls, *failed_document_answers]
+    failure_stages = []
+    for failure in failed_document_answers:
+        if failure in {"retrieval_failed", "reranking_failed", "source_changed", "source_missing"}:
+            failure_stages.append("retrieval")
+        else:
+            failure_stages.append("answer")
+    for failure in [*model_failures, *incomplete_model_calls]:
+        label = str(failure)
+        failure_stages.append(
+            "composition" if "compose" in label or "DocumentEmail" in label else "agent"
+        )
     result = dict(
         id=case["id"],
         status="completed"
@@ -254,6 +265,7 @@ def run_case(client, engine, case, budget, model=None):
         interpretation=run["interpretation"],
         error=run.get("error"),
         technical_failures=technical_failures,
+        failure_stages=sorted(set(failure_stages)),
         no_business_change=before == after,
         no_email_delivery=True,  # There is no delivery integration in this API.
         latency_ms=elapsed,
@@ -264,7 +276,7 @@ def run_case(client, engine, case, budget, model=None):
     return result
 
 
-def execute(url, cases, budget, output, *, dataset_hash, phase):
+def execute(url, cases, budget, output, *, dataset_hash, phase, source_documents=None):
     """Save after every case, including failures; schema cleanup is guaranteed."""
     rows = []
     report = dict(
@@ -308,7 +320,12 @@ def execute(url, cases, budget, output, *, dataset_hash, phase):
                 ) as client,
             ):
                 report["sources"] = prepare_documents(
-                    client, engine, budget, include_attack=any(case.get("inject") for case in cases)
+                    client,
+                    engine,
+                    budget,
+                    include_attack=source_documents is None
+                    and any(case.get("inject") for case in cases),
+                    source_documents=source_documents,
                 )
                 save()
                 for case in cases:

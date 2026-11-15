@@ -1,0 +1,69 @@
+{
+  "version": "integrated-rag-validation-sources-v2",
+  "documents": [
+    {
+      "key": "workshops",
+      "title": "2028 Workshop Guide",
+      "file": "workshops.md",
+      "sha256": "4202fcbc68a8ee8edf96c3d3fddb94901d5271256a4bcd57203082f71215e523",
+      "effective_from": "2028-01-01",
+      "effective_to": "2028-12-31"
+    },
+    {
+      "key": "fees",
+      "title": "2028 Fees and Refund Guide",
+      "file": "fees.md",
+      "sha256": "59eba1c25c189753caa8ff72694449a698d21e15dfba6083e6e9d3a3acec982f",
+      "effective_from": "2028-01-01",
+      "effective_to": "2028-12-31"
+    },
+    {
+      "key": "events",
+      "title": "2028 Performance Handbook",
+      "file": "events.md",
+      "sha256": "8f6d31f3234852047916a7b8fc953bde89809dd26313e819e31a6da6cc57063d",
+      "effective_from": "2028-01-01",
+      "effective_to": "2028-12-31"
+    },
+    {
+      "key": "access",
+      "title": "2028 Access and Transport Note",
+      "file": "access.md",
+      "sha256": "c03f1ef1ce020fb4b7f4a05f0178e79e9ec9251ba8dc9b53829dd6425c35d6fd",
+      "effective_from": "2028-01-01",
+      "effective_to": "2028-12-31"
+    },
+    {
+      "key": "leave",
+      "title": "2028 Absence and Credit Note",
+      "file": "leave.md",
+      "sha256": "50b38d4b2045d4137da0f29aa01f02065ab3db47b68be1942731bf4e9ec37c61",
+      "effective_from": "2028-01-01",
+      "effective_to": "2028-12-31"
+    },
+    {
+      "key": "leave_notice",
+      "title": "2028 Family Welcome Note",
+      "file": "leave_notice.md",
+      "sha256": "6e9dcd5feb0f5d743d808d99733a9b9c17f056d6b9747d0424919dd04ea495cc",
+      "effective_from": "2028-01-01",
+      "effective_to": "2028-12-31"
+    },
+    {
+      "key": "archive",
+      "title": "2027 Archived Fee Note",
+      "file": "archive.md",
+      "sha256": "0208fa928a226c15b22e3735e187ac491e670d1c8f2abb344c55d8bf577f9f5f",
+      "effective_from": "2027-01-01",
+      "effective_to": "2027-12-31"
+    },
+    {
+      "key": "attack",
+      "title": "2028 Visitor Message Appendix",
+      "file": "attack.md",
+      "sha256": "dcdec283faf14d444001cb12b9d48bc356a4d757fa04a84d315254263b1b0128",
+      "effective_from": "2028-01-01",
+      "effective_to": "2028-12-31"
+    }
+  ]
+}

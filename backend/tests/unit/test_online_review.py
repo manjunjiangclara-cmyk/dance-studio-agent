@@ -113,13 +113,17 @@ def test_regeneration_keeps_current_unanswered_document_question_in_review():
 
 
 @pytest.mark.parametrize("status", ["partial", "needs_clarification", "abstained", "failed"])
-def test_noncomplete_results_stay_reviewable_and_out_of_final_claims(status):
+def test_noncomplete_results_stay_reviewable_and_retain_only_supported_claims(status):
     value = state(1)
     value["evidence"] = [result_evidence(value, 0, status=status)]
     draft = document_draft(value)
     assert draft.answers[0].status == "needs_teacher"
-    assert not draft.references
-    assert "Supported answer" not in draft.body
+    if status in {"partial", "needs_clarification"}:
+        assert draft.references
+        assert "Supported answer" in draft.body
+    else:
+        assert not draft.references
+        assert "Supported answer" not in draft.body
     assert value["evidence"][0]["result"]["answer"] == "Supported answer 0."
 
 
@@ -189,6 +193,32 @@ def test_source_mutation_during_generation_cannot_return_success(monkeypatch):
             object(), selected, "Question?", "case", date(2026, 6, 1), object(), object()
         )
     assert error.value.code == "source_changed"
+
+
+def test_split_question_retrieval_keeps_original_request_context(monkeypatch):
+    seen = []
+
+    def capture(*args, **kwargs):
+        seen.append(args[2])
+        return {"degraded": True}
+
+    monkeypatch.setattr(online, "capture", capture)
+    with pytest.raises(online.OnlineError) as error:
+        online.question_answer(
+            object(),
+            config(),
+            "When is the refund deadline?",
+            "case",
+            date(2028, 6, 1),
+            object(),
+            object(),
+            request_context="I cancelled a workshop. When is the refund deadline?",
+        )
+    assert error.value.code == "retrieval_failed"
+    assert seen == [
+        "When is the refund deadline?\nOriginal request context: "
+        "I cancelled a workshop. When is the refund deadline?"
+    ]
 
 
 def test_missing_resources_gives_reviewable_failure_without_provider(monkeypatch):

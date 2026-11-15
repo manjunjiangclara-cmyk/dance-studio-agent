@@ -93,14 +93,36 @@ def output_hash(row):
     return hashlib.sha256(raw).hexdigest()
 
 
-def load_dataset(path):
+def load_dataset(path, source_manifest=None):
     data = json.loads(Path(path).read_text())
-    if data.get("version") != "integrated-rag-v1":
+    if data.get("version") not in {"integrated-rag-v1", "integrated-rag-v2"}:
         raise ValueError("Unsupported integrated evaluation version")
     if len(data.get("smoke", [])) != 5 or len(data.get("evaluation", [])) != 30:
         raise ValueError("Expected five smoke and thirty evaluation cases")
-    sources = load_sources()
+    if data["version"] == "integrated-rag-v2" and source_manifest is None:
+        raise ValueError("Fresh validation requires its frozen source manifest")
+    if source_manifest is None:
+        sources = load_sources()
+    else:
+        manifest_path = Path(source_manifest)
+        sources = json.loads(manifest_path.read_text())
+        if sources.get("version") != "integrated-rag-validation-sources-v2":
+            raise ValueError("Unexpected validation source version")
+        for source in sources["documents"]:
+            if Path(source["file"]).name != source["file"] or "\\" in source["file"]:
+                raise ValueError("Invalid validation source filename")
+            raw = (manifest_path.parent / source["file"]).read_bytes()
+            if hashlib.sha256(raw).hexdigest() != source["sha256"]:
+                raise ValueError("Frozen source content changed")
+            source["text"] = raw.decode("utf-8")
+        if (
+            data.get("source_manifest_sha256")
+            != hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+        ):
+            raise ValueError("Frozen source manifest changed")
     by_key = {source["key"]: source for source in sources["documents"]}
+    if len(by_key) != len(sources["documents"]):
+        raise ValueError("Validation source keys must be unique")
     seen = set()
     for case in [*data["smoke"], *data["evaluation"]]:
         if not case["id"] or case["id"] in seen or not case["question"].strip():
@@ -141,6 +163,10 @@ def summarize(results):
         completed=sum(row.get("status") == "completed" for row in results),
         failures=sum(row.get("status") != "completed" for row in results),
         reviewed=len(reviewed),
+        failure_stages={
+            stage: sum(stage in row.get("failure_stages", []) for row in results)
+            for stage in ("retrieval", "answer", "composition", "agent")
+        },
     )
     for field in REVIEW_FIELDS:
         values = [review[field] for review in reviewed if type(review.get(field)) is bool]

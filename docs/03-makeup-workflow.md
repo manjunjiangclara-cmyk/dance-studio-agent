@@ -13,9 +13,13 @@ flowchart TD
     B --> C[Save student-stated memory]
     X --> C
     C --> D[Verify makeup evidence or gather read-only enquiry facts]
-    D --> E[Draft response from evidence and teacher decisions]
+    D -->|Enabled documents| D1[Retrieve each question with original request context]
+    D1 --> E[Draft response from evidence and teacher decisions]
+    D -->|Other paths| E
     E -->|Enquiry or handoff| K["Validate answers, citations and teacher decisions; prepare checklist"]
-    K --> F[Pause for teacher review]
+    K -->|Document answers| K1["Compose cited facts and flag uncertainty; deterministic action handoff"]
+    K1 --> F[Pause for teacher review]
+    K -->|Other enquiry| F
     E -->|Makeup draft| F
     F -->|Feedback, teacher answer, or Confirm later| V[Retain decisions; reinterpret the request]
     V --> D
