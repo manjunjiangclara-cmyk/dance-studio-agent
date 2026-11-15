@@ -525,7 +525,10 @@ export default function App() {
             <span>
               {workspace
                 ? "Owner review workspace"
-                : "Fictional data · Predefined examples"}
+                : page === "tour" &&
+                    new URLSearchParams(location.search).get("mode") === "live"
+                  ? "Fictional data · Live AI · Simulated booking"
+                  : "Fictional data · Predefined examples"}
               <span className="footer-dot">·</span>Australia / Melbourne
             </span>
           </footer>
@@ -578,7 +581,7 @@ function Overview() {
           </p>
           <Link
             className="button primary"
-            to={workspace ? `${base}/reviews` : "/demo/tour"}
+            to={workspace ? `${base}/reviews` : "/demo/tour?mode=live"}
           >
             {workspace ? "Open review queue" : "Try the guided demo"}
             <ArrowRight size={17} />
@@ -593,7 +596,7 @@ function Overview() {
           <span className="hero-caption">
             {workspace
               ? "Approval books a proposed session and saves the response."
-              : "Two minutes. No sign-in or live model calls. Fictional examples."}
+              : "Two minutes. Live AI with fictional inputs, or explore the recorded demo."}
           </span>
         </div>
         <div
@@ -718,8 +721,8 @@ function Overview() {
           </p>
           <p className="muted">
             This small synthetic evaluation is not human ground truth or
-            evidence of production reliability. The guided demo uses curated
-            fixtures, not those live results.
+            evidence of production reliability. The guided demo uses fictional
+            inputs; on-demand live results are not part of this evaluation.
           </p>
         </section>
       )}

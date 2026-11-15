@@ -63,13 +63,15 @@ export const tourSource = {
   start: sourceText.indexOf(clothingQuote),
   end: sourceText.indexOf(clothingQuote) + clothingQuote.length,
 };
-export function documentDraft(decision: "answer" | "defer", answer: string) {
-  return tourFixtures.document.draft.replace(
-    "[Teacher decision needed: trial fee]",
-    () =>
-      decision === "answer"
-        ? `About the trial fee: ${answer.trim()}`
-        : "Our teacher will confirm the trial fee with you before you decide.",
+export function documentDraft(
+  decision: "answer" | "defer",
+  answer: string,
+  base = tourFixtures.document.draft,
+) {
+  return base.replace("[Teacher decision needed: trial fee]", () =>
+    decision === "answer"
+      ? `About the trial fee: ${answer.trim()}`
+      : "Our teacher will confirm the trial fee with you before you decide.",
   );
 }
 

@@ -17,11 +17,15 @@ import {
   type TourScenario,
 } from "./tourData";
 import "./tour.css";
+import { useLiveDemo } from "./useLiveDemo";
 
 type Decision = "" | "answer" | "defer";
-function useTourState(scenario: TourScenario) {
+function useTourState(scenario: TourScenario, liveMode: boolean) {
+  const live = useLiveDemo(scenario);
   const [step, setStep] = useState(0);
-  const [body, setBody] = useState(tourFixtures[scenario].draft);
+  const [body, setBody] = useState(
+    liveMode ? "" : tourFixtures[scenario].draft,
+  );
   const [decision, setDecision] = useState<Decision>("");
   const [answer, setAnswer] = useState("");
   const [applied, setApplied] = useState("");
@@ -32,18 +36,33 @@ function useTourState(scenario: TourScenario) {
   const signature =
     decision === "answer" ? `answer:${answer.trim()}` : decision;
   const resolved =
-    scenario === "booking" ||
-    Boolean(
-      signature &&
-      signature === applied &&
-      (decision === "defer" || answer.trim()),
-    );
+    (!liveMode || live.draft !== null) &&
+    (scenario === "booking" ||
+      Boolean(
+        signature &&
+        signature === applied &&
+        (decision === "defer" || answer.trim()),
+      ));
+  useEffect(() => {
+    if (liveMode && live.draft !== null) {
+      setBody(live.draft);
+      setApplied("");
+    }
+  }, [liveMode, live.draft]);
   function updateDraft() {
     if (!decision || (decision === "answer" && !answer.trim())) return;
-    setBody(documentDraft(decision, answer));
+    setBody(
+      documentDraft(
+        decision,
+        answer,
+        liveMode ? live.draft || undefined : undefined,
+      ),
+    );
     setApplied(signature);
   }
   return {
+    live,
+    liveMode,
     step,
     setStep,
     body,
@@ -63,21 +82,28 @@ function useTourState(scenario: TourScenario) {
 const TourContext = createContext<ReturnType<typeof useTourState> | null>(null);
 function TourProvider({
   scenario,
+  liveMode,
   children,
 }: {
   scenario: TourScenario;
+  liveMode: boolean;
   children: ReactNode;
 }) {
-  const state = useTourState(scenario);
+  const state = useTourState(scenario, liveMode);
   return <TourContext.Provider value={state}>{children}</TourContext.Provider>;
 }
 export function GuidedTour() {
   const [params] = useSearchParams();
   const scenario =
     params.get("scenario") === "document" ? "document" : "booking";
+  const liveMode = params.get("mode") === "live";
   const [reset, setReset] = useState(0);
   return (
-    <TourProvider key={`${scenario}-${reset}`} scenario={scenario}>
+    <TourProvider
+      key={`${scenario}-${liveMode}-${reset}`}
+      scenario={scenario}
+      liveMode={liveMode}
+    >
       <TourContent
         scenario={scenario}
         reset={() => setReset((value) => value + 1)}
@@ -94,6 +120,8 @@ function TourContent({
 }) {
   const state = useContext(TourContext)!;
   const fixture = tourFixtures[scenario];
+  const { live, liveMode } = state;
+  const modeSuffix = liveMode ? "&mode=live" : "";
   const heading = useRef<HTMLHeadingElement>(null);
   const source = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -119,21 +147,37 @@ function TourContent({
         </div>
       </header>
       <p className="notice" role="note">
-        Curated simulation · Fictional data · No live model calls. All changes
-        stay in this tour and disappear when you leave or reload. No email is
-        sent.
+        {liveMode
+          ? "Live AI · Fixed fictional inputs · 10 shared demo runs per day. Find evidence and generate a draft with the buttons below. Booking remains simulated; no email is sent or studio records changed."
+          : "Curated simulation · Fictional data · No live model calls. All changes stay in this tour and disappear when you leave or reload. No email is sent."}
       </p>
+      <nav className="tour-scenarios" aria-label="Generation mode">
+        <Link
+          className="inline-link"
+          aria-current={liveMode ? "page" : undefined}
+          to={`/demo/tour?scenario=${scenario}&mode=live`}
+        >
+          Use live AI
+        </Link>
+        <Link
+          className="inline-link"
+          aria-current={!liveMode ? "page" : undefined}
+          to={`/demo/tour?scenario=${scenario}`}
+        >
+          Use recorded demo
+        </Link>
+      </nav>
       <nav className="tour-scenarios" aria-label="Demo scenarios">
         <Link
           className={`button ${scenario === "booking" ? "primary" : "secondary"}`}
-          to="/demo/tour?scenario=booking"
+          to={`/demo/tour?scenario=booking${modeSuffix}`}
           aria-current={scenario === "booking" ? "page" : undefined}
         >
           Makeup booking
         </Link>
         <Link
           className={`button ${scenario === "document" ? "primary" : "secondary"}`}
-          to="/demo/tour?scenario=document"
+          to={`/demo/tour?scenario=document${modeSuffix}`}
           aria-current={scenario === "document" ? "page" : undefined}
         >
           Document enquiry
@@ -178,61 +222,108 @@ function TourContent({
         )}
         {state.step === 1 && (
           <>
-            <p>
-              These are prerecorded example checks, not checks against live
-              studio records.
-            </p>
-            <ul className="tour-evidence">
-              {fixture.evidence.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-            {scenario === "document" && (
+            {liveMode ? (
               <>
-                <div className="tour-columns">
-                  <div>
-                    <h3>Document-grounded draft</h3>
-                    <p>
-                      Wear comfortable clothes you can move in, such as leggings
-                      and a fitted T-shirt. Socks are suitable for your first
-                      class; ballet shoes are optional.
-                    </p>
-                    <p>Trial fee: teacher input needed.</p>
-                  </div>
-                  <div>
-                    <h3>Supporting citation</h3>
-                    <blockquote>{tourSource.quote}</blockquote>
+                <p>
+                  Click to ask AI to select supporting records and passages from
+                  the fixed fictional catalog. This small demo does not search
+                  your studio's database or run the full production RAG
+                  pipeline.
+                </p>
+                <button
+                  className="button primary"
+                  disabled={Boolean(live.busy) || Boolean(live.evidence)}
+                  onClick={() => live.execute("evidence")}
+                >
+                  {live.busy === "evidence"
+                    ? "Finding evidence…"
+                    : "Find supporting evidence"}
+                </button>
+                {live.busy === "evidence" && (
+                  <p role="status">Finding supporting evidence…</p>
+                )}
+                {live.error && !live.evidence && (
+                  <div role="alert">
+                    <p>{live.error}</p>
                     <button
-                      className="inline-link"
-                      onClick={() => state.setSourceOpen(true)}
-                      aria-expanded={state.sourceOpen}
-                      aria-controls="tour-source"
+                      className="button secondary"
+                      disabled={Boolean(live.busy)}
+                      onClick={() => live.execute("evidence")}
                     >
-                      Beginner clothing policy · Revision 1
+                      Retry
                     </button>
                   </div>
-                </div>
-                {state.sourceOpen && (
-                  <section
-                    id="tour-source"
-                    ref={source}
-                    tabIndex={-1}
-                    className="tour-source"
-                    aria-label="Saved source revision"
-                  >
-                    <h3>Saved source revision</h3>
-                    <p>{tourSource.title} · Revision 1 · Fictional source</p>
-                    <pre>
-                      {tourSource.text.slice(0, tourSource.start)}
-                      <mark>
-                        {tourSource.text.slice(
-                          tourSource.start,
-                          tourSource.end,
-                        )}
-                      </mark>
-                      {tourSource.text.slice(tourSource.end)}
-                    </pre>
-                  </section>
+                )}
+              </>
+            ) : (
+              <p>
+                These are prerecorded example checks, not checks against live
+                studio records.
+              </p>
+            )}
+            {(!liveMode || live.evidence) && (
+              <>
+                <ul className="tour-evidence">
+                  {(liveMode ? live.evidence || [] : fixture.evidence).map(
+                    (item) => (
+                      <li key={item}>{item}</li>
+                    ),
+                  )}
+                </ul>
+                {scenario === "document" && (
+                  <>
+                    <div className="tour-columns">
+                      <div>
+                        <h3>
+                          {liveMode
+                            ? "Source guidance"
+                            : "Document-grounded draft"}
+                        </h3>
+                        <p>
+                          Wear comfortable clothes you can move in, such as
+                          leggings and a fitted T-shirt. Socks are suitable for
+                          your first class; ballet shoes are optional.
+                        </p>
+                        <p>Trial fee: teacher input needed.</p>
+                      </div>
+                      <div>
+                        <h3>Supporting citation</h3>
+                        <blockquote>{tourSource.quote}</blockquote>
+                        <button
+                          className="inline-link"
+                          onClick={() => state.setSourceOpen(true)}
+                          aria-expanded={state.sourceOpen}
+                          aria-controls="tour-source"
+                        >
+                          Beginner clothing policy · Revision 1
+                        </button>
+                      </div>
+                    </div>
+                    {state.sourceOpen && (
+                      <section
+                        id="tour-source"
+                        ref={source}
+                        tabIndex={-1}
+                        className="tour-source"
+                        aria-label="Saved source revision"
+                      >
+                        <h3>Saved source revision</h3>
+                        <p>
+                          {tourSource.title} · Revision 1 · Fictional source
+                        </p>
+                        <pre>
+                          {tourSource.text.slice(0, tourSource.start)}
+                          <mark>
+                            {tourSource.text.slice(
+                              tourSource.start,
+                              tourSource.end,
+                            )}
+                          </mark>
+                          {tourSource.text.slice(tourSource.end)}
+                        </pre>
+                      </section>
+                    )}
+                  </>
                 )}
               </>
             )}
@@ -240,14 +331,53 @@ function TourContent({
         )}
         {state.step === 2 && (
           <>
+            {liveMode && (
+              <div className="tour-live-generation">
+                <p>
+                  Generate a fresh response from the selected fictional
+                  evidence. Model output still needs teacher review.
+                </p>
+                <button
+                  className="button primary"
+                  disabled={
+                    Boolean(live.busy) || Boolean(live.draft) || !live.evidence
+                  }
+                  onClick={() => live.execute("draft")}
+                >
+                  {live.busy === "draft"
+                    ? "Generating draft…"
+                    : "Generate draft"}
+                </button>
+                {live.busy === "draft" && (
+                  <p role="status">Generating draft…</p>
+                )}
+                {live.error && (
+                  <div role="alert">
+                    <p>{live.error}</p>
+                    <button
+                      className="button secondary"
+                      disabled={Boolean(live.busy)}
+                      onClick={() => live.execute("draft")}
+                    >
+                      Retry
+                    </button>
+                  </div>
+                )}
+                {live.draft && (
+                  <p className="muted">Generated live · {live.model}</p>
+                )}
+              </div>
+            )}
             {scenario === "document" && (
-              <fieldset className="tour-decision">
+              <fieldset
+                className="tour-decision"
+                disabled={liveMode && !live.draft}
+              >
                 <legend>What does a trial cost?</legend>
                 <p>
-                  The source does not specify a fee. Supply a teacher fact or
-                  choose to confirm later, then update the draft. Updating
-                  replaces the response with the predetermined template and your
-                  decision.
+                  {liveMode
+                    ? "The source does not specify a fee. Supply a teacher fact or choose to confirm later, then update the draft. This adds your decision to the generated response and replaces any direct wording edits."
+                    : "The source does not specify a fee. Supply a teacher fact or choose to confirm later, then update the draft. Updating replaces the response with the predetermined template and your decision."}
                 </p>
                 <label>
                   <input
@@ -368,6 +498,7 @@ function TourContent({
           {state.step < 2 && (
             <button
               className="button primary"
+              disabled={liveMode && state.step === 1 && !live.evidence}
               onClick={() => state.setStep((value) => value + 1)}
             >
               Next

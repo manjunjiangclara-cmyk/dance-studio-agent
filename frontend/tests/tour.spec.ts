@@ -50,6 +50,9 @@ test("homepage starts a clearly labelled guided demo with editable simulated boo
     .getByRole("link", { name: "Try the guided demo", exact: true })
     .click();
   await expect(page).toHaveURL(/\/demo\/tour(?:\?.*)?$/);
+  await page
+    .getByRole("link", { name: "Use recorded demo", exact: true })
+    .click();
   await expectStep(page, "Email");
   await expect(page.getByText(/no live model calls/i)).toBeVisible();
   await expect(page.getByText(/Actually, Saturday/)).toBeVisible();

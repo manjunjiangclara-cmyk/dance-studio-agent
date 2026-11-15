@@ -1,6 +1,6 @@
 # Public portfolio and owner workspace
 
-The website has two explicit data sources. `/demo` is open to everyone and reads curated fictional fixtures (`frontend/src/data/examples.v1.json` for records and `frontend/src/tourData.ts` for the guided simulation). It does not query the workspace API, invoke a model, or save visitor submissions. All public student emails use the reserved `example.test` domain. Drafts and outcomes are predefined illustrations, labelled on the page; they are not presented as live model results. The guided tour described below allows temporary browser-only edits without changing the published records.
+The website separates public fictional inputs from private owner data. `/demo` is open to everyone and reads curated fictional fixtures (`frontend/src/data/examples.v1.json` for records and `frontend/src/tourData.ts` for the guided simulation). The recorded experience does not query the workspace API, invoke a model, or save visitor submissions. The optional [live tour](22-public-live-demo.md) uses a separate fixed-input public API and real model calls, with a shared daily allowance; it never queries workspace records. All public student emails use the reserved `example.test` domain. Recorded drafts and simulated booking outcomes are labelled as illustrations; live drafts are generated only on request. The guided tour described below allows temporary browser-only edits without changing the published records.
 
 `/workspace` uses the running backend after Google owner sign-in. It provides record inspection, email simulation, and draft review. Public examples never update when workspace records change. Existing bearer-authenticated administration clients continue to work.
 
@@ -135,7 +135,7 @@ Apply migration `b7e2190c4a63` before starting this version. It copies existing 
 
 ## Public guided simulation
 
-The homepage primary action opens `/demo/tour`. Select `?scenario=booking` (the default, including unknown values) or `?scenario=document` to share a scenario. Both follow Email → Evidence → Teacher review → Confirmation. All content is fictional and curated; the tour makes no API/auth or model requests and sends no email. The existing record browser remains read-only.
+The homepage primary action opens `/demo/tour?mode=live`; the recorded tour remains at `/demo/tour`. The following describes recorded mode; see [live mode](22-public-live-demo.md) for click-triggered generation and quota behavior. Select `?scenario=booking` (the default, including unknown values) or `?scenario=document` to share a scenario. Both follow Email → Evidence → Teacher review → Confirmation. All content is fictional and curated; the tour makes no API/auth or model requests and sends no email. The existing record browser remains read-only.
 
 The booking example reuses Alex's Thursday-to-Saturday correction, displays prerecorded eligibility checks, and lets a visitor edit and simulate approval. The document example uses a saved clothing-policy revision with an exact highlighted citation. Its missing trial fee requires a teacher answer or deferral and an explicit Update draft before simulated approval. Updating uses a deterministic template and replaces direct response edits; arbitrary final edits are retained verbatim without AI validation. Blank responses cannot be approved.
 

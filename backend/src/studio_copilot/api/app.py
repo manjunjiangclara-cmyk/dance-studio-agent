@@ -25,6 +25,7 @@ from studio_copilot.api import (
     documents,
     enrolments,
     policy,
+    public_demo,
     students,
     timetable,
 )
@@ -97,6 +98,7 @@ def create_app(
         https_only=owner_settings.base_url.startswith("https://"),
     )
     application.include_router(auth.router)
+    application.include_router(public_demo.router)
 
     @application.middleware("http")
     async def browser_headers(request: Request, call_next):
