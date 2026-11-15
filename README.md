@@ -137,6 +137,7 @@ Alembic upgrades the consolidated initial schema through the independent-session
 - [Administration API guide](docs/07-api.md)
 - [Agent setup, APIs, and evaluation](docs/08-agent-api.md)
 - [Website and owner workspace](docs/09-website.md)
+- [Isolated Aurora Data API feasibility validation](docs/22-aurora-data-api-validation.md)
 - [Document ingestion and revision APIs](docs/10-document-ingestion.md)
 - [Document RAG design and roadmap](docs/11-rag-design.md)
 - [Revision-pinned embedding CLI and recovery](docs/13-document-embeddings.md)

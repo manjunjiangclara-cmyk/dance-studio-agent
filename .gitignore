@@ -18,3 +18,4 @@ frontend/*.tsbuildinfo
 
 # Private operational event streams and local summaries.
 backend/operations-results/
+backend/experiments/data_api/results/
