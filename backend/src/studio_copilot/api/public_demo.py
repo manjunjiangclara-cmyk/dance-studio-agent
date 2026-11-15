@@ -1,0 +1,110 @@
+"""Anonymous fixed-input demo API, separate from the authenticated staff API."""
+
+import os
+from typing import Literal
+from uuid import UUID
+
+from fastapi import APIRouter, FastAPI, HTTPException, Request
+from fastapi.routing import APIRoute
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from studio_copilot.public_demo.service import PublicDemo
+
+
+class LimitedRoute(APIRoute):
+    def get_route_handler(self):
+        handler = super().get_route_handler()
+
+        async def limited(request):
+            chunks, size = [], 0
+            async for chunk in request.stream():
+                size += len(chunk)
+                if size > 12000:
+                    raise HTTPException(413, "Demo request too large.")
+                chunks.append(chunk)
+            request._body = b"".join(chunks)
+            return await handler(request)
+
+        return limited
+
+
+router = APIRouter(prefix="/api/public-demo", tags=["Public demo"], route_class=LimitedRoute)
+
+
+class CreateRun(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    scenario: Literal["booking", "document", "custom"]
+    request_id: UUID
+    student: Literal["alex", "jules"] | None = None
+    email_body: str | None = Field(default=None, max_length=2000)
+
+    @model_validator(mode="after")
+    def validate_custom_email(self):
+        if self.scenario == "custom":
+            if self.student is None or not self.email_body or not self.email_body.strip():
+                raise ValueError("Select a fictional student and write an email.")
+        elif self.student is not None or self.email_body is not None:
+            raise ValueError("Guided scenarios use fixed inputs.")
+        return self
+
+
+class Empty(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+def service(request: Request):
+    if os.environ.get("STUDIO_PUBLIC_LIVE_DEMO") != "true":
+        raise HTTPException(503, "Live demo is unavailable. Please try again later.")
+    if request.headers.get("origin") != request.app.state.owner_settings.base_url:
+        raise HTTPException(403, "Open the live demo from its configured website.")
+    if not os.environ.get("OPENAI_MODEL") or not os.environ.get("OPENAI_API_KEY"):
+        raise HTTPException(503, "Live demo is not configured. Please try again later.")
+    path = os.environ.get("STUDIO_PUBLIC_DEMO_DB")
+    if not path:
+        raise HTTPException(503, "Live demo allowance storage is not configured.")
+    # Construction is idempotent and SQLite serializes initialization across workers.
+    return PublicDemo(path)
+
+
+def token(request):
+    value = request.headers.get("authorization", "")
+    if not value.startswith("Bearer ") or len(value) > 100:
+        raise HTTPException(401, "A demo-run token is required.")
+    return value[7:]
+
+
+@router.post("/runs")
+def create(request: Request, body: CreateRun):
+    return service(request).create(
+        body.scenario, str(body.request_id), student=body.student, email_body=body.email_body
+    )
+
+
+@router.post("/evidence")
+def evidence(request: Request, body: Empty):
+    return service(request).execute(token(request), "evidence")
+
+
+@router.post("/draft")
+def draft(request: Request, body: Empty):
+    return service(request).execute(token(request), "draft")
+
+
+def create_public_demo_app():
+    """Optional standalone local preview, without a workspace database connection."""
+    from types import SimpleNamespace
+
+    application = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+    application.state.owner_settings = SimpleNamespace(
+        base_url=os.environ.get("PUBLIC_BASE_URL", "http://localhost:8000").rstrip("/")
+    )
+    application.include_router(router)
+
+    @application.middleware("http")
+    async def no_store(request, call_next):
+        response = await call_next(request)
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        return response
+
+    return application

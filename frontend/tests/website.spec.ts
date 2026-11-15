@@ -30,7 +30,7 @@ test("public examples work without touching the workspace API", async ({
     fullPage: true,
   });
   await page
-    .getByRole("link", { name: "Explore the review queue", exact: true })
+    .getByRole("link", { name: "Explore the records", exact: true })
     .click();
   await page.getByLabel("Search enquiries").fill("Alex");
   await expect(page.locator(".run-row")).toHaveCount(2);
@@ -88,10 +88,13 @@ test("public examples work without touching the workspace API", async ({
     page.getByRole("region", { name: "students data" }),
   ).toContainText(alex.email);
   await page.goto("/demo/test-email");
-  await page.getByRole("link", { name: "Open the resulting example" }).click();
   await expect(
-    page.getByRole("heading", { name: conversation.subject }),
+    page.getByLabel("Fictional student", { exact: true }),
   ).toBeVisible();
+  await expect(page.getByLabel("Email body", { exact: true })).toBeEmpty();
+  await expect(
+    page.getByRole("button", { name: "Simulate email", exact: true }),
+  ).toBeDisabled();
   expect(calls).toEqual([]);
 });
 
@@ -538,4 +541,44 @@ test("workspace database uses live rows, paginates and handles empty tables and 
   await expect(
     page.getByRole("region", { name: "students data" }),
   ).toContainText("Live student 0");
+});
+
+test("proposed booking separates status, class details and approval guidance", async ({
+  page,
+}, info) => {
+  await page.goto(`/demo/reviews/${run.id}`);
+  const card = page.getByRole("region", {
+    name: "Proposed class booking",
+    exact: true,
+  });
+  await expect(
+    card.getByRole("heading", { name: "Proposed class booking", exact: true }),
+  ).toBeVisible();
+  await expect(
+    card.getByText("Awaiting approval", { exact: true }),
+  ).toBeVisible();
+  await expect(card.locator(".booking-proposal-class")).toContainText(
+    "Saturday",
+  );
+  await expect(card.locator("dt")).toHaveText(["Date", "Time", "Location"]);
+  await expect(card.locator("dd").nth(0)).toContainText("13 February 2027");
+  await expect(card.locator("dd").nth(1)).toContainText("6:00 pm");
+  await expect(card.locator("dd").nth(2)).toContainText("Brunswick");
+  await expect(
+    card.getByText("No place reserved yet", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    card.getByRole("link", { name: "View session students", exact: true }),
+  ).toHaveAttribute("href", `/demo/timetable?session=${session.id}`);
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    )
+    .toBe(true);
+  await page.screenshot({
+    path: info.outputPath("booking-proposal.png"),
+    fullPage: true,
+  });
 });

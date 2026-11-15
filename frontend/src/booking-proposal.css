@@ -1,0 +1,86 @@
+.booking-proposal {
+  border: 1px solid #bfd1dc;
+  border-radius: 12px;
+  background: #f4f8fb;
+  padding: 22px;
+  margin: 24px 0;
+}
+.booking-proposal header {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.booking-proposal header h3 {
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.5;
+  margin: 0;
+}
+.booking-proposal-badge {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  background: #e5edf5;
+  border-radius: 20px;
+  padding: 5px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.booking-proposal-class {
+  font-size: 1.4rem;
+  line-height: 1.4;
+  margin: 20px 0;
+}
+.booking-proposal-facts {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr;
+  gap: 18px;
+  margin: 0 0 20px;
+}
+.booking-proposal-facts dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: #526271;
+}
+.booking-proposal-facts dd {
+  margin: 7px 0 0;
+  font-weight: 600;
+}
+.booking-proposal-facts small {
+  display: block;
+  font-weight: 400;
+  color: #526271;
+  margin-top: 4px;
+  font-size: 0.75rem;
+}
+.booking-proposal-note {
+  border-top: 1px solid #cedae2;
+  padding-top: 16px;
+  margin-bottom: 16px;
+}
+.booking-proposal-note strong {
+  font-size: 0.9rem;
+}
+.booking-proposal-note p {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+  color: #475569;
+}
+.booking-proposal-confirmed {
+  border-color: #b2d1bf;
+  background: #f1f8f3;
+}
+.booking-proposal-confirmed .booking-proposal-badge {
+  background: #dcefe3;
+  color: #23583e;
+}
+@media (max-width: 850px) {
+  .booking-proposal-facts {
+    grid-template-columns: 1fr;
+  }
+}

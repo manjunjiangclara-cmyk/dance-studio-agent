@@ -1,6 +1,6 @@
 # Public portfolio and owner workspace
 
-The website has two explicit data sources. `/demo` is open to everyone and reads only the curated JSON in `frontend/src/data/examples.v1.json`. It does not query the workspace API, invoke a model, or save visitor submissions. All public student emails use the reserved `example.test` domain. Drafts and outcomes are predefined illustrations, labelled on the page; they are not presented as live model results.
+The website separates public fictional inputs from private owner data. `/demo` is open to everyone and reads curated fictional fixtures (`frontend/src/data/examples.v1.json` for records and `frontend/src/tourData.ts` for the guided simulation). The recorded experience does not query the workspace API, invoke a model, or save visitor submissions. The optional [live tour](22-public-live-demo.md) uses a separate fixed-input public API and real model calls, with a shared daily allowance; it never queries workspace records. All public student emails use the reserved `example.test` domain. Recorded drafts and simulated booking outcomes are labelled as illustrations; live drafts are generated only on request. The guided tour described below allows temporary browser-only edits without changing the published records.
 
 `/workspace` uses the running backend after Google owner sign-in. It provides record inspection, email simulation, and draft review. Public examples never update when workspace records change. Existing bearer-authenticated administration clients continue to work.
 
@@ -132,3 +132,26 @@ The **Database** page lists all nine application tables with record counts. Sele
 Class sessions store a `students` UUID list, displayed as student names linking to profiles. The timetable shows one session roster; student confirmed attendance uses only explicit session membership. Enrolment changes never rewrite these lists. New sessions begin empty unless students are supplied. `POST /api/v1/sessions` and `PATCH /api/v1/sessions/{id}` accept `students: [student UUID, ...]`. Unknown students, duplicate assignments, and capacity overflow are rejected.
 
 Apply migration `b7e2190c4a63` before starting this version. It copies existing dated regular rosters and approved makeup participants, deduplicates them, then removes the separate booking table and `/bookings` API. Approval adds the student and saves the teacher response atomically; no email is sent. The migration has no lossless downgrade for independent assignments.
+
+## Public guided simulation
+
+The homepage primary action opens `/demo/tour?mode=live`; the tour defaults to live mode and has no visible mode toggle. The recorded test route is `/demo/tour?mode=recorded`. The following describes recorded mode; see [live mode](22-public-live-demo.md) for click-triggered generation and quota behavior. Select `?scenario=booking` (the default, including unknown values) or `?scenario=document` to share a scenario. Both follow Email → Evidence → Teacher review → Confirmation. All content is fictional and curated; the tour makes no API/auth or model requests and sends no email. The existing record browser remains read-only.
+
+The booking example reuses Alex's Thursday-to-Saturday correction, displays prerecorded eligibility checks, and lets a visitor edit and simulate approval. The document example uses a saved clothing-policy revision with an exact highlighted citation. Its missing trial fee requires a teacher answer or deferral and an explicit Update draft before simulated approval. Updating uses a deterministic template and replaces direct response edits; arbitrary final edits are retained verbatim without AI validation. Blank responses cannot be approved.
+
+State is held in a tour-scoped React provider. Back/Next retains edits and decisions. Scenario changes, leaving the tour and reload discard them; there is no reset button. Simulated reservations and approved text never modify the shared public fixtures or workspace records. The public navigation label is Email walkthrough; the existing `/demo/test-email` URL and owner Test email label are retained. Homepage engineering links point to the repository, architecture and dated integrated evaluation, including its hold recommendation and synthetic/AI-review limitations.
+
+`frontend/tests/tour.spec.ts` covers both journeys on desktop/mobile, decision and empty-response gates, literal teacher input, exact source previews, keyboard/focus and state lifecycle. Request interception verifies zero API/auth access and profile comparisons check that published fixtures remain unchanged.
+
+The final step is **Confirmation**. Booking approval shows **Class booked**, a Simulation badge, the class details and a before/after session roster. Remaining places derive from fixture capacity and membership; Alex is added once. The collapsed **View saved record** disclosure represents `class_sessions.students` as student UUIDs, matching the real model rather than inventing booking rows. The real workflow commits this roster update and the reviewed response together in PostgreSQL; the tour does not write to PostgreSQL. A separate collapsed **Approved response** shows the exact approved snapshot, and **Email not sent** remains a distinct delivery status. Information enquiries show **Response approved** without a booking or roster section. **Back to review** preserves edits; reapproval replaces the confirmation snapshot. Leaving, switching scenarios or reloading clears it.
+
+Teacher-facing approval and simulation notices stay outside the student email. The public and owner adapters share the same first-person teacher-voice instruction; scenario inputs and orchestration remain separate. Step headings and source previews still receive programmatic focus for accessibility, without a visible outline; interactive controls retain their keyboard focus indicators.
+
+
+## Custom email and review presentation
+
+The public Email walkthrough at `/demo/test-email` now lets visitors select a fictional student and freely write an email up to 2,000 characters, then run the isolated AI simulation. It displays the inferred workflow, editable draft, source evidence and missing facts inline. It does not create an owner conversation or write bookings. Workspace Test email retains its existing authenticated intake behavior.
+
+Makeup booking and Document enquiry use an accessible tablist, selected tab and associated panel, with roving keyboard focus. Live mode is the default; the visible Use live AI/Use recorded demo controls have been removed.
+
+Current response presents booking proposals in a dedicated card: state badge, class heading, labeled date/time/location, then a separate approval/capacity note and session-student link. Confirmed bookings use the same hierarchy with a confirmed state and no pending-reservation note. Only presentation changes; approval semantics and permissions remain unchanged.

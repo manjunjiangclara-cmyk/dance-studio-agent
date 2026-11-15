@@ -45,6 +45,9 @@ import {
 } from "lucide-react";
 import { all, ApiError, examples, get, post, request } from "./data";
 import { confirmedSessions } from "./attendance";
+import { CustomEmail } from "./CustomEmail";
+import { BookingProposal } from "./BookingProposal";
+import { GuidedTour } from "./GuidedTour";
 import { PolicyPage } from "./PolicyPage";
 import { DocumentsPage } from "./DocumentsPage";
 import {
@@ -292,7 +295,7 @@ export default function App() {
     ["timetable", "Timetable", CalendarDays],
     ["database", "Database", Database],
     ["knowledge", "Studio knowledge", BookOpen],
-    ["test-email", "Test email", Send],
+    ["test-email", workspace ? "Test email" : "Email walkthrough", Send],
   ] as const;
   async function logout() {
     try {
@@ -440,6 +443,8 @@ export default function App() {
                 <ErrorBox error={authError} />
                 {page === "overview" ? (
                   <Overview />
+                ) : page === "tour" && !workspace ? (
+                  <GuidedTour />
                 ) : page === "reviews" ? (
                   id ? (
                     <ReviewDetail key={`${base}-${id}`} id={id} />
@@ -522,7 +527,11 @@ export default function App() {
             <span>
               {workspace
                 ? "Owner review workspace"
-                : "Fictional data · Predefined examples"}
+                : page === "tour" &&
+                    new URLSearchParams(location.search).get("mode") !==
+                      "recorded"
+                  ? "Fictional data · Live AI · Simulated booking"
+                  : "Fictional data · Predefined examples"}
               <span className="footer-dot">·</span>Australia / Melbourne
             </span>
           </footer>
@@ -573,14 +582,24 @@ function Overview() {
             The copilot connects the conversation, student history, and class
             timetable to prepare a draft for a teacher to review.
           </p>
-          <Link className="button primary" to={`${base}/reviews`}>
-            {workspace ? "Open review queue" : "Explore the review queue"}
+          <Link
+            className="button primary"
+            to={workspace ? `${base}/reviews` : "/demo/tour?mode=live"}
+          >
+            {workspace ? "Open review queue" : "Try the guided demo"}
             <ArrowRight size={17} />
           </Link>
+          {!workspace && (
+            <p>
+              <Link className="inline-link" to="/demo/reviews">
+                Explore the records <ArrowRight size={16} />
+              </Link>
+            </p>
+          )}
           <span className="hero-caption">
             {workspace
               ? "Approval books a proposed session and saves the response."
-              : "No sign-in required. All public records are fictional."}
+              : "Two minutes. Live AI with fictional inputs, or explore the recorded demo."}
           </span>
         </div>
         <div
@@ -669,6 +688,47 @@ function Overview() {
           value && <RunRows runs={value.runs.items} />
         )}
       </section>
+      {!workspace && (
+        <section className="panel">
+          <div className="eyebrow">BEHIND THE EXPERIENCE</div>
+          <h2>Engineering and measured limits</h2>
+          <p>
+            FastAPI, PostgreSQL, LangGraph and React connect deterministic
+            booking checks, document retrieval and teacher review.
+          </p>
+          <nav className="engineering-links" aria-label="Engineering resources">
+            <a
+              className="inline-link"
+              href="https://github.com/manjunjiangclara-cmyk/dance-studio-agent"
+            >
+              GitHub repository
+            </a>
+            <a
+              className="inline-link"
+              href="https://github.com/manjunjiangclara-cmyk/dance-studio-agent/blob/master/docs/04-architecture.md"
+            >
+              Architecture
+            </a>
+            <a
+              className="inline-link"
+              href="https://github.com/manjunjiangclara-cmyk/dance-studio-agent/blob/master/docs/measurements/integrated-rag-2026-11-11.md"
+            >
+              Integrated evaluation report
+            </a>
+          </nav>
+          <p>
+            11 November 2026: a live integrated evaluation reached teacher
+            review in 30/30 fictional cases. Independent AI review judged 27/30
+            emails supported and 16/30 ready without correction. The report
+            recommends holding routine use pending quality improvements.
+          </p>
+          <p className="muted">
+            This small synthetic evaluation is not human ground truth or
+            evidence of production reliability. The guided demo uses fictional
+            inputs; on-demand live results are not part of this evaluation.
+          </p>
+        </section>
+      )}
       {!workspace && (
         <div className="example-footnote">
           <CircleHelp size={16} />
@@ -1369,37 +1429,18 @@ function ReviewDetail({ id }: { id: string }) {
             </div>
           )}
           {(proposal || booked) && (
-            <div className={`notice ${booked ? "success" : ""}`}>
-              <strong>
-                {booked ? "Booking confirmed" : "Proposed class booking"}
-              </strong>
-              <p>
-                {bookingClass?.name || "Session unavailable"}
-                <br />
-                {bookingSession &&
-                  timeLabel(
-                    bookingSession.starts_at,
-                    bookingLocation?.timezone,
-                  )}
-                <br />
-                {bookingLocation?.name}
-              </p>
-              {bookingSession && (
-                <Link
-                  className="inline-link"
-                  to={`${base}/timetable?session=${bookingSession.id}`}
-                >
-                  View session students <ArrowUpRight size={14} />
-                </Link>
-              )}
-              {!booked && (
-                <p>
-                  No place is reserved yet. Approval books this exact session
-                  after a fresh capacity check. Ask for a revision to change the
-                  session.
-                </p>
-              )}
-            </div>
+            <BookingProposal
+              booked={Boolean(booked)}
+              className={bookingClass?.name || "Session unavailable"}
+              startsAt={bookingSession?.starts_at}
+              timezone={bookingLocation?.timezone}
+              location={bookingLocation?.name}
+              sessionUrl={
+                bookingSession
+                  ? `${base}/timetable?session=${bookingSession.id}`
+                  : undefined
+              }
+            />
           )}
           {!!run.draft_details.answers?.length && (
             <EnquiryPanel
@@ -2609,9 +2650,6 @@ function TestEmail() {
     [body, setBody] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<Error>();
-  const sample = examples.agent_runs.find(
-    (run) => run.status === "awaiting_review" && run.revision === 2,
-  )!;
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (busy) return;
@@ -2630,6 +2668,7 @@ function TestEmail() {
       setBusy(false);
     }
   }
+  if (!workspace) return <CustomEmail />;
   return (
     <>
       <PageHeader
@@ -2712,32 +2751,7 @@ function TestEmail() {
                 )}
               </button>
             </form>
-          ) : (
-            <>
-              <div className="example-email">
-                <span className="muted">From</span>
-                <strong>alex@example.test</strong>
-                <hr />
-                <p>
-                  I cannot attend Monday 8 February. Could I come Thursday
-                  instead?
-                </p>
-                <div className="follow-up">
-                  <span className="eyebrow">THEN, A FOLLOW-UP</span>
-                  <p>Actually, Saturday 13 February would be better.</p>
-                </div>
-              </div>
-              <Link
-                className="button primary"
-                to={`${base}/reviews/${sample.id}`}
-              >
-                Open the resulting example <ArrowRight size={17} />
-              </Link>
-              <p className="muted footnote">
-                Public examples do not call a model or save submissions.
-              </p>
-            </>
-          )}
+          ) : null}
         </section>
         <aside className="panel email-explainer">
           <div className="eyebrow">WHAT HAPPENS NEXT</div>

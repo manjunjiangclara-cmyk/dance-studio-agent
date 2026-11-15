@@ -1,0 +1,283 @@
+import { useEffect, useRef, useState } from "react";
+import { ApiError, request } from "./data";
+import "./custom-email.css";
+
+const students = {
+  alex: {
+    name: "Alex Morgan",
+    email: "alex@example.test",
+    context:
+      "Recorded Level 2 attendance; regular Thursday class; an earlier absence email about Monday 8 February.",
+  },
+  jules: {
+    name: "Jules Park",
+    email: "jules@example.test",
+    context: "New enquirer. No recorded level, attendance or enrolment.",
+  },
+};
+type Student = keyof typeof students;
+interface Evidence {
+  evidence: string[];
+  route: "enquiry" | "makeup" | "teacher_handoff";
+  missing_information: string[];
+  model: string;
+}
+interface Attempt {
+  student: Student;
+  email: string;
+  requestId: string;
+  token?: string;
+  evidence?: Evidence;
+  draft?: string;
+}
+export function CustomEmail() {
+  const [student, setStudent] = useState<Student>("alex");
+  const [body, setBody] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [stage, setStage] = useState("");
+  const [error, setError] = useState("");
+  const [evidence, setEvidence] = useState<Evidence | null>(null);
+  const [draft, setDraft] = useState("");
+  const attempt = useRef<Attempt | null>(null);
+  const pending = useRef(false);
+  const alive = useRef(true);
+  const resultHeading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
+  function invalidate() {
+    attempt.current = null;
+    setError("");
+    setEvidence(null);
+    setDraft("");
+  }
+  async function simulate() {
+    if (pending.current || !body.trim()) return;
+    pending.current = true;
+    setBusy(true);
+    setError("");
+    const current = attempt.current || {
+      student,
+      email: body,
+      requestId: crypto.randomUUID(),
+    };
+    attempt.current = current;
+    try {
+      if (!current.token) {
+        setStage("Starting simulation…");
+        const run = await request<{ token: string }>("/api/public-demo/runs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            scenario: "custom",
+            student: current.student,
+            email_body: current.email,
+            request_id: current.requestId,
+          }),
+        });
+        if (!alive.current) return;
+        current.token = run.token;
+      }
+      const headers = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${current.token}`,
+      };
+      if (!current.evidence) {
+        setStage("Finding supporting evidence…");
+        current.evidence = await request<Evidence>(
+          "/api/public-demo/evidence",
+          { method: "POST", headers, body: "{}" },
+        );
+        if (!alive.current) return;
+      }
+      if (!current.draft) {
+        setStage("Generating draft…");
+        const result = await request<{ body: string }>(
+          "/api/public-demo/draft",
+          { method: "POST", headers, body: "{}" },
+        );
+        if (!alive.current) return;
+        if (!result.body?.trim())
+          throw new Error(
+            "The live service returned an empty draft. Retry this simulation.",
+          );
+        current.draft = result.body;
+      }
+      setEvidence(current.evidence);
+      setDraft(current.draft);
+      requestAnimationFrame(() => {
+        if (alive.current) resultHeading.current?.focus();
+      });
+    } catch (caught) {
+      if (alive.current)
+        setError(
+          caught instanceof ApiError && caught.status === 0
+            ? "Connection interrupted. Retry to recover this simulation."
+            : caught instanceof Error
+              ? caught.message
+              : "The email simulation could not complete.",
+        );
+    } finally {
+      pending.current = false;
+      if (alive.current) {
+        setBusy(false);
+        setStage("");
+      }
+    }
+  }
+  return (
+    <>
+      <header className="page-heading">
+        <div>
+          <div className="eyebrow">EMAIL WALKTHROUGH</div>
+          <h1>Try an email of your own.</h1>
+          <p>
+            Choose a fictional student, write an email, and see how the copilot
+            prepares a response.
+          </p>
+        </div>
+      </header>
+      <div className="email-grid">
+        <section
+          className="panel email-form"
+          aria-labelledby="custom-email-title"
+        >
+          <h2 id="custom-email-title">Simulate an incoming email</h2>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              void simulate();
+            }}
+          >
+            <label htmlFor="demo-student">Fictional student</label>
+            <select
+              id="demo-student"
+              value={student}
+              disabled={busy}
+              onChange={(event) => {
+                setStudent(event.target.value as Student);
+                invalidate();
+              }}
+            >
+              <option value="alex">Alex Morgan</option>
+              <option value="jules">Jules Park</option>
+            </select>
+            <p className="muted">From {students[student].email}</p>
+            <label htmlFor="demo-email-body">Email body</label>
+            <textarea
+              id="demo-email-body"
+              rows={9}
+              maxLength={2000}
+              required
+              value={body}
+              disabled={busy}
+              placeholder="Write a fictional enquiry or makeup request…"
+              onChange={(event) => {
+                setBody(event.target.value);
+                invalidate();
+              }}
+            />
+            <p className="muted custom-email-limit">
+              {body.length}/2000 characters
+            </p>
+            <p>
+              Use fictional content only. This calls the real model and shares
+              the limit of 20 demo runs per day. No email is sent and no studio
+              records are changed.
+            </p>
+            {error && (
+              <div role="alert">
+                <p>{error}</p>
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={busy}
+                  onClick={() => void simulate()}
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+            <button className="button primary" disabled={busy || !body.trim()}>
+              {busy ? "Simulating email…" : "Simulate email"}
+            </button>
+            {busy && <p role="status">{stage}</p>}
+          </form>
+        </section>
+        <aside className="panel email-explainer">
+          <div className="eyebrow">FICTIONAL CONTEXT</div>
+          <h2>{students[student].name}</h2>
+          <p>{students[student].context}</p>
+          <h3>Available sources</h3>
+          <p>
+            A small fictional class timetable and beginner clothing policy.
+            Unknown fees and unsupported changes remain questions to confirm.
+          </p>
+          <p className="muted">
+            Reference date: 7 February 2027, Melbourne. Dates and records are
+            fictional.
+          </p>
+        </aside>
+      </div>
+      {evidence && (
+        <section
+          className="panel custom-email-result"
+          aria-labelledby="custom-result-title"
+        >
+          <div className="eyebrow">DRAFT FOR HUMAN REVIEW</div>
+          <h2 ref={resultHeading} tabIndex={-1} id="custom-result-title">
+            Review the draft
+          </h2>
+          <p className="custom-route">
+            {evidence.route === "makeup"
+              ? "Makeup request"
+              : evidence.route === "teacher_handoff"
+                ? "Needs teacher review"
+                : "Enquiry"}{" "}
+            · {evidence.model}
+          </p>
+          <label htmlFor="custom-response">Draft response</label>
+          <textarea
+            id="custom-response"
+            value={draft}
+            rows={9}
+            maxLength={5000}
+            onChange={(event) => setDraft(event.target.value)}
+          />
+          <p className="muted">
+            You can edit this draft locally. No email was sent. This simulation
+            does not book classes or change studio records.
+          </p>
+          {evidence.missing_information.length > 0 && (
+            <section aria-label="Information to confirm">
+              <h3>Information to confirm</h3>
+              <ul>
+                {evidence.missing_information.map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+          <details>
+            <summary>Supporting evidence</summary>
+            {evidence.evidence.length ? (
+              <ul>
+                {evidence.evidence.map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
+              </ul>
+            ) : (
+              <p>
+                No matching source was found; the response should ask for
+                details or confirmation.
+              </p>
+            )}
+          </details>
+        </section>
+      )}
+    </>
+  );
+}
