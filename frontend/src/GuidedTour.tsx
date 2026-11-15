@@ -97,27 +97,17 @@ export function GuidedTour() {
   const scenario =
     params.get("scenario") === "document" ? "document" : "booking";
   const liveMode = params.get("mode") === "live";
-  const [reset, setReset] = useState(0);
   return (
     <TourProvider
-      key={`${scenario}-${liveMode}-${reset}`}
+      key={`${scenario}-${liveMode}`}
       scenario={scenario}
       liveMode={liveMode}
     >
-      <TourContent
-        scenario={scenario}
-        reset={() => setReset((value) => value + 1)}
-      />
+      <TourContent scenario={scenario} />
     </TourProvider>
   );
 }
-function TourContent({
-  scenario,
-  reset,
-}: {
-  scenario: TourScenario;
-  reset: () => void;
-}) {
+function TourContent({ scenario }: { scenario: TourScenario }) {
   const state = useContext(TourContext)!;
   const fixture = tourFixtures[scenario];
   const { live, liveMode } = state;
@@ -467,9 +457,6 @@ function TourContent({
           <button className="button secondary" onClick={() => state.setStep(2)}>
             Back to review
           </button>
-          <button className="button secondary" onClick={reset}>
-            Restart demo
-          </button>
           <Link
             className="button primary"
             to={
@@ -492,12 +479,9 @@ function TourContent({
           >
             Back
           </button>
-          <button className="button secondary" onClick={reset}>
-            Reset
-          </button>
           {state.step < 2 && (
             <button
-              className="button primary"
+              className="button primary tour-next"
               disabled={liveMode && state.step === 1 && !live.evidence}
               onClick={() => state.setStep((value) => value + 1)}
             >

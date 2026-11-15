@@ -22,6 +22,7 @@ from studio_copilot.agent.contracts import (
     ToolCall,
     ToolTurn,
 )
+from studio_copilot.agent.draft_voice import TEACHER_VOICE
 from studio_copilot.agent.privacy import StudentPrivacy, normalize_unknown_greeting
 from studio_copilot.agent.tools import tool_definitions
 from studio_copilot.agent.tracing import span
@@ -297,10 +298,9 @@ Return only the structured checks and issue list.
         return self._parse(
             context,
             Draft,
-            """
-Write the email body as the teacher speaking directly to the student in first person: warm,
-collaborative, concise, natural, and helpful. Never refer to 'your teacher' as a third party or
-mention an AI. Keep internal reference IDs in the structured references, not in the email body.
+            TEACHER_VOICE
+            + """
+Keep internal reference IDs in the structured references, not in the email body.
 Keep reasoning, caveats about system capabilities, and staff tasks in the staff-facing rationale.
 For enquiry and teacher_handoff, use retrieved timetable facts to answer as far as possible;
 teacher handling limits actions, not read-only answers about classes and their schedules.

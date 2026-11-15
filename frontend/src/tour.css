@@ -41,8 +41,7 @@
 }
 .tour-stage h2:focus,
 .tour-source:focus {
-  outline: 2px solid #24799c;
-  outline-offset: 6px;
+  outline: none;
 }
 .tour-message {
   padding: 18px;
@@ -121,7 +120,8 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.tour-controls .button:last-child {
+.tour-controls .tour-next,
+.tour-completion-actions .button.primary {
   margin-left: auto;
 }
 .engineering-links {
@@ -276,7 +276,7 @@
   .tour-booking-card {
     padding: 18px;
   }
-  .tour-completion-actions .button:last-child {
+  .tour-completion-actions .button.primary {
     margin-left: 0;
   }
 }

@@ -13,7 +13,7 @@ interface ResponseOverride {
   json?: unknown;
 }
 const generatedBooking =
-  "Hi Alex, I have reviewed your Saturday preference and the class details. Your teacher can approve the proposed makeup.\n\nMerri Ballet team";
+  "Hi Alex, I've booked Saturday 13 February at 6 pm at our Brunswick studio for your makeup class. See you then!\n\nMerri Ballet team";
 const generatedDocument =
   "Hi Jules, comfortable clothes and socks are suitable for your first class. Ballet shoes are optional.\n\n[Teacher decision needed: trial fee]\n\nMerri Ballet team";
 
@@ -35,6 +35,10 @@ async function mockLive(
   const calls: Call[] = [];
   const forbidden: string[] = [];
   const tokens = new Map<string, Scenario>();
+  page.on("dialog", async (dialog) => {
+    forbidden.push(`Unexpected browser dialog: ${dialog.message()}`);
+    await dialog.dismiss();
+  });
   page.on("request", (request) => {
     const path = new URL(request.url()).pathname;
     if (path.startsWith("/api/v1/") || path.startsWith("/auth/"))
@@ -433,7 +437,7 @@ test("scenario changes ignore late evidence and preserve live mode with a new re
   }
 });
 
-test("reset ignores a late draft and starts a fresh empty live run", async ({
+test("leaving ignores a late draft and returning starts a fresh empty live run", async ({
   page,
 }) => {
   const pending = deferred();
@@ -442,17 +446,35 @@ test("reset ignores a late draft and starts a fresh empty live run", async ({
   });
   try {
     await enterEvidence(page);
+    await expect(
+      page.getByRole("button", { name: /Reset|Restart demo|Start over/ }),
+    ).toHaveCount(0);
+    await expect(
+      page
+        .locator(".tour-controls")
+        .getByRole("button", { name: /Start over|Reset|Restart demo/ }),
+    ).toHaveCount(0);
     await findEvidence(page);
     await enterReview(page);
     await page
       .getByRole("button", { name: "Generate draft", exact: true })
       .click();
     await expect.poll(() => api.count("draft")).toBe(1);
-    await page.getByRole("button", { name: "Reset", exact: true }).click();
+    await page
+      .getByRole("link", { name: "Explore the read-only records", exact: true })
+      .click();
+    await expect(
+      page.getByRole("heading", { name: "The review queue.", exact: true }),
+    ).toBeVisible();
     pending.release();
+    await page.goBack();
     await expect(
       page.getByRole("heading", { name: "Email", exact: true }),
     ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Start over", exact: true }),
+    ).toHaveCount(0);
+    expect(api.count("runs")).toBe(1);
     await page.getByRole("button", { name: "Next", exact: true }).click();
     await expect(
       page.getByRole("button", { name: "Next", exact: true }),

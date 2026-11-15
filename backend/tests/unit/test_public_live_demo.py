@@ -276,3 +276,24 @@ def test_public_router_is_integrated_without_unlocking_staff_api(client):
         assert response.status_code == 200
         assert response.headers["cache-control"] == "no-store"
         assert application.get("/api/v1/students").status_code == 401
+
+
+def test_public_and_owner_drafts_share_teacher_voice():
+    from studio_copilot.agent.draft_voice import TEACHER_VOICE
+    from studio_copilot.agent.openai_model import OpenAIModel
+
+    owner_instructions = []
+    # Capture the production adapter's actual drafting instruction without a provider call.
+    owner = object.__new__(OpenAIModel)
+    owner._parse = lambda _context, _schema, instruction: owner_instructions.append(instruction)
+    owner.draft({})
+    assert TEACHER_VOICE in owner_instructions[0]
+    body = "Thanks, Alex. I've booked Saturday 13 February at 6 pm at Brunswick for you."
+    public, calls = model_with(
+        SimpleNamespace(status="completed", output_parsed=GeneratedDraft(body=body))
+    )
+    result = public.call("booking", "draft", list(CATALOG["booking"].values()))
+    assert result["body"] == body
+    assert TEACHER_VOICE in calls[0]["instructions"]
+    assert "I've booked Saturday" in calls[0]["instructions"]
+    assert "as available pending teacher approval" not in calls[0]["instructions"]

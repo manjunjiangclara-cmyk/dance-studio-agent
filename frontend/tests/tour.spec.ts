@@ -3,6 +3,7 @@ import examples from "../src/data/examples.v1.json" with { type: "json" };
 import { tourBooking, tourSource } from "../src/tourData";
 
 const publicCalls = new WeakMap<Page, string[]>();
+const dialogs = new WeakMap<Page, string[]>();
 const editedReply =
   "Thanks, Alex. Saturday works for your makeup class. — Clara";
 const teacherAnswer = "A trial costs $20, payable at the studio.";
@@ -10,6 +11,12 @@ const teacherAnswer = "A trial costs $20, payable at the studio.";
 test.beforeEach(async ({ page }) => {
   const calls: string[] = [];
   publicCalls.set(page, calls);
+  const openedDialogs: string[] = [];
+  dialogs.set(page, openedDialogs);
+  page.on("dialog", async (dialog) => {
+    openedDialogs.push(dialog.message());
+    await dialog.dismiss();
+  });
   page.on("request", (request) => {
     const path = new URL(request.url()).pathname;
     if (path.startsWith("/api/") || path.startsWith("/auth/"))
@@ -22,12 +29,14 @@ test.beforeEach(async ({ page }) => {
 
 test.afterEach(async ({ page }) => {
   expect(publicCalls.get(page)).toEqual([]);
+  expect(dialogs.get(page)).toEqual([]);
 });
 
 async function expectStep(page: Page, name: string) {
   const heading = page.getByRole("heading", { name, exact: true, level: 2 });
   await expect(heading).toBeVisible();
   await expect(heading).toBeFocused();
+  await expect(heading).toHaveCSS("outline-style", "none");
 }
 
 async function next(page: Page, name: string) {
@@ -99,6 +108,14 @@ test("booking confirmation shows a consistent roster snapshot and reapproval rep
     .getByRole("button", { name: "Simulate approval and booking", exact: true })
     .click();
   await expectStep(page, "Class booked");
+  await expect(
+    page.getByRole("button", { name: /Reset|Restart demo|Start over/ }),
+  ).toHaveCount(0);
+  await expect(
+    page
+      .getByRole("navigation", { name: "Confirmation actions" })
+      .getByRole("button", { name: /Start over|Reset|Restart demo/ }),
+  ).toHaveCount(0);
   const booking = page.getByRole("region", {
     name: "Booking confirmation",
     exact: true,
@@ -185,13 +202,33 @@ test("booking confirmation shows a consistent roster snapshot and reapproval rep
   await page.getByText("Approved response", { exact: true }).click();
   await expect(response.getByText(replacement, { exact: true })).toBeVisible();
   await expect(response.getByText(editedReply, { exact: true })).toHaveCount(0);
-  await page.getByRole("button", { name: "Restart demo", exact: true }).click();
+  await page.reload();
   await expectStep(page, "Email");
   await next(page, "Evidence");
   await next(page, "Teacher review");
   await expect(page.getByLabel("Final response", { exact: true })).toHaveValue(
     initialDraft,
   );
+});
+
+test("tour has no reset button in email, evidence, review or confirmation", async ({
+  page,
+}) => {
+  const resetButtons = page.getByRole("button", {
+    name: /Reset|Restart demo|Start over/,
+  });
+  await page.goto("/demo/tour");
+  await expectStep(page, "Email");
+  await expect(resetButtons).toHaveCount(0);
+  await next(page, "Evidence");
+  await expect(resetButtons).toHaveCount(0);
+  await next(page, "Teacher review");
+  await expect(resetButtons).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Simulate approval and booking", exact: true })
+    .click();
+  await expectStep(page, "Class booked");
+  await expect(resetButtons).toHaveCount(0);
 });
 
 test("document evidence opens its exact saved source and requires a teacher decision", async ({
@@ -218,6 +255,9 @@ test("document evidence opens its exact saved source and requires a teacher deci
   await expect(
     page.getByRole("region", { name: "Saved source revision" }),
   ).toBeFocused();
+  await expect(
+    page.getByRole("region", { name: "Saved source revision" }),
+  ).toHaveCSS("outline-style", "none");
   await page.screenshot({
     path: testInfo.outputPath("tour-source.png"),
     fullPage: true,
@@ -349,18 +389,10 @@ test("blank response blocks approval and an invalid scenario uses the booking de
   ).toBeEnabled();
 });
 
-test("reset, reload, leaving and scenario changes discard local review state", async ({
+test("reload, leaving and scenario changes discard local review state", async ({
   page,
 }) => {
   await review(page);
-  await page.getByLabel("Final response", { exact: true }).fill(editedReply);
-  await page.getByRole("button", { name: "Reset", exact: true }).click();
-  await expectStep(page, "Email");
-  await next(page, "Evidence");
-  await next(page, "Teacher review");
-  await expect(
-    page.getByLabel("Final response", { exact: true }),
-  ).not.toHaveValue(editedReply);
   await page.getByLabel("Final response", { exact: true }).fill(editedReply);
   await page.reload();
   await expectStep(page, "Email");
@@ -427,12 +459,23 @@ test("simulation leaves the existing public student and review fixtures unchange
 test("tour navigation works by keyboard without horizontal overflow", async ({
   page,
 }) => {
-  await page.goto("/demo/tour");
+  await page.goto("/demo/tour?scenario=document");
   await expectStep(page, "Email");
   const nextButton = page.getByRole("button", { name: "Next", exact: true });
-  await nextButton.focus();
+  await page.keyboard.press("Tab");
+  await expect(nextButton).toBeFocused();
+  await expect(nextButton).toHaveCSS("outline-style", "solid");
   await page.keyboard.press("Enter");
   await expectStep(page, "Evidence");
+  const citation = page.getByRole("button", {
+    name: "Beginner clothing policy · Revision 1",
+    exact: true,
+  });
+  await citation.focus();
+  await page.keyboard.press("Enter");
+  const source = page.getByRole("region", { name: "Saved source revision" });
+  await expect(source).toBeFocused();
+  await expect(source).toHaveCSS("outline-style", "none");
   await expect
     .poll(() =>
       page.evaluate(
@@ -441,6 +484,7 @@ test("tour navigation works by keyboard without horizontal overflow", async ({
     )
     .toBe(true);
   await nextButton.focus();
+  await expect(nextButton).toHaveCSS("outline-style", "solid");
   await page.keyboard.press("Enter");
   await expectStep(page, "Teacher review");
   await expect
