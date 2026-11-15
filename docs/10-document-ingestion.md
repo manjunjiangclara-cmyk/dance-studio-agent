@@ -1,6 +1,6 @@
 # Document ingestion
 
-Documents remain outside the agent's knowledge base. Ingestion validates and retains source material; it does not publish, index, retrieve, or make model calls.
+Initial uploads retain source material without enabling document answers. Saving a changed existing document now approves its new revision and automatically starts answer preparation using the existing chunking and embedding pipeline. The superseded revision stops being used immediately.
 
 ## Owner workflow
 
@@ -10,7 +10,7 @@ Every changed save creates an immutable revision, including metadata-only edits.
 
 Original uploaded bytes are preserved as UTF-8 text without newline, BOM, or Unicode normalization. The revision SHA-256 is calculated while receiving the file. `hash_origin=upload_bytes` identifies multipart uploads; `stored_text_utf8` identifies hashes reconstructed from existing stored text, the legacy base64 API, or inline editing. A reconstructed hash does not claim original-upload provenance.
 
-Existing empty/whitespace-only documents survive migration with `ingestion_status=needs_correction`; replace or edit them to supply valid text. New blank content, NUL, invalid UTF-8, path-like filenames, and reversed date ranges are rejected. Dates are entered by the owner and not inferred from prose. Deleting a document also deletes its revisions.
+Existing empty/whitespace-only documents survive migration with `ingestion_status=needs_correction`; replace or edit them to supply valid text. New blank content, NUL, invalid UTF-8, path-like filenames, and reversed date ranges are rejected. Dates are entered by the owner and not inferred from prose. Archiving a document retains its revisions and index records for historical citations, immediately revokes answer activation, and cancels outstanding preparation claims. Archived sources are read-only and cannot be re-enabled.
 
 ## API
 
@@ -33,3 +33,14 @@ Existing list and base64 create/read/update/delete endpoints remain. Base64 cont
 Multipart requests are authenticated before reading. Actual incoming request bytes are limited to 10,065,536, and file bytes independently to 10,000,000. Metadata fields, headers, part count, and parsing batches are bounded. The parser writes to one automatically closed temporary file; database write transactions begin after validation. `Content-Length` is checked when present but never replaces actual-byte accounting. Successful ingestion materializes at most one bounded source file in memory before storing it in PostgreSQL.
 
 The migration adds `documents.current_revision` and `document_revisions`; PostgreSQL rejects updates to stored revision rows. Apply it using the normal `alembic upgrade head` workflow. No new worker, vector extension, external storage, or API key is required.
+
+
+## Updated document approval and archival
+
+For changed saves through metadata, inline text, replacement upload, or the legacy update API, the source revision and replacement activation claim commit together. Preparation begins after commit; only the current revision and current claim token can become enabled. Byte-identical saves with identical metadata remain no-ops. Initial uploads still require explicit activation.
+
+A failed or unconfigured preparation keeps the saved revision and reports a failed activation with a retry action. No previous revision is used as a fallback. Existing background preparation and lease/retry behavior remain in use; no new queue is introduced.
+
+`POST /{id}/archive` requires `{ "expected_revision": N }`; a stale revision returns 409. `DELETE /{id}` now archives and retains its compatibility response `{ "deleted": true }`. Repeated archival is safe. The list defaults to unarchived documents; `GET ?archived=true` lists archived documents only. Summary, detail, and metadata responses include nullable `archived_at`. Archived revision previews remain authenticated and readable. Archived writes and activation are rejected.
+
+Apply migration `c64a1d8e920f` with `alembic upgrade head`; it adds nullable `documents.archived_at` without removing existing records. Online source validation and final teacher approval reject updated, archived, or revoked evidence, requiring regeneration. Raw retrieval also excludes archived documents even when an explicit old run ID is supplied. Permanent erasure, restoration, and index garbage collection are not included.

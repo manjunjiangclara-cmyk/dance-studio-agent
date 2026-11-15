@@ -6,6 +6,7 @@ type Doc = {
   filename: string;
   content: string;
   current_revision: number;
+  archived_at?: string | null;
   byte_size: number;
   sha256: string;
   hash_origin: string;
@@ -52,7 +53,14 @@ async function documentsApi(page: Page, failFirst = false) {
       });
     }
     if (method === "GET") {
-      if (!id) return route.fulfill({ json: state.docs });
+      if (!id)
+        return route.fulfill({
+          json: state.docs.filter(
+            (doc) =>
+              !!doc.archived_at ===
+              (url.searchParams.get("archived") === "true"),
+          ),
+        });
       if (!found) return route.fulfill({ status: 404, json: {} });
       if (parts[1] === "metadata")
         return route.fulfill({
@@ -93,9 +101,13 @@ async function documentsApi(page: Page, failFirst = false) {
       return route.fulfill({ json: found });
     }
     expect(req.headers()["x-csrf-token"]).toBe("test-csrf");
-    if (method === "DELETE") {
-      state.docs = state.docs.filter((item) => item.id !== id);
-      return route.fulfill({ json: { deleted: true } });
+    if (parts[1] === "archive") {
+      expect(req.postDataJSON().expected_revision).toBe(
+        found!.current_revision,
+      );
+      found!.archived_at = new Date().toISOString();
+      state.activation = "disabled";
+      return route.fulfill({ json: found });
     }
     if (state.fail || state.conflict) {
       state.fail = false;
@@ -145,8 +157,10 @@ async function documentsApi(page: Page, failFirst = false) {
       effective_to: body.effective_to ? String(body.effective_to) : null,
       updated_at: new Date().toISOString(),
     };
-    if (found)
+    if (found) {
       expect(Number(body.expected_revision)).toBe(found.current_revision);
+      state.activation = "preparing";
+    }
     state.docs = [doc, ...state.docs.filter((item) => item.id !== doc.id)];
     state.history.set(doc.id, [doc, ...(state.history.get(doc.id) || [])]);
     return route.fulfill({
@@ -169,10 +183,14 @@ test("owner manages documents and retains a draft on errors", async ({
   });
   await page.getByLabel("Title", { exact: true }).fill("Welcome");
   await page.getByLabel("Effective from").fill("2027-01-01");
-  await page.getByRole("button", { name: "Save document" }).click();
+  await page
+    .getByRole("button", { name: /Save document|Save and approve/ })
+    .click();
   await expect(page.getByRole("alert")).toContainText("Save failed");
   await expect(page.getByLabel("Document text")).toHaveValue("Hello studio");
-  await page.getByRole("button", { name: "Save document" }).click();
+  await page
+    .getByRole("button", { name: /Save document|Save and approve/ })
+    .click();
   await expect(
     page.getByText("Document saved. Uploading does not enable it for answers."),
   ).toBeVisible();
@@ -195,7 +213,9 @@ test("owner manages documents and retains a draft on errors", async ({
     mimeType: "text/plain",
     buffer: Buffer.from("Replacement"),
   });
-  await page.getByRole("button", { name: "Save document" }).click();
+  await page
+    .getByRole("button", { name: /Save document|Save and approve/ })
+    .click();
   await expect(page.getByLabel("Document text")).toHaveValue("Replacement");
   expect(state.docs[0].filename).toBe("new.txt");
   expect(state.docs[0].current_revision).toBe(2);
@@ -204,10 +224,10 @@ test("owner manages documents and retains a draft on errors", async ({
     .selectOption("1");
   await expect(page.locator(".document-preview")).toHaveText("Hello studio");
   page.once("dialog", (dialog) => dialog.dismiss());
-  await page.getByRole("button", { name: "Delete document" }).click();
+  await page.getByRole("button", { name: "Archive document" }).click();
   await expect(page.getByLabel("Document text")).toBeVisible();
   page.once("dialog", (dialog) => dialog.accept());
-  await page.getByRole("button", { name: "Delete document" }).click();
+  await page.getByRole("button", { name: "Archive document" }).click();
   await expect(page.getByText("No documents yet.")).toBeVisible();
 });
 
@@ -440,7 +460,9 @@ test("large files use bounded previews and preserve edits on conflicts", async (
     buffer: Buffer.from(text),
   });
   await expect(page.getByLabel("Document text")).toHaveCount(0);
-  await page.getByRole("button", { name: "Save document" }).click();
+  await page
+    .getByRole("button", { name: /Save document|Save and approve/ })
+    .click();
   await expect(page.locator(".document-preview")).toHaveText(
     "A".repeat(20_000),
   );
@@ -468,7 +490,9 @@ test("large files use bounded previews and preserve edits on conflicts", async (
   ).toBe(true);
   state.conflict = true;
   await page.getByLabel("Title", { exact: true }).fill("My local title");
-  await page.getByRole("button", { name: "Save document" }).click();
+  await page
+    .getByRole("button", { name: /Save document|Save and approve/ })
+    .click();
   await expect(page.getByRole("alert")).toContainText(
     "Your edits are retained",
   );
@@ -492,11 +516,15 @@ test("preview renders markup as text and inline edits create revisions", async (
     mimeType: "text/markdown",
     buffer: Buffer.from(text),
   });
-  await page.getByRole("button", { name: "Save document" }).click();
+  await page
+    .getByRole("button", { name: /Save document|Save and approve/ })
+    .click();
   await expect(page.locator(".document-preview")).toHaveText(text);
   expect(await page.evaluate(() => "documentInjected" in window)).toBe(false);
   await page.getByLabel("Document text").fill("Safe edited content");
-  await page.getByRole("button", { name: "Save document" }).click();
+  await page
+    .getByRole("button", { name: /Save document|Save and approve/ })
+    .click();
   await expect(page.locator(".document-preview")).toHaveText(
     "Safe edited content",
   );
@@ -511,9 +539,9 @@ test("demo documents are illustrative and read only", async ({ page }) => {
   await page.goto("/demo/knowledge/documents");
   await page.getByRole("button", { name: "Studio welcome" }).click();
   await expect(page.getByLabel("Document text")).toBeDisabled();
-  await expect(page.getByRole("button", { name: "Save document" })).toHaveCount(
-    0,
-  );
+  await expect(
+    page.getByRole("button", { name: /Save document|Save and approve/ }),
+  ).toHaveCount(0);
   expect(calls).toEqual([]);
 });
 
@@ -527,7 +555,9 @@ test("cancelled conflict reload retains replacement, accepted reload uses saved 
     mimeType: "text/markdown",
     buffer: Buffer.from("Original text"),
   });
-  await page.getByRole("button", { name: "Save document" }).click();
+  await page
+    .getByRole("button", { name: /Save document|Save and approve/ })
+    .click();
   await expect(page.locator(".document-preview")).toHaveText("Original text");
   const old = state.docs[0];
   const latest = { ...old, current_revision: 2, content: "Changed elsewhere" };
@@ -539,7 +569,9 @@ test("cancelled conflict reload retains replacement, accepted reload uses saved 
     mimeType: "text/plain",
     buffer: Buffer.from("My replacement"),
   });
-  await page.getByRole("button", { name: "Save document" }).click();
+  await page
+    .getByRole("button", { name: /Save document|Save and approve/ })
+    .click();
   await expect(page.getByRole("alert")).toContainText(
     "Your edits are retained",
   );
@@ -555,7 +587,7 @@ test("cancelled conflict reload retains replacement, accepted reload uses saved 
     "Changed elsewhere",
   );
   await expect(
-    page.getByRole("button", { name: "Save document" }),
+    page.getByRole("button", { name: /Save document|Save and approve/ }),
   ).toBeDisabled();
   await expect(page.getByText("Unsaved changes", { exact: true })).toHaveCount(
     0,
@@ -572,7 +604,9 @@ test("revision mismatch while loading does not overwrite local replacement text"
     mimeType: "text/markdown",
     buffer: Buffer.from("Original text"),
   });
-  await page.getByRole("button", { name: "Save document" }).click();
+  await page
+    .getByRole("button", { name: /Save document|Save and approve/ })
+    .click();
   await expect(page.locator(".document-preview")).toHaveText("Original text");
   const old = state.docs[0];
   state.docs = [{ ...old, current_revision: 2, content: "Changed elsewhere" }];
@@ -605,7 +639,9 @@ test("document activation reports progress, failure, retry and disabling", async
     mimeType: "text/markdown",
     buffer: Buffer.from("Studio handbook"),
   });
-  await page.getByRole("button", { name: "Save document" }).click();
+  await page
+    .getByRole("button", { name: /Save document|Save and approve/ })
+    .click();
   await page.getByRole("button", { name: "Enable for answers" }).click();
   await expect(page.getByText("Preparing document for answers…")).toBeVisible();
   await page.getByRole("button", { name: "Cancel preparation" }).click();
@@ -630,4 +666,49 @@ test("document activation reports progress, failure, retry and disabling", async
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
+});
+
+test("updated documents prepare automatically and archived sources stay readable", async ({
+  page,
+}) => {
+  const state = await documentsApi(page);
+  await page.goto("/workspace/documents");
+  await page.getByLabel(/Upload a document/).setInputFiles({
+    name: "rules.md",
+    mimeType: "text/markdown",
+    buffer: Buffer.from("Old rules"),
+  });
+  await page
+    .getByRole("button", { name: "Save document", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Save and approve", exact: true }),
+  ).toBeVisible();
+  state.activation = "enabled";
+  await page.getByLabel("Document text").fill("New rules");
+  await page
+    .getByRole("button", { name: "Save and approve", exact: true })
+    .click();
+  await expect(
+    page.getByText("Preparing document for answers…", { exact: true }),
+  ).toBeVisible();
+  expect(state.docs[0].current_revision).toBe(2);
+  page.once("dialog", (dialog) => dialog.accept());
+  await page
+    .getByRole("button", { name: "Archive document", exact: true })
+    .click();
+  await expect(page.getByText("No documents yet.")).toBeVisible();
+  await page.getByLabel("Show archived documents").check();
+  await page.getByRole("button", { name: "rules", exact: true }).click();
+  await expect(page.getByLabel("Document text")).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Save and approve" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Enable for answers" }),
+  ).toHaveCount(0);
+  await page
+    .getByRole("combobox", { name: "Revision", exact: true })
+    .selectOption("1");
+  await expect(page.locator(".document-preview")).toHaveText("Old rules");
 });

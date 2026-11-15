@@ -124,8 +124,14 @@ def test_noncomplete_results_stay_reviewable_and_out_of_final_claims(status):
 
 
 def test_current_source_check_uses_only_retained_document_citations(monkeypatch):
-    retained = dict(references=["document:kept"], sources=[dict(run_id=str(UUID(int=90)))])
-    discarded = dict(references=["document:discarded"], sources=[dict(run_id=str(UUID(int=91)))])
+    retained = dict(
+        references=["document:kept"],
+        sources=[dict(run_id=str(UUID(int=90)), document_id=str(UUID(int=1)))],
+    )
+    discarded = dict(
+        references=["document:discarded"],
+        sources=[dict(run_id=str(UUID(int=91)), document_id=str(UUID(int=2)))],
+    )
     run = SimpleNamespace(
         evidence=[dict(tool="document_answer", result=item) for item in [retained, discarded]],
         draft_details=dict(references=["document:kept", "teacher_answer:other"]),
@@ -139,18 +145,22 @@ def test_current_source_check_uses_only_retained_document_citations(monkeypatch)
         "check_identities",
         lambda db, selected, identities, today, **kwargs: checks.append((identities, kwargs)),
     )
-    online.require_current_sources(object(), run)
+    db = SimpleNamespace(scalars=lambda query: SimpleNamespace(all=lambda: []))
+    online.require_current_sources(db, run)
     assert checks == [(retained["sources"], dict(lock=True))]
 
 
 def test_disabling_after_draft_revokes_retained_citations(monkeypatch):
     run = SimpleNamespace(
-        evidence=[dict(tool="document_answer", result=dict(references=["document:kept"]))],
+        evidence=[
+            dict(tool="document_answer", result=dict(references=["document:kept"], sources=[]))
+        ],
         draft_details=dict(references=["document:kept"]),
     )
     monkeypatch.setattr(online.Configuration, "from_env", classmethod(lambda cls, *a, **kw: None))
     with pytest.raises(online.OnlineError) as error:
-        online.require_current_sources(object(), run)
+        db = SimpleNamespace(scalars=lambda query: SimpleNamespace(all=lambda: []))
+        online.require_current_sources(db, run)
     assert error.value.code == "source_revoked"
 
 

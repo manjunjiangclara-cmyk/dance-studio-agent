@@ -9,6 +9,7 @@ type Summary = {
   filename: string;
   updated_at: string;
   current_revision: number;
+  archived_at?: string | null;
   byte_size: number;
   sha256: string;
   hash_origin: string;
@@ -71,6 +72,7 @@ export function DocumentsPage({
   const linkedDocument = workspace ? searchParams.get("document") : null;
   const linkedRevision = searchParams.get("revision");
   const linkedOffset = searchParams.get("offset");
+  const [showArchived, setShowArchived] = useState(false);
   const [documents, setDocuments] = useState<Summary[]>();
   const [saved, setSaved] = useState<Summary>();
   const [original, setOriginal] = useState<Draft>();
@@ -97,7 +99,10 @@ export function DocumentsPage({
 
   useEffect(() => {
     let active = true;
-    (workspace ? request<Summary[]>(root) : Promise.resolve([example]))
+    (workspace
+      ? request<Summary[]>(`${root}?archived=${showArchived}`)
+      : Promise.resolve([example])
+    )
       .then((value) => {
         if (active) setDocuments(value);
       })
@@ -107,7 +112,7 @@ export function DocumentsPage({
     return () => {
       active = false;
     };
-  }, [workspace, attempt]);
+  }, [workspace, attempt, showArchived]);
   useEffect(() => {
     if (!workspace || !saved) {
       setActivation(undefined);
@@ -302,7 +307,8 @@ export function DocumentsPage({
     }
   }
   async function save() {
-    if (!workspace || !draft || busy) return;
+    if (!workspace || !draft || busy || activationBusy || saved?.archived_at)
+      return;
     setBusy(true);
     setError("");
     setMessage("");
@@ -369,7 +375,12 @@ export function DocumentsPage({
       setOriginal(next);
       setDraft(next);
       setConflict(false);
-      setMessage("Document saved. Uploading does not enable it for answers.");
+      setMessage(
+        saved
+          ? "Document saved and approved. The previous revision is no longer used. Check preparation status below."
+          : "Document saved. Uploading does not enable it for answers.",
+      );
+      setActivationRefresh((value) => value + 1);
       try {
         await loadDocument(value.id);
       } catch {
@@ -384,7 +395,7 @@ export function DocumentsPage({
     }
   }
   async function changeActivation(method: "POST" | "DELETE") {
-    if (!saved || activationBusy || dirty) return;
+    if (!saved || activationBusy || busy || dirty || saved.archived_at) return;
     setActivationBusy(true);
     setActivationError("");
     try {
@@ -403,8 +414,10 @@ export function DocumentsPage({
     if (
       !saved ||
       busy ||
+      activationBusy ||
+      !!saved.archived_at ||
       !window.confirm(
-        `Delete “${saved.title}” and all its revisions? This cannot be undone.`,
+        `Archive “${saved.title}”? It will stop being used for answers. Saved revisions remain available for historical citations.${dirty ? " Unsaved changes will be discarded." : ""}`,
       )
     )
       return;
@@ -412,15 +425,16 @@ export function DocumentsPage({
     setError("");
     setMessage("");
     try {
-      await request(`${root}/${saved.id}`, {
-        method: "DELETE",
-        headers: { "X-CSRF-Token": csrf },
+      await request(`${root}/${saved.id}/archive`, {
+        method: "POST",
+        headers: { "X-CSRF-Token": csrf, "Content-Type": "application/json" },
+        body: JSON.stringify({ expected_revision: saved.current_revision }),
       });
       setDocuments((current) =>
         current?.filter((item) => item.id !== saved.id),
       );
       close();
-      setMessage("Document deleted.");
+      setMessage("Document archived. It is no longer used for answers.");
     } catch (err) {
       fail(err);
     } finally {
@@ -511,9 +525,28 @@ export function DocumentsPage({
       {documents && (
         <section className="panel policy-form">
           <h2>Document library</h2>
+          {workspace && (
+            <label>
+              <input
+                type="checkbox"
+                checked={showArchived}
+                disabled={busy || activationBusy}
+                onChange={(event) => {
+                  if (dirty && !window.confirm("Discard unsaved changes?"))
+                    return;
+                  close();
+                  setDocuments(undefined);
+                  setShowArchived(event.target.checked);
+                }}
+              />
+              Show archived documents
+            </label>
+          )}
           {documents.length === 0 ? (
             <p>
-              No documents yet. Upload a text or Markdown file to get started.
+              {showArchived
+                ? "No archived documents."
+                : "No documents yet. Upload a text or Markdown file to get started."}
             </p>
           ) : (
             <ul className="document-list">
@@ -537,7 +570,7 @@ export function DocumentsPage({
               ))}
             </ul>
           )}
-          {workspace && (
+          {workspace && !showArchived && (
             <label>
               Upload a document (.txt or .md, up to 10 MB)
               <input
@@ -577,12 +610,14 @@ export function DocumentsPage({
               .
             </p>
           )}
-          {workspace && saved && (
+          {workspace && saved && !saved.archived_at && (
             <section aria-label="Answers activation" className="notice">
               <h3>Use for answers</h3>
               <p>
-                Preparing this document may incur embedding API costs. Answers
-                remain drafts for teacher review.
+                Saving changes approves the new revision and starts preparation.
+                The previous revision stops being used immediately. Preparation
+                may incur embedding API costs. Answers remain drafts for teacher
+                review.
               </p>
               {!activation && !activationError && (
                 <p role="status">Loading answer status…</p>
@@ -649,7 +684,16 @@ export function DocumentsPage({
               document is kept separately.
             </p>
           )}
-          <fieldset disabled={!workspace || busy}>
+          {saved?.archived_at && (
+            <p className="notice">
+              Archived document. Read-only and excluded from answers.
+            </p>
+          )}
+          <fieldset
+            disabled={
+              !workspace || busy || activationBusy || !!saved?.archived_at
+            }
+          >
             <label>
               Title
               <input
@@ -730,13 +774,19 @@ export function DocumentsPage({
               </p>
             </details>
           )}
-          {workspace && (
+          {workspace && !saved?.archived_at && (
             <div className="button-row">
               <button
                 className="button primary"
-                disabled={!dirty || busy || !draft.title.trim()}
+                disabled={
+                  !dirty || busy || activationBusy || !draft.title.trim()
+                }
               >
-                {busy ? "Working…" : "Save document"}
+                {busy
+                  ? "Working…"
+                  : saved
+                    ? "Save and approve"
+                    : "Save document"}
               </button>
               <button
                 type="button"
@@ -753,10 +803,10 @@ export function DocumentsPage({
                 <button
                   type="button"
                   className="button secondary"
-                  disabled={busy}
+                  disabled={busy || activationBusy}
                   onClick={() => void remove()}
                 >
-                  Delete document
+                  Archive document
                 </button>
               )}
               {dirty && <span>Unsaved changes</span>}
