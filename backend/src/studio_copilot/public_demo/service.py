@@ -30,6 +30,10 @@ class PublicDemo:
                 draft_attempts INTEGER NOT NULL DEFAULT 0, busy_until REAL NOT NULL DEFAULT 0,
                 lease TEXT
             )""")
+            columns = {row["name"] for row in db.execute("PRAGMA table_info(runs)")}
+            for column in ("student", "email_body"):
+                if column not in columns:
+                    db.execute(f"ALTER TABLE runs ADD COLUMN {column} TEXT")
         Path(path).chmod(0o600)
 
     @contextmanager
@@ -46,7 +50,21 @@ class PublicDemo:
         finally:
             db.close()
 
-    def create(self, scenario, request_id):
+    def create(self, scenario, request_id, *, student=None, email_body=None):
+        if scenario == "custom":
+            if (
+                student not in {"alex", "jules"}
+                or not isinstance(email_body, str)
+                or not email_body.strip()
+                or len(email_body) > 2000
+            ):
+                raise HTTPException(
+                    422, "Select a fictional student and write up to 2,000 characters."
+                )
+        elif (
+            scenario not in {"booking", "document"} or student is not None or email_body is not None
+        ):
+            raise HTTPException(422, "Unsupported demo input.")
         now = self.clock()
         day = datetime.fromtimestamp(now, ZoneInfo("Australia/Melbourne")).date().isoformat()
         with self.db() as db:
@@ -55,6 +73,8 @@ class PublicDemo:
                 "SELECT * FROM runs WHERE request_id = ?", (request_id,)
             ).fetchone()
             if existing:
+                if existing["student"] != student or existing["email_body"] != email_body:
+                    raise HTTPException(409, "This request already belongs to a different email.")
                 if (
                     existing["scenario"] != scenario
                     or now - existing["created"] > 3600
@@ -64,12 +84,13 @@ class PublicDemo:
                 return {"token": existing["token"], "scenario": scenario}
             if db.execute("SELECT count(*) FROM runs WHERE day = ?", (day,)).fetchone()[0] >= 10:
                 raise HTTPException(
-                    429, "Today's 10 live demo runs are used. Try the recorded example."
+                    429, "Today's 10 live demo runs are used. Please return tomorrow."
                 )
             token = secrets.token_urlsafe(32)
             db.execute(
-                "INSERT INTO runs (request_id, token, scenario, day, created) VALUES (?,?,?,?,?)",
-                (request_id, token, scenario, day, now),
+                "INSERT INTO runs (request_id, token, scenario, day, created, student, email_body) "
+                "VALUES (?,?,?,?,?,?,?)",
+                (request_id, token, scenario, day, now, student, email_body),
             )
         return {"token": token, "scenario": scenario}
 
@@ -94,7 +115,7 @@ class PublicDemo:
                 raise HTTPException(409, "Find supporting evidence before generating a draft.")
             if row[f"{stage}_attempts"] >= 2:
                 raise HTTPException(
-                    429, "This step's two attempts are used. Try the recorded example."
+                    429, "This step's two attempts are used. Please try another example later."
                 )
             db.execute(
                 f"UPDATE runs SET {stage}_attempts = {stage}_attempts + 1, "
@@ -106,7 +127,15 @@ class PublicDemo:
         model = None
         try:
             model = self.factory()
-            result = model.call(scenario, stage, evidence)
+            if scenario == "custom":
+                result = model.call(
+                    scenario,
+                    stage,
+                    evidence,
+                    context={"student": row["student"], "email_body": row["email_body"]},
+                )
+            else:
+                result = model.call(scenario, stage, evidence)
             with self.db() as db:
                 saved = db.execute(
                     f"UPDATE runs SET {stage} = ?, busy_until = 0, lease = NULL "

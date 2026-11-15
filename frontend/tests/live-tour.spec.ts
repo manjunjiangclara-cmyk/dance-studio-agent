@@ -138,7 +138,7 @@ async function enterReview(page: Page) {
   ).toBeVisible();
 }
 
-test("switching to the recorded demo uses no public or owner API calls", async ({
+test("direct recorded demo remains available without a visible mode switch or API calls", async ({
   page,
 }) => {
   const api = await mockLive(page, () => ({
@@ -152,7 +152,10 @@ test("switching to the recorded demo uses no public or owner API calls", async (
   await expect(page.getByRole("alert")).toContainText(
     "Daily demo limit reached",
   );
-  await page.getByRole("link", { name: /recorded demo/i }).click();
+  await expect(
+    page.getByRole("link", { name: /Use (recorded demo|live AI)/ }),
+  ).toHaveCount(0);
+  await page.goto("/demo/tour?mode=recorded");
   await expect(page).not.toHaveURL(/mode=live/);
   await expect(
     page.getByRole("heading", { name: "Email", exact: true }),
@@ -406,7 +409,7 @@ test("scenario changes ignore late evidence and preserve live mode with a new re
       .click();
     await expect.poll(() => api.count("evidence")).toBe(1);
     await page
-      .getByRole("link", { name: "Document enquiry", exact: true })
+      .getByRole("tab", { name: "Document enquiry", exact: true })
       .click();
     await expect(page).toHaveURL(/mode=live/);
     await expect(page).toHaveURL(/scenario=document/);

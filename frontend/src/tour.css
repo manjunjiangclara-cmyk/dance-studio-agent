@@ -1,7 +1,6 @@
 .guided-tour {
   max-width: 1100px;
 }
-.tour-scenarios,
 .tour-controls {
   display: flex;
   flex-wrap: wrap;
@@ -279,4 +278,25 @@
   .tour-completion-actions .button.primary {
     margin-left: 0;
   }
+}
+.tour-tabs {
+  display: flex;
+  gap: 24px;
+  border-bottom: 1px solid #c4d3dc;
+  margin: 24px 0;
+}
+.tour-tabs [role="tab"] {
+  border: 0;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  padding: 12px 0;
+  font: inherit;
+  color: #526271;
+  cursor: pointer;
+}
+.tour-tabs [aria-selected="true"] {
+  border-bottom-color: #125674;
+  color: #125674;
+  font-weight: 700;
 }

@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.routing import APIRoute
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from studio_copilot.public_demo.service import PublicDemo
 
@@ -19,7 +19,7 @@ class LimitedRoute(APIRoute):
             chunks, size = [], 0
             async for chunk in request.stream():
                 size += len(chunk)
-                if size > 1024:
+                if size > 12000:
                     raise HTTPException(413, "Demo request too large.")
                 chunks.append(chunk)
             request._body = b"".join(chunks)
@@ -33,8 +33,19 @@ router = APIRouter(prefix="/api/public-demo", tags=["Public demo"], route_class=
 
 class CreateRun(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    scenario: Literal["booking", "document"]
+    scenario: Literal["booking", "document", "custom"]
     request_id: UUID
+    student: Literal["alex", "jules"] | None = None
+    email_body: str | None = Field(default=None, max_length=2000)
+
+    @model_validator(mode="after")
+    def validate_custom_email(self):
+        if self.scenario == "custom":
+            if self.student is None or not self.email_body or not self.email_body.strip():
+                raise ValueError("Select a fictional student and write an email.")
+        elif self.student is not None or self.email_body is not None:
+            raise ValueError("Guided scenarios use fixed inputs.")
+        return self
 
 
 class Empty(BaseModel):
@@ -43,11 +54,11 @@ class Empty(BaseModel):
 
 def service(request: Request):
     if os.environ.get("STUDIO_PUBLIC_LIVE_DEMO") != "true":
-        raise HTTPException(503, "Live demo is unavailable. Try the recorded example.")
+        raise HTTPException(503, "Live demo is unavailable. Please try again later.")
     if request.headers.get("origin") != request.app.state.owner_settings.base_url:
         raise HTTPException(403, "Open the live demo from its configured website.")
     if not os.environ.get("OPENAI_MODEL") or not os.environ.get("OPENAI_API_KEY"):
-        raise HTTPException(503, "Live demo is not configured. Try the recorded example.")
+        raise HTTPException(503, "Live demo is not configured. Please try again later.")
     path = os.environ.get("STUDIO_PUBLIC_DEMO_DB")
     if not path:
         raise HTTPException(503, "Live demo allowance storage is not configured.")
@@ -64,7 +75,9 @@ def token(request):
 
 @router.post("/runs")
 def create(request: Request, body: CreateRun):
-    return service(request).create(body.scenario, str(body.request_id))
+    return service(request).create(
+        body.scenario, str(body.request_id), student=body.student, email_body=body.email_body
+    )
 
 
 @router.post("/evidence")

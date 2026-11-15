@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { request } from "./data";
+import { ApiError, request } from "./data";
 import type { TourScenario } from "./tourData";
 
 export function useLiveDemo(scenario: TourScenario) {
@@ -63,9 +63,11 @@ export function useLiveDemo(scenario: TourScenario) {
     } catch (caught) {
       if (mounted.current)
         setError(
-          caught instanceof Error
-            ? caught.message
-            : "The live step could not complete.",
+          caught instanceof ApiError && caught.status === 0
+            ? "Connection interrupted. Retry to recover this live step."
+            : caught instanceof Error
+              ? caught.message
+              : "The live step could not complete.",
         );
     } finally {
       pending.current = false;

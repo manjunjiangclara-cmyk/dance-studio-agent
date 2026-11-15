@@ -32,10 +32,10 @@ test.afterEach(async ({ page }) => {
   expect(dialogs.get(page)).toEqual([]);
 });
 
-async function expectStep(page: Page, name: string) {
+async function expectStep(page: Page, name: string, focused = true) {
   const heading = page.getByRole("heading", { name, exact: true, level: 2 });
   await expect(heading).toBeVisible();
-  await expect(heading).toBeFocused();
+  if (focused) await expect(heading).toBeFocused();
   await expect(heading).toHaveCSS("outline-style", "none");
 }
 
@@ -45,7 +45,7 @@ async function next(page: Page, name: string) {
 }
 
 async function review(page: Page, scenario = "booking") {
-  await page.goto(`/demo/tour?scenario=${scenario}`);
+  await page.goto(`/demo/tour?mode=recorded&scenario=${scenario}`);
   await expectStep(page, "Email");
   await next(page, "Evidence");
   await next(page, "Teacher review");
@@ -59,9 +59,11 @@ test("homepage starts a clearly labelled guided demo with editable simulated boo
     .getByRole("link", { name: "Try the guided demo", exact: true })
     .click();
   await expect(page).toHaveURL(/\/demo\/tour(?:\?.*)?$/);
-  await page
-    .getByRole("link", { name: "Use recorded demo", exact: true })
-    .click();
+  await expect(page).toHaveURL(/mode=live/);
+  await expect(
+    page.getByRole("link", { name: /Use (recorded demo|live AI)/ }),
+  ).toHaveCount(0);
+  await page.goto("/demo/tour?mode=recorded");
   await expectStep(page, "Email");
   await expect(page.getByText(/no live model calls/i)).toBeVisible();
   await expect(page.getByText(/Actually, Saturday/)).toBeVisible();
@@ -217,7 +219,7 @@ test("tour has no reset button in email, evidence, review or confirmation", asyn
   const resetButtons = page.getByRole("button", {
     name: /Reset|Restart demo|Start over/,
   });
-  await page.goto("/demo/tour");
+  await page.goto("/demo/tour?mode=recorded");
   await expectStep(page, "Email");
   await expect(resetButtons).toHaveCount(0);
   await next(page, "Evidence");
@@ -231,10 +233,55 @@ test("tour has no reset button in email, evidence, review or confirmation", asyn
   await expect(resetButtons).toHaveCount(0);
 });
 
+test("scenario tabs expose selection and support roving keyboard focus", async ({
+  page,
+}) => {
+  await page.goto("/demo/tour?mode=recorded");
+  const tabs = page.getByRole("tablist", {
+    name: "Demo scenarios",
+    exact: true,
+  });
+  const booking = tabs.getByRole("tab", {
+    name: "Makeup booking",
+    exact: true,
+  });
+  const document = tabs.getByRole("tab", {
+    name: "Document enquiry",
+    exact: true,
+  });
+  await expect(booking).toHaveAttribute("aria-selected", "true");
+  await expect(booking).toHaveAttribute("tabindex", "0");
+  await expect(document).toHaveAttribute("aria-selected", "false");
+  await expect(document).toHaveAttribute("tabindex", "-1");
+  const panel = page.getByRole("tabpanel");
+  await expect(panel).toHaveCount(1);
+  await expect(panel).toHaveAttribute(
+    "aria-labelledby",
+    (await booking.getAttribute("id")) ?? "missing-tab-id",
+  );
+  await booking.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(document).toBeFocused();
+  await expect(document).toHaveAttribute("aria-selected", "true");
+  await expect(panel).toHaveAttribute(
+    "aria-labelledby",
+    (await document.getAttribute("id")) ?? "missing-tab-id",
+  );
+  await page.keyboard.press("Home");
+  await expect(booking).toBeFocused();
+  await expect(booking).toHaveAttribute("aria-selected", "true");
+  await page.keyboard.press("End");
+  await expect(document).toBeFocused();
+  await expect(document).toHaveAttribute("aria-selected", "true");
+  await page.keyboard.press("ArrowLeft");
+  await expect(booking).toBeFocused();
+  await expect(booking).toHaveAttribute("aria-selected", "true");
+});
+
 test("document evidence opens its exact saved source and requires a teacher decision", async ({
   page,
 }, testInfo) => {
-  await page.goto("/demo/tour?scenario=document");
+  await page.goto("/demo/tour?mode=recorded&scenario=document");
   await next(page, "Evidence");
   await page
     .getByRole("button", {
@@ -371,8 +418,8 @@ test("blank response blocks approval and an invalid scenario uses the booking de
 }) => {
   await review(page, "unknown");
   await expect(
-    page.getByRole("link", { name: "Makeup booking", exact: true }),
-  ).toHaveAttribute("aria-current", "page");
+    page.getByRole("tab", { name: "Makeup booking", exact: true }),
+  ).toHaveAttribute("aria-selected", "true");
   await page.getByLabel("Final response", { exact: true }).fill("   ");
   await expect(
     page.getByRole("button", {
@@ -402,17 +449,17 @@ test("reload, leaving and scenario changes discard local review state", async ({
     page.getByLabel("Final response", { exact: true }),
   ).not.toHaveValue(editedReply);
   await page
-    .getByRole("link", { name: "Document enquiry", exact: true })
+    .getByRole("tab", { name: "Document enquiry", exact: true })
     .click();
-  await expectStep(page, "Email");
+  await expectStep(page, "Email", false);
   await expect(page).toHaveURL(/scenario=document/);
   await next(page, "Evidence");
   await next(page, "Teacher review");
   await expect(
     page.getByRole("button", { name: "Simulate approval", exact: true }),
   ).toBeDisabled();
-  await page.getByRole("link", { name: "Makeup booking", exact: true }).click();
-  await expectStep(page, "Email");
+  await page.getByRole("tab", { name: "Makeup booking", exact: true }).click();
+  await expectStep(page, "Email", false);
   await next(page, "Evidence");
   await next(page, "Teacher review");
   await expect(
@@ -459,7 +506,7 @@ test("simulation leaves the existing public student and review fixtures unchange
 test("tour navigation works by keyboard without horizontal overflow", async ({
   page,
 }) => {
-  await page.goto("/demo/tour?scenario=document");
+  await page.goto("/demo/tour?mode=recorded&scenario=document");
   await expectStep(page, "Email");
   const nextButton = page.getByRole("button", { name: "Next", exact: true });
   await page.keyboard.press("Tab");

@@ -45,6 +45,8 @@ import {
 } from "lucide-react";
 import { all, ApiError, examples, get, post, request } from "./data";
 import { confirmedSessions } from "./attendance";
+import { CustomEmail } from "./CustomEmail";
+import { BookingProposal } from "./BookingProposal";
 import { GuidedTour } from "./GuidedTour";
 import { PolicyPage } from "./PolicyPage";
 import { DocumentsPage } from "./DocumentsPage";
@@ -526,7 +528,8 @@ export default function App() {
               {workspace
                 ? "Owner review workspace"
                 : page === "tour" &&
-                    new URLSearchParams(location.search).get("mode") === "live"
+                    new URLSearchParams(location.search).get("mode") !==
+                      "recorded"
                   ? "Fictional data · Live AI · Simulated booking"
                   : "Fictional data · Predefined examples"}
               <span className="footer-dot">·</span>Australia / Melbourne
@@ -1426,37 +1429,18 @@ function ReviewDetail({ id }: { id: string }) {
             </div>
           )}
           {(proposal || booked) && (
-            <div className={`notice ${booked ? "success" : ""}`}>
-              <strong>
-                {booked ? "Booking confirmed" : "Proposed class booking"}
-              </strong>
-              <p>
-                {bookingClass?.name || "Session unavailable"}
-                <br />
-                {bookingSession &&
-                  timeLabel(
-                    bookingSession.starts_at,
-                    bookingLocation?.timezone,
-                  )}
-                <br />
-                {bookingLocation?.name}
-              </p>
-              {bookingSession && (
-                <Link
-                  className="inline-link"
-                  to={`${base}/timetable?session=${bookingSession.id}`}
-                >
-                  View session students <ArrowUpRight size={14} />
-                </Link>
-              )}
-              {!booked && (
-                <p>
-                  No place is reserved yet. Approval books this exact session
-                  after a fresh capacity check. Ask for a revision to change the
-                  session.
-                </p>
-              )}
-            </div>
+            <BookingProposal
+              booked={Boolean(booked)}
+              className={bookingClass?.name || "Session unavailable"}
+              startsAt={bookingSession?.starts_at}
+              timezone={bookingLocation?.timezone}
+              location={bookingLocation?.name}
+              sessionUrl={
+                bookingSession
+                  ? `${base}/timetable?session=${bookingSession.id}`
+                  : undefined
+              }
+            />
           )}
           {!!run.draft_details.answers?.length && (
             <EnquiryPanel
@@ -2666,9 +2650,6 @@ function TestEmail() {
     [body, setBody] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<Error>();
-  const sample = examples.agent_runs.find(
-    (run) => run.status === "awaiting_review" && run.revision === 2,
-  )!;
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (busy) return;
@@ -2687,6 +2668,7 @@ function TestEmail() {
       setBusy(false);
     }
   }
+  if (!workspace) return <CustomEmail />;
   return (
     <>
       <PageHeader
@@ -2769,32 +2751,7 @@ function TestEmail() {
                 )}
               </button>
             </form>
-          ) : (
-            <>
-              <div className="example-email">
-                <span className="muted">From</span>
-                <strong>alex@example.test</strong>
-                <hr />
-                <p>
-                  I cannot attend Monday 8 February. Could I come Thursday
-                  instead?
-                </p>
-                <div className="follow-up">
-                  <span className="eyebrow">THEN, A FOLLOW-UP</span>
-                  <p>Actually, Saturday 13 February would be better.</p>
-                </div>
-              </div>
-              <Link
-                className="button primary"
-                to={`${base}/reviews/${sample.id}`}
-              >
-                Open the resulting example <ArrowRight size={17} />
-              </Link>
-              <p className="muted footnote">
-                Public examples do not call a model or save submissions.
-              </p>
-            </>
-          )}
+          ) : null}
         </section>
         <aside className="panel email-explainer">
           <div className="eyebrow">WHAT HAPPENS NEXT</div>

@@ -135,7 +135,7 @@ Apply migration `b7e2190c4a63` before starting this version. It copies existing 
 
 ## Public guided simulation
 
-The homepage primary action opens `/demo/tour?mode=live`; the recorded tour remains at `/demo/tour`. The following describes recorded mode; see [live mode](22-public-live-demo.md) for click-triggered generation and quota behavior. Select `?scenario=booking` (the default, including unknown values) or `?scenario=document` to share a scenario. Both follow Email → Evidence → Teacher review → Confirmation. All content is fictional and curated; the tour makes no API/auth or model requests and sends no email. The existing record browser remains read-only.
+The homepage primary action opens `/demo/tour?mode=live`; the tour defaults to live mode and has no visible mode toggle. The recorded test route is `/demo/tour?mode=recorded`. The following describes recorded mode; see [live mode](22-public-live-demo.md) for click-triggered generation and quota behavior. Select `?scenario=booking` (the default, including unknown values) or `?scenario=document` to share a scenario. Both follow Email → Evidence → Teacher review → Confirmation. All content is fictional and curated; the tour makes no API/auth or model requests and sends no email. The existing record browser remains read-only.
 
 The booking example reuses Alex's Thursday-to-Saturday correction, displays prerecorded eligibility checks, and lets a visitor edit and simulate approval. The document example uses a saved clothing-policy revision with an exact highlighted citation. Its missing trial fee requires a teacher answer or deferral and an explicit Update draft before simulated approval. Updating uses a deterministic template and replaces direct response edits; arbitrary final edits are retained verbatim without AI validation. Blank responses cannot be approved.
 
@@ -146,3 +146,12 @@ State is held in a tour-scoped React provider. Back/Next retains edits and decis
 The final step is **Confirmation**. Booking approval shows **Class booked**, a Simulation badge, the class details and a before/after session roster. Remaining places derive from fixture capacity and membership; Alex is added once. The collapsed **View saved record** disclosure represents `class_sessions.students` as student UUIDs, matching the real model rather than inventing booking rows. The real workflow commits this roster update and the reviewed response together in PostgreSQL; the tour does not write to PostgreSQL. A separate collapsed **Approved response** shows the exact approved snapshot, and **Email not sent** remains a distinct delivery status. Information enquiries show **Response approved** without a booking or roster section. **Back to review** preserves edits; reapproval replaces the confirmation snapshot. Leaving, switching scenarios or reloading clears it.
 
 Teacher-facing approval and simulation notices stay outside the student email. The public and owner adapters share the same first-person teacher-voice instruction; scenario inputs and orchestration remain separate. Step headings and source previews still receive programmatic focus for accessibility, without a visible outline; interactive controls retain their keyboard focus indicators.
+
+
+## Custom email and review presentation
+
+The public Email walkthrough at `/demo/test-email` now lets visitors select a fictional student and freely write an email up to 2,000 characters, then run the isolated AI simulation. It displays the inferred workflow, editable draft, source evidence and missing facts inline. It does not create an owner conversation or write bookings. Workspace Test email retains its existing authenticated intake behavior.
+
+Makeup booking and Document enquiry use an accessible tablist, selected tab and associated panel, with roving keyboard focus. Live mode is the default; the visible Use live AI/Use recorded demo controls have been removed.
+
+Current response presents booking proposals in a dedicated card: state badge, class heading, labeled date/time/location, then a separate approval/capacity note and session-student link. Confirmed bookings use the same hierarchy with a confirmed state and no pending-reservation note. Only presentation changes; approval semantics and permissions remain unchanged.

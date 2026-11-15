@@ -6,7 +6,13 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import {
+  Link,
+  useSearchParams,
+  useLocation,
+  useNavigate,
+  useNavigationType,
+} from "react-router-dom";
 import {
   createConfirmation,
   type TourConfirmation,
@@ -96,7 +102,7 @@ export function GuidedTour() {
   const [params] = useSearchParams();
   const scenario =
     params.get("scenario") === "document" ? "document" : "booking";
-  const liveMode = params.get("mode") === "live";
+  const liveMode = params.get("mode") !== "recorded";
   return (
     <TourProvider
       key={`${scenario}-${liveMode}`}
@@ -111,11 +117,29 @@ function TourContent({ scenario }: { scenario: TourScenario }) {
   const state = useContext(TourContext)!;
   const fixture = tourFixtures[scenario];
   const { live, liveMode } = state;
-  const modeSuffix = liveMode ? "&mode=live" : "";
+  const modeSuffix = liveMode ? "&mode=live" : "&mode=recorded";
+  const navigate = useNavigate();
+  const location = useLocation();
+  const navigationType = useNavigationType();
+  const selectedTab = useRef<HTMLButtonElement>(null);
+  function selectScenario(next: TourScenario) {
+    navigate(`/demo/tour?scenario=${next}${modeSuffix}`, {
+      state: { focusScenarioTab: true },
+    });
+  }
   const heading = useRef<HTMLHeadingElement>(null);
   const source = useRef<HTMLElement>(null);
+  const previousStep = useRef(state.step);
   useEffect(() => {
-    heading.current?.focus();
+    if (
+      state.step === 0 &&
+      previousStep.current === 0 &&
+      navigationType === "PUSH" &&
+      location.state?.focusScenarioTab
+    )
+      selectedTab.current?.focus();
+    else heading.current?.focus();
+    previousStep.current = state.step;
   }, [state.step]);
   useEffect(() => {
     if (state.sourceOpen) source.current?.focus();
@@ -141,38 +165,38 @@ function TourContent({ scenario }: { scenario: TourScenario }) {
           ? "Live AI · Fixed fictional inputs · 10 shared demo runs per day. Find evidence and generate a draft with the buttons below. Booking remains simulated; no email is sent or studio records changed."
           : "Curated simulation · Fictional data · No live model calls. All changes stay in this tour and disappear when you leave or reload. No email is sent."}
       </p>
-      <nav className="tour-scenarios" aria-label="Generation mode">
-        <Link
-          className="inline-link"
-          aria-current={liveMode ? "page" : undefined}
-          to={`/demo/tour?scenario=${scenario}&mode=live`}
-        >
-          Use live AI
-        </Link>
-        <Link
-          className="inline-link"
-          aria-current={!liveMode ? "page" : undefined}
-          to={`/demo/tour?scenario=${scenario}`}
-        >
-          Use recorded demo
-        </Link>
-      </nav>
-      <nav className="tour-scenarios" aria-label="Demo scenarios">
-        <Link
-          className={`button ${scenario === "booking" ? "primary" : "secondary"}`}
-          to={`/demo/tour?scenario=booking${modeSuffix}`}
-          aria-current={scenario === "booking" ? "page" : undefined}
-        >
-          Makeup booking
-        </Link>
-        <Link
-          className={`button ${scenario === "document" ? "primary" : "secondary"}`}
-          to={`/demo/tour?scenario=document${modeSuffix}`}
-          aria-current={scenario === "document" ? "page" : undefined}
-        >
-          Document enquiry
-        </Link>
-      </nav>
+      <div className="tour-tabs" role="tablist" aria-label="Demo scenarios">
+        {(["booking", "document"] as const).map((value) => (
+          <button
+            key={value}
+            id={`tour-tab-${value}`}
+            role="tab"
+            ref={value === scenario ? selectedTab : undefined}
+            aria-selected={value === scenario}
+            aria-controls="tour-scenario-panel"
+            tabIndex={value === scenario ? 0 : -1}
+            onClick={() => selectScenario(value)}
+            onKeyDown={(event) => {
+              if (
+                ["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)
+              ) {
+                event.preventDefault();
+                selectScenario(
+                  event.key === "Home"
+                    ? "booking"
+                    : event.key === "End"
+                      ? "document"
+                      : scenario === "booking"
+                        ? "document"
+                        : "booking",
+                );
+              }
+            }}
+          >
+            {value === "booking" ? "Makeup booking" : "Document enquiry"}
+          </button>
+        ))}
+      </div>
       <ol className="tour-progress" aria-label="Tour progress">
         {tourSteps.map((label, index) => (
           <li
@@ -184,7 +208,12 @@ function TourContent({ scenario }: { scenario: TourScenario }) {
           </li>
         ))}
       </ol>
-      <section className="panel tour-stage" aria-labelledby="tour-step-title">
+      <section
+        className="panel tour-stage"
+        id="tour-scenario-panel"
+        role="tabpanel"
+        aria-labelledby={`tour-tab-${scenario}`}
+      >
         <div className="eyebrow">
           STEP {state.step + 1} OF 4 · {fixture.student}
         </div>
