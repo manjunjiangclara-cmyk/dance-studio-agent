@@ -234,7 +234,7 @@ def identity(run, revision):
     )
 
 
-def build_artifact(engine, config, question, case_id, as_of, packed, tokenizer):
+def build_artifact(engine, config, question, case_id, as_of, packed, tokenizer, request_context=""):
     sources, by_run, identities = [], {}, []
     selected = {UUID(item["run_id"]) for item in packed}
     with Session(engine) as db:
@@ -270,17 +270,18 @@ def build_artifact(engine, config, question, case_id, as_of, packed, tokenizer):
         if block["text"] != item["text"]:
             raise OnlineError("invalid_evidence")
         blocks.append(block)
-    artifact = seal_artifact(
-        dict(
-            version=VERSION,
-            case_id=case_id,
-            question=question,
-            as_of=as_of.isoformat(),
-            variant="actual",
-            sources=sources,
-            blocks=blocks,
-        )
+    payload = dict(
+        version=VERSION,
+        case_id=case_id,
+        question=question,
+        as_of=as_of.isoformat(),
+        variant="actual",
+        sources=sources,
+        blocks=blocks,
     )
+    if request_context and request_context.strip() != question.strip():
+        payload["request_context"] = request_context[:2000]
+    artifact = seal_artifact(payload)
     return validate_artifact(artifact, tokenizer), identities
 
 
@@ -322,14 +323,14 @@ def question_answer(
         raise OnlineError("retrieval_failed")
     candidates = snapshot["candidates"]
     # CPU inference is bounded and serialized within this process, not in a DB transaction.
-    ranked = rank(reranker, question, candidates)
+    ranked = rank(reranker, query, candidates)
     if len(ranked) != len(candidates) or {r["text_sha256"] for r in ranked} != {
         c["text_sha256"] for c in candidates
     }:
         raise OnlineError("reranking_failed")
     packed, _, warnings = pack_from_records(ranked[:6], snapshot["parents"], tokenizer)
     artifact, identities = build_artifact(
-        engine, config, question, case_id, as_of, packed, tokenizer
+        engine, config, question, case_id, as_of, packed, tokenizer, request_context
     )
     result = answer(artifact, tokenizer, allow_api=True, provider=provider)
     if result["execution_status"] != "completed":

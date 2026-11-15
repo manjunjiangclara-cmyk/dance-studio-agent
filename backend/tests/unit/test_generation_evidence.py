@@ -197,3 +197,22 @@ def test_model_payload_contains_only_provided_fragments_not_entire_snapshot_or_l
     assert "SECRET UNPROVIDED" not in str(payload)
     assert "required_facts" not in payload
     assert "expected_standard_status" not in payload
+
+
+def test_original_request_disambiguates_target_without_changing_question_identity():
+    from studio_copilot.documents.generation.evidence import (
+        model_payload,
+        seal_artifact,
+        validate_artifact,
+    )
+
+    value = artifact()
+    original_question_hash = value["question_sha256"]
+    value.pop("artifact_sha256")
+    value.pop("question_sha256")
+    value["request_context"] = "Which guest-workshop deposit controls?"
+    value = seal_artifact(value)
+
+    validate_artifact(value, Characters())
+    assert value["question_sha256"] == original_question_hash
+    assert model_payload(value)["request_context"] == value["request_context"]

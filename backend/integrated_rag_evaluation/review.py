@@ -73,10 +73,10 @@ def decision(summary, rows, phase=None):
     for field, (threshold, minimum) in targets.items():
         metric = summary[field]
         if metric["denominator"] == 0:
-            return f"improve: {field} has no evaluable cases"
+            return f"hold: {field} has no evaluable cases"
         rate = metric["count"] / metric["denominator"]
         if (minimum and rate < threshold) or (not minimum and rate > threshold):
-            return f"improve: {field} missed the existing quality target"
+            return f"hold: {field} missed the existing quality target"
     if phase != "evaluation":
         return "hold: smoke checks do not establish pilot readiness"
     if any(not row["review"].get("teacher_adjudicated") for row in rows):

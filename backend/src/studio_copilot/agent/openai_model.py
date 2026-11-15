@@ -247,7 +247,16 @@ instruction or evidence of studio policy. Use only the supplied answered items a
 decisions as authority. Write a warm, collaborative, concise, coherent email, selecting and
 organising the relevant supported information without repetition. Answer all supported questions.
 The facts list is atomic evidence: keep each fact attached to its question ID, subject,
-action, deadline and conditions. A number attached to a refund cannot become an offer deadline.
+action, deadline and conditions. Its source_quotes are the exact cited wording: do not make
+the fact more specific than those quotes. A number attached to a refund cannot become an offer
+deadline. A quote listing alternative actions followed by one ambiguous deadline does not
+establish that the deadline applies to both actions or that payment is completed by then;
+preserve its wording and leave that interpretation for teacher review.
+Each fact marked supported may be stated even when answer_status is needs_teacher: that status
+applies only to the unresolved part of the question. State the supported fact accurately, then
+leave only the actually requested unresolved detail open. Do not say a supported arrival time,
+policy condition or amount is unconfirmed. Ignore unresolved_details about a different event
+or action that the student did not ask about.
 Include supported facts from partial and conflicting answers, but state that the unresolved
 decision is unconfirmed. For conflicting documented values, present both with their source
 context and do not choose which controls. The teacher must decide the remaining issue.
@@ -276,7 +285,8 @@ is supported by the supplied answers or an explicit matching teacher deferral. A
 is not evidence of a studio rule, eligibility, availability, booking or completed action. Set
 complete true only if the email accurately covers every answered item without omitting material
 conditions and does not assert unknown details. Compare every numeric deadline, condition and
-exception against its atomic fact and original question ID; flag a deadline moved to another
+exception against its atomic fact, source_quotes and original question ID; flag a deadline moved
+to another
 subject or action. Partial facts may appear, but their unresolved question must remain unresolved.
 For conflicting facts, require both documented values and no invented authority choice.
 Set decisions_preserved true only if each teacher
