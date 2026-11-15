@@ -472,3 +472,72 @@ test("reset ignores a late draft and starts a fresh empty live run", async ({
     pending.release();
   }
 });
+
+for (const scenario of ["booking", "document"] as const) {
+  test(`completion link preserves live mode after ${scenario}`, async ({
+    page,
+  }) => {
+    const api = await mockLive(page);
+    await enterEvidence(page, scenario);
+    await findEvidence(page);
+    await enterReview(page);
+    await page
+      .getByRole("button", { name: "Generate draft", exact: true })
+      .click();
+    await expect(
+      page.getByLabel("Final response", { exact: true }),
+    ).toHaveValue(
+      scenario === "booking" ? generatedBooking : generatedDocument,
+    );
+    if (scenario === "document") {
+      await page
+        .getByRole("radio", { name: "Confirm later", exact: true })
+        .check();
+      await page
+        .getByRole("button", { name: "Update draft", exact: true })
+        .click();
+    }
+    await page
+      .getByRole("button", {
+        name:
+          scenario === "booking"
+            ? "Simulate approval and booking"
+            : "Simulate approval",
+        exact: true,
+      })
+      .click();
+    await page
+      .getByRole("link", {
+        name:
+          scenario === "booking"
+            ? "Try document enquiry"
+            : "Try makeup booking",
+        exact: true,
+      })
+      .click();
+    const destination = new URL(page.url());
+    expect(destination.searchParams.get("mode")).toBe("live");
+    expect(destination.searchParams.get("scenario")).toBe(
+      scenario === "booking" ? "document" : "booking",
+    );
+    await expect(
+      page.getByRole("heading", { name: "Email", exact: true }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Next", exact: true }).click();
+    await expect(
+      page.getByRole("button", {
+        name: "Find supporting evidence",
+        exact: true,
+      }),
+    ).toBeEnabled();
+    await expect(
+      page.getByRole("button", { name: "Next", exact: true }),
+    ).toBeDisabled();
+    expect(api.calls.map((call) => call.stage)).toEqual([
+      "runs",
+      "evidence",
+      "draft",
+    ]);
+    expect(api.forbidden).toEqual([]);
+  });
+}

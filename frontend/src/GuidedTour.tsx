@@ -474,8 +474,8 @@ function TourContent({
             className="button primary"
             to={
               scenario === "booking"
-                ? "/demo/tour?scenario=document"
-                : "/demo/tour?scenario=booking"
+                ? `/demo/tour?scenario=document${modeSuffix}`
+                : `/demo/tour?scenario=booking${modeSuffix}`
             }
           >
             {scenario === "booking"
