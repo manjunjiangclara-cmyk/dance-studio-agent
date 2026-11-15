@@ -99,7 +99,9 @@ def invoke(client, function, payload):
     response = client.invoke(FunctionName=function, Payload=json.dumps(payload).encode())
     result = json.load(response["Payload"])
     if response.get("FunctionError"):
-        raise RuntimeError("Validation Lambda failed: " + result.get("errorType", "unknown"))
+        error = RuntimeError("Validation Lambda failed: " + result.get("errorType", "unknown"))
+        error.validation_detail = result.get("errorMessage", "")[:1000]
+        raise error
     return result
 
 

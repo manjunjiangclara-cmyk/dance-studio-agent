@@ -120,3 +120,26 @@ def test_failed_status_read_does_not_prevent_stack_delete_attempt(monkeypatch):
     monkeypatch.setattr(runner, "wait_stack", lambda *args, **kwargs: None)
     assert cleanup(cf, object(), "owned-stack", {}, None)["status"] == "passed"
     assert cf.deleted
+
+
+def test_lambda_failure_preserves_fixture_diagnostic():
+    import io
+
+    import pytest
+
+    from experiments.data_api.__main__ import invoke
+
+    class Lambda:
+        def invoke(self, **kwargs):
+            return {
+                "FunctionError": "Unhandled",
+                "Payload": io.BytesIO(
+                    json.dumps(
+                        {"errorType": "SyntheticFailure", "errorMessage": "fixture diagnostic"}
+                    ).encode()
+                ),
+            }
+
+    with pytest.raises(RuntimeError, match="SyntheticFailure") as caught:
+        invoke(Lambda(), "fixture", {})
+    assert caught.value.validation_detail == "fixture diagnostic"

@@ -7,7 +7,6 @@ terraform {
   }
 }
 
-variable "enable_data_api" { default = false }
 variable "deployer_role_arn" { type = string }
 variable "name" { type = string }
 variable "lambda_zip" { type = string }
@@ -24,7 +23,6 @@ resource "awscc_rds_db_cluster" "test" {
   db_cluster_identifier               = var.name
   engine                              = "aurora-postgresql"
   with_express_configuration          = true
-  enable_http_endpoint                = var.enable_data_api ? true : null
   deletion_protection                 = false
   serverless_v2_scaling_configuration = { min_capacity = 0, max_capacity = 2, seconds_until_auto_pause = 300 }
   tags                                = [{ key = "Project", value = "dance-studio-agent" }, { key = "Purpose", value = "data-api-validation" }]

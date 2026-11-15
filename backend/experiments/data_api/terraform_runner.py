@@ -34,6 +34,7 @@ def live(directory, region, engine_version, zip_path=None):
     variables = {}
     attempted = False
     auth_attempted = False
+    phase = "provision"
 
     def terraform(*arguments):
         with (directory / "terraform.log").open("a") as log:
@@ -108,14 +109,15 @@ def live(directory, region, engine_version, zip_path=None):
         schema = "data_api_" + uuid4().hex
         from .express import database, permissions
 
+        phase = "iam_grant"
         auth_attempted = True
         permissions(outputs["ResourceId"], directory)
+        phase = "database_initialization"
         database(session, outputs, schema)
-        environment["TF_VAR_enable_data_api"] = "true"
-        variables["enable_data_api"] = True
-        (working / "terraform.tfvars.json").write_text(json.dumps(variables, indent=2) + "\n")
-        terraform("plan", "-input=false", "-out=enable-data-api.tfplan")
-        terraform("apply", "-input=false", "enable-data-api.tfplan")
+        # Cloud Control rejects an Express update even when only HTTP enablement changes.
+        # Use the documented RDS operation after password-user initialization instead.
+        phase = "enable_data_api"
+        session.client("rds").enable_http_endpoint(ResourceArn=outputs["ClusterArn"])
         cluster = session.client("rds").describe_db_clusters(
             DBClusterIdentifier=outputs["ClusterId"]
         )["DBClusters"][0]
@@ -125,14 +127,17 @@ def live(directory, region, engine_version, zip_path=None):
             outputs["ClusterArn"],
             outputs["SecretArn"],
         )
+        phase = "data_api_readiness"
         report["data_api_readiness"] = resume_check(sql)
         assert report["data_api_readiness"]["status"] == "passed"
         assert sql.query("SELECT current_user AS identity") == [{"identity": "validator"}]
+        phase = "mechanism_probes"
         result = invoke(
             client, outputs["Api"], {"action": "validate", "schema": schema, "schema_exists": True}
         )
         report.update(result)
         if result["checks"]["retrieval"]["status"] == "passed":
+            phase = "direct_baseline"
             baseline = invoke(
                 client, outputs["Baseline"], {"action": "direct_baseline", "schema": schema}
             )
@@ -146,7 +151,26 @@ def live(directory, region, engine_version, zip_path=None):
             outputs["ClusterArn"],
             outputs["SecretArn"],
         )
+        print(
+            json.dumps(
+                {
+                    "checks": {key: value["status"] for key, value in report["checks"].items()},
+                    "direct_driver_parity": report.get("direct_driver_parity"),
+                }
+            ),
+            flush=True,
+        )
+        if report["status"] != "passed":
+            raise RuntimeError("Mechanism probes or direct-driver parity failed.")
+        # Preserve mechanism evidence before the long metrics-only pause/cleanup waits.
+        (directory / "report.json").write_text(
+            json.dumps(
+                {**report, "status": "in_progress", "phase": "auto_pause"}, indent=2, default=str
+            )
+            + "\n"
+        )
         sql.query(f"DROP SCHEMA {schema} CASCADE")
+        phase = "auto_pause"
         report["auto_pause"] = pause_check(session.client("cloudwatch"), outputs["WriterId"])
         if report["auto_pause"]["status"] == "passed":
             report["cold_resume"] = resume_check(sql)
@@ -157,8 +181,12 @@ def live(directory, region, engine_version, zip_path=None):
     except BaseException as error:
         report["status"] = "failed" if attempted else "not_run"
         report["error_type"] = type(error).__name__
-        report["failure_phase"] = getattr(error, "validation_phase", "provision_or_connect")
+        report["failure_phase"] = getattr(error, "validation_phase", phase)
         report["sqlstate"] = getattr(error, "sqlstate", None)
+        if hasattr(error, "validation_detail"):
+            report["error_reason"] = error.validation_detail
+        if hasattr(error, "response"):
+            report["aws_error_code"] = error.response.get("Error", {}).get("Code")
         # PostgreSQL's privilege diagnostic contains no SQL statement or credentials.
         if report["sqlstate"] == "42501":
             report["error_reason"] = error.diag.message_primary

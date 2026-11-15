@@ -68,7 +68,7 @@ def test_terraform_runner_rejects_unapproved_region(tmp_path):
         live(tmp_path, "us-east-1", "17.9")
 
 
-@pytest.mark.parametrize("failure", ["grant", "database", "enable"])
+@pytest.mark.parametrize("failure", ["grant", "database", "enable", "probe"])
 @pytest.mark.parametrize("cleanup_failure", [None, "destroy", "interrupt", "revoke"])
 def test_partial_auth_always_destroys_and_revokes(tmp_path, monkeypatch, failure, cleanup_failure):
     from experiments.data_api import delete_express, express, terraform_runner
@@ -88,9 +88,20 @@ def test_partial_auth_always_destroys_and_revokes(tmp_path, monkeypatch, failure
                 }
             }
 
+    class RDS:
+        def describe_db_clusters(self, **kwargs):
+            return {
+                "DBClusters": [{"DBClusterMembers": [{"DBInstanceIdentifier": "fixture-writer"}]}]
+            }
+
+        def enable_http_endpoint(self, **kwargs):
+            assert kwargs == {"ResourceArn": "fixture-cluster-arn"}
+            if failure == "enable":
+                raise RuntimeError("synthetic endpoint enablement failure")
+
     class Session:
-        def client(self, *args, **kwargs):
-            return object()
+        def client(self, name, **kwargs):
+            return RDS() if name == "rds" else object()
 
     monkeypatch.setattr(boto3, "client", lambda *args, **kwargs: STS())
     monkeypatch.setattr(boto3, "Session", lambda **kwargs: Session())
@@ -101,9 +112,7 @@ def test_partial_auth_always_destroys_and_revokes(tmp_path, monkeypatch, failure
         def __init__(self, command, **kwargs):
             action = command[2]
             actions.append(action)
-            self.returncode = int(
-                action == "plan" and actions.count("plan") == 2 and failure == "enable"
-            )
+            self.returncode = 0
             if action == "destroy":
                 if cleanup_failure == "interrupt":
                     raise KeyboardInterrupt()
@@ -116,7 +125,9 @@ def test_partial_auth_always_destroys_and_revokes(tmp_path, monkeypatch, failure
     monkeypatch.setattr(
         terraform_runner.subprocess,
         "check_output",
-        lambda *args, **kwargs: b'{"ResourceId":"cluster-fixture"}',
+        lambda *args, **kwargs: (
+            b'{"ResourceId":"cluster-fixture","ClusterArn":"fixture-cluster-arn","ClusterId":"fixture","SecretArn":"fixture","Api":"fixture"}'
+        ),
     )
 
     def permissions(resource, directory):
@@ -130,13 +141,44 @@ def test_partial_auth_always_destroys_and_revokes(tmp_path, monkeypatch, failure
 
     monkeypatch.setattr(express, "permissions", permissions)
     monkeypatch.setattr(express, "database", database)
+    if failure == "probe":
+        from experiments.data_api import __main__ as entrypoint
+        from experiments.data_api import sql
+
+        class DataSQL:
+            def __init__(self, *args):
+                pass
+
+            def query(self, statement):
+                return [{"ready": 1}] if "SELECT 1" in statement else [{"identity": "validator"}]
+
+        monkeypatch.setattr(sql, "DataSQL", DataSQL)
+        monkeypatch.setattr(
+            entrypoint,
+            "invoke",
+            lambda *args: {
+                "status": "failed",
+                "checks": {
+                    key: {"status": "failed", "reason": "synthetic"}
+                    for key in ("checkpoint", "mutex", "retrieval")
+                },
+            },
+        )
+        monkeypatch.setattr(
+            entrypoint,
+            "pause_check",
+            lambda *args: pytest.fail("Failed probes must skip the pause wait"),
+        )
     archive = tmp_path / "fixture.zip"
     archive.write_bytes(b"synthetic")
     assert live(tmp_path, "ap-southeast-2", None, archive) == 1
     assert actions[-1] == "destroy"
     assert grants == ["cluster-fixture", ""]
     report = json.loads((tmp_path / "report.json").read_text())
-    assert all(check["status"] == "not_run" for check in report["checks"].values())
+    assert all(
+        check["status"] == ("failed" if failure == "probe" else "not_run")
+        for check in report["checks"].values()
+    )
     assert report["status"] == ("incomplete" if cleanup_failure else "failed")
     assert report["iam_grant_cleanup"]["status"] == (
         "failed" if cleanup_failure == "revoke" else "passed"

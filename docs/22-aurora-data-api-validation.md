@@ -52,7 +52,7 @@ AWS-specific engine behavior still requires the live experiment.
 
 ## Terraform initialization and disposable AWS experiment
 
-All new provisioning uses native Terraform. `infrastructure/bootstrap/` creates the
+Temporary infrastructure is created and destroyed with Terraform. `infrastructure/bootstrap/` creates the
 persistent `dance-studio-deployer` role and two fixed runtime roles. The approved
 bootstrap trusts only the configured account's `aiengineer` user. The deployer cannot
 create roles or edit IAM policies: it can only pass the two bounded runtime roles.
@@ -99,8 +99,10 @@ role access to `baseline`, each scoped to the actual cluster Resource ID. Throug
 TLS, the initializer creates the test database, pgvector extension, fixture schema and
 two limited database users. Data API uses a separate password user in Secrets Manager;
 Express's master IAM user cannot authenticate to Data API. The direct psycopg baseline
-uses IAM authentication and read-only fixture access. Data API is enabled in a second
-Terraform apply after initialization. Temporary exact-cluster IAM grants are removed in
+uses IAM authentication and read-only fixture access. The runner enables Data API using RDS's `EnableHttpEndpoint` operation after
+initialization. Cloud Control rejected an update that changed only HTTP enablement with
+a create-only `WithExpressConfiguration` error; this bounded API call avoids that provider
+limitation and needs no additional IAM permission. Temporary exact-cluster IAM grants are removed in
 cleanup, including after a partially failed permissions apply. This requires the original
 bootstrap user's IAM permissions; the assumed deployer cannot edit its own policies.
 
@@ -123,7 +125,8 @@ from `backend/` first. Retain state until deletion is verified. Revoke temporary
 after reviewing a fresh plan. Bootstrap roles
 are intentionally separate from temporary resources and are not destroyed by a run.
 
-`report.json` distinguishes passed, failed, incomplete and not_run. A mechanism pass
+`report.json` distinguishes passed, failed, incomplete and not_run, with an in_progress
+snapshot while waiting for auto-pause and cleanup. A mechanism pass
 is not a full migration approval; `migration_ready` remains false.
 
 ## Current evidence and decision
@@ -133,10 +136,12 @@ The IAM/TLS admin connection succeeded, but database initialization returned Pos
 `InsufficientPrivilege`. No checkpoint, mutex or retrieval probe ran in that attempt.
 Terraform deleted all temporary resources without a final snapshot and revoked both
 exact-cluster IAM database grants. Diagnostics located the missing `SET ROLE validator` permission when assigning schema
-ownership. The initializer now grants this explicitly, and a mechanism rerun is in
-progress; no live migration readiness is claimed.
+ownership. The initializer now grants this explicitly. A subsequent run completed database
+initialization, but Cloud Control rejected endpoint enablement as an Express create-only
+property update. The runner now uses the RDS enablement operation described above.
+The next mechanism rerun is pending cleanup; no live migration readiness is claimed.
 
-Local focused validation passed 52 tests, including actual PostgreSQL recovery/retrieval
+Local focused validation passed 57 tests, including actual PostgreSQL recovery/retrieval
 and mocked provisioning/permission failure cleanup. The full backend run passed
 1,242 tests; focused tests cover subsequent lifecycle changes. The Linux package's
 native dependencies imported successfully in AWS's official Python 3.12 Lambda image.
