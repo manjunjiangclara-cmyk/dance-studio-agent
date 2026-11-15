@@ -17,6 +17,8 @@ from fastapi import HTTPException
 
 from studio_copilot.public_demo.model import DemoModel
 
+DAILY_RUN_LIMIT = 20
+
 
 class PublicDemo:
     def __init__(self, path, *, factory=DemoModel, clock=time.time):
@@ -82,9 +84,13 @@ class PublicDemo:
                 ):
                     raise HTTPException(410, "This demo run expired. Restart the demo.")
                 return {"token": existing["token"], "scenario": scenario}
-            if db.execute("SELECT count(*) FROM runs WHERE day = ?", (day,)).fetchone()[0] >= 10:
+            if (
+                db.execute("SELECT count(*) FROM runs WHERE day = ?", (day,)).fetchone()[0]
+                >= DAILY_RUN_LIMIT
+            ):
                 raise HTTPException(
-                    429, "Today's 10 live demo runs are used. Please return tomorrow."
+                    429,
+                    f"Today's {DAILY_RUN_LIMIT} live demo runs are used. Please return tomorrow.",
                 )
             token = secrets.token_urlsafe(32)
             db.execute(

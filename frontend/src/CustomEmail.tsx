@@ -185,7 +185,7 @@ export function CustomEmail() {
             </p>
             <p>
               Use fictional content only. This calls the real model and shares
-              the limit of 10 demo runs per day. No email is sent and no studio
+              the limit of 20 demo runs per day. No email is sent and no studio
               records are changed.
             </p>
             {error && (

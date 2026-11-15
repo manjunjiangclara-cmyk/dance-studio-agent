@@ -43,7 +43,7 @@ def test_daily_admission_idempotency_and_shared_file(demo):
     request = str(uuid4())
     first = demo.create("booking", request)
     assert demo.create("booking", request) == first
-    for _ in range(9):
+    for _ in range(19):
         create(demo)
     other_worker = PublicDemo(demo.path, factory=Fake)
     with pytest.raises(HTTPException) as error:
@@ -52,7 +52,7 @@ def test_daily_admission_idempotency_and_shared_file(demo):
     assert not Fake.calls
 
 
-def test_concurrent_admission_cannot_exceed_ten(demo):
+def test_concurrent_admission_cannot_exceed_twenty(demo):
     def admit(_):
         try:
             return create(PublicDemo(demo.path, factory=Fake))
@@ -61,8 +61,8 @@ def test_concurrent_admission_cannot_exceed_ten(demo):
 
     with ThreadPoolExecutor(max_workers=8) as pool:
         results = list(pool.map(admit, range(25)))
-    assert sum(isinstance(result, str) for result in results) == 10
-    assert results.count(429) == 15
+    assert sum(isinstance(result, str) for result in results) == 20
+    assert results.count(429) == 5
 
 
 def test_stages_are_ordered_cached_and_model_gets_only_fixed_evidence(demo):
@@ -132,7 +132,7 @@ def test_expiry_and_melbourne_day_reset(tmp_path):
     with pytest.raises(HTTPException) as error:
         demo.execute(token, "evidence")
     assert error.value.status_code == 410
-    for _ in range(10):
+    for _ in range(20):
         create(demo)
     now[0] += 3601
     with pytest.raises(HTTPException):
@@ -395,7 +395,7 @@ def test_existing_ledger_upgrade_preserves_daily_admission(tmp_path):
             "busy_until REAL NOT NULL DEFAULT 0, lease TEXT)"
         )
     first = PublicDemo(path, factory=Fake)
-    for _ in range(10):
+    for _ in range(20):
         create(first)
     second = PublicDemo(path, factory=Fake)
     with pytest.raises(HTTPException) as error:
@@ -461,3 +461,40 @@ def test_custom_partial_answer_keeps_known_policy_when_model_omits_sources():
     assert any("No trial fee" in item for item in result["evidence"])
     assert result["missing_information"] == ["Trial cost"]
     assert "EVERY independent question" in calls[0]["instructions"]
+
+
+def test_raising_limit_preserves_ten_existing_legacy_runs(tmp_path):
+    import sqlite3
+    import time
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    path = tmp_path / "populated-legacy.sqlite"
+    now = time.time()
+    day = datetime.fromtimestamp(now, ZoneInfo("Australia/Melbourne")).date().isoformat()
+    keys = [str(uuid4()) for _ in range(10)]
+    with sqlite3.connect(path) as db:
+        db.execute(
+            "CREATE TABLE runs (request_id TEXT PRIMARY KEY, token TEXT UNIQUE NOT NULL, "
+            "scenario TEXT NOT NULL, day TEXT NOT NULL, created REAL NOT NULL, evidence TEXT, "
+            "draft TEXT, evidence_attempts INTEGER NOT NULL DEFAULT 0, "
+            "draft_attempts INTEGER NOT NULL DEFAULT 0, "
+            "busy_until REAL NOT NULL DEFAULT 0, lease TEXT)"
+        )
+        db.executemany(
+            "INSERT INTO runs (request_id,token,scenario,day,created) VALUES (?,?,?,?,?)",
+            [(key, f"legacy-{index}", "booking", day, now) for index, key in enumerate(keys)],
+        )
+    upgraded = PublicDemo(path, factory=Fake, clock=lambda: now)
+    assert upgraded.create("booking", keys[0])["token"] == "legacy-0"
+    for index in range(10):
+        if index % 2:
+            upgraded.create("custom", str(uuid4()), student="jules", email_body="Hello")
+        else:
+            create(upgraded)
+    with pytest.raises(HTTPException) as error:
+        create(upgraded)
+    assert error.value.status_code == 429
+    assert "20 live demo runs" in error.value.detail
+    with upgraded.db() as db:
+        assert db.execute("SELECT count(*) FROM runs").fetchone()[0] == 20

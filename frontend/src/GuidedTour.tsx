@@ -162,7 +162,7 @@ function TourContent({ scenario }: { scenario: TourScenario }) {
       </header>
       <p className="notice" role="note">
         {liveMode
-          ? "Live AI · Fixed fictional inputs · 10 shared demo runs per day. Find evidence and generate a draft with the buttons below. Booking remains simulated; no email is sent or studio records changed."
+          ? "Live AI · Fixed fictional inputs · 20 shared demo runs per day. Find evidence and generate a draft with the buttons below. Booking remains simulated; no email is sent or studio records changed."
           : "Curated simulation · Fictional data · No live model calls. All changes stay in this tour and disappear when you leave or reload. No email is sent."}
       </p>
       <div className="tour-tabs" role="tablist" aria-label="Demo scenarios">
