@@ -121,7 +121,12 @@ resources. The experiment neither discovers nor reuses an existing application D
 On 2026-11-15 the live attempt returned AWS `AccessDenied` for CloudFormation
 `CreateStack`, before a stack was accepted. No cloud resources were created; all
 three live mechanism checks are **not run**. The Linux validation package was built
-separately. Local test results and this AWS blocker must not be presented as a
+separately and its native dependencies imported successfully in AWS's official Linux
+Python 3.12 Lambda image. The full backend run passed 1,211 tests before the final
+review fixes; all 26 focused validation tests passed after those fixes. Ruff lint and
+format checks and the frontend production build passed. Independent review found
+and verified fixes for missing transaction credentials and cleanup failure ordering.
+Local test results and this AWS blocker must not be presented as a
 successful Aurora migration assessment.
 
 After live evidence is available, assess the remaining work separately: general ORM
