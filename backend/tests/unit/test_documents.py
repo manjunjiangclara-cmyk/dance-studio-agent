@@ -8,7 +8,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
 from studio_copilot.api.app import create_app
-from studio_copilot.persistence.models import Document, DocumentRevision
+from studio_copilot.persistence.models import Document, DocumentActivation, DocumentRevision
 from tests.unit.test_website_auth import session_cookie
 
 
@@ -35,6 +35,7 @@ def client(monkeypatch):
     )
     Document.__table__.create(engine)
     DocumentRevision.__table__.create(engine)
+    DocumentActivation.__table__.create(engine)
     with TestClient(
         create_app(engine, admin_token="test"), base_url="https://studio.example.test"
     ) as test_client:
@@ -71,8 +72,9 @@ def test_crud_persists_and_validates(client):
         assert client.put(path, headers=headers, json=body).status_code == 422
     assert client.get(path, headers=headers).json()["content"] == "Updated"
     assert client.delete(path, headers=headers).status_code == 200
-    assert client.get(path, headers=headers).status_code == 404
-    assert client.delete(path, headers=headers).status_code == 404
+    assert client.get(path, headers=headers).json()["archived_at"] is not None
+    assert client.get("/api/v1/documents", headers=headers).json() == []
+    assert client.delete(path, headers=headers).status_code == 200
 
 
 def test_owner_requires_login_origin_and_csrf(client):

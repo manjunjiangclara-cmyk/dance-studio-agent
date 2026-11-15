@@ -55,6 +55,8 @@ class Record:
 class Document(Record, Base):
     __tablename__ = "documents"
 
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
     title: Mapped[str] = mapped_column(String(200))
     filename: Mapped[str] = mapped_column(String(255))
     content: Mapped[str] = mapped_column(Text, deferred=True)

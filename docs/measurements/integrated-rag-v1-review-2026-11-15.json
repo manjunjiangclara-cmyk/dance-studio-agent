@@ -1,0 +1,391 @@
+{
+  "version": "integrated-rag-review-v1",
+  "source_report": "integrated-rag-v1-live-2026-11-15.json",
+  "dataset_sha256": "2cd7fe5dbe8682a4ec98682b56e289370ffdcb4db1c719b70e988a0af16b0658",
+  "code_commit": "ae20e4c48f4138c29c0b513d251c85657d156617",
+  "method": "Separate assistant semantic review of current final email, question-level citations and actually supplied evidence against frozen expected facts; no teacher adjudication. Each current draft was read anew; prior reviewed cases supplied the metric rubric, not the current verdict.",
+  "results": [
+    {
+      "id": "rag-held_out-01",
+      "output_sha256": "814fc4e7b04449a323104b93e251553b6708bd7e36e1eed42b6b53b329e6d43c",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-02",
+      "output_sha256": "e189b5128405bb54b64baf6787d9f8aee07c9ae3539c84857b3920e91ec9db92",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-03",
+      "output_sha256": "57d3b750d80859a53dfb9ddd919ac324e15fc9144ba6a04c03ed86f14c7894c2",
+      "supported": false,
+      "complete": false,
+      "correct_refusal": null,
+      "false_refusal": true,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "The source says the office offers a replacement or full refund within ten business days. The email moves that timing to offering both options, then says the refund payment due date is unconfirmed; the deadline attachment remains ambiguous and does not answer the requested refund timing reliably. The source fact was supplied to both subquestions."
+      ],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-04",
+      "output_sha256": "faf263c195230a91a3f495c714c39e4c41e43a6b636130bdf2ceb72b0c2c6614",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-05",
+      "output_sha256": "f00a8b9d5c98b2be9b45f7d18c655e6193a97f9aae6f0e94dfb1a550103f0b2f",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-06",
+      "output_sha256": "250c695bb4ce666d8d8fff02861f21e0f824c6049db9da5c4f990bcf686fa4f8",
+      "supported": false,
+      "complete": false,
+      "correct_refusal": null,
+      "false_refusal": true,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "The cited source establishes that replacing the named guest requires fresh booking confirmation even if the title is unchanged. The email repeats that fact, then contradicts it by saying the requirement still needs confirmation. The answer remains marked needs_teacher for an unasked nuance."
+      ],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-07",
+      "output_sha256": "c0146138564c4bd505ca904c4bd56678674c694536f76b6049164e82be4638d1",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-08",
+      "output_sha256": "3f8ef7c581c67dc81538769f642ab1cc0814952f31a63ec3c3dc60c40e8bdd18",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-09",
+      "output_sha256": "8d47d6b00d5eec1664141c37b25d4e549e33ba3868822334ce5f1bbdf21f3aa4",
+      "supported": false,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "Critical: the email says the office offers both cancellation options within ten business days. The source attaches the timing to the full workshop-fee refund; the email changes the deadline subject. The youth host condition is otherwise present."
+      ],
+      "critical": true
+    },
+    {
+      "id": "rag-held_out-10",
+      "output_sha256": "ed39780d563bc9d9146efd0a8126ca0cd081377cc9aa8a0c65eb991ac7a5b19d",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-11",
+      "output_sha256": "1de689b346303d68d5c0b5cb19b98d2770eea687f1420a2ab0b2322736d4a422",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-12",
+      "output_sha256": "eb0ff8712a4a9b9a07d57f8b7d3f4c90a7b2dbfb385ad4200ebc601d60c531d9",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-13",
+      "output_sha256": "075ec01f8101448b3e9dbe417406ea9e5794a739d39298d2bad1fd501ac10519",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-14",
+      "output_sha256": "53eabc55b6b19b7ca63a10d0548ac8c61873208b87e3c1f75f371615b62a9173",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-15",
+      "output_sha256": "5fae958dada6995ea834b4560121545f18450765e89fa031115e9ddf1558e198",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-16",
+      "output_sha256": "630d026430a1e161f0452e82ca49a7e9e906b1eb898b39a72b9168fb3b69e95d",
+      "supported": false,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "The source says the repair desk offers a practice pad for the remaining original loan period; the email says “I can offer you” one, implying the teacher personally can make that offer. The period and no-additional-deposit conditions are otherwise complete."
+      ],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-17",
+      "output_sha256": "9d6c93309322e86fc7fad21f123b4594c313fabcd7da837bd449c6723b313acb",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-18",
+      "output_sha256": "45976f503006a6927fcc20bee61af2a4dd031b07bcfd9929985a4543814f0c25",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-19",
+      "output_sha256": "61210681402480021a6d8e96b7f21410420bb5bb967a9bd39662381e92fb85d7",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-20",
+      "output_sha256": "310d19026c8edc96e4b2a544ba8e935f014ce540711a07b3612f3fada1c620fc",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-21",
+      "output_sha256": "d9d000eae80405dd48ed7961a92fb570f0b8335b5fe28c20398dd589196fbd8f",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-22",
+      "output_sha256": "74a8ea6a58f4bd6e9a9c06eff52c3bb8e87d5dccd951d1b8637b35a5fae03cab",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-29",
+      "output_sha256": "cd7f0d44da346749f1f6fe380a1d0e822705f0e1477282e3fa4eb7ae010248a5",
+      "supported": false,
+      "complete": true,
+      "correct_refusal": true,
+      "false_refusal": null,
+      "citation_relevant": false,
+      "teacher_ready": false,
+      "issues": [
+        "Critical wrong-topic contamination: the email states both guest-workshop deposits, then adds costume deposits and applies a production-manager rule about conflicting costume charges to this guest-workshop authority question. The first answer is cited correctly; the second question cites unrelated costume sources. The authoritative guest-workshop charge remains unresolved."
+      ],
+      "critical": true
+    },
+    {
+      "id": "rag-held_out-30",
+      "output_sha256": "7943309280ae55dcebf05443516edc7a06a598970537b606584423279d5c5936",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": true,
+      "false_refusal": null,
+      "citation_relevant": false,
+      "teacher_ready": false,
+      "issues": [
+        "Both hand-drum amounts and the unresolved precedence are present, but the third answer and email add unrelated costume and guest-workshop deposits despite the question explicitly specifying a hand-drum kit. Those citations do not support this question; teacher editing is needed."
+      ],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-31",
+      "output_sha256": "2b38ac4bd1b1ce06fa805be6348697588f991aaa2145ede4ef2ec1ea17f87d21",
+      "supported": false,
+      "complete": false,
+      "correct_refusal": true,
+      "false_refusal": true,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "Both 10- and 15-minute quiet-room intervals were omitted. The agent routed a document conflict question to a generic live-state/change handoff, produced no question-level answers or document evidence, and told the student it could not confirm a requested change or live status that was never requested. This is routing/answer failure, not a retrieval miss."
+      ],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-32",
+      "output_sha256": "ae48c8fbf7b85fe83e17451c51a28954884e43a0e119b6c70d6c174788511968",
+      "supported": false,
+      "complete": true,
+      "correct_refusal": true,
+      "false_refusal": null,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "Correctly withholds the unsupported royalty percentage, but the email promises “I’ll need to verify this” without an explicit teacher deferral. The teacher checklist remains open."
+      ],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-35",
+      "output_sha256": "457839272d8a9b3e0b080e0e3ffd3eb3b1248f19630f788d5742af03b053681a",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": true,
+      "false_refusal": null,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "The June 2029 source is date-ineligible, so the amount is correctly withheld. The teacher task must be resolved or explicitly deferred; the checker concern about not saying “verify” is not a semantic error."
+      ],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-39",
+      "output_sha256": "88ba9ae7781c61de96b11ee93af3cd45b336ab5af7546d7fd06a419489ffb77a",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": true,
+      "false_refusal": null,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "Asset availability and reservations require live records; a teacher must answer or explicitly defer both open questions before approval."
+      ],
+      "critical": false
+    },
+    {
+      "id": "rag-held_out-40",
+      "output_sha256": "a52934446909c4cfd08e97e8f8d77a3a670acf3c7928ca238875e5342c92828b",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "rag-mixed-business-01",
+      "output_sha256": "b8be638094ed211a056584041a7c1ef46b083d7c71a1ee22ae0c1aa485115ff9",
+      "supported": true,
+      "complete": false,
+      "correct_refusal": null,
+      "false_refusal": null,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "The 18-day request deadline is supported and no booking change occurred. The cancellation request remains unresolved; the email only says it cannot confirm “remaining details,” without a clear teacher handoff or acknowledgement that the cancellation was not made."
+      ],
+      "critical": false
+    }
+  ]
+}

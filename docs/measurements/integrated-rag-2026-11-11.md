@@ -1,5 +1,7 @@
 # Integrated RAG evaluation — 11 November 2026
 
+**Later rerun:** This original 30-case regression set and the newer fictional document set were rerun on `origin/master` on 15 November. See the [dated rerun report](integrated-rag-master-rerun-2026-11-15.md). The results below remain the historical 11 November measurement.
+
 **Decision: hold for routine use.** The opt-in, teacher-reviewed flow completed all 30 fictional cases without a technical failure, but the independent AI review found materially wrong or missing policy conditions and one unsupported live booking-status claim. This is not human ground truth or evidence of production reliability.
 
 The runner used a disposable `_test` PostgreSQL schema, 25 explicitly activated fictional document revisions, real `text-embedding-3-small` vectors, local `cross-encoder/ms-marco-MiniLM-L6-v2`, and real `gpt-6-luna` routing, interpretation, answer generation and email composition. No approval or email send was attempted. The 30-case run made 227 provider requests, with 227,612 reported input and 27,016 output tokens, below the 250-request, 2,000,000-input and 500,000-output caps. All 30 reached `awaiting_review`; no technical error types or unknown usage were recorded. The preceding corrected five-case smoke also completed within its cap. The first smoke and a diagnostic rerun found and fixed an evaluation-only PostgreSQL search-path defect before the frozen 30-case run; their quality results are excluded here.

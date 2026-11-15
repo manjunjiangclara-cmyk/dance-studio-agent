@@ -57,6 +57,12 @@ graph and therefore does not create one of these traces.
 | Model calls | The above, plus the configured model name and input/output token counts when the provider returns usage. |
 | Read-only tool calls | The above, plus the tool name for `get_timetable`, `get_enrolments`, `search_sessions`, `get_locations`, or `check_absence_notice`. |
 
+Model spans also export LangSmith usage metadata and provider/model identifiers for estimated
+token-based costs, including cached input and reasoning tokens when available. LangSmith
+requires a matching model price; missing usage or pricing is not zero spend. Estimates may
+differ from provider billing and do not backfill earlier traces. Check the model span and
+workflow trace for usage and cost, and use the OpenAI usage dashboard for billed spending.
+
 Failed spans use the generic error `operation_failed`; they do not include the
 exception text. Timing comes from the span's start and end timestamps. Fields are
 allowlisted and may be absent if unavailable or if tracing fails. The run ID is a

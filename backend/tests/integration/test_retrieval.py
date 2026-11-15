@@ -555,3 +555,23 @@ def test_real_retrieval_cli_keyword_and_vector_use_local_database_and_fake_http(
         assert len(received) == 1 and received[0]["input"] == ["cancellations"]
         assert received[0]["dimensions"] == 1536
         assert table_counts(db_engine) == before
+
+
+@pytest.mark.parametrize("mode", ["keyword", "vector", "hybrid"])
+def test_archived_source_is_excluded_even_with_explicit_run_id(db_engine, tokenizer, mode):
+    document_id, run_id = prepared(
+        db_engine, tokenizer, "# Policy\n\nCancellations require notice.\n"
+    )
+    with db_engine.begin() as connection:
+        connection.execute(
+            update(Document).where(Document.id == document_id).values(archived_at=func.now())
+        )
+    result = retrieve(
+        db_engine,
+        tokenizer,
+        [run_id],
+        mode=mode,
+        allow_api=True,
+        embedder=LocalVectors(db_engine),
+    )
+    assert result["results"] == []

@@ -12,7 +12,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from studio_copilot.agent.contracts import EnquiryInterpretation, ModelError, Routing
-from studio_copilot.documents import online
+from studio_copilot.documents import activation, online
 from studio_copilot.documents.chunking import Tokenizer
 from studio_copilot.documents.chunking.tokenizer import default_cache
 from studio_copilot.documents.embedding import pipeline
@@ -190,6 +190,7 @@ def test_question_automatically_gets_exact_citations_and_remains_a_draft(
     assert "evidence" not in context
     assert context["answers"][0]["answer"] == "A trial costs $20."
     assert "Hi there" in run["draft_details"]["body"]
+    assert "Your teacher" not in run["draft_details"]["body"]
     assert "[E" not in run["draft_details"]["body"]
     assert all("[E" not in answer["answer"] for answer in run["draft_details"]["answers"])
     citation = result["claims"][0]["citations"][0]
@@ -235,7 +236,8 @@ def test_regenerate_after_document_failure_uses_new_cited_answer(
 
 
 @pytest.mark.parametrize(
-    "mutation", ["delete", "replace", "disable", "revoke", "expire", "incomplete"]
+    "mutation",
+    ["delete", "replace", "disable", "revoke", "expire", "incomplete", "archive_api", "update_api"],
 )
 def test_stale_sources_block_approval_without_changing_the_review(
     mutation,
@@ -249,7 +251,20 @@ def test_stale_sources_block_approval_without_changing_the_review(
     run = start(rig, scenario)
     with Session(db_engine) as db:
         before = db.scalar(select(func.count()).select_from(Message))
-    if mutation == "expire":
+    if mutation == "archive_api":
+        response = rig[0].post(
+            f"/api/v1/documents/{document_id}/archive", json={"expected_revision": 1}
+        )
+        assert response.status_code == 200, response.text
+    elif mutation == "update_api":
+        monkeypatch.setattr(activation, "check_setup", lambda: None)
+        monkeypatch.setattr(activation, "worker", lambda *args: None)
+        response = rig[0].patch(
+            f"/api/v1/documents/{document_id}/metadata",
+            json={"title": "Updated trial policy", "expected_revision": 1},
+        )
+        assert response.status_code == 200, response.text
+    elif mutation == "expire":
 
         class Future(datetime):
             @classmethod
@@ -261,8 +276,8 @@ def test_stale_sources_block_approval_without_changing_the_review(
         monkeypatch.setenv("STUDIO_DOCUMENT_ANSWERS", "false")
     elif mutation == "revoke":
         with Session(db_engine) as db, db.begin():
-            activation = db.get(DocumentActivation, document_id)
-            activation.status, activation.run_id = "disabled", None
+            claim = db.get(DocumentActivation, document_id)
+            claim.status, claim.run_id = "disabled", None
     else:
         with Session(db_engine) as db, db.begin():
             if mutation == "delete":
@@ -296,11 +311,25 @@ def test_partial_or_bad_quotes_require_teacher_and_support_answer_or_deferral(
 ):
     _, _, writer, _ = online_rig
     writer.status, writer.quote = status, quote
+    if status == "partial":
+
+        def compose_partial(context):
+            rig[1].composition_contexts.append(context)
+            return {
+                "body": "Hi there,\n\n" + context["answers"][0]["answer"],
+                "review_concerns": [],
+            }
+
+        rig[1].compose_document_email = compose_partial
     run = start(rig, scenario)
     answer = run["draft_details"]["answers"][0]
     assert answer["status"] == "needs_teacher"
-    assert "$20" not in run["draft_details"]["body"]
-    assert "$20" not in str(rig[1].composition_contexts[0]["answers"])
+    if status == "partial":
+        assert "$20" in run["draft_details"]["body"]
+        assert "$20" in str(rig[1].composition_contexts[0]["answers"])
+    else:
+        assert "$20" not in run["draft_details"]["body"]
+        assert "$20" not in str(rig[1].composition_contexts[0]["answers"])
     assert "evidence" not in rig[1].composition_contexts[0]
     assert review(rig[0], run, "approve").status_code == 409
     response = review(
@@ -344,6 +373,7 @@ def test_teacher_deferral_is_passed_to_composer_with_question(online_rig, rig, s
         for item in context["question_resolutions"]
     )
     assert "$20" not in str(context["answers"])
+    assert context["facts"] == []
 
 
 def test_composition_failure_preserves_validated_answer_and_citations(online_rig, rig, scenario):
