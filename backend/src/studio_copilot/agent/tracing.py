@@ -55,9 +55,28 @@ class _Handle:
     def __init__(self, run=None):
         self.run = run
         self.fields = {}
+        self.usage = None
 
     def update(self, **fields):
         self.fields.update(_safe(fields))
+
+    def set_usage(self, usage):
+        counts = {}
+        for key in ("input_tokens", "output_tokens"):
+            value = getattr(usage, key, None)
+            if type(value) is int and value >= 0:
+                counts[key] = value
+        if len(counts) != 2:
+            return
+        for attribute, key, name in (
+            ("input_tokens_details", "input_token_details", "cached_tokens"),
+            ("output_tokens_details", "output_token_details", "reasoning_tokens"),
+        ):
+            value = getattr(getattr(usage, attribute, None), name, None)
+            total_key = key.split("_token_details")[0] + "_tokens"
+            if type(value) is int and 0 <= value <= counts[total_key]:
+                counts[key] = {"cache_read" if name == "cached_tokens" else "reasoning": value}
+        self.usage = counts
 
     def fail(self, error_type=None):
         self.fields["status"] = "failure"
@@ -69,8 +88,11 @@ def span(name, *, kind="chain", metadata=None):
     run = None
     if parent is not None:
         try:
+            safe_metadata = _safe(metadata or {})
+            if kind == "llm" and "model" in safe_metadata:
+                safe_metadata.update(ls_provider="openai", ls_model_name=safe_metadata["model"])
             run = parent.create_child(
-                name=name, run_type=kind, inputs={}, extra={"metadata": _safe(metadata or {})}
+                name=name, run_type=kind, inputs={}, extra={"metadata": safe_metadata}
             )
             run.post()
         except Exception:
@@ -92,7 +114,7 @@ def span(name, *, kind="chain", metadata=None):
             try:
                 handle.fields.setdefault("status", "success")
                 run.end(
-                    outputs={},
+                    outputs={"usage_metadata": handle.usage} if handle.usage is not None else {},
                     error="operation_failed" if handle.fields["status"] == "failure" else None,
                     metadata=handle.fields,
                 )

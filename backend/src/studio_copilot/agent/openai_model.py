@@ -64,10 +64,13 @@ class OpenAIModel:
         with span("model_call", kind="llm", metadata={"model": self.model}) as trace:
             response = self._request_traced(operation, **kwargs)
             if response.usage:
+                trace.set_usage(response.usage)
                 trace.update(
                     input_tokens=response.usage.input_tokens,
                     output_tokens=response.usage.output_tokens,
                 )
+            if response.status != "completed":
+                raise ModelError("The model returned an incomplete response.")
             return response
 
     def _request_traced(self, operation, **kwargs):
@@ -93,8 +96,6 @@ class OpenAIModel:
                 "output_tokens": usage.output_tokens if usage else None,
             },
         )
-        if response.status != "completed":
-            raise ModelError("The model returned an incomplete response.")
         return response
 
     def _parse(self, context, schema, instruction):

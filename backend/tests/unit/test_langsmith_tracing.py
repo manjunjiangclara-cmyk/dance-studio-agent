@@ -11,7 +11,7 @@ from langsmith import get_tracing_context
 
 from studio_copilot.agent import tools as agent_tools
 from studio_copilot.agent import tracing
-from studio_copilot.agent.openai_model import OpenAIModel
+from studio_copilot.agent.openai_model import ModelError, OpenAIModel
 from studio_copilot.agent.workflow.graph import _traced
 
 RUN_ID = "abf8de4c-2282-42ed-a498-b284a97d91b6"
@@ -228,4 +228,78 @@ def test_real_instrumentation_does_not_export_workflow_contents(tracing_env, mon
     assert model_run.events[-2][1]["metadata"]["input_tokens"] == 12
     assert model_run.events[-2][1]["metadata"]["output_tokens"] == 7
     assert tool_run.events[0][1]["extra"]["metadata"]["tool"] == "get_enrolments"
+    assert SECRET not in json.dumps([run.events for run in tracing_env.instances])
+
+
+def test_model_usage_is_reported_for_each_call_without_content(tracing_env):
+    model = OpenAIModel(client=object(), model="test-model")
+    usages = [
+        SimpleNamespace(
+            input_tokens=12,
+            output_tokens=7,
+            input_tokens_details=SimpleNamespace(cached_tokens=4),
+            output_tokens_details=SimpleNamespace(reasoning_tokens=3),
+        ),
+        SimpleNamespace(input_tokens=5, output_tokens=2),
+        None,
+    ]
+    with tracing.workflow_trace(RUN_ID, "start"):
+        for usage in usages:
+            response = SimpleNamespace(usage=usage, status="completed", output=SECRET)
+            model._request(lambda **kwargs: response, input=SECRET)
+    calls = tracing_env.instances[0].children
+    assert calls[0].events[0][1]["extra"]["metadata"] == {
+        "model": "test-model",
+        "ls_provider": "openai",
+        "ls_model_name": "test-model",
+    }
+    assert calls[0].events[-2][1]["outputs"] == {
+        "usage_metadata": {
+            "input_tokens": 12,
+            "output_tokens": 7,
+            "input_token_details": {"cache_read": 4},
+            "output_token_details": {"reasoning": 3},
+        }
+    }
+    assert calls[1].events[-2][1]["outputs"] == {
+        "usage_metadata": {"input_tokens": 5, "output_tokens": 2}
+    }
+    assert calls[2].events[-2][1]["outputs"] == {}
+    assert SECRET not in json.dumps([run.events for run in tracing_env.instances])
+
+
+def test_invalid_usage_is_not_exported(tracing_env):
+    with tracing.workflow_trace(RUN_ID, "start"):
+        with tracing.span("model_call", kind="llm") as trace:
+            trace.set_usage(SimpleNamespace(input_tokens=True, output_tokens=1))
+    assert tracing_env.instances[1].events[-2][1]["outputs"] == {}
+
+
+def test_real_runtree_preserves_usage_and_model_metadata(monkeypatch):
+    from langsmith.run_trees import RunTree
+
+    captured = []
+    monkeypatch.setattr(RunTree, "post", lambda self: None)
+    monkeypatch.setattr(RunTree, "patch", lambda self: captured.append(self.dict()))
+    monkeypatch.setenv("STUDIO_LANGSMITH_TRACING", "true")
+    monkeypatch.setenv("LANGSMITH_API_KEY", "test-key")
+    with tracing.workflow_trace(RUN_ID, "start"):
+        with tracing.span("model_call", kind="llm", metadata={"model": "test-model"}) as span:
+            span.set_usage(SimpleNamespace(input_tokens=10, output_tokens=5))
+    call = next(run for run in captured if run["name"] == "model_call")
+    assert call["extra"]["metadata"]["ls_model_name"] == "test-model"
+    assert call["extra"]["metadata"]["ls_provider"] == "openai"
+    assert call["outputs"] == {"usage_metadata": {"input_tokens": 10, "output_tokens": 5}}
+
+
+def test_incomplete_response_records_usage_and_failure(tracing_env):
+    model = OpenAIModel(client=object(), model="test-model")
+    response = SimpleNamespace(
+        usage=SimpleNamespace(input_tokens=9, output_tokens=3), status="incomplete", output=SECRET
+    )
+    with pytest.raises(ModelError), tracing.workflow_trace(RUN_ID, "start"):
+        model._request(lambda **kwargs: response, input=SECRET)
+    end = tracing_env.instances[0].children[0].events[-2][1]
+    assert end["outputs"] == {"usage_metadata": {"input_tokens": 9, "output_tokens": 3}}
+    assert end["metadata"]["status"] == "failure"
     assert SECRET not in json.dumps([run.events for run in tracing_env.instances])
