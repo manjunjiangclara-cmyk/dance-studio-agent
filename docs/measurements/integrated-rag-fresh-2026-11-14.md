@@ -1,5 +1,7 @@
 # Fresh integrated RAG validation — 14 November 2026
 
+**Later rerun:** The same 30 cases and the original v1 regression cases were rerun on `origin/master` on 15 November. See the [dated rerun report](integrated-rag-master-rerun-2026-11-15.md). The results below remain the historical 14 November measurement.
+
 **Decision: hold the teacher-reviewed pilot.** The fresh, fictional 30-case run completed without a technical failure, but independent AI review found three critical omitted or changed conditions. Support, completeness, false refusal, and teacher readiness missed the agreed gates. No teacher has adjudicated the material or disputed judgments, so this is diagnostic evidence rather than a pilot authorization.
 
 ## Frozen scope and execution
