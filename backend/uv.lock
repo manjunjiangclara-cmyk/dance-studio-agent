@@ -1444,6 +1444,7 @@ aws-validation = [
     { name = "boto3" },
 ]
 dev = [
+    { name = "boto3" },
     { name = "httpx2" },
     { name = "pytest" },
     { name = "ruff" },
@@ -1480,6 +1481,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 aws-validation = [{ name = "boto3", specifier = ">=1.40,<2" }]
 dev = [
+    { name = "boto3", specifier = ">=1.40,<2" },
     { name = "httpx2", specifier = ">=2,<3" },
     { name = "pytest", specifier = ">=8,<10" },
     { name = "ruff", specifier = ">=0.11,<1" },

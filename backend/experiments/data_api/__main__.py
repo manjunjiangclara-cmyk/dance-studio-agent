@@ -78,6 +78,8 @@ def wait_stack(cf, stack, *, deleting=False, timeout=1800):
             raise
         if status == ("DELETE_COMPLETE" if deleting else "CREATE_COMPLETE"):
             return
+        if not deleting and status.startswith("DELETE_"):
+            raise RuntimeError("Validation stack creation failed and automatic deletion started.")
         if "FAILED" in status or status.endswith("ROLLBACK_COMPLETE"):
             raise RuntimeError(f"Validation stack ended in {status}.")
         if time.monotonic() - last_print >= 45:
@@ -161,8 +163,22 @@ def cleanup(cf, s3, stack, outputs, artifact):
             result["artifact"] = {"status": "failed", "error_type": type(error).__name__}
     # A bucket failure must not prevent deletion of the independently billed database.
     try:
-        cf.delete_stack(StackName=stack)
-        wait_stack(cf, stack, deleting=True)
+        try:
+            state = cf.describe_stacks(StackName=stack)["Stacks"][0]["StackStatus"]
+        except Exception as error:
+            details = getattr(error, "response", {}).get("Error", {})
+            state = (
+                "DELETE_COMPLETE"
+                if (
+                    details.get("Code") == "ValidationError"
+                    and "does not exist" in details.get("Message", "")
+                )
+                else None
+            )
+        if state not in {"DELETE_COMPLETE", "DELETE_IN_PROGRESS"}:
+            cf.delete_stack(StackName=stack)
+        if state != "DELETE_COMPLETE":
+            wait_stack(cf, stack, deleting=True)
         result["stack"] = {"status": "passed"}
     except Exception as error:
         result["stack"] = {"status": "failed", "error_type": type(error).__name__}
@@ -266,6 +282,23 @@ def live(directory, region, engine_version, zip_path=None):
             report["aws_error_code"] = error.response.get("Error", {}).get("Code")
             report["aws_operation"] = getattr(error, "operation_name", None)
         report["status"] = "failed" if stack else "not_run"
+        if stack:
+            try:
+                events = cf.describe_stack_events(StackName=stack)["StackEvents"]
+                report["provisioning_failures"] = [
+                    {
+                        k: event.get(k)
+                        for k in ("LogicalResourceId", "ResourceStatus", "ResourceStatusReason")
+                    }
+                    for event in events
+                    if event["ResourceStatus"].endswith("FAILED")
+                ]
+            except Exception as diagnostic_error:
+                report["provisioning_diagnostics"] = {
+                    "status": "not_run",
+                    "error_type": type(diagnostic_error).__name__,
+                    "required_action": "cloudformation:DescribeStackEvents",
+                }
     finally:
         if stack:
             report["cleanup"] = cleanup(cf, s3, stack, outputs, artifact)

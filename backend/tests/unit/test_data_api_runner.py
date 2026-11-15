@@ -3,7 +3,7 @@ import json
 import boto3
 from botocore.exceptions import ClientError
 
-from experiments.data_api.__main__ import cleanup, equivalent, live
+from experiments.data_api.__main__ import cleanup, equivalent, live, wait_stack
 from experiments.data_api.infrastructure import template
 
 
@@ -70,6 +70,9 @@ def test_failed_artifact_cleanup_still_attempts_stack_deletion(monkeypatch):
         def delete_stack(self, **kwargs):
             self.deleted = True
 
+        def describe_stacks(self, **kwargs):
+            return {"Stacks": [{"StackStatus": "CREATE_COMPLETE"}]}
+
     cf = CloudFormation()
     monkeypatch.setattr(runner, "wait_stack", lambda *args, **kwargs: None)
     result = cleanup(cf, S3(), "owned-stack", {"Artifacts": "owned-bucket"}, "validation.zip")
@@ -77,3 +80,43 @@ def test_failed_artifact_cleanup_still_attempts_stack_deletion(monkeypatch):
     assert result["artifact"]["status"] == "failed"
     assert result["stack"]["status"] == "passed"
     assert result["status"] == "failed"
+
+
+def test_cleanup_recognizes_automatic_deletion_without_redeleting():
+    class CloudFormation:
+        def describe_stacks(self, **kwargs):
+            return {"Stacks": [{"StackStatus": "DELETE_COMPLETE"}]}
+
+        def delete_stack(self, **kwargs):
+            raise AssertionError("Do not re-delete a completed stack.")
+
+    assert cleanup(CloudFormation(), object(), "owned-stack", {}, None)["status"] == "passed"
+
+
+def test_auto_deleting_stack_does_not_wait_for_a_create_success():
+    import pytest
+
+    class CloudFormation:
+        def describe_stacks(self, **kwargs):
+            return {"Stacks": [{"StackStatus": "DELETE_IN_PROGRESS"}]}
+
+    with pytest.raises(RuntimeError, match="automatic deletion"):
+        wait_stack(CloudFormation(), "owned-stack")
+
+
+def test_failed_status_read_does_not_prevent_stack_delete_attempt(monkeypatch):
+    from experiments.data_api import __main__ as runner
+
+    class CloudFormation:
+        deleted = False
+
+        def describe_stacks(self, **kwargs):
+            raise ClientError({"Error": {"Code": "AccessDenied"}}, "DescribeStacks")
+
+        def delete_stack(self, **kwargs):
+            self.deleted = True
+
+    cf = CloudFormation()
+    monkeypatch.setattr(runner, "wait_stack", lambda *args, **kwargs: None)
+    assert cleanup(cf, object(), "owned-stack", {}, None)["status"] == "passed"
+    assert cf.deleted

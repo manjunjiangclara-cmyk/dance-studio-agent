@@ -118,12 +118,18 @@ resources. The experiment neither discovers nor reuses an existing application D
 
 ## Current evidence and decision
 
-On 2026-11-15 the live attempt returned AWS `AccessDenied` for CloudFormation
-`CreateStack`, before a stack was accepted. No cloud resources were created; all
-three live mechanism checks are **not run**. The Linux validation package was built
+On 2026-11-15 the first live attempt returned AWS `AccessDenied` for CloudFormation
+`CreateStack`, before a stack was accepted. After an IAM update, a new stack creation
+was accepted but failed during provisioning and automatically deleted. Its
+`DELETE_COMPLETE` status was confirmed. Reading the failure events was separately
+blocked by missing `cloudformation:DescribeStackEvents` permission, so the underlying
+provisioning cause remains unknown. All three live mechanism checks are **not run**.
+The runner now recognizes automatic deletion immediately, independently attempts
+resource cleanup after artifact failures and recognizes already deleted stacks.
+The Linux validation package was built
 separately and its native dependencies imported successfully in AWS's official Linux
 Python 3.12 Lambda image. The full backend run passed 1,211 tests before the final
-review fixes; all 26 focused validation tests passed after those fixes. Ruff lint and
+review fixes; focused validation tests cover the final review and lifecycle fixes. Ruff lint and
 format checks and the frontend production build passed. Independent review found
 and verified fixes for missing transaction credentials and cleanup failure ordering.
 Local test results and this AWS blocker must not be presented as a
