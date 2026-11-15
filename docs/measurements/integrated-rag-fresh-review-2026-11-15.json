@@ -1,0 +1,392 @@
+{
+  "version": "integrated-rag-review-v1",
+  "source_report": "integrated-rag-fresh-live-2026-11-15.json",
+  "dataset_sha256": "23a21438429cf096b4c04a71830a4632218f4b734b408adb127832e15939cb0c",
+  "code_commit": "ae20e4c48f4138c29c0b513d251c85657d156617",
+  "method": "Separate assistant semantic review of final email against actual supplied evidence and frozen expected facts; no teacher adjudication. Reviewed 30 outputs, using the prior review rubric for the unchanged cases and rechecking all current draft bodies.",
+  "refusal_metric_scope": "Correct refusal covers six cases with a legitimately unresolved conclusion; false refusal covers 24 otherwise answerable cases plus fresh-13 and fresh-27, where a legitimate live-state refusal also omitted supplied answerable facts. Properly withheld conclusions in fresh-01, fresh-19, fresh-28 and fresh-30 are excluded from the false-refusal denominator.",
+  "results": [
+    {
+      "id": "fresh-01",
+      "output_sha256": "702290321d95186b7fd4c88344add7faf99024e03e1edf1577d823de5cbc127e",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": true,
+      "false_refusal": null,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "The eligibility answer is conditional on beginner status and current space; the teacher checklist remains open. The draft correctly gives the age rule but cannot be approved without resolving or deferring that question."
+      ],
+      "critical": false
+    },
+    {
+      "id": "fresh-02",
+      "output_sha256": "f70d747e710a43e6d4e9499d9f2c5045db1ee8a4256515fe0efb983fee49f687",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-03",
+      "output_sha256": "f4a382d68567061a69604d4e7015bfeec9dd91454b9eeaaeac99eab43edb91fc",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-04",
+      "output_sha256": "f234d99ad194320b298cc49f043b40c6d569c386850b9e9f365215c9893b00ef",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-05",
+      "output_sha256": "b98a1caedb5b289f6f7ed457e612426f3f5a61971c078d4c8f6256ea2494cd2f",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "The final email answers the generic observation-space question with the teacher-confirmation condition, but the question remains in the required teacher checklist; that unnecessary task must be cleared before approval."
+      ],
+      "critical": false
+    },
+    {
+      "id": "fresh-06",
+      "output_sha256": "1973d7c45c910d3a21c9dd5678fa9043b23db33cc40fe7e38257f0a911a08046",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-07",
+      "output_sha256": "c7fb64c15b8ef05ea971854e16cc2be819a8422b5407e8eb4460e30cd91a25e4",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-08",
+      "output_sha256": "5b49bed94676a4e0c17c2c47cbc46d2dc4895924c71f72eab66f94b6bfd5c7f0",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-09",
+      "output_sha256": "4977cd053069eb70948aea17ab8a1490166b8d1b15f6c35dddf9a82655dfaf65",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [
+        "The question-level answer begins with “Yes” despite explaining the exclusions; the final email correctly says costumes and transport are excluded."
+      ],
+      "critical": false
+    },
+    {
+      "id": "fresh-10",
+      "output_sha256": "97320b4baed208dad84556f6bbf184ff93e61ceede12863825ece218ba539a20",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-11",
+      "output_sha256": "25517a433f99062665683971087b818f8d1e91a571acdbdb43c6623cefe9b7f5",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-12",
+      "output_sha256": "27972a553dd02bef4790ba72911de0a619384abdd22325bf378fb520f3c87734",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "The email correctly excludes trial fees from the costume-deposit refund rule and gives supported trial-credit facts. It leaves an unnecessary teacher task for other refund arrangements, which were not asked about."
+      ],
+      "critical": false
+    },
+    {
+      "id": "fresh-13",
+      "output_sha256": "21d31fc505ba2d176790cbc8c00998de0bdfbc88a75d7875bb880bdb93aa237b",
+      "supported": true,
+      "complete": false,
+      "correct_refusal": true,
+      "false_refusal": true,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "The due date is correct and the live payment state is withheld without a follow-up promise. The supplied office-receipt guidance is still omitted."
+      ],
+      "critical": false
+    },
+    {
+      "id": "fresh-14",
+      "output_sha256": "c3a673808e2f51fac49d7afbd13ca54c12b4e48607019bd6164c9f04a34eaeb6",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-15",
+      "output_sha256": "bb486da83307f744996b30d15ced6e0e1c2d52cb3b1c2b5065e7721b9e591e8f",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-16",
+      "output_sha256": "2ed49dad02d41d2f397d800c3a45e51d69fc2a1d1970c8db117b71300938b0db",
+      "supported": false,
+      "complete": false,
+      "correct_refusal": null,
+      "false_refusal": true,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "Critical: the supplied performance handbook says performers must arrive 30 minutes before the 16:00 rehearsal, and the question-level answer calculates 15:30. The final email instead says the arrival time cannot be confirmed."
+      ],
+      "critical": true
+    },
+    {
+      "id": "fresh-17",
+      "output_sha256": "9bc9af12b60b5522b917906e2e9e54bf5b7cdaad6955e8d1c45df672132f3c0e",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-18",
+      "output_sha256": "77a9103ee1aa9b1d994a0ecae256bb0a6876dfdeae2a851dd5a8ae38b09adbfe",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-19",
+      "output_sha256": "e8e9cf2dfacbd2ce91caac281ec6058bc514f870e305651f4c26055d25e2b00f",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": true,
+      "false_refusal": null,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "The fixed departure and absence of a fixed return time are conveyed accurately. The actual return time remains unresolved and the teacher checklist must be handled before approval."
+      ],
+      "critical": false
+    },
+    {
+      "id": "fresh-20",
+      "output_sha256": "801d27354a13c5bd8e20a267d4113919fab4d4cb3e866803a4bfd93227c53c75",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-21",
+      "output_sha256": "1ccdd5eef5f0f054cb8dd13c5ce742b507c9b6e11ddb723bb7bbff617bfb5e3b",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-22",
+      "output_sha256": "ddeefe3635516e202f6f5ddee9116992820e8a56e9e37ef8482631a5e1770f56",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-23",
+      "output_sha256": "e1ca7ccb75300f13a2820e9cb4599102e3dbcd82582d6c3b4f39f01097450267",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-24",
+      "output_sha256": "8198a445d82b1748d18d945676b9ab8ab00d27c091feaf74efdcc86715a4d3a5",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-25",
+      "output_sha256": "901ff52426067d078d03cc399f1ea1a63120d106e4d7a703ddf4b8cd2e0ba7c7",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-26",
+      "output_sha256": "8e2cb9c297082971558769f1f172e452382f3f6e105401f39a990841e114597a",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false
+    },
+    {
+      "id": "fresh-27",
+      "output_sha256": "74cbc63df6924c29fcb98ea9046f35edcc7d7469468231803d511d6405038b4c",
+      "supported": true,
+      "complete": false,
+      "correct_refusal": true,
+      "false_refusal": true,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "Live replacement-booking state is correctly withheld, but the supplied documents say the absence form records only a request and a teacher must confirm a replacement before the booking changes. Both answerable facts are omitted."
+      ],
+      "critical": false
+    },
+    {
+      "id": "fresh-28",
+      "output_sha256": "467dc7d19f823b1991ba94764245cd1ea30962d10883e98f2cc2bd241d2008f4",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": true,
+      "false_refusal": null,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "Both documented notice values retain their “before class” conditions; the email correctly leaves which source controls unresolved for teacher review."
+      ],
+      "critical": false
+    },
+    {
+      "id": "fresh-29",
+      "output_sha256": "f9ac4a927a396e9cff71a4998212daf04b18fe8101a30a50689b233dcd938f59",
+      "supported": false,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "The $24 current trial price is supported. The email presents the student’s claim that $19 came from an archived 2027 fee note as verified studio fact; that note was not among the evidence supplied to this answer."
+      ],
+      "critical": false
+    },
+    {
+      "id": "fresh-30",
+      "output_sha256": "f1d90ab259ec1d2bf7422348e023bd3ea7ab85a0f24d134ae8284e8c678c8a0d",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": true,
+      "false_refusal": null,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        "The sealed-water-bottle fact is supported, and refund approval is correctly left unknown. A teacher must resolve or explicitly defer the live refund question before approval."
+      ],
+      "critical": false
+    }
+  ]
+}

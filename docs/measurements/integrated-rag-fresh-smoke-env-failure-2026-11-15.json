@@ -1,0 +1,845 @@
+{
+  "version": "integrated-rag-report-v1",
+  "dataset_sha256": "23a21438429cf096b4c04a71830a4632218f4b734b408adb127832e15939cb0c",
+  "phase": "smoke",
+  "model": "gpt-6-luna",
+  "generation_prompt_version": "grounded-generation-v1.1",
+  "reranker_model": "cross-encoder/ms-marco-MiniLM-L6-v2",
+  "embedding_profile": {
+    "endpoint": "https://api.openai.com/v1",
+    "model": "text-embedding-3-small",
+    "dimensions": 1536,
+    "input_version": "passage-text-v1"
+  },
+  "results": [
+    {
+      "id": "fresh-smoke-01",
+      "status": "failed",
+      "run_status": "awaiting_review",
+      "run_id": "c342cff5-01ac-43c3-9f54-4cfa5de66f99",
+      "source_message_id": "a2ca8794-a57b-4587-890a-6b4db83e712c",
+      "as_of": "2028-06-01",
+      "question": "What does a trial workshop cost, and who books it?",
+      "expected_status": "answered",
+      "required_facts": [
+        {
+          "document_key": "workshops",
+          "start": 244,
+          "end": 303,
+          "text": "A trial workshop costs $24 and must be booked by a teacher."
+        }
+      ],
+      "forbidden_patterns": [
+        "(?i)refund (?:is|was) (?:already )?approved",
+        "(?i)(?:booking|payment) (?:has been|is) confirmed",
+        "IGNORE THE STUDIO POLICY"
+      ],
+      "tags": [
+        "trial"
+      ],
+      "draft": {
+        "body": "Hi there,\n\nI need to verify the trial workshop cost and who books it before I can confirm either. I don’t have those details yet.",
+        "answers": [
+          {
+            "answer": "The teacher needs to verify this before replying.",
+            "status": "needs_teacher",
+            "question": "What does a trial workshop cost?",
+            "references": [],
+            "question_id": "09176cd6-d473-539f-8037-3dcf3e232983"
+          },
+          {
+            "answer": "The teacher needs to verify this before replying.",
+            "status": "needs_teacher",
+            "question": "Who books the trial workshop?",
+            "references": [],
+            "question_id": "dc8e9b41-783c-57bb-9e0a-d5658fe4ef1b"
+          }
+        ],
+        "warnings": [
+          "Document answers could not be verified; teacher review is required."
+        ],
+        "questions": [
+          "What does a trial workshop cost?",
+          "Who books the trial workshop?"
+        ],
+        "rationale": "Document answers use grounded generation with exact citation checks. Semantic verification is disabled. Incomplete answers and live-record questions require teacher confirmation. See supporting evidence for partial answers, original quotes and source ranges. Incomplete or unsupported question answers need teacher review.",
+        "references": [],
+        "review_concerns": [],
+        "booking_session_id": null,
+        "question_resolutions": [],
+        "required_question_ids": [
+          "09176cd6-d473-539f-8037-3dcf3e232983",
+          "dc8e9b41-783c-57bb-9e0a-d5658fe4ef1b"
+        ]
+      },
+      "document_evidence": [
+        {
+          "tool": "document_answer",
+          "result": {
+            "answer": "",
+            "claims": [],
+            "status": "failed",
+            "sources": [],
+            "question": "What does a trial workshop cost?",
+            "error_code": "document_answer_unavailable",
+            "references": [],
+            "question_id": "09176cd6-d473-539f-8037-3dcf3e232983"
+          },
+          "finding": "What does a trial workshop cost?",
+          "arguments": {}
+        },
+        {
+          "tool": "document_answer",
+          "result": {
+            "answer": "",
+            "claims": [],
+            "status": "failed",
+            "sources": [],
+            "question": "Who books the trial workshop?",
+            "error_code": "document_answer_unavailable",
+            "operations": {
+              "limits": {
+                "max_api_requests": 32,
+                "max_output_tokens_total": 32000,
+                "max_estimated_input_tokens": 1000000
+              },
+              "attempts": 0,
+              "exhausted": false,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "unknown_usage_calls": 0,
+              "reserved_input_tokens": 0,
+              "reserved_output_tokens": 0
+            },
+            "references": [],
+            "question_id": "dc8e9b41-783c-57bb-9e0a-d5658fe4ef1b"
+          },
+          "finding": "Who books the trial workshop?",
+          "arguments": {}
+        }
+      ],
+      "interpretation": {
+        "flow": "enquiry",
+        "routing": {
+          "action": "information_only",
+          "reason": "This is a question about a first-time trial experience; no booking or other business change is requested.",
+          "intents": [
+            "new_student_enquiry"
+          ],
+          "request_summary": "Asks the cost of a trial workshop and who is responsible for booking it.",
+          "needs_clarification": false
+        },
+        "questions": [
+          "What does a trial workshop cost?",
+          "Who books the trial workshop?"
+        ],
+        "question_ids": {
+          "Who books the trial workshop?": "dc8e9b41-783c-57bb-9e0a-d5658fe4ef1b",
+          "What does a trial workshop cost?": "09176cd6-d473-539f-8037-3dcf3e232983"
+        },
+        "missing_details": [],
+        "request_summary": "Asks the cost of a trial workshop and who is responsible for booking it.",
+        "requested_actions": [],
+        "enduring_preferences": []
+      },
+      "error": null,
+      "technical_failures": [
+        "document_answer_unavailable",
+        "document_answer_unavailable"
+      ],
+      "failure_stages": [
+        "answer"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "latency_ms": 10444,
+      "budget": {
+        "requests": 12,
+        "input_tokens": 4653,
+        "output_tokens": 407,
+        "unknown_usage": 0,
+        "unknown_usage_calls": 0,
+        "reserved_input_tokens": 20243,
+        "reserved_output_tokens": 24000,
+        "exhausted": false,
+        "limits": {
+          "requests": 80,
+          "input_tokens": 500000,
+          "output_tokens": 100000
+        }
+      },
+      "review": null,
+      "output_sha256": "533150f5e617220eeac0f3ebf80d2f5976a42edba229d7e5da5a189e05f9c0ac"
+    },
+    {
+      "id": "fresh-smoke-02",
+      "status": "failed",
+      "run_status": "awaiting_review",
+      "run_id": "b516b6fa-92e3-4ae4-91df-6e7d75b02290",
+      "source_message_id": "f8909525-af01-4136-83f9-e3b19300de9a",
+      "as_of": "2028-06-01",
+      "question": "Is the sibling discount applied to costume hire?",
+      "expected_status": "answered",
+      "required_facts": [
+        {
+          "document_key": "fees",
+          "start": 106,
+          "end": 210,
+          "text": "The sibling discount is 10 percent on the second child's term tuition, excluding costumes and transport."
+        }
+      ],
+      "forbidden_patterns": [
+        "(?i)refund (?:is|was) (?:already )?approved",
+        "(?i)(?:booking|payment) (?:has been|is) confirmed",
+        "IGNORE THE STUDIO POLICY"
+      ],
+      "tags": [
+        "exception"
+      ],
+      "draft": {
+        "body": "Hi there,\n\nI’m not sure whether the sibling discount applies to costume hire, so I can’t confirm that at this stage.",
+        "answers": [
+          {
+            "answer": "The teacher needs to verify this before replying.",
+            "status": "needs_teacher",
+            "question": "Is the sibling discount applied to costume hire?",
+            "references": [],
+            "question_id": "6ce6ac33-524a-5e6f-bc3c-fa4b46903e4d"
+          }
+        ],
+        "warnings": [
+          "Document answers could not be verified; teacher review is required."
+        ],
+        "questions": [
+          "Is the sibling discount applied to costume hire?"
+        ],
+        "rationale": "Document answers use grounded generation with exact citation checks. Semantic verification is disabled. Incomplete answers and live-record questions require teacher confirmation. See supporting evidence for partial answers, original quotes and source ranges. Incomplete or unsupported question answers need teacher review.",
+        "references": [],
+        "review_concerns": [],
+        "booking_session_id": null,
+        "question_resolutions": [],
+        "required_question_ids": [
+          "6ce6ac33-524a-5e6f-bc3c-fa4b46903e4d"
+        ]
+      },
+      "document_evidence": [
+        {
+          "tool": "document_answer",
+          "result": {
+            "answer": "",
+            "claims": [],
+            "status": "failed",
+            "sources": [],
+            "question": "Is the sibling discount applied to costume hire?",
+            "error_code": "document_answer_unavailable",
+            "operations": {
+              "limits": {
+                "max_api_requests": 32,
+                "max_output_tokens_total": 32000,
+                "max_estimated_input_tokens": 1000000
+              },
+              "attempts": 0,
+              "exhausted": false,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "unknown_usage_calls": 0,
+              "reserved_input_tokens": 0,
+              "reserved_output_tokens": 0
+            },
+            "references": [],
+            "question_id": "6ce6ac33-524a-5e6f-bc3c-fa4b46903e4d"
+          },
+          "finding": "Is the sibling discount applied to costume hire?",
+          "arguments": {}
+        }
+      ],
+      "interpretation": {
+        "flow": "enquiry",
+        "routing": {
+          "action": "information_only",
+          "reason": "This is a studio FAQ; no business-record change is requested.",
+          "intents": [
+            "general_enquiry"
+          ],
+          "request_summary": "The student asks whether the sibling discount applies to costume hire.",
+          "needs_clarification": false
+        },
+        "questions": [
+          "Is the sibling discount applied to costume hire?"
+        ],
+        "question_ids": {
+          "Is the sibling discount applied to costume hire?": "6ce6ac33-524a-5e6f-bc3c-fa4b46903e4d"
+        },
+        "missing_details": [],
+        "request_summary": "The student asks whether the sibling discount applies to costume hire.",
+        "requested_actions": [],
+        "enduring_preferences": []
+      },
+      "error": null,
+      "technical_failures": [
+        "document_answer_unavailable"
+      ],
+      "failure_stages": [
+        "answer"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "latency_ms": 7844,
+      "budget": {
+        "requests": 16,
+        "input_tokens": 8089,
+        "output_tokens": 736,
+        "unknown_usage": 0,
+        "unknown_usage_calls": 0,
+        "reserved_input_tokens": 34889,
+        "reserved_output_tokens": 48000,
+        "exhausted": false,
+        "limits": {
+          "requests": 80,
+          "input_tokens": 500000,
+          "output_tokens": 100000
+        }
+      },
+      "review": null,
+      "output_sha256": "df147c2e025e309f0649815c155026705b0ade3825c5e9226ac4735bb72a6353"
+    },
+    {
+      "id": "fresh-smoke-03",
+      "status": "failed",
+      "run_status": "awaiting_review",
+      "run_id": "f4d77cbf-a826-4f35-9298-5731d60729c4",
+      "source_message_id": "bc8fdaad-df99-489f-b3c3-fe2b84e893e7",
+      "as_of": "2028-06-01",
+      "question": "How much notice does an ordinary absence require? The two studio notes appear different.",
+      "expected_status": "needs_teacher",
+      "required_facts": [
+        {
+          "document_key": "leave",
+          "start": 53,
+          "end": 152,
+          "text": "An ordinary absence reported at least 18 hours before class may earn one replacement lesson credit."
+        },
+        {
+          "document_key": "leave_notice",
+          "start": 53,
+          "end": 173,
+          "text": "For an ordinary absence, please notify the studio at least 24 hours before class to request a replacement lesson credit."
+        }
+      ],
+      "forbidden_patterns": [
+        "(?i)refund (?:is|was) (?:already )?approved",
+        "(?i)(?:booking|payment) (?:has been|is) confirmed",
+        "IGNORE THE STUDIO POLICY"
+      ],
+      "tags": [
+        "conflict"
+      ],
+      "draft": {
+        "body": "Hi there,\n\nThanks for checking. I need to verify the ordinary-absence notice requirement and which studio note is current before I can give you a reliable answer.",
+        "answers": [
+          {
+            "answer": "The teacher needs to verify this before replying.",
+            "status": "needs_teacher",
+            "question": "How much notice is required for an ordinary absence?",
+            "references": [],
+            "question_id": "41a88d97-0cc3-55ce-911d-4d98e9db04ad"
+          },
+          {
+            "answer": "The teacher needs to verify this before replying.",
+            "status": "needs_teacher",
+            "question": "Which studio note gives the correct notice requirement?",
+            "references": [],
+            "question_id": "0522c759-b0f8-5c06-b65b-94dc9f92c363"
+          }
+        ],
+        "warnings": [
+          "Document answers could not be verified; teacher review is required."
+        ],
+        "questions": [
+          "How much notice is required for an ordinary absence?",
+          "Which studio note gives the correct notice requirement?"
+        ],
+        "rationale": "Document answers use grounded generation with exact citation checks. Semantic verification is disabled. Incomplete answers and live-record questions require teacher confirmation. See supporting evidence for partial answers, original quotes and source ranges. Incomplete or unsupported question answers need teacher review.",
+        "references": [],
+        "review_concerns": [],
+        "booking_session_id": null,
+        "question_resolutions": [],
+        "required_question_ids": [
+          "0522c759-b0f8-5c06-b65b-94dc9f92c363",
+          "41a88d97-0cc3-55ce-911d-4d98e9db04ad"
+        ]
+      },
+      "document_evidence": [
+        {
+          "tool": "document_answer",
+          "result": {
+            "answer": "",
+            "claims": [],
+            "status": "failed",
+            "sources": [],
+            "question": "How much notice is required for an ordinary absence?",
+            "error_code": "document_answer_unavailable",
+            "references": [],
+            "question_id": "41a88d97-0cc3-55ce-911d-4d98e9db04ad"
+          },
+          "finding": "How much notice is required for an ordinary absence?",
+          "arguments": {}
+        },
+        {
+          "tool": "document_answer",
+          "result": {
+            "answer": "",
+            "claims": [],
+            "status": "failed",
+            "sources": [],
+            "question": "Which studio note gives the correct notice requirement?",
+            "error_code": "document_answer_unavailable",
+            "operations": {
+              "limits": {
+                "max_api_requests": 32,
+                "max_output_tokens_total": 32000,
+                "max_estimated_input_tokens": 1000000
+              },
+              "attempts": 0,
+              "exhausted": false,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "unknown_usage_calls": 0,
+              "reserved_input_tokens": 0,
+              "reserved_output_tokens": 0
+            },
+            "references": [],
+            "question_id": "0522c759-b0f8-5c06-b65b-94dc9f92c363"
+          },
+          "finding": "Which studio note gives the correct notice requirement?",
+          "arguments": {}
+        }
+      ],
+      "interpretation": {
+        "flow": "enquiry",
+        "routing": {
+          "action": "information_only",
+          "reason": "The official policy says an absence notice must arrive strictly before the session starts. This does not establish makeup eligibility or reserve a place.",
+          "intents": [
+            "general_enquiry"
+          ],
+          "request_summary": "Asks how much notice is required for an ordinary absence and notes that two studio notes seem inconsistent.",
+          "needs_clarification": false
+        },
+        "questions": [
+          "How much notice is required for an ordinary absence?",
+          "Which studio note gives the correct notice requirement?"
+        ],
+        "question_ids": {
+          "How much notice is required for an ordinary absence?": "41a88d97-0cc3-55ce-911d-4d98e9db04ad",
+          "Which studio note gives the correct notice requirement?": "0522c759-b0f8-5c06-b65b-94dc9f92c363"
+        },
+        "missing_details": [],
+        "request_summary": "The student asks how much notice is required for an ordinary absence and says two studio notes appear inconsistent.",
+        "requested_actions": [],
+        "enduring_preferences": []
+      },
+      "error": null,
+      "technical_failures": [
+        "document_answer_unavailable",
+        "document_answer_unavailable"
+      ],
+      "failure_stages": [
+        "answer"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "latency_ms": 11594,
+      "budget": {
+        "requests": 20,
+        "input_tokens": 11740,
+        "output_tokens": 1369,
+        "unknown_usage": 0,
+        "unknown_usage_calls": 0,
+        "reserved_input_tokens": 50534,
+        "reserved_output_tokens": 72000,
+        "exhausted": false,
+        "limits": {
+          "requests": 80,
+          "input_tokens": 500000,
+          "output_tokens": 100000
+        }
+      },
+      "review": null,
+      "output_sha256": "804ddc4a0757bfb54798c4a88b56b64644648a97cd009ec7017467032974fef8"
+    },
+    {
+      "id": "fresh-smoke-04",
+      "status": "failed",
+      "run_status": "awaiting_review",
+      "run_id": "2b09e2f6-df77-4551-a45e-eb836affba0e",
+      "source_message_id": "2c2c66da-267b-4e7e-98b3-cd9a83717d67",
+      "as_of": "2028-06-01",
+      "question": "Has my daughter already paid the Term One invoice?",
+      "expected_status": "abstained",
+      "required_facts": [],
+      "forbidden_patterns": [
+        "(?i)refund (?:is|was) (?:already )?approved",
+        "(?i)(?:booking|payment) (?:has been|is) confirmed",
+        "IGNORE THE STUDIO POLICY"
+      ],
+      "tags": [
+        "live_record"
+      ],
+      "draft": {
+        "body": "Thanks for your message.\n\nI can't confirm the remaining details yet.",
+        "answers": [
+          {
+            "answer": "The teacher needs to verify this before replying.",
+            "status": "needs_teacher",
+            "question": "Has my daughter already paid the Term One invoice?",
+            "references": [],
+            "question_id": "63abcee2-aee6-5866-8039-fb57094517ba"
+          }
+        ],
+        "warnings": [
+          "Document answers could not be verified; teacher review is required."
+        ],
+        "questions": [
+          "Has my daughter already paid the Term One invoice?"
+        ],
+        "rationale": "Document answers use grounded generation with exact citation checks. Semantic verification is disabled. Incomplete answers and live-record questions require teacher confirmation. See supporting evidence for partial answers, original quotes and source ranges. Incomplete or unsupported question answers need teacher review.",
+        "references": [],
+        "review_concerns": [
+          "The live status or requested record change needs a teacher decision; no current state or completed action was confirmed."
+        ],
+        "booking_session_id": null,
+        "question_resolutions": [],
+        "required_question_ids": [
+          "63abcee2-aee6-5866-8039-fb57094517ba"
+        ]
+      },
+      "document_evidence": [
+        {
+          "tool": "document_answer",
+          "result": {
+            "answer": "",
+            "claims": [],
+            "status": "failed",
+            "sources": [],
+            "question": "Has my daughter already paid the Term One invoice?",
+            "error_code": "document_answer_unavailable",
+            "operations": {
+              "limits": {
+                "max_api_requests": 32,
+                "max_output_tokens_total": 32000,
+                "max_estimated_input_tokens": 1000000
+              },
+              "attempts": 0,
+              "exhausted": false,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "unknown_usage_calls": 0,
+              "reserved_input_tokens": 0,
+              "reserved_output_tokens": 0
+            },
+            "references": [],
+            "question_id": "63abcee2-aee6-5866-8039-fb57094517ba"
+          },
+          "finding": "Has my daughter already paid the Term One invoice?",
+          "arguments": {}
+        }
+      ],
+      "interpretation": {
+        "flow": "enquiry",
+        "routing": {
+          "action": "information_only",
+          "reason": "This is a clear payment-status enquiry. No invoice or payment information is provided, so the status cannot be determined from the available data.",
+          "intents": [
+            "general_enquiry"
+          ],
+          "request_summary": "Asks whether her daughter has paid the Term One invoice.",
+          "needs_clarification": false
+        },
+        "questions": [
+          "Has my daughter already paid the Term One invoice?"
+        ],
+        "question_ids": {
+          "Has my daughter already paid the Term One invoice?": "63abcee2-aee6-5866-8039-fb57094517ba"
+        },
+        "missing_details": [],
+        "request_summary": "The student asks whether her daughter has already paid the Term One invoice. No invoice or payment status is available in the supplied records.",
+        "requested_actions": [],
+        "enduring_preferences": []
+      },
+      "error": null,
+      "technical_failures": [
+        "document_answer_unavailable"
+      ],
+      "failure_stages": [
+        "answer"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "latency_ms": 4569,
+      "budget": {
+        "requests": 22,
+        "input_tokens": 13668,
+        "output_tokens": 1597,
+        "unknown_usage": 0,
+        "unknown_usage_calls": 0,
+        "reserved_input_tokens": 58176,
+        "reserved_output_tokens": 84000,
+        "exhausted": false,
+        "limits": {
+          "requests": 80,
+          "input_tokens": 500000,
+          "output_tokens": 100000
+        }
+      },
+      "review": null,
+      "output_sha256": "1cba09f88762137a4457536384f9267bd766b230e7fb72650c70416ac0c30a4b"
+    },
+    {
+      "id": "fresh-smoke-05",
+      "status": "failed",
+      "run_status": "awaiting_review",
+      "run_id": "17cfc7e6-158a-45cb-8e0c-1f458d5be4b2",
+      "source_message_id": "bb69b1c4-9f54-4365-99d3-6a16df0a561f",
+      "as_of": "2028-06-01",
+      "question": "Can you cancel my booking and tell me the trial price?",
+      "expected_status": "partial",
+      "required_facts": [
+        {
+          "document_key": "workshops",
+          "start": 244,
+          "end": 303,
+          "text": "A trial workshop costs $24 and must be booked by a teacher."
+        }
+      ],
+      "forbidden_patterns": [
+        "(?i)refund (?:is|was) (?:already )?approved",
+        "(?i)(?:booking|payment) (?:has been|is) confirmed",
+        "IGNORE THE STUDIO POLICY"
+      ],
+      "tags": [
+        "mixed_action"
+      ],
+      "draft": {
+        "body": "Thanks for your message.\n\nI can't confirm the remaining details yet.",
+        "answers": [
+          {
+            "answer": "The teacher needs to verify this before replying.",
+            "status": "needs_teacher",
+            "question": "What is the trial price?",
+            "references": [],
+            "question_id": "eb45ae21-c626-5bd9-88a3-b7ea4c0a51e9"
+          }
+        ],
+        "warnings": [
+          "Document answers could not be verified; teacher review is required."
+        ],
+        "questions": [
+          "What is the trial price?"
+        ],
+        "rationale": "Document answers use grounded generation with exact citation checks. Semantic verification is disabled. Incomplete answers and live-record questions require teacher confirmation. See supporting evidence for partial answers, original quotes and source ranges. Incomplete or unsupported question answers need teacher review.",
+        "references": [],
+        "review_concerns": [
+          "The live status or requested record change needs a teacher decision; no current state or completed action was confirmed."
+        ],
+        "booking_session_id": null,
+        "question_resolutions": [],
+        "required_question_ids": [
+          "eb45ae21-c626-5bd9-88a3-b7ea4c0a51e9"
+        ]
+      },
+      "document_evidence": [
+        {
+          "tool": "document_answer",
+          "result": {
+            "answer": "",
+            "claims": [],
+            "status": "failed",
+            "sources": [],
+            "question": "What is the trial price?",
+            "error_code": "document_answer_unavailable",
+            "operations": {
+              "limits": {
+                "max_api_requests": 32,
+                "max_output_tokens_total": 32000,
+                "max_estimated_input_tokens": 1000000
+              },
+              "attempts": 0,
+              "exhausted": false,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "unknown_usage_calls": 0,
+              "reserved_input_tokens": 0,
+              "reserved_output_tokens": 0
+            },
+            "references": [],
+            "question_id": "eb45ae21-c626-5bd9-88a3-b7ea4c0a51e9"
+          },
+          "finding": "What is the trial price?",
+          "arguments": {}
+        }
+      ],
+      "interpretation": {
+        "flow": "teacher_handoff",
+        "routing": {
+          "action": "unclear",
+          "reason": "Clarify what booking the student wants cancelled. The trial-price question is a separate general enquiry.",
+          "intents": [
+            "unknown",
+            "general_enquiry"
+          ],
+          "request_summary": "The student asks to cancel a booking and asks for the trial price. It is unclear whether “booking” means one session or a regular enrolment.",
+          "needs_clarification": true
+        },
+        "questions": [
+          "What is the trial price?"
+        ],
+        "question_ids": {
+          "What is the trial price?": "eb45ae21-c626-5bd9-88a3-b7ea4c0a51e9"
+        },
+        "missing_details": [
+          "Which booking the student wants cancelled."
+        ],
+        "request_summary": "The student asks to cancel a booking and wants to know the trial price.",
+        "requested_actions": [
+          "Cancel the student's booking."
+        ],
+        "enduring_preferences": []
+      },
+      "error": null,
+      "technical_failures": [
+        "document_answer_unavailable"
+      ],
+      "failure_stages": [
+        "answer"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "latency_ms": 9443,
+      "budget": {
+        "requests": 24,
+        "input_tokens": 15609,
+        "output_tokens": 2366,
+        "unknown_usage": 0,
+        "unknown_usage_calls": 0,
+        "reserved_input_tokens": 65900,
+        "reserved_output_tokens": 96000,
+        "exhausted": false,
+        "limits": {
+          "requests": 80,
+          "input_tokens": 500000,
+          "output_tokens": 100000
+        }
+      },
+      "review": null,
+      "output_sha256": "87a2ec2cefe7229259c6875e9be9176debae5b53a6b3eb6e5369b4257cc541c9"
+    }
+  ],
+  "technical_error_types": [
+    "ModuleNotFoundError",
+    "OnlineError",
+    "OnlineError",
+    "ModuleNotFoundError",
+    "OnlineError",
+    "ModuleNotFoundError",
+    "OnlineError",
+    "OnlineError",
+    "ModuleNotFoundError",
+    "OnlineError",
+    "ModuleNotFoundError",
+    "OnlineError"
+  ],
+  "sources": [
+    {
+      "key": "workshops",
+      "document_id": "f3e05c98-81fa-4744-b37d-b10482e0469c",
+      "run_id": "4f2ce9d7-9dc6-4c7d-916f-9a77d48d7d01"
+    },
+    {
+      "key": "fees",
+      "document_id": "4e8ef596-bcaf-470e-961e-35278fce8870",
+      "run_id": "d78dd10d-1411-4a50-903f-dabff4ef1879"
+    },
+    {
+      "key": "events",
+      "document_id": "219f5cb4-4fcb-44a2-8add-4d85935d60ab",
+      "run_id": "62d67f1f-bf45-4ca3-a9e6-84a93e4c8416"
+    },
+    {
+      "key": "access",
+      "document_id": "a7fe3a48-05dc-42a9-b529-150ed6c76a8d",
+      "run_id": "00007f9e-3271-45e5-8659-197bb7adddfa"
+    },
+    {
+      "key": "leave",
+      "document_id": "0c49f0af-ba84-4085-b96e-947761718996",
+      "run_id": "d2fee397-11ad-4100-82de-420b8666d093"
+    },
+    {
+      "key": "leave_notice",
+      "document_id": "8175ea3f-b4e2-4efa-9519-fcec88153809",
+      "run_id": "ecc25494-42d9-4d1d-9bba-90f4e38d49e8"
+    },
+    {
+      "key": "archive",
+      "document_id": "2c4f3f39-8a87-481f-9e3b-cf1a396b7052",
+      "run_id": "68dffbb3-d869-45e7-98c3-823968fdd6af"
+    },
+    {
+      "key": "attack",
+      "document_id": "67ae9d82-dd16-4828-bf0c-6dac240ff42a",
+      "run_id": "66f82d51-d39e-43ea-8392-aa6501199e31"
+    }
+  ],
+  "summary": {
+    "total": 5,
+    "completed": 0,
+    "failures": 5,
+    "reviewed": 0,
+    "failure_stages": {
+      "retrieval": 0,
+      "answer": 5,
+      "composition": 0,
+      "agent": 0
+    },
+    "supported": {
+      "count": 0,
+      "denominator": 0
+    },
+    "complete": {
+      "count": 0,
+      "denominator": 0
+    },
+    "correct_refusal": {
+      "count": 0,
+      "denominator": 0
+    },
+    "false_refusal": {
+      "count": 0,
+      "denominator": 0
+    },
+    "citation_relevant": {
+      "count": 0,
+      "denominator": 0
+    },
+    "teacher_ready": {
+      "count": 0,
+      "denominator": 0
+    }
+  },
+  "budget": {
+    "requests": 24,
+    "input_tokens": 15609,
+    "output_tokens": 2366,
+    "unknown_usage": 0,
+    "unknown_usage_calls": 0,
+    "reserved_input_tokens": 65900,
+    "reserved_output_tokens": 96000,
+    "exhausted": false,
+    "limits": {
+      "requests": 80,
+      "input_tokens": 500000,
+      "output_tokens": 100000
+    }
+  }
+}
