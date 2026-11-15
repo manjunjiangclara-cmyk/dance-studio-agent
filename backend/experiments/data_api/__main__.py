@@ -151,6 +151,29 @@ def resume_check(sql, *, timeout=120):
     return {"status": "failed", "reason": "Database did not resume within two minutes."}
 
 
+def cleanup(cf, s3, stack, outputs, artifact):
+    result = {"artifact": {"status": "not_needed"}}
+    if artifact:
+        try:
+            s3.delete_object(Bucket=outputs["Artifacts"], Key=artifact)
+            result["artifact"] = {"status": "passed"}
+        except Exception as error:
+            result["artifact"] = {"status": "failed", "error_type": type(error).__name__}
+    # A bucket failure must not prevent deletion of the independently billed database.
+    try:
+        cf.delete_stack(StackName=stack)
+        wait_stack(cf, stack, deleting=True)
+        result["stack"] = {"status": "passed"}
+    except Exception as error:
+        result["stack"] = {"status": "failed", "error_type": type(error).__name__}
+    result["status"] = (
+        "passed"
+        if all(item["status"] in {"passed", "not_needed"} for item in result.values())
+        else "failed"
+    )
+    return result
+
+
 def live(directory, region, engine_version, zip_path=None):
     import boto3
     from botocore.config import Config
@@ -245,14 +268,8 @@ def live(directory, region, engine_version, zip_path=None):
         report["status"] = "failed" if stack else "not_run"
     finally:
         if stack:
-            try:
-                if artifact:
-                    s3.delete_object(Bucket=outputs["Artifacts"], Key=artifact)
-                cf.delete_stack(StackName=stack)
-                wait_stack(cf, stack, deleting=True)
-                report["cleanup"] = {"status": "passed"}
-            except Exception as error:
-                report["cleanup"] = {"status": "failed", "error_type": type(error).__name__}
+            report["cleanup"] = cleanup(cf, s3, stack, outputs, artifact)
+            if report["cleanup"]["status"] != "passed":
                 report["status"] = "incomplete"
         else:
             report["cleanup"] = {

@@ -3,7 +3,7 @@ import json
 import boto3
 from botocore.exceptions import ClientError
 
-from experiments.data_api.__main__ import equivalent, live
+from experiments.data_api.__main__ import cleanup, equivalent, live
 from experiments.data_api.infrastructure import template
 
 
@@ -55,3 +55,25 @@ def test_parity_requires_matching_structure_and_bounded_numeric_error():
     assert not equivalent({"score": [1.0]}, {"score": [1.001]})
     assert not equivalent({"score": [1.0]}, {"score": ["1.0"]})
     assert not equivalent({"score": [1.0]}, {"different": [1.0]})
+
+
+def test_failed_artifact_cleanup_still_attempts_stack_deletion(monkeypatch):
+    from experiments.data_api import __main__ as runner
+
+    class S3:
+        def delete_object(self, **kwargs):
+            raise RuntimeError("Synthetic object deletion failure")
+
+    class CloudFormation:
+        deleted = False
+
+        def delete_stack(self, **kwargs):
+            self.deleted = True
+
+    cf = CloudFormation()
+    monkeypatch.setattr(runner, "wait_stack", lambda *args, **kwargs: None)
+    result = cleanup(cf, S3(), "owned-stack", {"Artifacts": "owned-bucket"}, "validation.zip")
+    assert cf.deleted
+    assert result["artifact"]["status"] == "failed"
+    assert result["stack"]["status"] == "passed"
+    assert result["status"] == "failed"

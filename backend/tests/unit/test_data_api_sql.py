@@ -66,3 +66,34 @@ def test_failed_transaction_rolls_back_and_does_not_hide_original_error():
         with DataSQL(client, "cluster", "secret").transaction():
             raise ValueError("original")
     assert client.rolled_back
+
+
+@pytest.mark.parametrize("fail", [False, True])
+def test_transactions_match_real_botocore_required_parameters(fail):
+    import boto3
+    from botocore.stub import Stubber
+
+    client = boto3.client(
+        "rds-data",
+        region_name="ap-southeast-2",
+        aws_access_key_id="synthetic",
+        aws_secret_access_key="synthetic",
+    )
+    cluster = "arn:aws:rds:ap-southeast-2:123456789012:cluster:validation"
+    secret = "arn:aws:secretsmanager:ap-southeast-2:123456789012:secret:validation"
+    sql = DataSQL(client, cluster, secret)
+    with Stubber(client) as stub:
+        stub.add_response("begin_transaction", {"transactionId": "tx"}, sql.options)
+        stub.add_response(
+            "rollback_transaction" if fail else "commit_transaction",
+            {},
+            {"resourceArn": cluster, "secretArn": secret, "transactionId": "tx"},
+        )
+        if fail:
+            with pytest.raises(RuntimeError):
+                with sql.transaction():
+                    raise RuntimeError("synthetic application failure")
+        else:
+            with sql.transaction():
+                pass
+        stub.assert_no_pending_responses()

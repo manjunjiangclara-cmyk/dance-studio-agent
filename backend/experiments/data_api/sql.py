@@ -96,13 +96,17 @@ class DataSQL:
             yield tx
             self.calls += 1
             self.client.commit_transaction(
-                resourceArn=self.options["resourceArn"], transactionId=tx
+                resourceArn=self.options["resourceArn"],
+                secretArn=self.options["secretArn"],
+                transactionId=tx,
             )
         except BaseException:
             self.calls += 1
             try:
                 self.client.rollback_transaction(
-                    resourceArn=self.options["resourceArn"], transactionId=tx
+                    resourceArn=self.options["resourceArn"],
+                    secretArn=self.options["secretArn"],
+                    transactionId=tx,
                 )
             except Exception:
                 # Preserve the original failure, including an uncertain commit acknowledgement.
