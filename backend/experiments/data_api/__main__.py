@@ -41,8 +41,14 @@ def package(directory):
             ":all:",
             "--target",
             str(target),
-            "-r",
+            "--constraint",
             str(requirements),
+            "langgraph",
+            "psycopg[binary]",
+            "sqlalchemy",
+            "openai",
+            "langsmith",
+            "certifi",
         ],
         cwd=BACKEND,
         check=True,
@@ -329,11 +335,10 @@ def main():
     parser.add_argument("action", choices=["template", "package", "live"])
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--region", default="ap-southeast-2")
-    parser.add_argument("--engine-version", default="17.9")
     parser.add_argument("--lambda-zip", type=Path)
     args = parser.parse_args()
     if args.action == "template":
-        print(json.dumps(template(args.engine_version), indent=2))
+        print((BACKEND.parent / "infrastructure" / "express-validation" / "main.tf").read_text())
         return 0
     if args.output_dir is None:
         parser.error("--output-dir is required; use a new private results directory.")
@@ -343,7 +348,9 @@ def main():
     if args.action == "package":
         print(package(args.output_dir))
         return 0
-    return live(args.output_dir, args.region, args.engine_version, args.lambda_zip)
+    from .terraform_runner import live as terraform_live
+
+    return terraform_live(args.output_dir, args.region, None, args.lambda_zip)
 
 
 if __name__ == "__main__":

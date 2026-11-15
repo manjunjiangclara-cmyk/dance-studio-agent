@@ -17,17 +17,30 @@ def handler(event, _context):
         from sqlalchemy.pool import NullPool
 
         schema = identifier(event["schema"])
+        username = os.environ.get("DB_USER", "validator")
+        if os.environ.get("DB_AUTH") == "iam":
+            import certifi
+
+            password = boto3.client("rds").generate_db_auth_token(
+                DBHostname=os.environ["DB_HOST"],
+                Port=5432,
+                DBUsername=username,
+            )
+            tls = {"sslmode": "verify-full", "sslrootcert": certifi.where()}
+        else:
+            password = os.environ["DB_PASSWORD"]
+            tls = {"sslmode": "require"}
         url = URL.create(
             "postgresql+psycopg",
-            username="validator",
-            password=os.environ["DB_PASSWORD"],
+            username=username,
+            password=password,
             host=os.environ["DB_HOST"],
             database="data_api_test",
         )
         engine = create_engine(
             url,
             poolclass=NullPool,
-            connect_args={"sslmode": "require", "options": f"-csearch_path={schema},public"},
+            connect_args={**tls, "options": f"-csearch_path={schema},public"},
         )
         try:
             return {
@@ -43,7 +56,12 @@ def handler(event, _context):
         os.environ["CLUSTER_ARN"],
         os.environ["SECRET_ARN"],
     )
-    result = run(sql, identifier(event["schema"]), keep_schema=True)
+    result = run(
+        sql,
+        identifier(event["schema"]),
+        keep_schema=True,
+        schema_exists=event.get("schema_exists", False),
+    )
     result["data_api_calls"] = sql.calls
     result["max_response_bytes_estimated"] = sql.max_result_bytes
     result["non_vpc_lambda"] = True

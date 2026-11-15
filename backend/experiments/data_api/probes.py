@@ -122,10 +122,11 @@ def retrieval_probe(sql, schema):
     }
 
 
-def run(sql, schema=None, *, keep_schema=False):
+def run(sql, schema=None, *, keep_schema=False, schema_exists=False):
     schema = identifier(schema or "data_api_" + uuid4().hex)
     report = {"schema": schema, "openai_calls": 0, "checks": {}, "status": "failed"}
-    sql.query(f"CREATE SCHEMA {schema}")
+    if not schema_exists:
+        sql.query(f"CREATE SCHEMA {schema}")
     try:
         sql.query("CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA public")
         report["engine"] = sql.query("SELECT version() AS version")[0]["version"]
@@ -140,7 +141,12 @@ def run(sql, schema=None, *, keep_schema=False):
             try:
                 report["checks"][name] = probe(sql, schema)
             except Exception as error:
-                report["checks"][name] = {"status": "failed", "error_type": type(error).__name__}
+                report["checks"][name] = {
+                    "status": "failed",
+                    "error_type": type(error).__name__,
+                    # Probe SQL and values are exclusively fictional fixtures.
+                    "reason": str(error)[:1000],
+                }
         report["status"] = (
             "passed"
             if all(r["status"] == "passed" for r in report["checks"].values())

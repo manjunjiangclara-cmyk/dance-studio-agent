@@ -50,90 +50,99 @@ Without `TEST_DATABASE_URL`, integration cases are skipped, not passed. Local te
 exercise PostgreSQL semantics plus simulated AWS payload limits and failure injection;
 AWS-specific engine behavior still requires the live experiment.
 
-## Disposable AWS experiment
+## Terraform initialization and disposable AWS experiment
 
-```mermaid
-flowchart LR
-  Operator[Local signed CLI] --> Experiment[Non-VPC validation Lambda]
-  Experiment --> DataAPI[Aurora Data API]
-  DataAPI --> Database[Private Aurora writer]
-  Operator --> Baseline[VPC baseline Lambda]
-  Baseline --> Database
-```
+All new provisioning uses native Terraform. `infrastructure/bootstrap/` creates the
+persistent `dance-studio-deployer` role and two fixed runtime roles. The approved
+bootstrap trusts only the configured account's `aiengineer` user. The deployer cannot
+create roles or edit IAM policies: it can only pass the two bounded runtime roles.
+Network mutation requires validation Project/Purpose tags in Sydney; named databases,
+functions, secrets and logs use `data-api-validation-*`. Lambda code is explicitly
+denied network-interface mutations while Lambda service ENI management remains allowed.
 
-The runner creates a new tagged CloudFormation stack with a private Aurora PostgreSQL
-17.9 writer, min/max 0–2 ACU, 300-second auto-pause, Secrets Manager credentials,
-two IAM-invoked Lambda functions and a private artifact bucket. It creates no NAT,
-interface endpoint, public database listener or public function URL. The baseline
-Lambda uses direct psycopg against the **same Aurora fixture data**. The non-VPC
-Lambda accesses it only through Data API.
-
-Inspect the template without creating anything:
+Initialize once using the existing user's IAM role-management permissions:
 
 ```sh
-uv run --locked --group aws-validation python -m experiments.data_api template
+terraform -chdir=infrastructure/bootstrap init
+terraform -chdir=infrastructure/bootstrap plan -out=bootstrap.tfplan
+terraform -chdir=infrastructure/bootstrap apply bootstrap.tfplan
 ```
 
-Build the Linux x86-64 package separately if desired. It uses the frozen application
-dependencies, excludes optional PyTorch/reranker dependencies and refuses packages
-over Lambda's uncompressed size limit:
+The user must be permitted to assume `dance-studio-deployer`. These initialization
+roles persist for future runs and have no provisioned compute charge. Keep bootstrap
+state private and available; do not import existing shared project IAM policies.
+
+From `backend/`, run the experiment with the existing AWS profile. Terraform's provider
+assumes the deployment role automatically; temporary credentials are not committed:
 
 ```sh
-uv run --locked --group aws-validation python -m experiments.data_api package \
-  --output-dir experiments/data_api/results/package-unique-name
+uv sync --locked --group aws-validation
+uv run --locked --group aws-validation python -m experiments.data_api live \
+  --output-dir experiments/data_api/results/terraform-unique-name
 ```
 
-Run real AWS validation, which incurs temporary AWS charges and attempts cleanup in
-`finally`. The AWS profile must already be authorized; this command does not modify
-the caller's permissions:
+The CLI builds a Linux x86-64 Lambda archive using the lockfile's pinned versions,
+copies `infrastructure/express-validation/` into a private results directory, and runs
+init, saved plan, apply, validation and destroy. Use `--lambda-zip` to reuse a compatible
+archive. `template` prints this native Express configuration. The AWS Cloud Control
+provider is used because the pinned native AWS provider does not expose Express
+creation. Legacy CloudFormation helpers remain for existing regression tests only.
 
-```sh
-AWS_PROFILE=your-validation-profile uv run --locked --group aws-validation \
-  python -m experiments.data_api live --region ap-southeast-2 \
-  --engine-version 17.9 \
-  --output-dir experiments/data_api/results/aws-unique-name
-```
+The Free Plan rejected standard private Aurora, so this experiment uses Aurora Express
+in Sydney, with zero minimum capacity and a two-ACU maximum. Express has an IAM-authenticated
+internet access gateway and no customer VPC. Both Lambda functions are non-VPC and have
+no HTTP function URL. There is no NAT or private endpoint. This is an account-plan
+constraint and demo choice, not a claim that Express is always preferable.
 
-Each output directory must be new and is ignored by Git. Use `--lambda-zip` to reuse
-a previously built archive. The runner compares direct-driver retrieval with Data API
-using a score tolerance of `1e-6`, observes zero capacity using CloudWatch (not SQL
-health probes), and measures a subsequent read-only cold resume. It records calls,
-response sizes and actual engine/extension versions. `report.json` distinguishes
-`passed`, `failed`, `incomplete` and `not_run`. `migration_ready` remains false: passing
-three mechanisms does not migrate the rest of the application.
+The runner grants the deployment role IAM database access to `postgres` and the baseline
+role access to `baseline`, each scoped to the actual cluster Resource ID. Through verified
+TLS, the initializer creates the test database, pgvector extension, fixture schema and
+two limited database users. Data API uses a separate password user in Secrets Manager;
+Express's master IAM user cannot authenticate to Data API. The direct psycopg baseline
+uses IAM authentication and read-only fixture access. Data API is enabled in a second
+Terraform apply after initialization. Temporary exact-cluster IAM grants are removed in
+cleanup, including after a partially failed permissions apply. This requires the original
+bootstrap user's IAM permissions; the assumed deployer cannot edit its own policies.
 
-The caller needs CloudFormation lifecycle permissions and permission to create/delete
-the template's VPC/subnets/security groups, RDS cluster/instance/subnet group,
-Secrets Manager secret, Lambda functions, IAM roles/policies and PassRole, S3 bucket
-and object, and CloudWatch log groups. The runner also invokes its functions, queries
-Data API and reads CloudWatch metrics. Runtime IAM permissions are scoped to the
-experiment's cluster and secret. Use a dedicated deployment role rather than granting
-the web application these provisioning permissions.
+Tests use fake model data and compare retrieval with a `1e-6` score tolerance. The
+runner records actual engine/extension versions, API counts, bounded response sizes,
+zero-capacity metrics and subsequent cold resume. A failed apply still triggers cleanup;
+an interrupted child is signaled and reaped before cleanup. The ownership-checked helper
+deletes only a matching validation cluster and writer, without final snapshots, before
+Terraform destroy. A destroy hook also supports manual Terraform cleanup. Both deletion
+and IAM revocation are attempted independently; failures are reported explicitly. Runtime/provider timeouts are not a billing ceiling.
 
-Stack creation and deletion each have a bounded 30-minute wait; observing pause has a
-15-minute window. These are operational deadlines, not an enforced billing ceiling.
-If cleanup cannot finish, retain the private report's `stack_id` and delete that exact
-stack after resolving its reported blocker. Do not delete similarly named existing
-resources. The experiment neither discovers nor reuses an existing application DB.
+Terraform state contains generated database credentials. Results directories are
+created with mode 0700, ignored by Git, and must remain private. If automatic cleanup
+fails, run `terraform -chdir=RESULTS/terraform destroy` with the same profile;
+non-secret input variables are saved in that run's private `terraform.tfvars.json`.
+If the initial apply stopped before recording the destroy hook, invoke
+`python -m experiments.data_api.delete_express --name EXACT_RUN_CLUSTER --role DEPLOYER_ARN`
+from `backend/` first. Retain state until deletion is verified. Revoke temporary grants with
+`terraform -chdir=infrastructure/bootstrap apply -var=express_cluster_resource_id=`
+after reviewing a fresh plan. Bootstrap roles
+are intentionally separate from temporary resources and are not destroyed by a run.
+
+`report.json` distinguishes passed, failed, incomplete and not_run. A mechanism pass
+is not a full migration approval; `migration_ready` remains false.
 
 ## Current evidence and decision
 
-On 2026-11-15 the first live attempt returned AWS `AccessDenied` for CloudFormation
-`CreateStack`, before a stack was accepted. After an IAM update, a new stack creation
-was accepted but failed during provisioning and automatically deleted. Its
-`DELETE_COMPLETE` status was confirmed. Reading the failure events was separately
-blocked by missing `cloudformation:DescribeStackEvents` permission, so the underlying
-provisioning cause remains unknown. All three live mechanism checks are **not run**.
-The runner now recognizes automatic deletion immediately, independently attempts
-resource cleanup after artifact failures and recognizes already deleted stacks.
-The Linux validation package was built
-separately and its native dependencies imported successfully in AWS's official Linux
-Python 3.12 Lambda image. The full backend run passed 1,211 tests before the final
-review fixes; focused validation tests cover the final review and lifecycle fixes. Ruff lint and
-format checks and the frontend production build passed. Independent review found
-and verified fixes for missing transaction credentials and cleanup failure ordering.
-Local test results and this AWS blocker must not be presented as a
-successful Aurora migration assessment.
+On 2026-11-16, Terraform provisioned an Express cluster and both Lambda functions.
+The IAM/TLS admin connection succeeded, but database initialization returned PostgreSQL
+`InsufficientPrivilege`. No checkpoint, mutex or retrieval probe ran in that attempt.
+Terraform deleted all temporary resources without a final snapshot and revoked both
+exact-cluster IAM database grants. Diagnostics located the missing `SET ROLE validator` permission when assigning schema
+ownership. The initializer now grants this explicitly, and a mechanism rerun is in
+progress; no live migration readiness is claimed.
+
+Local focused validation passed 52 tests, including actual PostgreSQL recovery/retrieval
+and mocked provisioning/permission failure cleanup. The full backend run passed
+1,242 tests; focused tests cover subsequent lifecycle changes. The Linux package's
+native dependencies imported successfully in AWS's official Python 3.12 Lambda image.
+Frontend production build passed; this experiment does not alter application UI or routes.
+Independent review identified transaction credential and cleanup-ordering issues, which
+were fixed. Local results must not be presented as successful Aurora compatibility.
 
 After live evidence is available, assess the remaining work separately: general ORM
 queries and migrations, approval/source revalidation through Data API, durable task
@@ -141,7 +150,8 @@ dispatch, upload staging, policy persistence, OAuth and production observability
 In particular, the experiment's fenced sample mutation is not proof that every
 existing application write has been converted to fencing.
 
-References: [Data API access](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/data-api.html),
+References: [Aurora Express configuration](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/CHAP_GettingStartedAurora.AuroraPostgreSQL.ExpressConfig.html),
+[Data API access](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/data-api.html),
 [response limits](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/data-api.limitations.html),
 [transactions](https://docs.aws.amazon.com/rdsdataservice/latest/APIReference/API_BeginTransaction.html),
 [automatic pause](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-serverless-v2-auto-pause.html).
