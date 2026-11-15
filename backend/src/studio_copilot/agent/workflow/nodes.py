@@ -65,14 +65,27 @@ PERSONAL_RECORD = re.compile(
     re.IGNORECASE,
 )
 LIVE_STATUS = re.compile(
-    r"\b(?:has|have|is|was|did|received|paid|booked|confirmed|approved|changed|"
-    r"cancelled|processed|issued|current|status|recorded)\b",
+    r"\b(?:receive[ds]?|arrive[ds]?|paid|booked|confirmed|approved|changed|"
+    r"cancelled|processed|issued|current|status|recorded|active|gone through)\b",
+    re.IGNORECASE,
+)
+POLICY_QUESTION = re.compile(
+    r"\b(?:policy|rule|deadline|notice|requirement|eligibility)\b",
+    re.IGNORECASE,
+)
+EXPLICIT_RECORD_OUTCOME = re.compile(
+    r"\b(?:receive[ds]?|arrive[ds]?|paid|booked|confirmed|approved|"
+    r"processed|issued|recorded|active|gone through)\b",
     re.IGNORECASE,
 )
 
 
 def _live_record_question(question: str) -> bool:
-    return bool(PERSONAL_RECORD.search(question) and LIVE_STATUS.search(question))
+    if not (PERSONAL_RECORD.search(question) and LIVE_STATUS.search(question)):
+        return False
+    # A policy about a personal booking/payment is still a document question.
+    # A stated record outcome remains live even when the student mentions policy.
+    return not POLICY_QUESTION.search(question) or bool(EXPLICIT_RECORD_OUTCOME.search(question))
 
 
 def _claim_references(claim: dict, answer_references: list[str]) -> list[str]:

@@ -3,7 +3,13 @@
 from types import SimpleNamespace
 from uuid import UUID
 
-from studio_copilot.agent.workflow.nodes import WorkflowNodes, _remove_unapproved_promises
+import pytest
+
+from studio_copilot.agent.workflow.nodes import (
+    WorkflowNodes,
+    _live_record_question,
+    _remove_unapproved_promises,
+)
 
 
 def _state(*questions, requested_actions=None, original_request=None):
@@ -327,3 +333,78 @@ def test_other_follow_up_wording_is_removed_without_teacher_deferral():
         )
         assert removed
         assert cleaned == "Hi there,\n\nA trial costs $20."
+
+
+@pytest.mark.parametrize(
+    "question,policy_fact",
+    [
+        (
+            "Is my booking cancellation notice seven days?",
+            "Booking cancellations require seven days' notice.",
+        ),
+        (
+            "Is my payment due before the first lesson?",
+            "Tuition payment is due before the first lesson.",
+        ),
+        (
+            "What is my refund policy if a class is cancelled?",
+            "The refund policy allows a credit when a class is cancelled.",
+        ),
+        (
+            "Is my booking cancellation notice currently seven days?",
+            "The current booking cancellation notice is seven days.",
+        ),
+    ],
+)
+def test_possessive_policy_question_stays_on_cited_composer_path(question, policy_fact):
+    assert not _live_record_question(question)
+    state = _state(question)
+    state["evidence"] = [
+        _evidence(
+            state,
+            question,
+            claims=(policy_fact,),
+            references=("document:policy",),
+        )
+    ]
+    body = f"Hi there,\n\n{policy_fact}"
+
+    draft, writer_context = _draft_with_writer(state, body)
+
+    assert writer_context["facts"][0]["text"] == policy_fact
+    assert draft["body"] == body
+    assert draft["answers"][0]["status"] == "answered"
+    assert draft["answers"][0]["references"] == ["document:policy"]
+    assert not draft["required_question_ids"]
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Has my booking been confirmed?",
+        "Has my booking been confirmed under the cancellation policy?",
+        "Did my payment arrive?",
+        "Is my refund processed?",
+        "Is my payment marked paid?",
+    ],
+)
+def test_genuine_record_status_question_stays_on_deterministic_handoff(question):
+    assert _live_record_question(question)
+    state = _state(question)
+    state["evidence"] = [
+        _evidence(
+            state,
+            question,
+            status="answered",
+            claims=("Your record is complete.",),
+            references=("document:policy",),
+        )
+    ]
+
+    draft, writer_context = _draft_with_writer(state, "Hi there,\n\nYour record is complete.")
+
+    assert not writer_context
+    assert "record is complete" not in draft["body"]
+    assert draft["answers"][0]["status"] == "needs_teacher"
+    assert draft["answers"][0]["references"] == []
+    assert state["interpretation"]["question_ids"][question] in draft["required_question_ids"]
