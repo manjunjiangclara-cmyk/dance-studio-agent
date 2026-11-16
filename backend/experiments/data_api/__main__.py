@@ -149,16 +149,27 @@ def pause_check(cloudwatch, instance, *, timeout=900):
 
 def resume_check(sql, *, timeout=120):
     started = time.monotonic()
+    last_print = started - 30
     while time.monotonic() - started < timeout:
         try:
             assert sql.query("SELECT 1 AS ready") == [{"ready": 1}]
             return {"status": "passed", "seconds": time.monotonic() - started}
         except Exception as error:
             code = getattr(error, "response", {}).get("Error", {}).get("Code")
-            if code not in {"DatabaseResumingException", "DatabaseUnavailableException"}:
+            if code not in {
+                "DatabaseResumingException",
+                "DatabaseUnavailableException",
+                "HttpEndpointNotEnabledException",
+            }:
                 raise
+            if time.monotonic() - last_print >= 30:
+                print(f"Waiting for Data API readiness: {code}", flush=True)
+                last_print = time.monotonic()
             time.sleep(2)
-    return {"status": "failed", "reason": "Database did not resume within two minutes."}
+    return {
+        "status": "failed",
+        "reason": f"Database did not become ready within {timeout} seconds.",
+    }
 
 
 def cleanup(cf, s3, stack, outputs, artifact):

@@ -98,6 +98,7 @@ def test_partial_auth_always_destroys_and_revokes(tmp_path, monkeypatch, failure
             assert kwargs == {"ResourceArn": "fixture-cluster-arn"}
             if failure == "enable":
                 raise RuntimeError("synthetic endpoint enablement failure")
+            return {"HttpEndpointEnabled": True}
 
     class Session:
         def client(self, name, **kwargs):

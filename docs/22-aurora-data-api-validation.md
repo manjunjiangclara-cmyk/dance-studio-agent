@@ -41,7 +41,7 @@ dedicated test database. Follow the root README to prepare that database first.
 ```sh
 uv sync --locked --group aws-validation
 uv run --locked --group aws-validation --env-file .env.example pytest \
-  tests/unit/test_data_api_sql.py tests/unit/test_data_api_runner.py \
+  tests/unit/test_data_api_*.py \
   tests/integration/agent/test_data_api_checkpoint.py \
   tests/integration/test_data_api_validation.py
 ```
@@ -139,9 +139,14 @@ exact-cluster IAM database grants. Diagnostics located the missing `SET ROLE val
 ownership. The initializer now grants this explicitly. A subsequent run completed database
 initialization, but Cloud Control rejected endpoint enablement as an Express create-only
 property update. The runner now uses the RDS enablement operation described above.
-The next mechanism rerun is pending cleanup; no live migration readiness is claimed.
+A later run confirmed admin connectivity and initialization again; its first Data API
+query returned `HttpEndpointNotEnabledException` immediately after enablement. Initial
+readiness now retries this propagation state for up to five minutes, alongside known
+resume/unavailability states, while access denial fails immediately. Admin connection
+retries retain verified TLS and redact IAM tokens from diagnostics. The next mechanism
+rerun is pending cleanup; no live migration readiness is claimed.
 
-Local focused validation passed 57 tests, including actual PostgreSQL recovery/retrieval
+Local focused validation passed 60 tests, including actual PostgreSQL recovery/retrieval
 and mocked provisioning/permission failure cleanup. The full backend run passed
 1,242 tests; focused tests cover subsequent lifecycle changes. The Linux package's
 native dependencies imported successfully in AWS's official Python 3.12 Lambda image.

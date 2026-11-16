@@ -117,7 +117,12 @@ def live(directory, region, engine_version, zip_path=None):
         # Cloud Control rejects an Express update even when only HTTP enablement changes.
         # Use the documented RDS operation after password-user initialization instead.
         phase = "enable_data_api"
-        session.client("rds").enable_http_endpoint(ResourceArn=outputs["ClusterArn"])
+        enabled = session.client("rds").enable_http_endpoint(ResourceArn=outputs["ClusterArn"])
+        report["endpoint_enablement"] = {
+            "http_endpoint_enabled": enabled.get("HttpEndpointEnabled")
+        }
+        if not enabled.get("HttpEndpointEnabled"):
+            raise RuntimeError("RDS did not confirm Data API enablement.")
         cluster = session.client("rds").describe_db_clusters(
             DBClusterIdentifier=outputs["ClusterId"]
         )["DBClusters"][0]
@@ -128,7 +133,7 @@ def live(directory, region, engine_version, zip_path=None):
             outputs["SecretArn"],
         )
         phase = "data_api_readiness"
-        report["data_api_readiness"] = resume_check(sql)
+        report["data_api_readiness"] = resume_check(sql, timeout=300)
         assert report["data_api_readiness"]["status"] == "passed"
         assert sql.query("SELECT current_user AS identity") == [{"identity": "validator"}]
         phase = "mechanism_probes"

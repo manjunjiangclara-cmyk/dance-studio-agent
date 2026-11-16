@@ -43,7 +43,8 @@ def database(session, outputs, schema):
     )
     assert values["username"] == "validator"
     rds = session.client("rds")
-    for attempt in range(30):
+    deadline = time.monotonic() + 300
+    for attempt in range(150):
         token = rds.generate_db_auth_token(
             DBHostname=outputs["Host"], Port=5432, DBUsername="postgres"
         )
@@ -55,12 +56,17 @@ def database(session, outputs, schema):
                 dbname="postgres",
                 sslmode="verify-full",
                 sslrootcert=certifi.where(),
-                connect_timeout=30,
+                connect_timeout=10,
                 autocommit=True,
             )
             break
-        except psycopg.OperationalError:
-            if attempt == 29:
+        except psycopg.OperationalError as error:
+            error.validation_detail = str(error).replace(token, "[redacted IAM token]")[:1000]
+            exhausted = attempt == 149 or time.monotonic() >= deadline
+            if attempt % 15 == 0 or exhausted:
+                print(f"Express IAM/TLS connection attempt {attempt + 1}/150 failed.", flush=True)
+                print(error.validation_detail, flush=True)
+            if exhausted:
                 raise
             time.sleep(2)
 
@@ -74,16 +80,21 @@ def database(session, outputs, schema):
 
     with connection:
         execute(connection, "create_database", "CREATE DATABASE data_api_test")
-    connection = psycopg.connect(
-        host=outputs["Host"],
-        user="postgres",
-        password=token,
-        dbname="data_api_test",
-        sslmode="verify-full",
-        sslrootcert=certifi.where(),
-        connect_timeout=30,
-        autocommit=True,
-    )
+    try:
+        connection = psycopg.connect(
+            host=outputs["Host"],
+            user="postgres",
+            password=token,
+            dbname="data_api_test",
+            sslmode="verify-full",
+            sslrootcert=certifi.where(),
+            connect_timeout=30,
+            autocommit=True,
+        )
+    except psycopg.OperationalError as error:
+        error.validation_detail = str(error).replace(token, "[redacted IAM token]")[:1000]
+        error.validation_phase = "connect_test_database"
+        raise
     with connection:
         assert connection.execute("SELECT current_user").fetchone()[0] == "postgres"
         execute(

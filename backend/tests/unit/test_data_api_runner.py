@@ -143,3 +143,34 @@ def test_lambda_failure_preserves_fixture_diagnostic():
     with pytest.raises(RuntimeError, match="SyntheticFailure") as caught:
         invoke(Lambda(), "fixture", {})
     assert caught.value.validation_detail == "fixture diagnostic"
+
+
+def test_readiness_waits_for_enablement_and_resume_but_not_denial(monkeypatch):
+    import pytest
+
+    from experiments.data_api.__main__ import resume_check
+
+    monkeypatch.setattr("experiments.data_api.__main__.time.sleep", lambda seconds: None)
+
+    class SQL:
+        def __init__(self, code):
+            self.code, self.calls = code, 0
+
+        def query(self, statement):
+            self.calls += 1
+            if self.calls == 1:
+                raise ClientError({"Error": {"Code": self.code}}, "ExecuteStatement")
+            return [{"ready": 1}]
+
+    for code in (
+        "HttpEndpointNotEnabledException",
+        "DatabaseResumingException",
+        "DatabaseUnavailableException",
+    ):
+        sql = SQL(code)
+        assert resume_check(sql)["status"] == "passed"
+        assert sql.calls == 2
+    denied = SQL("AccessDeniedException")
+    with pytest.raises(ClientError):
+        resume_check(denied)
+    assert denied.calls == 1
