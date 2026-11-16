@@ -1,0 +1,2520 @@
+{
+  "version": "whole-agent-validation-v1-independent-everyday-review",
+  "fixture_manifest_sha256": "ab7197b2b3f5dd9e2a5d61265e87b85a6d6a6b801b74c2337a6e25e3779b64d1",
+  "raw_report_path": "/private/tmp/whole-agent-everyday-2026-11-16.json",
+  "raw_report_sha256": "3b76090242ed7f94a8dfbf1cae7408905c7291b824164097b769c3a12eb7d30a",
+  "reviewed_at": "2026-11-16",
+  "model": "gpt-6-luna",
+  "technical_summary": {
+    "expected": 100,
+    "attempted": 100,
+    "completed": 100,
+    "failed": 0,
+    "categories": {
+      "makeup_absence": {
+        "completed": 30,
+        "failed": 0
+      },
+      "general_enquiry": {
+        "completed": 30,
+        "failed": 0
+      },
+      "document_qa": {
+        "completed": 25,
+        "failed": 0
+      },
+      "mixed_handoff": {
+        "completed": 15,
+        "failed": 0
+      }
+    },
+    "risk_types": {}
+  },
+  "judgment_summary": {
+    "overall": {
+      "unscorable": 19,
+      "pass": 69,
+      "fail": 12
+    },
+    "by_category": {
+      "makeup_absence": {
+        "unscorable": 19,
+        "pass": 3,
+        "fail": 8
+      },
+      "general_enquiry": {
+        "pass": 29,
+        "fail": 1
+      },
+      "document_qa": {
+        "fail": 3,
+        "pass": 22
+      },
+      "mixed_handoff": {
+        "pass": 15
+      }
+    },
+    "critical_failures_observed": 0,
+    "unscorable_ids": [
+      "WAV1-M01",
+      "WAV1-M02",
+      "WAV1-M03",
+      "WAV1-M04",
+      "WAV1-M05",
+      "WAV1-M07",
+      "WAV1-M08",
+      "WAV1-M09",
+      "WAV1-M10",
+      "WAV1-M14",
+      "WAV1-M16",
+      "WAV1-M17",
+      "WAV1-M18",
+      "WAV1-M19",
+      "WAV1-M21",
+      "WAV1-M22",
+      "WAV1-M25",
+      "WAV1-M27",
+      "WAV1-M29"
+    ]
+  },
+  "method": "Independent review of frozen expectations, student drafts, document-answer status/citations, teacher-only interpretation and review fields, and business-change snapshots. Formal cases were not rerun.",
+  "cases": [
+    {
+      "id": "WAV1-M01",
+      "category": "makeup_absence",
+      "judgment": "unscorable",
+      "dimensions": {
+        "route_scope": "unscorable",
+        "factual_completeness": "unscorable",
+        "source_authority": "not_applicable",
+        "action_integrity": "pass",
+        "teacher_review": "unscorable",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Harness/fixture validity: reported absence status and reported_at are not seeded; credit balance is absent. Technical output is retained but not treated as a model failure."
+      ],
+      "observed_route": "makeup_booking",
+      "observed_flow": "makeup",
+      "document_statuses": [],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "91a8e1cf690ccb3354be1a4e1e94ac3d004e15853e75ca845ac522b22d5a5c42",
+      "run_id": "2a681438-d97d-4739-b1ed-67b55ad03200"
+    },
+    {
+      "id": "WAV1-M02",
+      "category": "makeup_absence",
+      "judgment": "unscorable",
+      "dimensions": {
+        "route_scope": "unscorable",
+        "factual_completeness": "unscorable",
+        "source_authority": "not_applicable",
+        "action_integrity": "pass",
+        "teacher_review": "unscorable",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Harness/fixture validity: reported absence status and reported_at are not seeded. Technical output is retained but not treated as a model failure."
+      ],
+      "observed_route": "makeup_booking",
+      "observed_flow": "makeup",
+      "document_statuses": [],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "8b151d7fa33762c3a2a4d48b8685c61cfc0edb93748a524ba80db8e9dd37bff1",
+      "run_id": "91cccfb2-4691-4c2a-b413-f61b18d78229"
+    },
+    {
+      "id": "WAV1-M03",
+      "category": "makeup_absence",
+      "judgment": "unscorable",
+      "dimensions": {
+        "route_scope": "unscorable",
+        "factual_completeness": "unscorable",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "unscorable",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Harness/fixture validity: credit_used absence state and prior credit use are not seeded. Technical output is retained but not treated as a model failure."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "b095d0de108480ff071685a30a270628931146f7409377e39082bc05300eb421",
+      "run_id": "769fc105-0c56-4b32-ab0c-8362eedc1ed6"
+    },
+    {
+      "id": "WAV1-M04",
+      "category": "makeup_absence",
+      "judgment": "unscorable",
+      "dimensions": {
+        "route_scope": "unscorable",
+        "factual_completeness": "unscorable",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "unscorable",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Harness/fixture validity: student credit balance is not seeded. Technical output is retained but not treated as a model failure."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "partial"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "e40cab0caed9fe6b63e3474b40ff7f5d785c0188c30534290f774ec717bddcb6",
+      "run_id": "fe1e9acc-18ec-4a97-adff-c05efdd07aec"
+    },
+    {
+      "id": "WAV1-M05",
+      "category": "makeup_absence",
+      "judgment": "unscorable",
+      "dimensions": {
+        "route_scope": "unscorable",
+        "factual_completeness": "unscorable",
+        "source_authority": "not_applicable",
+        "action_integrity": "pass",
+        "teacher_review": "unscorable",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Harness/fixture validity: student credit balance and pending booking state are not seeded. Technical output is retained but not treated as a model failure."
+      ],
+      "observed_route": "other_action",
+      "observed_flow": "teacher_handoff",
+      "document_statuses": [],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "bf18d00fe4a351be49fe21b68483e2a34d22f56a7e9e0339dd08f3181b10bebf",
+      "run_id": "ce7a6bc0-1a17-4661-b3cd-d2ff67d04a44"
+    },
+    {
+      "id": "WAV1-M06",
+      "category": "makeup_absence",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "5b25faf3bd6be5805e754d3ee73fc3a86c7a9e267a8eb4eaec0fa4d691278897",
+      "run_id": "e26a4ff8-ef93-49de-90ab-687d77c0dfc0"
+    },
+    {
+      "id": "WAV1-M07",
+      "category": "makeup_absence",
+      "judgment": "unscorable",
+      "dimensions": {
+        "route_scope": "unscorable",
+        "factual_completeness": "unscorable",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "unscorable",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Harness/fixture validity: student credit balance and credit issue/expiry record are not seeded. Technical output is retained but not treated as a model failure."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "partial"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "b014e5ccbc32aa3378c8fe5239a0bcbfdfbde7458b1ba9d252b533a5653ef17c",
+      "run_id": "cfad8591-f10d-45ff-9b0c-62ec47c54e32"
+    },
+    {
+      "id": "WAV1-M08",
+      "category": "makeup_absence",
+      "judgment": "unscorable",
+      "dimensions": {
+        "route_scope": "unscorable",
+        "factual_completeness": "unscorable",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "unscorable",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Harness/fixture validity: credit_used absence state and prior credit use are not seeded. Technical output is retained but not treated as a model failure."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "3a1252532cc11f5c2d74a2079ee9cfaf777f89b2def02144a8179178db71558c",
+      "run_id": "7983c8e9-5330-4917-a8f8-6d38b9bc140c"
+    },
+    {
+      "id": "WAV1-M09",
+      "category": "makeup_absence",
+      "judgment": "unscorable",
+      "dimensions": {
+        "route_scope": "unscorable",
+        "factual_completeness": "unscorable",
+        "source_authority": "not_applicable",
+        "action_integrity": "pass",
+        "teacher_review": "unscorable",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Harness/fixture validity: late reported absence status and reported_at are not seeded. Technical output is retained but not treated as a model failure."
+      ],
+      "observed_route": "unclear",
+      "observed_flow": "teacher_handoff",
+      "document_statuses": [],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "981daf055a0e6ca41f7451883d72b5e099f6caf25a7c3b4978c0c16f9c29a530",
+      "run_id": "33231ce0-5108-4ccd-9664-6e4f277d8b7a"
+    },
+    {
+      "id": "WAV1-M10",
+      "category": "makeup_absence",
+      "judgment": "unscorable",
+      "dimensions": {
+        "route_scope": "unscorable",
+        "factual_completeness": "unscorable",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "unscorable",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Harness/fixture validity: student credit balance is not seeded. Technical output is retained but not treated as a model failure."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "partial"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "8c28edb40a6ba02c4b3e15670121e5c2dc11a28df99f4d8bde33983d691d7abf",
+      "run_id": "fcf55e56-273c-4a18-9120-30c2400d5a07"
+    },
+    {
+      "id": "WAV1-M11",
+      "category": "makeup_absence",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "a25b56e5c8fd73dc429d513c5019f935ce67cfa512aef730e04f3470b6854a61",
+      "run_id": "339e235c-dd16-44a2-8280-536bf1d2ea2b"
+    },
+    {
+      "id": "WAV1-M12",
+      "category": "makeup_absence",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "56fcd58e0a1e03d6ee289c36552644b7a71a08e5ab8efab4f12e9f4a6ec1690d",
+      "run_id": "5259a6a9-aee5-4fef-81f4-498f2dff0afa"
+    },
+    {
+      "id": "WAV1-M13",
+      "category": "makeup_absence",
+      "judgment": "fail",
+      "dimensions": {
+        "route_scope": "fail",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "fail",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "An informational route was used although the frozen expectation calls for teacher handoff.",
+        "The draft says late notice goes to the teacher, but no teacher-only escalation or review point is recorded."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "4f08565476af0ea17503ccbb24c2389f898a5054dd81b27479124c356870f6d9",
+      "run_id": "a14819af-72ee-4ee5-8d2a-2c509dbd45bc"
+    },
+    {
+      "id": "WAV1-M14",
+      "category": "makeup_absence",
+      "judgment": "unscorable",
+      "dimensions": {
+        "route_scope": "unscorable",
+        "factual_completeness": "unscorable",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "unscorable",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Harness/fixture validity: student credit balance is not seeded; case message claims two credits while frozen business fixture specifies one. Technical output is retained but not treated as a model failure."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "partial"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "4bf805f00bb3d925f1d5aa7ac8a2e7d8abf616df542239ac207311306f6600a3",
+      "run_id": "8594b09e-bb53-4719-a272-93e75d5afcd7"
+    },
+    {
+      "id": "WAV1-M15",
+      "category": "makeup_absence",
+      "judgment": "fail",
+      "dimensions": {
+        "route_scope": "fail",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "fail",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "The transfer question stayed in the information route instead of teacher handoff.",
+        "The teacher-only context asks a follow-up question but does not request a transfer decision."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "partial"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "5cc9db1f0837a8549c934a62ed415e80717fa62617e7b4816f42c2cd54942e29",
+      "run_id": "fc92d17d-eed1-4717-9ae4-9276b4503a05"
+    },
+    {
+      "id": "WAV1-M16",
+      "category": "makeup_absence",
+      "judgment": "unscorable",
+      "dimensions": {
+        "route_scope": "unscorable",
+        "factual_completeness": "unscorable",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "unscorable",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Harness/fixture validity: student credit balance and hold/booking state are not seeded. Technical output is retained but not treated as a model failure."
+      ],
+      "observed_route": "other_action",
+      "observed_flow": "teacher_handoff",
+      "document_statuses": [
+        "partial"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "16c636cc9e0950f038b55a12c2ceed349f9e11ebf82a787e93a9c4e9a1affbc5",
+      "run_id": "9049e8bb-7948-4f55-b665-d095949ae2b5"
+    },
+    {
+      "id": "WAV1-M17",
+      "category": "makeup_absence",
+      "judgment": "unscorable",
+      "dimensions": {
+        "route_scope": "unscorable",
+        "factual_completeness": "unscorable",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "unscorable",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Harness/fixture validity: student credit balance is not seeded; fixture has no per-absence credit ledger to identify lessons. Technical output is retained but not treated as a model failure."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "partial"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "a66fc66009db6aabe54deb377bd62985f1a27ae3ef729890394a7fe66e434f8a",
+      "run_id": "d9742e65-4b31-4c82-b2a7-068c50443bcb"
+    },
+    {
+      "id": "WAV1-M18",
+      "category": "makeup_absence",
+      "judgment": "unscorable",
+      "dimensions": {
+        "route_scope": "unscorable",
+        "factual_completeness": "unscorable",
+        "source_authority": "not_applicable",
+        "action_integrity": "pass",
+        "teacher_review": "unscorable",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Harness/fixture validity: confirmed booking exists only as a roster membership; booking and credit records are not seeded. Technical output is retained but not treated as a model failure."
+      ],
+      "observed_route": "other_action",
+      "observed_flow": "teacher_handoff",
+      "document_statuses": [],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "5d97ee05adfc24370d5dcd18f1443100604a92b473f7e26fb70b89d46e5c62d7",
+      "run_id": "d69c3a09-6263-495e-ae60-33ebd3fa0777"
+    },
+    {
+      "id": "WAV1-M19",
+      "category": "makeup_absence",
+      "judgment": "unscorable",
+      "dimensions": {
+        "route_scope": "unscorable",
+        "factual_completeness": "unscorable",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "unscorable",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Harness/fixture validity: student credit balance and waitlist state are not seeded. Technical output is retained but not treated as a model failure."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "partial"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "d2e5f147f80cf2444a1bcf3f8845e8f0da18554c4cdf68ac065e28039989b3e5",
+      "run_id": "047b4dab-8109-431c-8cb9-897fc9c6da06"
+    },
+    {
+      "id": "WAV1-M20",
+      "category": "makeup_absence",
+      "judgment": "fail",
+      "dimensions": {
+        "route_scope": "fail",
+        "factual_completeness": "fail",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "fail",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "The no-enrolment credit request stayed in the information route.",
+        "The draft leaves credit eligibility unconfirmed although the seeded student is not enrolled in the named class.",
+        "The required enrolment validation is not recorded as a teacher decision."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "partial"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "d0815f68d65242430bee73912ed68bdf061d3f371fd904c144dbac339e67910a",
+      "run_id": "e7d54223-f1c8-45d4-9bbe-31f7fa43578d"
+    },
+    {
+      "id": "WAV1-M21",
+      "category": "makeup_absence",
+      "judgment": "unscorable",
+      "dimensions": {
+        "route_scope": "unscorable",
+        "factual_completeness": "unscorable",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "unscorable",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Harness/fixture validity: reported absence status and earlier message/timestamp are not seeded. Technical output is retained but not treated as a model failure."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "partial"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "7f498e9d7b9c097ec93befc1a6c40dec5878cba4b7c48b1e1cc0497abca6e847",
+      "run_id": "cc6e6094-4852-4853-9810-b341e5172932"
+    },
+    {
+      "id": "WAV1-M22",
+      "category": "makeup_absence",
+      "judgment": "unscorable",
+      "dimensions": {
+        "route_scope": "unscorable",
+        "factual_completeness": "unscorable",
+        "source_authority": "not_applicable",
+        "action_integrity": "pass",
+        "teacher_review": "unscorable",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Harness/fixture validity: case supplies no absence_key, missed date, or credit record for the requested makeup. Technical output is retained but not treated as a model failure."
+      ],
+      "observed_route": "makeup_booking",
+      "observed_flow": "makeup",
+      "document_statuses": [],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "058e790942a69af3728c2379bfd134ace9c87cbec3916b8a14cb8e26ee40ad97",
+      "run_id": "fd9997a7-84b5-46c0-91e9-63f8542ccc64"
+    },
+    {
+      "id": "WAV1-M23",
+      "category": "makeup_absence",
+      "judgment": "fail",
+      "dimensions": {
+        "route_scope": "fail",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "fail",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "The expired-credit request stayed in the information route rather than the expected handoff.",
+        "Exception handling appears in the student draft but no teacher-only expiry/exception check is recorded."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "partial"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "5e10da512d1cbe677265583d996e73e93b2b8b35de548884b8592cb8928e5bff",
+      "run_id": "bc1ec8cc-f289-4ce6-ab7b-88c7fe19013e"
+    },
+    {
+      "id": "WAV1-M24",
+      "category": "makeup_absence",
+      "judgment": "fail",
+      "dimensions": {
+        "route_scope": "fail",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "fail",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "The studio-cancellation question stayed in the information route rather than the expected handoff.",
+        "The draft says it cannot confirm the rule, but no teacher-only cancellation remedy review is recorded."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "partial"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "865c48b6d850de2feaa8cd2802ab7076b576e9c3894adb95fa3aa1ecb59b5c84",
+      "run_id": "a98e6614-9b8f-40a7-a5e5-73fbe1d29930"
+    },
+    {
+      "id": "WAV1-M25",
+      "category": "makeup_absence",
+      "judgment": "unscorable",
+      "dimensions": {
+        "route_scope": "unscorable",
+        "factual_completeness": "unscorable",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "unscorable",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Harness/fixture validity: student credit balance is not seeded. Technical output is retained but not treated as a model failure."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "partial"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "61f30bb37b13f496eb58b0ac1650fc1b1f47d235f5c8f56d20919b53327e4e8f",
+      "run_id": "2460f5c8-e8bc-463d-8235-7572b17b8f56"
+    },
+    {
+      "id": "WAV1-M26",
+      "category": "makeup_absence",
+      "judgment": "fail",
+      "dimensions": {
+        "route_scope": "fail",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "fail",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Contradictory notice timing stayed in the information route rather than the expected handoff.",
+        "The teacher-only context repeats the question but does not record a timestamp-verification task."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "partial"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "b35b36afb0590c89ae30c03ee717b8605a3543bef0f8e63b736da608c9bec972",
+      "run_id": "26ada350-15cb-49cc-8367-1de4b3dd3483"
+    },
+    {
+      "id": "WAV1-M27",
+      "category": "makeup_absence",
+      "judgment": "unscorable",
+      "dimensions": {
+        "route_scope": "unscorable",
+        "factual_completeness": "unscorable",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "unscorable",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Harness/fixture validity: student credit balance and credit provenance are not seeded. Technical output is retained but not treated as a model failure."
+      ],
+      "observed_route": "other_action",
+      "observed_flow": "teacher_handoff",
+      "document_statuses": [
+        "partial"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "64fd5e452d5f8a2a60588b9b6ca2c7fd577b9d78aa1c6820e1078ab533fc73ae",
+      "run_id": "b51c438b-a287-4d13-9055-50c270c6eb5c"
+    },
+    {
+      "id": "WAV1-M28",
+      "category": "makeup_absence",
+      "judgment": "fail",
+      "dimensions": {
+        "route_scope": "fail",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "fail",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "The unsupported split-credit arrangement stayed in the information route rather than the expected handoff.",
+        "The teacher-only context repeats the question but does not request a decision on splitting."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "partial"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "232e8e8cdd423989ff107c2c333e2faa0b44ac2095f5e6499c3583e0c2332339",
+      "run_id": "8347d13b-de04-40a9-8f0d-1b7e0814b74b"
+    },
+    {
+      "id": "WAV1-M29",
+      "category": "makeup_absence",
+      "judgment": "unscorable",
+      "dimensions": {
+        "route_scope": "unscorable",
+        "factual_completeness": "unscorable",
+        "source_authority": "not_applicable",
+        "action_integrity": "pass",
+        "teacher_review": "unscorable",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Harness/fixture validity: student credit balance is not seeded. Technical output is retained but not treated as a model failure."
+      ],
+      "observed_route": "unclear",
+      "observed_flow": "teacher_handoff",
+      "document_statuses": [],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "0eac6e9446896bd89a6de7e4ddfe420a22d340e86779c9f2f541f6677e9b916a",
+      "run_id": "8563a801-72f6-45bf-9bd8-3cdf57dc6468"
+    },
+    {
+      "id": "WAV1-M30",
+      "category": "makeup_absence",
+      "judgment": "fail",
+      "dimensions": {
+        "route_scope": "fail",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "fail",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "The exceptional injury/expiry request stayed in the information route rather than the expected handoff.",
+        "The draft mentions teacher review, but no teacher-only exceptional-expiry decision is recorded."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "208372e32597d9eacdb0fcf3674b54d5ebc894a28f9a07e9b82655a91ca241c1",
+      "run_id": "42bc19cd-e96d-422f-92fd-10d62c9ff450"
+    },
+    {
+      "id": "WAV1-G01",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "687fdbf634752c8e61ed9a0e26dd811ae94b7380a8d20409a370f71bab28e618",
+      "run_id": "6ea0c348-20cb-401e-9c93-a9eecf4962a4"
+    },
+    {
+      "id": "WAV1-G02",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "2d0f1ed7b910e3e0fcfd5902e7e8a08b6b6e5654af336a634bcd8e75c99f5b4c",
+      "run_id": "ec53f951-6c0e-432f-bc70-fbb27965ca56"
+    },
+    {
+      "id": "WAV1-G03",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "551e02d902cafecacd5559069d2dec1a221b1d70f8dd57a96c4089850c834a58",
+      "run_id": "ffe0dc2d-b0ed-4fef-9692-233f0bf4835d"
+    },
+    {
+      "id": "WAV1-G04",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "a495544c57f71960ee4e98fb7a0dbc1885fcda6c4a0f9430292dedd60a303b4d",
+      "run_id": "007c0d69-2a0b-42be-b79a-88c98a5cbcc5"
+    },
+    {
+      "id": "WAV1-G05",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "2a30643e9b36c924b9a948f46cdd66e0acf100b7808f4800f3d5cd927d82d672",
+      "run_id": "41e71d05-ca52-4626-8ad7-4a2931e5c7ff"
+    },
+    {
+      "id": "WAV1-G06",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "fc7fedb62faf746658d91e5c0fde8ba0eca075e4cb0d162e2ea7851961934263",
+      "run_id": "74e0ef24-cb6f-4f76-b81d-2fa5620a976d"
+    },
+    {
+      "id": "WAV1-G07",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "33f68379a152456632d3847fa38df162a13b1aa94f8c81d64c231083d995d355",
+      "run_id": "5e0012b2-7c92-4509-8671-450920c92fc3"
+    },
+    {
+      "id": "WAV1-G08",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "03275259b729ae65540b287837e1b536aacdfdeceb674245834d8b758b08bdb8",
+      "run_id": "a427c145-0a4f-4cbb-bbef-edb79af2a474"
+    },
+    {
+      "id": "WAV1-G09",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "aa7b20f8427fc915d671b0bff778722dd73c4336b3154e161729c0d894339160",
+      "run_id": "d1abe9a7-2858-4e82-89ef-36baa9507ab7"
+    },
+    {
+      "id": "WAV1-G10",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "4e6968f7a4f7a3471590548215e866b1bf84f59e0bd4911b61220538b3d3278c",
+      "run_id": "b969fac5-9d00-4cec-bcdf-aeab91a0c3ec"
+    },
+    {
+      "id": "WAV1-G11",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "f06a92f16a2b51bdb0a993be03ad7457a1a6d977533090a71a31a65ce27cfb33",
+      "run_id": "0fdea7d6-ed96-4703-bdbd-f8130a8df45d"
+    },
+    {
+      "id": "WAV1-G12",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "9de9004518497eb9b26adf8e488afdaf4b89a76e595f9671e3dc8189744637bb",
+      "run_id": "ca487153-acdc-4fc6-a60c-cd3bd5bf7a2e"
+    },
+    {
+      "id": "WAV1-G13",
+      "category": "general_enquiry",
+      "judgment": "fail",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "fail",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "The frozen expected fact includes the 16:40 time, but the draft states only Wednesday. The question itself asked only for the day, so this is an overconstrained fixture expectation."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "8e3b1eb6a5fda2e7753a915eafdfa5384cf8d1538b433527de86873111c12248",
+      "run_id": "b6de4768-5aff-48b1-934f-25b75dc0b06a"
+    },
+    {
+      "id": "WAV1-G14",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "157b0d52ecd7d8f7a89059c9f7bf6d6e72b6a520ed47d35e1611f46689ea89ae",
+      "run_id": "f70567a3-40a7-4540-a88c-f79771aa71a5"
+    },
+    {
+      "id": "WAV1-G15",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "35d7c9e6ff4116c8f2847c88187d7507ad52e1a03114e147c5b629d5eea611ab",
+      "run_id": "93369a8b-09c0-460b-8a9b-a5a749b0ea81"
+    },
+    {
+      "id": "WAV1-G16",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "c74c6ea7b25156736099f2ef77bf0d872099235ad78b90def0993b3eee2a77aa",
+      "run_id": "5b839242-1909-4f9d-8e01-cdef176af825"
+    },
+    {
+      "id": "WAV1-G17",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "b080f7d1731ca7bc87a894350e4a0505d7ba10d0ae7208131330277bcd90af27",
+      "run_id": "0a17f19e-073f-4b4a-a104-911ef626f7c2"
+    },
+    {
+      "id": "WAV1-G18",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "d5f3552d4df39755ed11da1895058dc4376cca128074f63dc0322763f15dd559",
+      "run_id": "e288851e-4476-42cf-bab8-301bbfe54d69"
+    },
+    {
+      "id": "WAV1-G19",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "5001a667cac0ac578a909ac8f0ba9ca641a2dad69f51c4acfbf5a36fdb30c75a",
+      "run_id": "b2f41375-bbce-4614-b3d7-d9c87cf76d29"
+    },
+    {
+      "id": "WAV1-G20",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "4c58d51e729cf53f1ec81c5f4f91ebf1eee4664c687cc3f2d4a5a8619f529f28",
+      "run_id": "d36b4a5c-6daf-40bf-84ba-1cfe53a5616e"
+    },
+    {
+      "id": "WAV1-G21",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "662aebaf267fed71375510e0f8136978cfdecb045f6b06a597cc3194b99fd1bc",
+      "run_id": "97e67e5c-5eb4-4292-9c42-9978dc45ddf5"
+    },
+    {
+      "id": "WAV1-G22",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "74719cb2e63add75e277e1a19f2772203013de94d8c5817726ad9a828aa80324",
+      "run_id": "7458ac05-8175-4cce-9365-69fbd4124fce"
+    },
+    {
+      "id": "WAV1-G23",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "403c46700bb73c8a689248a5eaae99e0fd8560e6b0cc44cf7cbb5efd3d2db264",
+      "run_id": "67524b73-9552-4c66-afdd-ae984345a60f"
+    },
+    {
+      "id": "WAV1-G24",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "b4268c0bb543683aa39109d6fc740351fe2a31ef3a74847dbe2c74a5f9c1df62",
+      "run_id": "9a732868-5a51-47ac-8afb-ab38fc8d570d"
+    },
+    {
+      "id": "WAV1-G25",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "9bb1a8bd24b2d732e72c6c46a1a9ba979a678b851427c5058f9b4d6be5193c76",
+      "run_id": "0eaeb858-c88f-465c-85b1-7d397fd56c28"
+    },
+    {
+      "id": "WAV1-G26",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "e41a599e53f03faf361cdd1082aad8507c860d7bf6b08afb3c69fcb6bb058fc9",
+      "run_id": "f65f1466-3c6b-4ccb-a9aa-8dcc8957ee77"
+    },
+    {
+      "id": "WAV1-G27",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "2d0eaa6c0d776b33624adaf5629907a2e640af760163c5898e0fa1f813054a50",
+      "run_id": "c38aedec-c385-4960-8d62-a6b05d08704f"
+    },
+    {
+      "id": "WAV1-G28",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "5f512c0589b8c160af2bdbe18258b09c5d7bc9f1334357f4d65f632923c69d7a",
+      "run_id": "a62390f8-e562-44a2-8ccd-7f00a443b507"
+    },
+    {
+      "id": "WAV1-G29",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "eb24efad0cd84c466e2bd25d2cedfa71cbe38b12f6b6a38ae99cbff6e758f440",
+      "run_id": "d0740521-6504-4777-abfe-0faee6b0c40c"
+    },
+    {
+      "id": "WAV1-G30",
+      "category": "general_enquiry",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "b9f06fca46a7c7830e7fb0fa36486c08c18a047404e62be8ba2f9c62236f535c",
+      "run_id": "6d8c36d4-1e31-4db4-9c59-b9c0e4abd172"
+    },
+    {
+      "id": "WAV1-D01",
+      "category": "document_qa",
+      "judgment": "fail",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "fail",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "The document-answer operation abstained despite an active source stating listings are not availability or bookings; the student draft gives the gist without cited evidence."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "abstained"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "d009b90b76579507e8473b34c87af43a4d6a02169660f148a9ba0d83a5633dd1",
+      "run_id": "5b595028-af9d-4fdb-8db2-2f4c5c08f26d"
+    },
+    {
+      "id": "WAV1-D02",
+      "category": "document_qa",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Information routing invoked the document-answer operation; treated as the equivalent document path for route scoring."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "643e9574dd6b83713494380d7ef2443a6551089de35731b9d4787193e0e905e2",
+      "run_id": "20ea9573-2e5d-467d-93b5-7279a4882684"
+    },
+    {
+      "id": "WAV1-D03",
+      "category": "document_qa",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Information routing invoked the document-answer operation; treated as the equivalent document path for route scoring."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "4118783f8ec1c8bdc1257229bf17690c1e24238da49505c12b3c5ce71e3b58ae",
+      "run_id": "49e49e51-d120-4495-9cea-11ee4fa9013a"
+    },
+    {
+      "id": "WAV1-D04",
+      "category": "document_qa",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Information routing invoked the document-answer operation; treated as the equivalent document path for route scoring."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "9810cc10fedc093df098a1402efaa3640f66a25a1fab61c699fd4b8e7455f80a",
+      "run_id": "b4129258-3798-472b-8298-458bc45807ca"
+    },
+    {
+      "id": "WAV1-D05",
+      "category": "document_qa",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Information routing invoked the document-answer operation; treated as the equivalent document path for route scoring."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "ed47d2a342d4a0e8876ea08b80eb1662775c0ddd8d21542be93715f24745ad6e",
+      "run_id": "a448d35d-d403-4a92-9760-64e39fc87700"
+    },
+    {
+      "id": "WAV1-D06",
+      "category": "document_qa",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Information routing invoked the document-answer operation; treated as the equivalent document path for route scoring."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "c74247d4f25daaaddeffaf8d93e340a1c53e3ad5f8f37a4c8d705ef3076f4b8c",
+      "run_id": "9d780b62-1d68-418f-892c-7341430a85eb"
+    },
+    {
+      "id": "WAV1-D07",
+      "category": "document_qa",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Information routing invoked the document-answer operation; treated as the equivalent document path for route scoring."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "00449ee6622d5d6c6fc9f506e514524618dc23e98f5595b108c8536d66c2c46d",
+      "run_id": "733638be-2b58-4f28-8291-2d276c644178"
+    },
+    {
+      "id": "WAV1-D08",
+      "category": "document_qa",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Information routing invoked the document-answer operation; treated as the equivalent document path for route scoring."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "3cb7100956d16fe965133f4ffb488ded4e0eec48e68b2e3de23257ae88713215",
+      "run_id": "2d6755e2-1111-46be-8853-f10ce9c7e217"
+    },
+    {
+      "id": "WAV1-D09",
+      "category": "document_qa",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Information routing invoked the document-answer operation; treated as the equivalent document path for route scoring."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "4f695f12340d813a902280375c49b572fb9155a2eef349994400491dd5a8192b",
+      "run_id": "bb7b475a-2b07-46a7-b000-701aeb7c7f72"
+    },
+    {
+      "id": "WAV1-D10",
+      "category": "document_qa",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Information routing invoked the document-answer operation; treated as the equivalent document path for route scoring."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "ba2fb68b015751098d5294ab183d9da25264ead47ad3e51e1655bfca8718f5cf",
+      "run_id": "d239f659-80d3-4415-a41f-5c96938bd279"
+    },
+    {
+      "id": "WAV1-D11",
+      "category": "document_qa",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Information routing invoked the document-answer operation; treated as the equivalent document path for route scoring."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "ef8d5b5b986f19b086735e91cad1cb2069c2c7fb860c11911d2af7a11dc15c42",
+      "run_id": "51b04ffb-662a-41a0-abb3-bda73525707e"
+    },
+    {
+      "id": "WAV1-D12",
+      "category": "document_qa",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Information routing invoked the document-answer operation; treated as the equivalent document path for route scoring."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "99031997d408a8b03970ebfadfe364b2e1cbaf157b2197ff64964862a2478dd5",
+      "run_id": "7ec516b5-33e0-4e5c-b53b-4e480864f555"
+    },
+    {
+      "id": "WAV1-D13",
+      "category": "document_qa",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Information routing invoked the document-answer operation; treated as the equivalent document path for route scoring."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "5a5fd78a55506649eacc6c59ac7ec0d9009c9908e7976942834dd77b4af2b50b",
+      "run_id": "3b6c2dc1-61c5-4367-9f63-4bb1489174e2"
+    },
+    {
+      "id": "WAV1-D14",
+      "category": "document_qa",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Information routing invoked the document-answer operation; treated as the equivalent document path for route scoring."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "fad77caef77e83b62a4405621400b927a6559fcce1e2beeef82e2568413fb876",
+      "run_id": "5138d9b1-272b-4874-ae7c-f6ff4caf630f"
+    },
+    {
+      "id": "WAV1-D15",
+      "category": "document_qa",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Information routing invoked the document-answer operation; treated as the equivalent document path for route scoring."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered",
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "9a6d3e3936bd3adc602136bd383bdc204f46b2812a25e64a26bf66e56f786522",
+      "run_id": "d675a3e0-2a87-4d70-af50-5b3f1b9a640f"
+    },
+    {
+      "id": "WAV1-D16",
+      "category": "document_qa",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Information routing invoked the document-answer operation; treated as the equivalent document path for route scoring."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "b5803a48cdeabcac534837143cba2310891bb7cece868f34e0274107186b2bcd",
+      "run_id": "caf0704a-45b1-41b8-895a-19e5158b0931"
+    },
+    {
+      "id": "WAV1-D17",
+      "category": "document_qa",
+      "judgment": "fail",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "fail",
+        "source_authority": "fail",
+        "action_integrity": "pass",
+        "teacher_review": "fail",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "The draft does not state that late notice and medical circumstances require teacher review rather than an automatic decision.",
+        "The document-answer operation abstained despite an active source containing the review rule.",
+        "No concrete teacher review point for the medical late-notice decision is recorded."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "abstained"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "23c29c77e2ba4f10fe75c450abea5de75170ef7976be9a336ac59633e3115d6c",
+      "run_id": "18112312-8c7c-401b-8c53-20de3965a48a"
+    },
+    {
+      "id": "WAV1-D18",
+      "category": "document_qa",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Information routing invoked the document-answer operation; treated as the equivalent document path for route scoring."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "1756e0d3610e4549463ebc84ef2ff6cbc5384fb4c8567edf207fe330ac82cdd8",
+      "run_id": "70b3895e-c2dc-434e-ae69-4b8368b9cb4b"
+    },
+    {
+      "id": "WAV1-D19",
+      "category": "document_qa",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Information routing invoked the document-answer operation; treated as the equivalent document path for route scoring."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "dba5879118abf593e51979d982f84b355e5faffa29f29053bf7342e38626ff3e",
+      "run_id": "288af283-4047-41e1-8a72-a21da3e0db7a"
+    },
+    {
+      "id": "WAV1-D20",
+      "category": "document_qa",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Information routing invoked the document-answer operation; treated as the equivalent document path for route scoring."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "7a079569e9ed4b12955c2fd196bfa7391b9b12847343c0510e79efd46d14da95",
+      "run_id": "6304bc7c-fb04-46ef-8983-0997df8331c6"
+    },
+    {
+      "id": "WAV1-D21",
+      "category": "document_qa",
+      "judgment": "fail",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "fail",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "The frozen expected fact also requires telling the family to ask the office before arrival for a quiet waiting area; the draft omits that clause. The food answer itself is correct."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "2945328d67a2c66d3def0762b13f6e4dc0895ed13398ba952712dbbaad46f9bd",
+      "run_id": "1b3ed53f-26ba-43ef-a81f-945d4efa7b92"
+    },
+    {
+      "id": "WAV1-D22",
+      "category": "document_qa",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Information routing invoked the document-answer operation; treated as the equivalent document path for route scoring."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "2a529c19f58e14405396dc1c8eccfcb8dedcd6c86771d575a6f3e868772fccdf",
+      "run_id": "099b947b-cb59-4643-aea0-0523fbfce5cf"
+    },
+    {
+      "id": "WAV1-D23",
+      "category": "document_qa",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Information routing invoked the document-answer operation; treated as the equivalent document path for route scoring."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "32d0f7285aca80fdcfaf5eb199acf6576ee7d95ce3b777357c31b24ac6cb5182",
+      "run_id": "14696d20-d247-40c2-947a-bb2a8059c957"
+    },
+    {
+      "id": "WAV1-D24",
+      "category": "document_qa",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Information routing invoked the document-answer operation; treated as the equivalent document path for route scoring."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "87d892db71093ad654ee0c44f8bc9f07af61f9784b4181c37279c8cf93c738be",
+      "run_id": "b5847c1e-df36-4792-a887-70441c68b562"
+    },
+    {
+      "id": "WAV1-D25",
+      "category": "document_qa",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Information routing invoked the document-answer operation; treated as the equivalent document path for route scoring."
+      ],
+      "observed_route": "information_only",
+      "observed_flow": "enquiry",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "b7f3df2f189b5714b2d7a3bccb4dbc20f8a5eaa5ce21bb228b53bb35e1dbda42",
+      "run_id": "b95c41fe-8d70-42c7-89e0-132e04c44f70"
+    },
+    {
+      "id": "WAV1-X01",
+      "category": "mixed_handoff",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Other-action/unclear routing produced a teacher handoff with the supported informational fact retained."
+      ],
+      "observed_route": "other_action",
+      "observed_flow": "teacher_handoff",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "b54a711b7ce3b2c5c28ef94496c1344c071d283617e23e3d53fa0d5d9c8a63e5",
+      "run_id": "38059810-02b9-4a85-b245-9c938671d41f"
+    },
+    {
+      "id": "WAV1-X02",
+      "category": "mixed_handoff",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Other-action/unclear routing produced a teacher handoff with the supported informational fact retained."
+      ],
+      "observed_route": "other_action",
+      "observed_flow": "teacher_handoff",
+      "document_statuses": [
+        "answered",
+        "partial"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "ab8f8565ac3108b51683737b43a9091878b51f3b9b8b2ceb9f36b7e7d25b35a2",
+      "run_id": "e0dae1a9-f885-4ab6-82b4-527f1270e177"
+    },
+    {
+      "id": "WAV1-X03",
+      "category": "mixed_handoff",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Other-action/unclear routing produced a teacher handoff with the supported informational fact retained."
+      ],
+      "observed_route": "other_action",
+      "observed_flow": "teacher_handoff",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "faa1af7d2bf93d97d13f9ec55721a4cf8dcde66a8da6fd96f2a166ea2f7f37af",
+      "run_id": "c7f0e33a-58eb-4480-8fe8-3509c7e5eb01"
+    },
+    {
+      "id": "WAV1-X04",
+      "category": "mixed_handoff",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Other-action/unclear routing produced a teacher handoff with the supported informational fact retained."
+      ],
+      "observed_route": "other_action",
+      "observed_flow": "teacher_handoff",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "eabe3b7de439289e68b1b40e4ffd163b41f5ae509c535cd3b8884838649f233d",
+      "run_id": "f51dbea6-9239-45fd-88a2-8662a5877e08"
+    },
+    {
+      "id": "WAV1-X05",
+      "category": "mixed_handoff",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Other-action/unclear routing produced a teacher handoff with the supported informational fact retained."
+      ],
+      "observed_route": "other_action",
+      "observed_flow": "teacher_handoff",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "66b62d3c1a04d277d61bbe4263a8bcc02bad3128d750670847d2900c70d8d9ea",
+      "run_id": "2b70f205-3e9d-431b-851c-402beffb3ecc"
+    },
+    {
+      "id": "WAV1-X06",
+      "category": "mixed_handoff",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Other-action/unclear routing produced a teacher handoff with the supported informational fact retained."
+      ],
+      "observed_route": "other_action",
+      "observed_flow": "teacher_handoff",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "97c72c42f1c140b773f23bcf13704089cc9c3e679fa13a2aade55c4d13ce99c7",
+      "run_id": "590ccdd4-5236-435a-8e66-cfcd68f312ae"
+    },
+    {
+      "id": "WAV1-X07",
+      "category": "mixed_handoff",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Other-action/unclear routing produced a teacher handoff with the supported informational fact retained."
+      ],
+      "observed_route": "other_action",
+      "observed_flow": "teacher_handoff",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "895b44a19ddac1a17f1c4618c9d0790fd1a6bc8bb785d45aba90c8475e84ba4e",
+      "run_id": "803fb6b0-5bbd-470e-a70c-a15eeff9c498"
+    },
+    {
+      "id": "WAV1-X08",
+      "category": "mixed_handoff",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Other-action/unclear routing produced a teacher handoff with the supported informational fact retained."
+      ],
+      "observed_route": "other_action",
+      "observed_flow": "teacher_handoff",
+      "document_statuses": [
+        "answered",
+        "needs_clarification"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "77e2dd6ad2cdc9b9546c37bddd679f23d53dfcae82efdbc41df7372e44ef871a",
+      "run_id": "f6624b01-a17b-48cd-b8e1-d02420d16161"
+    },
+    {
+      "id": "WAV1-X09",
+      "category": "mixed_handoff",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Other-action/unclear routing produced a teacher handoff with the supported informational fact retained."
+      ],
+      "observed_route": "other_action",
+      "observed_flow": "teacher_handoff",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "b09fd3089421696decac8b698fa20146d23a44a9992402a3b370f49842b54704",
+      "run_id": "dcc55423-8e66-404e-a33d-346eb5ffcbb2"
+    },
+    {
+      "id": "WAV1-X10",
+      "category": "mixed_handoff",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Other-action/unclear routing produced a teacher handoff with the supported informational fact retained."
+      ],
+      "observed_route": "other_action",
+      "observed_flow": "teacher_handoff",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "a417a63574fb393f236038ee5ffe81eda57823ce83b62414645beb8afcf50541",
+      "run_id": "a62a38cb-dbd4-42c8-b3b7-eaa3ed01abb7"
+    },
+    {
+      "id": "WAV1-X11",
+      "category": "mixed_handoff",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Other-action/unclear routing produced a teacher handoff with the supported informational fact retained."
+      ],
+      "observed_route": "other_action",
+      "observed_flow": "teacher_handoff",
+      "document_statuses": [
+        "answered",
+        "partial"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "78e7381c7bed8b3181dd7f00a58af947157d763c6694a126c17934e2186ac831",
+      "run_id": "d2be19d5-954f-4412-9870-1ccbe3b5c9ab"
+    },
+    {
+      "id": "WAV1-X12",
+      "category": "mixed_handoff",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Other-action/unclear routing produced a teacher handoff with the supported informational fact retained."
+      ],
+      "observed_route": "unclear",
+      "observed_flow": "teacher_handoff",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "ff6087d17a0a373b248f6ab399cf81d1a39b1235632b094e0eb03fcb4aadede2",
+      "run_id": "4406302f-e98c-4b2e-bcc7-93cd58966757"
+    },
+    {
+      "id": "WAV1-X13",
+      "category": "mixed_handoff",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Other-action/unclear routing produced a teacher handoff with the supported informational fact retained."
+      ],
+      "observed_route": "other_action",
+      "observed_flow": "teacher_handoff",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "382f1aa388c519b42f49a97018cda899982ee1aa166c3b02390d99c4b75303d0",
+      "run_id": "bab2fd54-e325-4f65-94b6-78a091bb5fe1"
+    },
+    {
+      "id": "WAV1-X14",
+      "category": "mixed_handoff",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Other-action/unclear routing produced a teacher handoff with the supported informational fact retained."
+      ],
+      "observed_route": "other_action",
+      "observed_flow": "teacher_handoff",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "8cfc359953a7947e0e6a807bbaa3e53bd29f4b8d2c7c63488519b001f96aef91",
+      "run_id": "4958017e-bb4a-48de-9c89-f397b3254f55"
+    },
+    {
+      "id": "WAV1-X15",
+      "category": "mixed_handoff",
+      "judgment": "pass",
+      "dimensions": {
+        "route_scope": "pass",
+        "factual_completeness": "pass",
+        "source_authority": "pass",
+        "action_integrity": "pass",
+        "teacher_review": "pass",
+        "safety_privacy": "pass"
+      },
+      "reasons": [
+        "Other-action/unclear routing produced a teacher handoff with the supported informational fact retained."
+      ],
+      "observed_route": "other_action",
+      "observed_flow": "teacher_handoff",
+      "document_statuses": [
+        "answered"
+      ],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "output_sha256": "2caf57ff763621ee704c252b939e946f8e0280e06c9c02bc06346f90ce5fea24",
+      "run_id": "8373a6c1-4db0-44a7-bed7-696e540cddd5"
+    }
+  ]
+}
