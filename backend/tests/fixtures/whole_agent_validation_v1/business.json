@@ -1,0 +1,26 @@
+{
+  "studio": {"name": "Juniper Lantern Dance Studio", "as_of": "2031-04-15", "fictional": true},
+  "policy": {"absence_notice_hours": 18, "credit_expiry_days": 42, "capacity_required": true, "one_credit_per_absence": true, "late_notice_requires_teacher": true, "credit_is_not_cash": true},
+  "classes": [
+    {"key": "moss", "name": "Moss Steps", "day": "Monday", "time": "16:20", "capacity": 12, "booked": 10},
+    {"key": "lantern", "name": "Lantern Jazz", "day": "Tuesday", "time": "17:15", "capacity": 14, "booked": 14},
+    {"key": "reed", "name": "Reed Ballet", "day": "Wednesday", "time": "16:40", "capacity": 12, "booked": 8},
+    {"key": "cloud", "name": "Cloud Contemporary", "day": "Thursday", "time": "18:00", "capacity": 10, "booked": 9},
+    {"key": "pebble", "name": "Pebble Creative", "day": "Saturday", "time": "09:30", "capacity": 10, "booked": 10}
+  ],
+  "students": [
+    {"key": "student_a", "display_name": "Student A", "enrolled_class_keys": ["moss"], "credit_balance": 1},
+    {"key": "student_b", "display_name": "Student B", "enrolled_class_keys": ["reed"], "credit_balance": 0},
+    {"key": "student_c", "display_name": "Student C", "enrolled_class_keys": ["cloud"], "credit_balance": 2},
+    {"key": "student_d", "display_name": "Student D", "enrolled_class_keys": ["lantern"], "credit_balance": 1}
+  ],
+  "absences": [
+    {"key": "absence_early", "student_key": "student_a", "class_key": "moss", "starts_at": "2031-04-21T16:20:00+10:00", "reported_at": "2031-04-20T12:00:00+10:00", "status": "reported"},
+    {"key": "absence_late", "student_key": "student_b", "class_key": "reed", "starts_at": "2031-04-23T16:40:00+10:00", "reported_at": "2031-04-23T10:00:00+10:00", "status": "reported"},
+    {"key": "absence_used", "student_key": "student_c", "class_key": "cloud", "starts_at": "2031-03-13T18:00:00+11:00", "reported_at": "2031-03-12T12:00:00+11:00", "status": "credit_used"}
+  ],
+  "bookings": [
+    {"key": "booking_a", "student_key": "student_a", "class_key": "reed", "status": "pending"},
+    {"key": "booking_b", "student_key": "student_c", "class_key": "cloud", "status": "confirmed"}
+  ]
+}
