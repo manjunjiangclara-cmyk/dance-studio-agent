@@ -11,6 +11,7 @@ from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 from fastapi.testclient import TestClient
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from evaluations.runner import database_snapshot
@@ -211,6 +212,28 @@ def seed_case(engine, case, business):
         return str(conversation.id), str(message.id)
 
 
+def clear_case(engine):
+    """Remove all case-owned records, retaining only the activated document corpus."""
+    with engine.begin() as connection:
+        schema = connection.scalar(text("SELECT current_schema()"))
+        if not schema or not schema.startswith(("rag_eval_", "test_")):
+            raise RuntimeError("Refusing case cleanup outside a disposable evaluation schema")
+        tables = (
+            "agent_runs, messages, conversations, session_attendance, enrolments, "
+            "class_sessions, classes, students, terms, locations"
+        )
+        checkpoint_tables = ("checkpoint_writes", "checkpoint_blobs", "checkpoints")
+        if all(
+            connection.scalar(text("SELECT to_regclass(:name)"), {"name": name})
+            for name in checkpoint_tables
+        ):
+            tables += ", " + ", ".join(checkpoint_tables)
+        connection.execute(text("TRUNCATE TABLE " + tables))
+        remaining = connection.scalar(text("SELECT count(*) FROM classes"))
+        if remaining:
+            raise RuntimeError("Case cleanup left business rows behind")
+
+
 def run_case(client, engine, case, business, budget, model):
     conversation_id, source_id = seed_case(engine, case, business)
     before = database_snapshot(engine)
@@ -371,6 +394,12 @@ def execute(
                         }
                     rows.append(row)
                     save()
+                    try:
+                        clear_case(engine)
+                    except Exception as error:
+                        report["error_type"] = f"case_cleanup:{type(error).__name__}"
+                        save()
+                        break
     except Exception as error:
         report["error_type"] = type(error).__name__
         save()
