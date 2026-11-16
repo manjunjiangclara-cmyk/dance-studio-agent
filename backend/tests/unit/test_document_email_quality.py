@@ -606,7 +606,8 @@ def test_possessive_policy_question_stays_on_cited_composer_path(question, polic
         "Is my payment marked paid?",
     ],
 )
-def test_genuine_record_status_question_stays_on_deterministic_handoff(question):
+@pytest.mark.parametrize("claim_text", ["Your record is complete.", "Your enrolment is active."])
+def test_genuine_record_status_question_stays_on_deterministic_handoff(question, claim_text):
     assert _live_record_question(question)
     state = _state(question)
     state["evidence"] = [
@@ -614,15 +615,15 @@ def test_genuine_record_status_question_stays_on_deterministic_handoff(question)
             state,
             question,
             status="answered",
-            claims=("Your record is complete.",),
+            claims=(claim_text,),
             references=("document:policy",),
         )
     ]
 
-    draft, writer_context = _draft_with_writer(state, "Hi there,\n\nYour record is complete.")
+    draft, writer_context = _draft_with_writer(state, f"Hi there,\n\n{claim_text}")
 
     assert not writer_context
-    assert "record is complete" not in draft["body"]
+    assert claim_text not in draft["body"]
     assert draft["answers"][0]["status"] == "needs_teacher"
     assert draft["answers"][0]["references"] == []
     assert state["interpretation"]["question_ids"][question] in draft["required_question_ids"]

@@ -85,7 +85,7 @@ INFORMATION_REQUEST = re.compile(
 )
 PERSONAL_OUTCOME_CLAIM = re.compile(
     r"\b(?:your|my|our|this|their)\s+(?:booking|payment|refund|balance|credit|"
-    r"reservation|invoice)\b|"
+    r"reservation|invoice|enrolment|attendance|record|account|status)\b|"
     r"\b(?:you|we|I)(?:'ve|\s+(?:have|had|already|will))\s+"
     r"(?:paid|booked|confirmed|approved|received|cancelled|processed|issued|changed)\b",
     re.IGNORECASE,
