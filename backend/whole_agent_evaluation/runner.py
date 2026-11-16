@@ -350,7 +350,16 @@ def execute(
         "results": rows,
         "sources": [],
         "error_type": None,
+        "technical_error_types": [],
     }
+
+    original_safe_error = online.safe_error
+
+    def diagnostic_safe_error(error):
+        report["technical_error_types"].append(
+            {"type": type(error).__name__, "module": getattr(error, "name", None)}
+        )
+        return original_safe_error(error)
 
     def save():
         report["summary"] = summarize(rows, expected_count)
@@ -371,6 +380,7 @@ def execute(
             with (
                 patch.object(online, "Embedder", BudgetEmbedder),
                 patch.object(online, "GenerationProvider", BudgetWriter),
+                patch.object(online, "safe_error", diagnostic_safe_error),
                 TestClient(
                     app, headers={"Authorization": "Bearer fictional-whole-agent-evaluation"}
                 ) as client,
