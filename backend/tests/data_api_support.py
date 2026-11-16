@@ -5,6 +5,8 @@ from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID, uuid4
 
+from psycopg.types.numeric import Int8
+
 from experiments.data_api.sql import DirectSQL, parameter
 
 
@@ -52,6 +54,9 @@ class LocalDataClient:
         for p in parameters:
             value = p["value"]
             params[p["name"]] = None if value.get("isNull") else next(iter(value.values()))
+            if "longValue" in value:
+                # Data API binds all longValue parameters as PostgreSQL bigint.
+                params[p["name"]] = Int8(value["longValue"])
         rows = self.direct.query(sql, params, tx=self.connections.get(transactionId))
         if not rows:
             return {"records": [], "columnMetadata": []}

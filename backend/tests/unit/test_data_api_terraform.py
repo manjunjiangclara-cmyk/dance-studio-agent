@@ -68,7 +68,7 @@ def test_terraform_runner_rejects_unapproved_region(tmp_path):
         live(tmp_path, "us-east-1", "17.9")
 
 
-@pytest.mark.parametrize("failure", ["grant", "database", "enable", "probe"])
+@pytest.mark.parametrize("failure", ["grant", "database", "enable", "readiness", "probe"])
 @pytest.mark.parametrize("cleanup_failure", [None, "destroy", "interrupt", "revoke"])
 def test_partial_auth_always_destroys_and_revokes(tmp_path, monkeypatch, failure, cleanup_failure):
     from experiments.data_api import delete_express, express, terraform_runner
@@ -98,7 +98,7 @@ def test_partial_auth_always_destroys_and_revokes(tmp_path, monkeypatch, failure
             assert kwargs == {"ResourceArn": "fixture-cluster-arn"}
             if failure == "enable":
                 raise RuntimeError("synthetic endpoint enablement failure")
-            return {"HttpEndpointEnabled": True}
+            return {"HttpEndpointEnabled": False}
 
     class Session:
         def client(self, name, **kwargs):
@@ -142,7 +142,7 @@ def test_partial_auth_always_destroys_and_revokes(tmp_path, monkeypatch, failure
 
     monkeypatch.setattr(express, "permissions", permissions)
     monkeypatch.setattr(express, "database", database)
-    if failure == "probe":
+    if failure in ("probe", "readiness"):
         from experiments.data_api import __main__ as entrypoint
         from experiments.data_api import sql
 
@@ -154,6 +154,12 @@ def test_partial_auth_always_destroys_and_revokes(tmp_path, monkeypatch, failure
                 return [{"ready": 1}] if "SELECT 1" in statement else [{"identity": "validator"}]
 
         monkeypatch.setattr(sql, "DataSQL", DataSQL)
+        if failure == "readiness":
+            monkeypatch.setattr(
+                entrypoint,
+                "resume_check",
+                lambda *args, **kwargs: {"status": "failed", "reason": "synthetic timeout"},
+            )
         monkeypatch.setattr(
             entrypoint,
             "invoke",

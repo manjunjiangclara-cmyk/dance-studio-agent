@@ -131,22 +131,23 @@ is not a full migration approval; `migration_ready` remains false.
 
 ## Current evidence and decision
 
-On 2026-11-16, Terraform provisioned an Express cluster and both Lambda functions.
-The IAM/TLS admin connection succeeded, but database initialization returned PostgreSQL
-`InsufficientPrivilege`. No checkpoint, mutex or retrieval probe ran in that attempt.
-Terraform deleted all temporary resources without a final snapshot and revoked both
-exact-cluster IAM database grants. Diagnostics located the missing `SET ROLE validator` permission when assigning schema
-ownership. The initializer now grants this explicitly. A subsequent run completed database
-initialization, but Cloud Control rejected endpoint enablement as an Express create-only
-property update. The runner now uses the RDS enablement operation described above.
-A later run confirmed admin connectivity and initialization again; its first Data API
-query returned `HttpEndpointNotEnabledException` immediately after enablement. Initial
-readiness now retries this propagation state for up to five minutes, alongside known
-resume/unavailability states, while access denial fails immediately. Admin connection
-retries retain verified TLS and redact IAM tokens from diagnostics. The next mechanism
-rerun is pending cleanup; no live migration readiness is claimed.
+On 2026-11-16, the non-VPC Lambda ran against Aurora PostgreSQL 17.9 with pgvector
+0.8.1. Typed checkpoint interruption/restoration and atomic lease/mutation/checkpoint
+fencing both **passed**. Hybrid retrieval reached parent reads but failed because Data
+API binds `longValue` as PostgreSQL `bigint`, while `substring` requires an integer
+position. The adapter now casts that position explicitly. The local protocol double
+now uses psycopg `Int8`, reproducing the same failure before the fix and passing after it.
+The cloud retrieval rerun and direct-driver parity remain pending; auto-pause and cold
+resume have not run yet. `migration_ready` remains false.
 
-Local focused validation passed 60 tests, including actual PostgreSQL recovery/retrieval
+Express initialization and verified admin IAM/TLS connectivity succeeded. Data API
+became queryable 96.5 seconds after enablement in that run. Its transient
+`HttpEndpointNotEnabledException` state is retried for a bounded startup window; access
+denial still fails immediately. Admin connection diagnostics redact IAM tokens. Earlier
+temporary resources and exact-cluster grants were deleted; the latest run is cleaning
+before the corrected retrieval rerun.
+
+Local focused validation passed 65 tests, including actual PostgreSQL recovery/retrieval
 and mocked provisioning/permission failure cleanup. The full backend run passed
 1,242 tests; focused tests cover subsequent lifecycle changes. The Linux package's
 native dependencies imported successfully in AWS's official Python 3.12 Lambda image.

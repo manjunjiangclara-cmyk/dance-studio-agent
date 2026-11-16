@@ -121,8 +121,7 @@ def live(directory, region, engine_version, zip_path=None):
         report["endpoint_enablement"] = {
             "http_endpoint_enabled": enabled.get("HttpEndpointEnabled")
         }
-        if not enabled.get("HttpEndpointEnabled"):
-            raise RuntimeError("RDS did not confirm Data API enablement.")
+        # A successful SQL readiness probe is the final confirmation, after propagation.
         cluster = session.client("rds").describe_db_clusters(
             DBClusterIdentifier=outputs["ClusterId"]
         )["DBClusters"][0]

@@ -113,7 +113,7 @@ class ReadConnection:
                 pieces, offset = [], 1
                 while True:
                     piece = self.sql.query(
-                        f"""SELECT substring(text FROM :offset FOR 4096) AS piece
+                        f"""SELECT substring(text FROM CAST(:offset AS integer) FOR 4096) AS piece
                         FROM {self.schema}.document_chunks
                         WHERE run_id=:run_id AND chunk_id=:chunk_id""",
                         dict(**parameters, offset=offset),

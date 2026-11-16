@@ -152,3 +152,8 @@ def test_renew_takeover_race_has_one_effective_owner(data_api):
         fresh = pool.submit(leases.acquire, "student", "new").result()
     assert result.result() is False
     assert fresh.token > old.token
+
+
+def test_data_api_long_parameters_are_bigint(data_api):
+    sql, _, _ = data_api
+    assert sql.query("SELECT pg_typeof(:value)::text AS kind", {"value": 1}) == [{"kind": "bigint"}]
