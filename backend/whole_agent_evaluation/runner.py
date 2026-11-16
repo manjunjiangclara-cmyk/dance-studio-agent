@@ -223,10 +223,19 @@ def clear_case(engine):
             "class_sessions, classes, students, terms, locations"
         )
         checkpoint_tables = ("checkpoint_writes", "checkpoint_blobs", "checkpoints")
-        if all(
-            connection.scalar(text("SELECT to_regclass(:name)"), {"name": name})
+        owners = [
+            connection.scalar(
+                text(
+                    "SELECT n.nspname FROM pg_class c JOIN pg_namespace n "
+                    "ON c.relnamespace=n.oid WHERE c.oid=to_regclass(:name)"
+                ),
+                {"name": name},
+            )
             for name in checkpoint_tables
-        ):
+        ]
+        if any(owner and owner != schema for owner in owners):
+            raise RuntimeError("Refusing checkpoint cleanup outside the owned schema")
+        if all(owner == schema for owner in owners):
             tables += ", " + ", ".join(checkpoint_tables)
         connection.execute(text("TRUNCATE TABLE " + tables))
         remaining = connection.scalar(text("SELECT count(*) FROM classes"))
