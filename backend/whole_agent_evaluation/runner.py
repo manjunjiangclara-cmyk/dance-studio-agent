@@ -129,7 +129,8 @@ def seed_case(engine, case, business):
         )
         db.add_all([term, location])
         db.flush()
-        selected = set(student_spec.get("enrolled_class_keys", [])) if student_spec else set()
+        # Keep the whole fictional class catalogue available to the real agent.
+        selected = set(classes)
         if setup.get("class_key"):
             selected.add(setup["class_key"])
         absence = absences.get(setup.get("absence_key"))
