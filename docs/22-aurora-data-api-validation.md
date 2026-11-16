@@ -131,23 +131,25 @@ is not a full migration approval; `migration_ready` remains false.
 
 ## Current evidence and decision
 
-On 2026-11-16, the non-VPC Lambda ran against Aurora PostgreSQL 17.9 with pgvector
-0.8.1. Typed checkpoint interruption/restoration and atomic lease/mutation/checkpoint
-fencing both **passed**. Hybrid retrieval reached parent reads but failed because Data
-API binds `longValue` as PostgreSQL `bigint`, while `substring` requires an integer
-position. The adapter now casts that position explicitly. The local protocol double
-now uses psycopg `Int8`, reproducing the same failure before the fix and passing after it.
-The cloud retrieval rerun and direct-driver parity remain pending; auto-pause and cold
-resume have not run yet. `migration_ready` remains false.
+On 2026-11-16, all three mechanisms **passed** in a non-VPC Lambda against Aurora
+PostgreSQL 17.9 with pgvector 0.8.1. Hybrid retrieval also matched the direct SQLAlchemy/
+psycopg baseline. The Lambda probe made 292 Data API calls, with an estimated maximum response of
+525,884 bytes, and no model calls. Typed checkpoint restoration and lease fencing are
+mechanism evidence; full application workflow recovery remains separately covered locally.
 
-Express initialization and verified admin IAM/TLS connectivity succeeded. Data API
-became queryable 96.5 seconds after enablement in that run. Its transient
-`HttpEndpointNotEnabledException` state is retried for a bounded startup window; access
-denial still fails immediately. Admin connection diagnostics redact IAM tokens. Earlier
-temporary resources and exact-cluster grants were deleted; the latest run is cleaning
-before the corrected retrieval rerun.
+Live validation exposed `longValue` binding as PostgreSQL `bigint`. The adapter now
+casts the substring position to integer. The protocol double uses psycopg `Int8`, which
+reproduced the same failure before the fix and passed afterward. Data API became
+queryable 63.4 seconds after enablement in the successful mechanism run; this is endpoint
+activation time, not a cold-resume measurement.
 
-Local focused validation passed 65 tests, including actual PostgreSQL recovery/retrieval
+The first auto-pause metric poll failed because CloudWatch rejects same-second start/end
+timestamps. This was reproduced with a read-only service call and fixed by starting the
+query one minute earlier, while retaining the requirement for a zero-capacity datapoint
+at least five minutes after this run's last SQL request. Auto-pause and cold resume are
+pending the corrected rerun and cleanup. `migration_ready` remains false.
+
+Local focused validation passed 66 tests, including actual PostgreSQL recovery/retrieval
 and mocked provisioning/permission failure cleanup. The full backend run passed
 1,242 tests; focused tests cover subsequent lifecycle changes. The Linux package's
 native dependencies imported successfully in AWS's official Python 3.12 Lambda image.

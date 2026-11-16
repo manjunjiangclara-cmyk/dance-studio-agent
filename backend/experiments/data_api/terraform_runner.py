@@ -191,6 +191,7 @@ def live(directory, region, engine_version, zip_path=None):
             report["error_reason"] = error.validation_detail
         if hasattr(error, "response"):
             report["aws_error_code"] = error.response.get("Error", {}).get("Code")
+            report["aws_error_message"] = error.response.get("Error", {}).get("Message", "")[:1000]
         # PostgreSQL's privilege diagnostic contains no SQL statement or credentials.
         if report["sqlstate"] == "42501":
             report["error_reason"] = error.diag.message_primary

@@ -129,7 +129,7 @@ def pause_check(cloudwatch, instance, *, timeout=900):
             Namespace="AWS/RDS",
             MetricName="ServerlessDatabaseCapacity",
             Dimensions=[{"Name": "DBInstanceIdentifier", "Value": instance}],
-            StartTime=since,
+            StartTime=since - timedelta(minutes=1),
             EndTime=datetime.now(UTC),
             Period=60,
             Statistics=["Minimum"],

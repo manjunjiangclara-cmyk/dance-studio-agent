@@ -174,3 +174,31 @@ def test_readiness_waits_for_enablement_and_resume_but_not_denial(monkeypatch):
     with pytest.raises(ClientError):
         resume_check(denied)
     assert denied.calls == 1
+
+
+def test_first_capacity_poll_has_a_nonempty_cloudwatch_window(monkeypatch):
+    from datetime import UTC, datetime
+
+    import pytest
+
+    from experiments.data_api import __main__ as entrypoint
+
+    fixed = datetime(2026, 11, 16, tzinfo=UTC)
+
+    class Clock:
+        @staticmethod
+        def now(tz):
+            return fixed
+
+    class RequestChecked(Exception):
+        pass
+
+    class CloudWatch:
+        def get_metric_statistics(self, **request):
+            assert request["EndTime"] == fixed
+            assert int(request["StartTime"].timestamp()) < int(request["EndTime"].timestamp())
+            raise RequestChecked()
+
+    monkeypatch.setattr(entrypoint, "datetime", Clock)
+    with pytest.raises(RequestChecked):
+        entrypoint.pause_check(CloudWatch(), "fixture", timeout=1)
