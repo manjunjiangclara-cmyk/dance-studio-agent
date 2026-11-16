@@ -121,7 +121,7 @@ def equivalent(left, right):
     return left == right
 
 
-def pause_check(cloudwatch, instance, *, timeout=900):
+def pause_check(cloudwatch, instance, *, timeout=1800):
     since = datetime.now(UTC)
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
@@ -144,7 +144,7 @@ def pause_check(cloudwatch, instance, *, timeout=900):
             }
         print("Waiting for Aurora capacity to reach zero (metrics only; no SQL probe).", flush=True)
         time.sleep(30)
-    return {"status": "failed", "reason": "No zero-capacity datapoint within 15 minutes."}
+    return {"status": "failed", "reason": f"No zero-capacity datapoint within {timeout} seconds."}
 
 
 def resume_check(sql, *, timeout=120):

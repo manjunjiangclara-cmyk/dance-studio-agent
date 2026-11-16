@@ -202,3 +202,33 @@ def test_first_capacity_poll_has_a_nonempty_cloudwatch_window(monkeypatch):
     monkeypatch.setattr(entrypoint, "datetime", Clock)
     with pytest.raises(RequestChecked):
         entrypoint.pause_check(CloudWatch(), "fixture", timeout=1)
+
+
+def test_capacity_observation_allows_administrative_cooldown(monkeypatch):
+    from datetime import UTC, datetime, timedelta
+
+    from experiments.data_api import __main__ as entrypoint
+
+    fixed = datetime(2026, 11, 16, tzinfo=UTC)
+    elapsed = 0
+
+    class Clock:
+        @staticmethod
+        def now(tz):
+            return fixed + timedelta(seconds=elapsed)
+
+    def advance(seconds):
+        nonlocal elapsed
+        elapsed += seconds
+
+    class CloudWatch:
+        def get_metric_statistics(self, **request):
+            points = [{"Minimum": 0, "Timestamp": Clock.now(UTC)}] if elapsed >= 21 * 60 else []
+            return {"Datapoints": points}
+
+    monkeypatch.setattr(entrypoint, "datetime", Clock)
+    monkeypatch.setattr(entrypoint.time, "monotonic", lambda: elapsed)
+    monkeypatch.setattr(entrypoint.time, "sleep", advance)
+    result = entrypoint.pause_check(CloudWatch(), "fixture")
+    assert result["status"] == "passed"
+    assert result["elapsed_seconds"] == 21 * 60

@@ -140,16 +140,29 @@ mechanism evidence; full application workflow recovery remains separately covere
 Live validation exposed `longValue` binding as PostgreSQL `bigint`. The adapter now
 casts the substring position to integer. The protocol double uses psycopg `Int8`, which
 reproduced the same failure before the fix and passed afterward. Data API became
-queryable 63.4 seconds after enablement in the successful mechanism run; this is endpoint
+queryable 63.3 seconds after enablement in the successful mechanism run; this is endpoint
 activation time, not a cold-resume measurement.
 
-The first auto-pause metric poll failed because CloudWatch rejects same-second start/end
-timestamps. This was reproduced with a read-only service call and fixed by starting the
-query one minute earlier, while retaining the requirement for a zero-capacity datapoint
-at least five minutes after this run's last SQL request. Auto-pause and cold resume are
-pending the corrected rerun and cleanup. `migration_ready` remains false.
+The first auto-pause metric poll exposed CloudWatch's same-second start/end rejection.
+The corrected query starts one minute earlier but only accepts zero-capacity datapoints
+at least five minutes after the last SQL. In the final observation, a zero-ACU datapoint
+was observed about 11.7 minutes after the last SQL, and Data API cold resume succeeded
+in 15.2 seconds. Database connection metrics were zero during the idle observation.
 
-Local focused validation passed 66 tests, including actual PostgreSQL recovery/retrieval
+Capacity was measured by a supplemental metrics-only observer on the same cluster;
+the original observer was temporarily parked, then canceled into its existing cleanup.
+Its raw `KeyboardInterrupt` marker records that controlled handoff. The supplementary
+`extended-capacity-report.json` contains the zero datapoint and cold-resume measurement;
+the primary report retains all three mechanism results and separate cleanup outcomes.
+No raw result is relabeled as an uninterrupted automated pass.
+
+The reproducible runner now allows a 30-minute observation window. AWS documents
+that administrative operations can impose at least a 20-minute pause delay; this is
+not evidence that such a delay caused this particular run's timing. A single idle
+observation also does not establish a long-term pause or cost baseline. `migration_ready`
+remains false until the application migration and acceptance stages below are complete.
+
+Local focused validation passed 67 tests, including actual PostgreSQL recovery/retrieval
 and mocked provisioning/permission failure cleanup. The full backend run passed
 1,242 tests; focused tests cover subsequent lifecycle changes. The Linux package's
 native dependencies imported successfully in AWS's official Python 3.12 Lambda image.
@@ -157,11 +170,48 @@ Frontend production build passed; this experiment does not alter application UI 
 Independent review identified transaction credential and cleanup-ordering issues, which
 were fixed. Local results must not be presented as successful Aurora compatibility.
 
-After live evidence is available, assess the remaining work separately: general ORM
-queries and migrations, approval/source revalidation through Data API, durable task
-dispatch, upload staging, policy persistence, OAuth and production observability.
-In particular, the experiment's fenced sample mutation is not proof that every
-existing application write has been converted to fencing.
+## Proposed complete demo migration
+
+The three mechanism results support the Lambda + Aurora Data API direction. The
+remaining implementation should proceed in this order, using a fresh fictional
+Aurora database. Existing local data does not need to be imported. These stages are
+proposed follow-up work; this PR implements the feasibility harness.
+
+```mermaid
+flowchart LR
+    Browser --> CloudFront
+    CloudFront --> Web[Private S3 frontend]
+    CloudFront --> Gateway[API Gateway HTTP API]
+    Gateway --> API[API Lambda]
+    API --> DataAPI[RDS Data API]
+    DataAPI --> Aurora[Aurora Express + pgvector]
+    API --> Queue[SQS jobs]
+    Queue --> Worker[Worker Lambda]
+    Worker --> DataAPI
+    Browser -. signed upload .-> Uploads[Private S3 uploads]
+    Worker --> Uploads
+```
+
+| Stage | Concrete change | Exit condition |
+| --- | --- | --- |
+| 1. Application persistence | Extract explicit repository/transaction interfaces from `agent/service.py`, `agent/persistence/store.py`, API CRUD/auth and document persistence. Implement Data API SQL, versioned migrations and a limited application database user. Promote the saver only after its required interfaces and retention strategy are complete. | All API/agent/document integration tests pass on the new transport. Approval, booking, response and source-revision revalidation commit in one fenced transaction; crash/retry creates one business effect. No production path requires an ORM connection or session advisory lock. |
+| 2. Durable work | API records a job and returns its ID; SQS dispatches agent generation and document ingestion to a worker. Keep job status/checkpoints in Aurora, renew both queue visibility and the database lease during work, and split work into bounded steps. Use a durable outbox or equivalent dispatcher for the database-to-queue handoff. | Lost sends are recovered; duplicate delivery, worker termination and expired owners are tested. Stale workers cannot publish checkpoints or commit approvals. Failed items reach a dead-letter queue; the UI can poll and resume the same job without duplicating quota or business writes. |
+| 3. Stateless API and files | Package FastAPI for Lambda, move upload staging to private S3 with bounded signed uploads, and keep model credentials in Secrets Manager. Separate API, worker and one-time initializer permissions; runtime functions receive application-user access rather than admin credentials. | No request depends on local disk or process memory. Upload validation, document revision/archival and all owner/student access boundaries retain existing behavior. Lambda packaging and failure recovery pass real AWS smoke tests. |
+| 4. Website and authentication | Publish the built frontend to private S3 behind CloudFront OAC; route `/api/*` and `/auth/*` to the HTTP API without caching authenticated responses. Use one configured HTTPS origin for cookies and the exact Google OAuth callback. | Browser tests pass against the deployed origin, including a real configured Google sign-in, teacher review and source-change races. Direct S3 access is blocked; authenticated responses and cookies are handled correctly. |
+| 5. Repeatable delivery | Extend Terraform to own the permanent demo stack, private remote state/locking, bounded deployment roles and a GitHub OIDC release workflow. Plan infrastructure changes, deploy code and run migrations as separate explicit steps. Keep Aurora at 0–2 ACUs initially and bound worker concurrency. | A clean checkout can reproduce the stack; a normal code release updates Lambda/frontend without replacing the database. Rollback, secret configuration, content-free logs, queue failure metrics, cold-start UX and budget alerts are verified before public release. |
+
+SQS can deliver records more than once, so idempotent database operations remain
+necessary even with partial-batch failure reporting. The sample fenced mutation in
+this experiment must be applied to every real business-write boundary in stage 1.
+See [AWS Lambda with SQS](https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html).
+
+CloudFront OAC allows the frontend bucket to remain private; it does not replace
+application authentication. See [S3 origin access control](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html)
+and [HTTP API Lambda integrations](https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html).
+
+Permanent resources, expanded deployment policies, the final domain/OAuth configuration
+and public release require their own concrete Terraform plan and application changes.
+The bootstrap and temporary validation resources here do not deploy that website.
 
 References: [Aurora Express configuration](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/CHAP_GettingStartedAurora.AuroraPostgreSQL.ExpressConfig.html),
 [Data API access](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/data-api.html),
