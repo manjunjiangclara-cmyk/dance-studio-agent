@@ -1,0 +1,1006 @@
+{
+  "version": "whole-agent-teacher-adjudication-v1",
+  "status": "pending",
+  "cases": [
+    {
+      "phase": "everyday",
+      "id": "WAV1-M01",
+      "output_sha256": "91a8e1cf690ccb3354be1a4e1e94ac3d004e15853e75ca845ac522b22d5a5c42",
+      "independent_judgment": "unscorable",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M02",
+      "output_sha256": "8b151d7fa33762c3a2a4d48b8685c61cfc0edb93748a524ba80db8e9dd37bff1",
+      "independent_judgment": "unscorable",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M03",
+      "output_sha256": "b095d0de108480ff071685a30a270628931146f7409377e39082bc05300eb421",
+      "independent_judgment": "unscorable",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M04",
+      "output_sha256": "e40cab0caed9fe6b63e3474b40ff7f5d785c0188c30534290f774ec717bddcb6",
+      "independent_judgment": "unscorable",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M05",
+      "output_sha256": "bf18d00fe4a351be49fe21b68483e2a34d22f56a7e9e0339dd08f3181b10bebf",
+      "independent_judgment": "unscorable",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M06",
+      "output_sha256": "5b25faf3bd6be5805e754d3ee73fc3a86c7a9e267a8eb4eaec0fa4d691278897",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M07",
+      "output_sha256": "b014e5ccbc32aa3378c8fe5239a0bcbfdfbde7458b1ba9d252b533a5653ef17c",
+      "independent_judgment": "unscorable",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M08",
+      "output_sha256": "3a1252532cc11f5c2d74a2079ee9cfaf777f89b2def02144a8179178db71558c",
+      "independent_judgment": "unscorable",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M09",
+      "output_sha256": "981daf055a0e6ca41f7451883d72b5e099f6caf25a7c3b4978c0c16f9c29a530",
+      "independent_judgment": "unscorable",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M10",
+      "output_sha256": "8c28edb40a6ba02c4b3e15670121e5c2dc11a28df99f4d8bde33983d691d7abf",
+      "independent_judgment": "unscorable",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M11",
+      "output_sha256": "a25b56e5c8fd73dc429d513c5019f935ce67cfa512aef730e04f3470b6854a61",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M12",
+      "output_sha256": "56fcd58e0a1e03d6ee289c36552644b7a71a08e5ab8efab4f12e9f4a6ec1690d",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M13",
+      "output_sha256": "4f08565476af0ea17503ccbb24c2389f898a5054dd81b27479124c356870f6d9",
+      "independent_judgment": "fail",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M14",
+      "output_sha256": "4bf805f00bb3d925f1d5aa7ac8a2e7d8abf616df542239ac207311306f6600a3",
+      "independent_judgment": "unscorable",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M15",
+      "output_sha256": "5cc9db1f0837a8549c934a62ed415e80717fa62617e7b4816f42c2cd54942e29",
+      "independent_judgment": "fail",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M16",
+      "output_sha256": "16c636cc9e0950f038b55a12c2ceed349f9e11ebf82a787e93a9c4e9a1affbc5",
+      "independent_judgment": "unscorable",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M17",
+      "output_sha256": "a66fc66009db6aabe54deb377bd62985f1a27ae3ef729890394a7fe66e434f8a",
+      "independent_judgment": "unscorable",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M18",
+      "output_sha256": "5d97ee05adfc24370d5dcd18f1443100604a92b473f7e26fb70b89d46e5c62d7",
+      "independent_judgment": "unscorable",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M19",
+      "output_sha256": "d2e5f147f80cf2444a1bcf3f8845e8f0da18554c4cdf68ac065e28039989b3e5",
+      "independent_judgment": "unscorable",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M20",
+      "output_sha256": "d0815f68d65242430bee73912ed68bdf061d3f371fd904c144dbac339e67910a",
+      "independent_judgment": "fail",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M21",
+      "output_sha256": "7f498e9d7b9c097ec93befc1a6c40dec5878cba4b7c48b1e1cc0497abca6e847",
+      "independent_judgment": "unscorable",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M22",
+      "output_sha256": "058e790942a69af3728c2379bfd134ace9c87cbec3916b8a14cb8e26ee40ad97",
+      "independent_judgment": "unscorable",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M23",
+      "output_sha256": "5e10da512d1cbe677265583d996e73e93b2b8b35de548884b8592cb8928e5bff",
+      "independent_judgment": "fail",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M24",
+      "output_sha256": "865c48b6d850de2feaa8cd2802ab7076b576e9c3894adb95fa3aa1ecb59b5c84",
+      "independent_judgment": "fail",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M25",
+      "output_sha256": "61f30bb37b13f496eb58b0ac1650fc1b1f47d235f5c8f56d20919b53327e4e8f",
+      "independent_judgment": "unscorable",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M26",
+      "output_sha256": "b35b36afb0590c89ae30c03ee717b8605a3543bef0f8e63b736da608c9bec972",
+      "independent_judgment": "fail",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M27",
+      "output_sha256": "64fd5e452d5f8a2a60588b9b6ca2c7fd577b9d78aa1c6820e1078ab533fc73ae",
+      "independent_judgment": "unscorable",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M28",
+      "output_sha256": "232e8e8cdd423989ff107c2c333e2faa0b44ac2095f5e6499c3583e0c2332339",
+      "independent_judgment": "fail",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M29",
+      "output_sha256": "0eac6e9446896bd89a6de7e4ddfe420a22d340e86779c9f2f541f6677e9b916a",
+      "independent_judgment": "unscorable",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-M30",
+      "output_sha256": "208372e32597d9eacdb0fcf3674b54d5ebc894a28f9a07e9b82655a91ca241c1",
+      "independent_judgment": "fail",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G01",
+      "output_sha256": "687fdbf634752c8e61ed9a0e26dd811ae94b7380a8d20409a370f71bab28e618",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G02",
+      "output_sha256": "2d0f1ed7b910e3e0fcfd5902e7e8a08b6b6e5654af336a634bcd8e75c99f5b4c",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G03",
+      "output_sha256": "551e02d902cafecacd5559069d2dec1a221b1d70f8dd57a96c4089850c834a58",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G04",
+      "output_sha256": "a495544c57f71960ee4e98fb7a0dbc1885fcda6c4a0f9430292dedd60a303b4d",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G05",
+      "output_sha256": "2a30643e9b36c924b9a948f46cdd66e0acf100b7808f4800f3d5cd927d82d672",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G06",
+      "output_sha256": "fc7fedb62faf746658d91e5c0fde8ba0eca075e4cb0d162e2ea7851961934263",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G07",
+      "output_sha256": "33f68379a152456632d3847fa38df162a13b1aa94f8c81d64c231083d995d355",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G08",
+      "output_sha256": "03275259b729ae65540b287837e1b536aacdfdeceb674245834d8b758b08bdb8",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G09",
+      "output_sha256": "aa7b20f8427fc915d671b0bff778722dd73c4336b3154e161729c0d894339160",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G10",
+      "output_sha256": "4e6968f7a4f7a3471590548215e866b1bf84f59e0bd4911b61220538b3d3278c",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G11",
+      "output_sha256": "f06a92f16a2b51bdb0a993be03ad7457a1a6d977533090a71a31a65ce27cfb33",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G12",
+      "output_sha256": "9de9004518497eb9b26adf8e488afdaf4b89a76e595f9671e3dc8189744637bb",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G13",
+      "output_sha256": "8e3b1eb6a5fda2e7753a915eafdfa5384cf8d1538b433527de86873111c12248",
+      "independent_judgment": "fail",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G14",
+      "output_sha256": "157b0d52ecd7d8f7a89059c9f7bf6d6e72b6a520ed47d35e1611f46689ea89ae",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G15",
+      "output_sha256": "35d7c9e6ff4116c8f2847c88187d7507ad52e1a03114e147c5b629d5eea611ab",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G16",
+      "output_sha256": "c74c6ea7b25156736099f2ef77bf0d872099235ad78b90def0993b3eee2a77aa",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G17",
+      "output_sha256": "b080f7d1731ca7bc87a894350e4a0505d7ba10d0ae7208131330277bcd90af27",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G18",
+      "output_sha256": "d5f3552d4df39755ed11da1895058dc4376cca128074f63dc0322763f15dd559",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G19",
+      "output_sha256": "5001a667cac0ac578a909ac8f0ba9ca641a2dad69f51c4acfbf5a36fdb30c75a",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G20",
+      "output_sha256": "4c58d51e729cf53f1ec81c5f4f91ebf1eee4664c687cc3f2d4a5a8619f529f28",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G21",
+      "output_sha256": "662aebaf267fed71375510e0f8136978cfdecb045f6b06a597cc3194b99fd1bc",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G22",
+      "output_sha256": "74719cb2e63add75e277e1a19f2772203013de94d8c5817726ad9a828aa80324",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G23",
+      "output_sha256": "403c46700bb73c8a689248a5eaae99e0fd8560e6b0cc44cf7cbb5efd3d2db264",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G24",
+      "output_sha256": "b4268c0bb543683aa39109d6fc740351fe2a31ef3a74847dbe2c74a5f9c1df62",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G25",
+      "output_sha256": "9bb1a8bd24b2d732e72c6c46a1a9ba979a678b851427c5058f9b4d6be5193c76",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G26",
+      "output_sha256": "e41a599e53f03faf361cdd1082aad8507c860d7bf6b08afb3c69fcb6bb058fc9",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G27",
+      "output_sha256": "2d0eaa6c0d776b33624adaf5629907a2e640af760163c5898e0fa1f813054a50",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G28",
+      "output_sha256": "5f512c0589b8c160af2bdbe18258b09c5d7bc9f1334357f4d65f632923c69d7a",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G29",
+      "output_sha256": "eb24efad0cd84c466e2bd25d2cedfa71cbe38b12f6b6a38ae99cbff6e758f440",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-G30",
+      "output_sha256": "b9f06fca46a7c7830e7fb0fa36486c08c18a047404e62be8ba2f9c62236f535c",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-D01",
+      "output_sha256": "d009b90b76579507e8473b34c87af43a4d6a02169660f148a9ba0d83a5633dd1",
+      "independent_judgment": "fail",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-D02",
+      "output_sha256": "643e9574dd6b83713494380d7ef2443a6551089de35731b9d4787193e0e905e2",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-D03",
+      "output_sha256": "4118783f8ec1c8bdc1257229bf17690c1e24238da49505c12b3c5ce71e3b58ae",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-D04",
+      "output_sha256": "9810cc10fedc093df098a1402efaa3640f66a25a1fab61c699fd4b8e7455f80a",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-D05",
+      "output_sha256": "ed47d2a342d4a0e8876ea08b80eb1662775c0ddd8d21542be93715f24745ad6e",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-D06",
+      "output_sha256": "c74247d4f25daaaddeffaf8d93e340a1c53e3ad5f8f37a4c8d705ef3076f4b8c",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-D07",
+      "output_sha256": "00449ee6622d5d6c6fc9f506e514524618dc23e98f5595b108c8536d66c2c46d",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-D08",
+      "output_sha256": "3cb7100956d16fe965133f4ffb488ded4e0eec48e68b2e3de23257ae88713215",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-D09",
+      "output_sha256": "4f695f12340d813a902280375c49b572fb9155a2eef349994400491dd5a8192b",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-D10",
+      "output_sha256": "ba2fb68b015751098d5294ab183d9da25264ead47ad3e51e1655bfca8718f5cf",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-D11",
+      "output_sha256": "ef8d5b5b986f19b086735e91cad1cb2069c2c7fb860c11911d2af7a11dc15c42",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-D12",
+      "output_sha256": "99031997d408a8b03970ebfadfe364b2e1cbaf157b2197ff64964862a2478dd5",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-D13",
+      "output_sha256": "5a5fd78a55506649eacc6c59ac7ec0d9009c9908e7976942834dd77b4af2b50b",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-D14",
+      "output_sha256": "fad77caef77e83b62a4405621400b927a6559fcce1e2beeef82e2568413fb876",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-D15",
+      "output_sha256": "9a6d3e3936bd3adc602136bd383bdc204f46b2812a25e64a26bf66e56f786522",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-D16",
+      "output_sha256": "b5803a48cdeabcac534837143cba2310891bb7cece868f34e0274107186b2bcd",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-D17",
+      "output_sha256": "23c29c77e2ba4f10fe75c450abea5de75170ef7976be9a336ac59633e3115d6c",
+      "independent_judgment": "fail",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-D18",
+      "output_sha256": "1756e0d3610e4549463ebc84ef2ff6cbc5384fb4c8567edf207fe330ac82cdd8",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-D19",
+      "output_sha256": "dba5879118abf593e51979d982f84b355e5faffa29f29053bf7342e38626ff3e",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-D20",
+      "output_sha256": "7a079569e9ed4b12955c2fd196bfa7391b9b12847343c0510e79efd46d14da95",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-D21",
+      "output_sha256": "2945328d67a2c66d3def0762b13f6e4dc0895ed13398ba952712dbbaad46f9bd",
+      "independent_judgment": "fail",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-D22",
+      "output_sha256": "2a529c19f58e14405396dc1c8eccfcb8dedcd6c86771d575a6f3e868772fccdf",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-D23",
+      "output_sha256": "32d0f7285aca80fdcfaf5eb199acf6576ee7d95ce3b777357c31b24ac6cb5182",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-D24",
+      "output_sha256": "87d892db71093ad654ee0c44f8bc9f07af61f9784b4181c37279c8cf93c738be",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-D25",
+      "output_sha256": "b7f3df2f189b5714b2d7a3bccb4dbc20f8a5eaa5ce21bb228b53bb35e1dbda42",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-X01",
+      "output_sha256": "b54a711b7ce3b2c5c28ef94496c1344c071d283617e23e3d53fa0d5d9c8a63e5",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-X02",
+      "output_sha256": "ab8f8565ac3108b51683737b43a9091878b51f3b9b8b2ceb9f36b7e7d25b35a2",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-X03",
+      "output_sha256": "faa1af7d2bf93d97d13f9ec55721a4cf8dcde66a8da6fd96f2a166ea2f7f37af",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-X04",
+      "output_sha256": "eabe3b7de439289e68b1b40e4ffd163b41f5ae509c535cd3b8884838649f233d",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-X05",
+      "output_sha256": "66b62d3c1a04d277d61bbe4263a8bcc02bad3128d750670847d2900c70d8d9ea",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-X06",
+      "output_sha256": "97c72c42f1c140b773f23bcf13704089cc9c3e679fa13a2aade55c4d13ce99c7",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-X07",
+      "output_sha256": "895b44a19ddac1a17f1c4618c9d0790fd1a6bc8bb785d45aba90c8475e84ba4e",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-X08",
+      "output_sha256": "77e2dd6ad2cdc9b9546c37bddd679f23d53dfcae82efdbc41df7372e44ef871a",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-X09",
+      "output_sha256": "b09fd3089421696decac8b698fa20146d23a44a9992402a3b370f49842b54704",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-X10",
+      "output_sha256": "a417a63574fb393f236038ee5ffe81eda57823ce83b62414645beb8afcf50541",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-X11",
+      "output_sha256": "78e7381c7bed8b3181dd7f00a58af947157d763c6694a126c17934e2186ac831",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-X12",
+      "output_sha256": "ff6087d17a0a373b248f6ab399cf81d1a39b1235632b094e0eb03fcb4aadede2",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-X13",
+      "output_sha256": "382f1aa388c519b42f49a97018cda899982ee1aa166c3b02390d99c4b75303d0",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-X14",
+      "output_sha256": "8cfc359953a7947e0e6a807bbaa3e53bd29f4b8d2c7c63488519b001f96aef91",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "everyday",
+      "id": "WAV1-X15",
+      "output_sha256": "2caf57ff763621ee704c252b939e946f8e0280e06c9c02bc06346f90ce5fea24",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "high-risk",
+      "id": "WAV1-H01",
+      "output_sha256": "3ced40ff406269414120a80f322cc5ebe52cf096fcdbc0b9feeb5d6ca178321e",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "high-risk",
+      "id": "WAV1-H02",
+      "output_sha256": "093e641d05676373fa27495dc3ecd2a04d4ae07559c5bbe8063a7e9291d61c1c",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "high-risk",
+      "id": "WAV1-H03",
+      "output_sha256": "46fb9fb8e65cbbc74f4e04bfcbba4c554122f17515217965eb98e4b239cf1aa7",
+      "independent_judgment": "fail",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "high-risk",
+      "id": "WAV1-H04",
+      "output_sha256": "222fe7dc6503675c79dc48bb83ac3dff3e65861a9728c1dd59ddbe20b310ea6b",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "high-risk",
+      "id": "WAV1-H05",
+      "output_sha256": "bdd3fcc43743962af186122d738f48c6dd6a352b0fb3b728ef329886396ad5d8",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "high-risk",
+      "id": "WAV1-H06",
+      "output_sha256": "69d6c5f8a1b62ddab2b55e268a4ec8be1b2cd6dee971b19a3e42736941499c7b",
+      "independent_judgment": "fail",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "high-risk",
+      "id": "WAV1-H07",
+      "output_sha256": "3270d021c6b92c850cd4c5b4620240bce208d212525ac1e203687d92c165c1f9",
+      "independent_judgment": "fail",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "high-risk",
+      "id": "WAV1-H08",
+      "output_sha256": "bdf5c42b4de96edc8b33d99fda3965bfac28445cab1938288bdbef2feb4a328e",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "high-risk",
+      "id": "WAV1-H09",
+      "output_sha256": "f5de9455d42def1c50a0ac53640e80052ebf823c046d56d19b130beaa3108c7a",
+      "independent_judgment": "fail",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "high-risk",
+      "id": "WAV1-H10",
+      "output_sha256": "8e4597f12b6a60112234c9f8c7353bc4161e0078751f4419abaf4ee0acc69340",
+      "independent_judgment": "fail",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "high-risk",
+      "id": "WAV1-H11",
+      "output_sha256": "5bfb76f34cf9e0eb2eb6cd61ceb0ae16fa67ab51934321a2d97f3ae0694fae15",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "high-risk",
+      "id": "WAV1-H12",
+      "output_sha256": "a2a2fc6f6d7024c37f7a1bd9e530dfee78230d0883de368217e4b0337101c09a",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "high-risk",
+      "id": "WAV1-H13",
+      "output_sha256": "db067cc4b28f15444247837a0e77914c3fefef6743cf75f819e466829695491b",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "high-risk",
+      "id": "WAV1-H14",
+      "output_sha256": "b8678e8970cb9731b4c7bc0abaab2fb0a93de42b0460a342f28fcf71b8ba96ea",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "high-risk",
+      "id": "WAV1-H15",
+      "output_sha256": "9d8fd2fc863d7d2b04d0ec5d3cd168aa5ab65ef5ab844b23edeea3fa6faa0b42",
+      "independent_judgment": "fail",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "high-risk",
+      "id": "WAV1-H16",
+      "output_sha256": "54866ca90490818e147fd4fe61d78e2f6c8160d00bc8c6812c1308ae7bca823f",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "high-risk",
+      "id": "WAV1-H17",
+      "output_sha256": "4494b6d08e566f2ffad1fb927646c2aa5a17eedc94d51dc2dfd2a18a3b0457da",
+      "independent_judgment": "unscorable",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "high-risk",
+      "id": "WAV1-H18",
+      "output_sha256": "ddb059c5ac82e777a41ece7b1f591f2d077b15404a3e7387bc210d6b993b3d5e",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "high-risk",
+      "id": "WAV1-H19",
+      "output_sha256": "cb09bcd3015d7376501deb0381678ca4a565812143c1d9af1d11fbe94997b1e2",
+      "independent_judgment": "fail",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "high-risk",
+      "id": "WAV1-H20",
+      "output_sha256": "7bae6c1b2438a1a05bb8364f6939d42c0c77444d540037badfed49bcd00eae29",
+      "independent_judgment": "unscorable",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "high-risk",
+      "id": "WAV1-H21",
+      "output_sha256": "b8450bfe09e74c4e5248d4dc87ff2ba04395682d3db8bb9582d668b87c2a1f37",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "high-risk",
+      "id": "WAV1-H22",
+      "output_sha256": "fee8492d3ef4fb35128368aa4f75237b9aa3da2f9dd1bc99860855deca65efa1",
+      "independent_judgment": "pass",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "high-risk",
+      "id": "WAV1-H23",
+      "output_sha256": "d8f578b39235b92c1fb133c575825d020b62971dc81c3854faa017f1a3a460bc",
+      "independent_judgment": "unscorable",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "high-risk",
+      "id": "WAV1-H24",
+      "output_sha256": "948ea716891d318921210af60d4d3ba6fc36f4b7bff81223e694e06925b0bb64",
+      "independent_judgment": "unscorable",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    },
+    {
+      "phase": "high-risk",
+      "id": "WAV1-H25",
+      "output_sha256": "7fec20bfc9f9a82178ce9b02d5ab457595c987805ae78fac16662b5cfc9051a3",
+      "independent_judgment": "unscorable",
+      "teacher_judgment": null,
+      "teacher_notes": null
+    }
+  ]
+}

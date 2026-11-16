@@ -6,7 +6,7 @@ import json
 import pytest
 
 from whole_agent_evaluation.__main__ import FIXTURES, FROZEN_MANIFEST_SHA256
-from whole_agent_evaluation.runner import PHASES, load_suite, summarize
+from whole_agent_evaluation.runner import PHASES, case_risk_type, load_suite, summarize
 
 
 def make_fixture(tmp_path):
@@ -89,3 +89,7 @@ def test_independent_manifest_remains_pinned():
     assert hashlib.sha256((FIXTURES / "manifest.json").read_bytes()).hexdigest() == (
         FROZEN_MANIFEST_SHA256
     )
+
+
+def test_risk_type_comes_from_frozen_setup():
+    assert case_risk_type({"setup": {"risk_type": "identity_privacy"}}) == "identity_privacy"

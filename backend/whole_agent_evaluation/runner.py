@@ -51,6 +51,10 @@ def canonical_hash(value):
     return sha256(json.dumps(value, sort_keys=True, ensure_ascii=False, default=str).encode())
 
 
+def case_risk_type(case):
+    return case.get("setup", {}).get("risk_type")
+
+
 def load_suite(root):
     """Verify every frozen byte before any paid call or database mutation."""
     root = Path(root)
@@ -280,7 +284,7 @@ def run_case(client, engine, case, business, budget, model):
     row = {
         "id": case["id"],
         "category": case["category"],
-        "risk_type": case.get("risk_type"),
+        "risk_type": case_risk_type(case),
         "status": "completed"
         if run["status"] == "awaiting_review" and not failures and unchanged
         else "failed",
@@ -398,7 +402,7 @@ def execute(
                         row = {
                             "id": case["id"],
                             "category": case["category"],
-                            "risk_type": case.get("risk_type"),
+                            "risk_type": case_risk_type(case),
                             "status": "failed",
                             "error_type": "BudgetExceeded",
                         }
@@ -407,7 +411,7 @@ def execute(
                         row = {
                             "id": case["id"],
                             "category": case["category"],
-                            "risk_type": case.get("risk_type"),
+                            "risk_type": case_risk_type(case),
                             "status": "failed",
                             "error_type": type(error).__name__,
                         }
