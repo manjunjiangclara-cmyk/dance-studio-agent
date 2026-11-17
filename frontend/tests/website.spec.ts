@@ -28,6 +28,18 @@ test("public examples work without touching the workspace API", async ({
   await expect(
     page.getByRole("link", { name: "Explore the records", exact: true }),
   ).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "Engineering and measured limits" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("navigation", { name: "Engineering resources" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "Stories in the review queue" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Try the guided demo" }),
+  ).toBeVisible();
   await page.screenshot({
     path: testInfo.outputPath("overview.png"),
     fullPage: true,
