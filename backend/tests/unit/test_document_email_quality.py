@@ -112,7 +112,29 @@ def test_information_only_conflict_keeps_a_question_and_no_business_action():
 
     result = nodes._enquiry_interpretation(state)
 
-    assert result.questions == [original]
+    assert result.questions == ["Explain both intervals", "Identify which rule controls"]
+    assert result.requested_actions == []
+
+
+def test_information_only_action_is_added_beside_existing_question():
+    extracted = EnquiryInterpretation(
+        request_summary="Class time and refund policy",
+        missing_details=[],
+        enduring_preferences=[],
+        questions=["What time is the class?"],
+        requested_actions=["Explain the refund policy"],
+    )
+    state = {
+        "routing": {"action": "information_only", "request_summary": extracted.request_summary},
+        "context": {"source": {"body": "What time is the class? Explain the refund policy."}},
+    }
+    nodes = WorkflowNodes(
+        SimpleNamespace(engine=None), SimpleNamespace(interpret_enquiry=lambda context: extracted)
+    )
+
+    result = nodes._enquiry_interpretation(state)
+
+    assert result.questions == ["What time is the class?", "Explain the refund policy"]
     assert result.requested_actions == []
 
 
@@ -494,12 +516,41 @@ def test_live_payment_handoff_deduplicates_equivalent_receipt_process():
     assert "your payment" not in draft["body"].lower()
 
 
+def test_live_payment_handoff_keeps_a_process_condition():
+    question = "Has my payment been received?"
+    state = _state(question)
+    evidence = _evidence(
+        state,
+        question,
+        status="partial",
+        claims=("A payment receipt may be requested from the office.",),
+        references=("document:fees",),
+    )
+    evidence["result"]["reason_code"] = "requires_live_data"
+    evidence["result"]["claims"][0]["citations"] = [
+        {
+            "evidence_id": "fees",
+            "quote": "A payment receipt may be requested from the office, "
+            "but only after the payment clears.",
+        }
+    ]
+    state["evidence"] = [evidence]
+
+    draft, _ = _draft_with_writer(state, "This writer must not be called.")
+
+    assert "receipt may be requested" not in draft["body"]
+    assert draft["answers"][0]["references"] == []
+
+
 @pytest.mark.parametrize(
     "personal_claim",
     [
         "Your payment has been received.",
         "Your refund will be processed tomorrow.",
         "We've confirmed your booking.",
+        "The payment has been received.",
+        "Your $50 payment has been received.",
+        "We received the payment yesterday.",
     ],
 )
 def test_live_payment_question_discards_unsupported_personal_outcome_claim(personal_claim):
@@ -516,6 +567,9 @@ def test_live_payment_question_discards_unsupported_personal_outcome_claim(perso
         references=("document:receipt-process",),
     )
     evidence["result"]["reason_code"] = "requires_live_data"
+    evidence["result"]["claims"][0]["citations"] = [
+        {"evidence_id": "personal-status", "quote": personal_claim}
+    ]
     evidence["result"]["claims"][1]["citations"] = [
         {
             "evidence_id": "receipt-process",

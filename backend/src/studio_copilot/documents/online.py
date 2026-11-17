@@ -323,7 +323,9 @@ def question_answer(
         raise OnlineError("retrieval_failed")
     candidates = snapshot["candidates"]
     # CPU inference is bounded and serialized within this process, not in a DB transaction.
-    ranked = rank(reranker, query, candidates)
+    # The reranker has a 256-token query limit. Retrieval may use the wider
+    # request context, but the target question alone determines passage order.
+    ranked = rank(reranker, question, candidates)
     if len(ranked) != len(candidates) or {r["text_sha256"] for r in ranked} != {
         c["text_sha256"] for c in candidates
     }:
