@@ -19,7 +19,7 @@ class LimitedRoute(APIRoute):
             chunks, size = [], 0
             async for chunk in request.stream():
                 size += len(chunk)
-                if size > 12000:
+                if size > 120000:
                     raise HTTPException(413, "Demo request too large.")
                 chunks.append(chunk)
             request._body = b"".join(chunks)
@@ -50,7 +50,7 @@ class CreateRun(BaseModel):
 
 class DraftInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    teacher_answers: list[str] = Field(default_factory=list, max_length=8)
+    teacher_answers: list[str] = Field(default_factory=list, max_length=9)
 
 
 class Empty(BaseModel):

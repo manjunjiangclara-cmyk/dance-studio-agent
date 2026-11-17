@@ -38,6 +38,7 @@ export function CustomEmail() {
   const [error, setError] = useState("");
   const [evidence, setEvidence] = useState<Evidence | null>(null);
   const [draft, setDraft] = useState("");
+  const [generated, setGenerated] = useState(false);
   const [answers, setAnswers] = useState<string[]>([]);
   const [answersLocked, setAnswersLocked] = useState(false);
   const attempt = useRef<Attempt | null>(null);
@@ -55,6 +56,7 @@ export function CustomEmail() {
     setError("");
     setEvidence(null);
     setDraft("");
+    setGenerated(false);
     setAnswers([]);
     setAnswersLocked(false);
   }
@@ -150,6 +152,7 @@ export function CustomEmail() {
       if (alive.current) {
         current.draft = result.body;
         setDraft(result.body);
+        setGenerated(true);
       }
     } catch (caught) {
       if (alive.current)
@@ -307,7 +310,7 @@ export function CustomEmail() {
               ))}
             </section>
           )}
-          {!draft && (
+          {!generated && (
             <button
               className="button primary"
               disabled={
@@ -333,7 +336,7 @@ export function CustomEmail() {
               </button>
             </div>
           )}
-          {draft && (
+          {generated && (
             <>
               <label htmlFor="custom-response">Draft response</label>
               <textarea

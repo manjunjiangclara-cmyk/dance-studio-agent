@@ -39,6 +39,9 @@ test("custom email asks teacher before generating a single draft", async ({
     "The trial is $20.",
   );
   expect(calls[2].body).toEqual({ teacher_answers: ["$20"] });
+  await page.getByLabel("Draft response").fill("");
+  await page.getByLabel("Draft response").fill("Replacement");
+  await expect(page.getByLabel("Draft response")).toHaveValue("Replacement");
 });
 
 test("recorded document asks before generating", async ({ page }) => {
@@ -51,6 +54,8 @@ test("recorded document asks before generating", async ({ page }) => {
   await page.getByLabel("Trial fee answer").fill("$20");
   await generate.click();
   await expect(page.getByLabel("Final response")).toHaveValue(/\$20/);
+  await page.getByLabel("Final response").fill("");
+  await page.getByLabel("Final response").fill("Replacement");
   await expect(
     page.getByRole("button", { name: "Simulate approval", exact: true }),
   ).toBeEnabled();

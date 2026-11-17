@@ -41,6 +41,9 @@ function useTourState(scenario: TourScenario, liveMode: boolean) {
   );
   const signature =
     decision === "answer" ? `answer:${answer.trim()}` : decision;
+  const generated = liveMode
+    ? live.draft !== null
+    : scenario === "booking" || Boolean(applied);
   const resolved =
     Boolean(body) &&
     (!liveMode || live.draft !== null) &&
@@ -94,6 +97,7 @@ function useTourState(scenario: TourScenario, liveMode: boolean) {
     confirmation,
     setConfirmation,
     resolved,
+    generated,
     generateDraft,
   };
 }
@@ -414,7 +418,7 @@ function TourContent({ scenario }: { scenario: TourScenario }) {
                   className="button primary"
                   disabled={
                     Boolean(live.busy) ||
-                    Boolean(state.body) ||
+                    state.generated ||
                     (liveMode && !live.evidence) ||
                     (scenario === "document" &&
                       (!state.decision ||
@@ -446,7 +450,7 @@ function TourContent({ scenario }: { scenario: TourScenario }) {
                 )}
               </div>
             )}
-            {state.body && (
+            {state.generated && (
               <div className="tour-response">
                 <label htmlFor="tour-final-response">Final response</label>
                 <textarea

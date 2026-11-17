@@ -173,10 +173,15 @@ class DemoModel:
             ):
                 if re.search(pattern, context["email_body"], re.IGNORECASE) and source not in ids:
                     ids.append(source)
+            missing = list(parsed.missing_information)
+            if re.search(r"fee|cost|price|費|费", context["email_body"], re.IGNORECASE) and not any(
+                re.search(r"fee|cost|price|費|费", item, re.IGNORECASE) for item in missing
+            ):
+                missing.append("Trial fee")
             return {
                 "evidence": [catalog[key] for key in ids],
                 "route": parsed.route,
-                "missing_information": parsed.missing_information,
+                "missing_information": missing,
                 "model": self.model,
             }
         body = parsed.body.strip()

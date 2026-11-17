@@ -192,7 +192,7 @@ def test_disabled_unconfigured_and_oversized_requests(client, monkeypatch, demo)
     monkeypatch.setenv("STUDIO_PUBLIC_LIVE_DEMO", "true")
     monkeypatch.delenv("OPENAI_API_KEY")
     assert client.post("/api/public-demo/runs", json=body).status_code == 503
-    assert client.post("/api/public-demo/runs", content=b"x" * 12001).status_code == 413
+    assert client.post("/api/public-demo/runs", content=b"x" * 120001).status_code == 413
     assert not Fake.calls
 
 
@@ -526,3 +526,21 @@ def test_raising_limit_preserves_ten_existing_legacy_runs(tmp_path):
     assert "20 live demo runs" in error.value.detail
     with upgraded.db() as db:
         assert db.execute("SELECT count(*) FROM runs").fetchone()[0] == 20
+
+
+def test_custom_fee_question_requires_teacher_even_if_model_omits_missing_item():
+    from studio_copilot.public_demo.model import CustomSelection
+
+    model, _ = model_with(
+        SimpleNamespace(
+            status="completed",
+            output_parsed=CustomSelection(route="enquiry", ids=[], missing_information=[]),
+        )
+    )
+    result = model.call(
+        "custom",
+        "evidence",
+        [],
+        context={"student": "jules", "email_body": "What is the trial fee?"},
+    )
+    assert result["missing_information"] == ["Trial fee"]
