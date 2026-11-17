@@ -41,6 +41,12 @@ from studio_copilot.persistence.models import (
 
 ZONE = ZoneInfo("Australia/Melbourne")
 PHASES = {"smoke": 5, "everyday": 100, "high_risk": 25}
+WEEKDAYS = {
+    day: index
+    for index, day in enumerate(
+        ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+    )
+}
 
 
 def sha256(raw):
@@ -53,6 +59,12 @@ def canonical_hash(value):
 
 def case_risk_type(case):
     return case.get("setup", {}).get("risk_type")
+
+
+def next_class_start(as_of, spec):
+    days = (WEEKDAYS[spec["day"]] - as_of.weekday()) % 7 or 7
+    hour, minute = (int(part) for part in spec["time"].split(":"))
+    return datetime.combine(as_of + timedelta(days=days), clock_time(hour, minute), ZONE)
 
 
 def load_suite(root):
@@ -162,7 +174,7 @@ def seed_case(engine, case, business):
                 if start.tzinfo is None:
                     start = start.replace(tzinfo=ZONE)
             else:
-                start = datetime.combine(as_of + timedelta(days=7), clock_time(18), ZONE)
+                start = next_class_start(as_of, spec)
             booked = spec.get("booked", 0)
             if not isinstance(booked, int) or booked < 0:
                 raise ValueError("Fictional booked count must be nonnegative")

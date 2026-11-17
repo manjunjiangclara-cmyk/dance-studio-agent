@@ -92,13 +92,23 @@ def test_next_case_cannot_see_previous_class(db_engine):
     seed_case(
         db_engine,
         first,
-        {"students": [], "classes": [{"key": "first", "name": "First only"}], "absences": []},
+        {
+            "students": [],
+            "classes": [{"key": "first", "name": "First only", "day": "Monday", "time": "18:00"}],
+            "absences": [],
+        },
     )
     clear_case(db_engine)
     seed_case(
         db_engine,
         second,
-        {"students": [], "classes": [{"key": "second", "name": "Second only"}], "absences": []},
+        {
+            "students": [],
+            "classes": [
+                {"key": "second", "name": "Second only", "day": "Tuesday", "time": "18:00"}
+            ],
+            "absences": [],
+        },
     )
     with Session(db_engine) as db:
         assert [record.name for record in db.scalars(select(StudioClass))] == ["Second only"]

@@ -2,11 +2,18 @@
 
 import hashlib
 import json
+from datetime import date
 
 import pytest
 
 from whole_agent_evaluation.__main__ import FIXTURES, FROZEN_MANIFEST_SHA256
-from whole_agent_evaluation.runner import PHASES, case_risk_type, load_suite, summarize
+from whole_agent_evaluation.runner import (
+    PHASES,
+    case_risk_type,
+    load_suite,
+    next_class_start,
+    summarize,
+)
 
 
 def make_fixture(tmp_path):
@@ -93,3 +100,8 @@ def test_independent_manifest_remains_pinned():
 
 def test_risk_type_comes_from_frozen_setup():
     assert case_risk_type({"setup": {"risk_type": "identity_privacy"}}) == "identity_privacy"
+
+
+def test_seeded_class_uses_frozen_weekday_and_time():
+    start = next_class_start(date(2027, 4, 5), {"day": "Wednesday", "time": "16:40"})
+    assert start.isoformat() == "2027-04-07T16:40:00+10:00"

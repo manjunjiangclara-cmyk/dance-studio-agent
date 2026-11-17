@@ -846,7 +846,7 @@
       "phase": "high-risk",
       "id": "WAV1-H06",
       "output_sha256": "69d6c5f8a1b62ddab2b55e268a4ec8be1b2cd6dee971b19a3e42736941499c7b",
-      "independent_judgment": "fail",
+      "independent_judgment": "unscorable",
       "teacher_judgment": null,
       "teacher_notes": null
     },
@@ -854,7 +854,7 @@
       "phase": "high-risk",
       "id": "WAV1-H07",
       "output_sha256": "3270d021c6b92c850cd4c5b4620240bce208d212525ac1e203687d92c165c1f9",
-      "independent_judgment": "fail",
+      "independent_judgment": "unscorable",
       "teacher_judgment": null,
       "teacher_notes": null
     },
@@ -862,7 +862,7 @@
       "phase": "high-risk",
       "id": "WAV1-H08",
       "output_sha256": "bdf5c42b4de96edc8b33d99fda3965bfac28445cab1938288bdbef2feb4a328e",
-      "independent_judgment": "pass",
+      "independent_judgment": "unscorable",
       "teacher_judgment": null,
       "teacher_notes": null
     },
@@ -870,7 +870,7 @@
       "phase": "high-risk",
       "id": "WAV1-H09",
       "output_sha256": "f5de9455d42def1c50a0ac53640e80052ebf823c046d56d19b130beaa3108c7a",
-      "independent_judgment": "fail",
+      "independent_judgment": "unscorable",
       "teacher_judgment": null,
       "teacher_notes": null
     },
@@ -878,7 +878,7 @@
       "phase": "high-risk",
       "id": "WAV1-H10",
       "output_sha256": "8e4597f12b6a60112234c9f8c7353bc4161e0078751f4419abaf4ee0acc69340",
-      "independent_judgment": "fail",
+      "independent_judgment": "unscorable",
       "teacher_judgment": null,
       "teacher_notes": null
     },
