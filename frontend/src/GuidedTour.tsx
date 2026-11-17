@@ -179,7 +179,7 @@ function TourContent({ scenario }: { scenario: TourScenario }) {
       <p className="notice" role="note">
         {liveMode
           ? "Live AI · Fictional data · 20 shared runs per day. Results disappear when you leave or refresh. No email is sent."
-          : "Curated simulation · Fictional data · No live model calls. All changes stay in this tour and disappear when you leave or reload. No email is sent."}
+          : "Recorded demo · Fictional data · No live AI. Results disappear when you leave or refresh. No email is sent."}
       </p>
       <div className="tour-tabs" role="tablist" aria-label="Demo scenarios">
         {(["booking", "document"] as const).map((value) => (
@@ -644,8 +644,7 @@ function Confirmation({ snapshot }: { snapshot: TourConfirmation }) {
       <section className="tour-email-status" aria-label="Email delivery">
         <h3>Email not sent</h3>
         <p>
-          Approval saves the reviewed response; it does not send an email. No
-          live studio records were changed by this simulation.
+          The reviewed response was saved in this simulation.
         </p>
       </section>
     </div>

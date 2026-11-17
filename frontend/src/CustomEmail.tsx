@@ -225,9 +225,8 @@ export function CustomEmail() {
               {body.length}/2000 characters
             </p>
             <p>
-              Use fictional content only. This calls the real model and shares
-              the limit of 20 demo runs per day. No email is sent and no studio
-              records are changed.
+              Use fictional content only. Live AI · 20 shared runs per day.
+              Results disappear when you leave or refresh. No email is sent.
             </p>
             {error && !evidence && (
               <div role="alert">
@@ -242,6 +241,7 @@ export function CustomEmail() {
                 </button>
               </div>
             )}
+            <p className="muted">A run starts when you simulate an email.</p>
             <button
               className="button primary"
               disabled={busy || !body.trim() || Boolean(evidence)}
@@ -347,8 +347,7 @@ export function CustomEmail() {
                 onChange={(event) => setDraft(event.target.value)}
               />
               <p className="muted">
-                You can edit this draft locally. No email was sent. This
-                simulation does not book classes or change studio records.
+                Edit this draft locally. No email was sent or class booked.
               </p>
             </>
           )}
