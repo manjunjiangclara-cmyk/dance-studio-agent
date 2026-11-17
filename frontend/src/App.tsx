@@ -354,9 +354,7 @@ export default function App() {
               <BookOpen size={19} />
             </span>
             <strong>A working idea, made visible.</strong>
-            <p>
-              From an email to an informed draft.
-            </p>
+            <p>From an email to an informed draft.</p>
             <Link to={`${base}/database`}>
               Browse the database <ArrowUpRight size={15} />
             </Link>
