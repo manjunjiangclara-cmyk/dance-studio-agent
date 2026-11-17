@@ -524,11 +524,13 @@ export default function App() {
             <span>
               {workspace
                 ? "Owner review workspace"
-                : page === "tour" &&
-                    new URLSearchParams(location.search).get("mode") !==
-                      "recorded"
-                  ? "Fictional data · Live AI · Simulated booking"
-                  : "Fictional data · Predefined examples"}
+                : page === "test-email"
+                  ? "Fictional data · Live AI"
+                  : page === "tour" &&
+                      new URLSearchParams(location.search).get("mode") !==
+                        "recorded"
+                    ? "Fictional data · Live AI · Simulated booking"
+                    : "Fictional data · Predefined examples"}
               <span className="footer-dot">·</span>Australia / Melbourne
             </span>
           </footer>

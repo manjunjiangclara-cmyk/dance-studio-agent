@@ -178,8 +178,8 @@ function TourContent({ scenario }: { scenario: TourScenario }) {
       </header>
       <p className="notice" role="note">
         {liveMode
-          ? "Live AI · Fixed fictional inputs · 20 shared demo runs per day. Find evidence and generate a draft with the buttons below. Booking remains simulated; no email is sent or studio records changed."
-          : "Curated simulation · Fictional data · No live model calls. All changes stay in this tour and disappear when you leave or reload. No email is sent."}
+          ? "Live AI · Fictional data · 20 shared runs per day. Results are unavailable after you leave or refresh. No email is sent."
+          : "Recorded demo · Fictional data · No live AI. Results are unavailable after you leave or refresh. No email is sent."}
       </p>
       <div className="tour-tabs" role="tablist" aria-label="Demo scenarios">
         {(["booking", "document"] as const).map((value) => (
@@ -265,6 +265,7 @@ function TourContent({ scenario }: { scenario: TourScenario }) {
                   your studio's database or run the full production RAG
                   pipeline.
                 </p>
+                <p className="muted">A run starts when you request evidence.</p>
                 <button
                   className="button primary"
                   disabled={Boolean(live.busy) || Boolean(live.evidence)}
@@ -642,10 +643,7 @@ function Confirmation({ snapshot }: { snapshot: TourConfirmation }) {
       </details>
       <section className="tour-email-status" aria-label="Email delivery">
         <h3>Email not sent</h3>
-        <p>
-          Approval saves the reviewed response; it does not send an email. No
-          live studio records were changed by this simulation.
-        </p>
+        <p>The reviewed response was saved in this simulation.</p>
       </section>
     </div>
   );

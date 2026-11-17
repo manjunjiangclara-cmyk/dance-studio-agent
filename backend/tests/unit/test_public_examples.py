@@ -38,7 +38,7 @@ def test_public_manifest_matches_application_tables_and_foreign_keys():
 def test_fixtures_have_consistent_links_and_only_published_fictional_identities():
     data = json.loads((DATA / "examples.v1.json").read_text())
     manifest = json.loads((DATA / "schema.v1.json").read_text())
-    assert data["version"] == 1 and "predefined" in data["notice"]
+    assert data["version"] == 1 and "predefined" in data["notice"].lower()
     assert date.fromisoformat(data["as_of"])
     for student in data["students"]:
         assert student["email"].endswith("@example.test")
