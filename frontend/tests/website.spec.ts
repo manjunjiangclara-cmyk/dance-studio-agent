@@ -25,13 +25,14 @@ test("public examples work without touching the workspace API", async ({
   await expect(
     page.getByRole("heading", { name: "A little more room to teach." }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Explore the records", exact: true }),
+  ).toHaveCount(0);
   await page.screenshot({
     path: testInfo.outputPath("overview.png"),
     fullPage: true,
   });
-  await page
-    .getByRole("link", { name: "Explore the records", exact: true })
-    .click();
+  await page.goto("/demo/reviews");
   await page.getByLabel("Search enquiries").fill("Alex");
   await expect(page.locator(".run-row")).toHaveCount(2);
   await page.getByLabel("Filter by status").selectOption("awaiting_review");
