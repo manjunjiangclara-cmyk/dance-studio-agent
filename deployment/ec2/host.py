@@ -11,6 +11,7 @@ import sqlite3
 import tarfile
 import tempfile
 from pathlib import Path
+from urllib.parse import urlsplit
 
 ROOT = Path("/srv/studio")
 REQUIRED = (
@@ -73,8 +74,22 @@ def configure(config, client):
     password_hash = hashlib.sha256(values["POSTGRES_PASSWORD"].encode()).hexdigest()
     if password_file.exists() and password_file.read_text().strip() != password_hash:
         raise ValueError("Database password changes require an explicit database rotation")
+    origin = payload.get("PUBLIC_BASE_URL", "https://" + config["domain"])
+    parsed = urlsplit(origin)
+    if (
+        parsed.scheme != "https"
+        or not parsed.hostname
+        or parsed.netloc != parsed.hostname
+        or parsed.path
+        or parsed.query
+        or parsed.fragment
+        or not re.fullmatch(r"[a-z0-9][a-z0-9.-]+[a-z0-9]", parsed.hostname)
+    ):
+        raise ValueError(
+            "Use the configured public HTTPS hostname without credentials, port or path"
+        )
     values.update(
-        PUBLIC_BASE_URL="https://" + config["domain"],
+        PUBLIC_BASE_URL=origin,
         STUDIO_PUBLIC_LIVE_DEMO="true",
         STUDIO_DOCUMENT_ANSWERS="true",
         STUDIO_TOKENIZER_CACHE="/app/assets/tokenizer",
@@ -83,6 +98,7 @@ def configure(config, client):
         STUDIO_PUBLIC_DEMO_DB="/data/public-demo/ledger.sqlite3",
     )
     atomic_write(ROOT / "config/app.env", env_text(values))
+    atomic_write(ROOT / "config/domain", parsed.hostname + "\n")
     atomic_write(password_file, password_hash + "\n")
 
 

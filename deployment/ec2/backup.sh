@@ -10,7 +10,7 @@ RELEASE=$(studio-host current)
 test -n "$RELEASE"
 export STUDIO_IMAGE=studio-copilot:$(basename "$RELEASE")
 export STUDIO_DOMAIN
-STUDIO_DOMAIN=$(python3 -c 'import json; print(json.load(open("/etc/studio-host.json"))["domain"])')
+STUDIO_DOMAIN=$(cat /srv/studio/config/domain)
 compose() { docker compose --env-file /srv/studio/config/app.env -f "$RELEASE/deployment/ec2/compose.yaml" "$@"; }
 STAMP=$(date -u +%Y%m%dT%H%M%S)-$(cat /proc/sys/kernel/random/uuid)
 TEMP=$(mktemp -d /srv/studio/backups/.backup-XXXXXX)

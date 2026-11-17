@@ -178,7 +178,13 @@ def test_configuration_preserves_existing_secrets_and_optional_provider_settings
         "OPENAI_MODEL=updated-model\nDATABASE_URL=not-for-cloud\nADMIN_API_TOKEN=local-token\n"
     )
     deployment_cli.configure(
-        clients, {"secret_arn": "secret", "callback": "https://demo.example/auth/callback"}, source
+        clients,
+        {
+            "secret_arn": "secret",
+            "callback": "https://demo.example/auth/callback",
+            "origin": "https://demo.example",
+        },
+        source,
     )
     assert written[0]["OPENAI_BASE_URL"] == values["OPENAI_BASE_URL"]
     assert written[0]["SESSION_SECRET"] == values["SESSION_SECRET"]
@@ -198,5 +204,18 @@ def test_missing_configuration_is_rejected_before_upload(deployment_cli, tmp_pat
     source.write_text("OPENAI_MODEL=only-a-model\n")
     with pytest.raises(ValueError):
         deployment_cli.configure(
-            SimpleNamespace(client=lambda _: client), {"secret_arn": "secret"}, source
+            SimpleNamespace(client=lambda _: client),
+            {"secret_arn": "secret", "origin": "https://demo.example"},
+            source,
         )
+
+
+def test_cloud_origin_can_change_without_replacing_database_or_session(tmp_path, monkeypatch):
+    monkeypatch.setattr(host, "ROOT", tmp_path)
+    (tmp_path / "config").mkdir()
+    settings = payload()
+    settings["PUBLIC_BASE_URL"] = "https://new.example.com"
+    client = SimpleNamespace(get_secret_value=lambda **_: {"SecretString": json.dumps(settings)})
+    host.configure({"secret_arn": "secret", "domain": "initial.example.com"}, client)
+    assert (tmp_path / "config/domain").read_text() == "new.example.com\n"
+    assert "PUBLIC_BASE_URL='https://new.example.com'" in (tmp_path / "config/app.env").read_text()

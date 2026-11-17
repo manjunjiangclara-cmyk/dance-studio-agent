@@ -68,7 +68,12 @@ files are ignored. Before applying, obtain the official Ubuntu 24.04 amd64 AMI f
 `/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id`
 and select an available Sydney AZ; save `account_id`, `ami_id`, `availability_zone`
 and `instance_type` in ignored `infrastructure/ec2-demo/terraform.tfvars.json`.
-Pin the AMI input; normal code releases must not replace the host.
+Pin the AMI input; normal code releases must not replace the host. Cloud-init user data
+is initial provisioning only and is ignored on later infrastructure plans; reviewed
+release archives update host helpers explicitly. To change the public hostname, set
+the Terraform `domain` input, plan/apply, register the new Google callback, then run
+`configure` and `release` again. The desired HTTPS origin is stored with application
+configuration; neither the database nor session secret is regenerated.
 
 ```sh
 terraform -chdir=infrastructure/ec2-demo init -backend-config=backend.json

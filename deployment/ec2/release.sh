@@ -26,7 +26,7 @@ studio-host configure
 IMAGE=studio-copilot:$SHA
 export STUDIO_IMAGE=$IMAGE
 export STUDIO_DOMAIN
-STUDIO_DOMAIN=$(python3 -c 'import json; print(json.load(open("/etc/studio-host.json"))["domain"])')
+STUDIO_DOMAIN=$(cat /srv/studio/config/domain)
 compose() { docker compose --env-file /srv/studio/config/app.env -f "$RELEASE/deployment/ec2/compose.yaml" "$@"; }
 # Secret files are outside the image build context.
 if ! docker buildx version >/dev/null 2>&1; then

@@ -11,7 +11,7 @@ import subprocess
 import tempfile
 import time
 from pathlib import Path
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 import boto3
@@ -101,6 +101,7 @@ def configure(clients, config, env_file):
         existing = {}
     values = {key: existing[key] for key in (*REQUIRED, *OPTIONAL) if key in existing}
     values.update(private_env(env_file))
+    values["PUBLIC_BASE_URL"] = config["origin"]
     for key in ("POSTGRES_PASSWORD", "ADMIN_API_TOKEN", "SESSION_SECRET"):
         values.setdefault(key, secrets.token_hex(32))
     validate_secret(values)
@@ -165,6 +166,17 @@ def release(clients, config):
 def smoke(origin):
     if not origin.startswith("https://"):
         raise ValueError("Verify the public HTTPS origin")
+    # Caddy may still be acquiring its first certificate when containers become healthy.
+    # Keep certificate verification enabled throughout the bounded readiness wait.
+    for attempt in range(36):
+        try:
+            with urlopen(origin + "/health", timeout=10) as response:
+                if response.status == 200:
+                    break
+        except (URLError, HTTPError):
+            if attempt == 35:
+                raise
+        time.sleep(5)
     for path in ("/health", "/demo", "/workspace", "/auth/me"):
         with urlopen(origin + path, timeout=30) as response:
             body = response.read()

@@ -138,7 +138,11 @@ resource "aws_instance" "app" {
   user_data_replace_on_change = false
   tags                        = { Name = local.name }
   depends_on                  = [aws_route_table_association.app]
-  lifecycle { prevent_destroy = true }
+  lifecycle {
+    prevent_destroy = true
+    # Cloud-init is initial host setup. Reviewed release archives update host helpers.
+    ignore_changes = [user_data_base64]
+  }
 }
 resource "aws_volume_attachment" "data" {
   device_name = "/dev/sdf"
