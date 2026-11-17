@@ -55,7 +55,21 @@ DATABASE_OWNER=$(docker run --rm --network none --entrypoint sh "$DATABASE_IMAGE
 chown "$DATABASE_OWNER" /srv/studio/postgres
 chmod 700 /srv/studio/postgres
 docker run --rm --network none --user "$DATABASE_OWNER" --entrypoint sh -v /srv/studio/postgres:/var/lib/postgresql "$DATABASE_IMAGE" -c 'test -x /var/lib/postgresql && test -w /var/lib/postgresql'
-compose up -d --wait --wait-timeout 300 db
+compose up -d db
+DATABASE_CONTAINER=$(compose ps --all -q db)
+test -n "$DATABASE_CONTAINER"
+DATABASE_HEALTH=''
+# A previously restarting container can retain "unhealthy" while a repaired
+# first initialization is succeeding. Wait for a current successful probe.
+for attempt in $(seq 1 60); do
+    DATABASE_HEALTH=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$DATABASE_CONTAINER")
+    if [ "$DATABASE_HEALTH" = healthy ]; then break; fi
+    sleep 5
+done
+if [ "$DATABASE_HEALTH" != healthy ]; then
+    echo 'PostgreSQL did not become healthy within five minutes; existing data was retained.'
+    exit 1
+fi
 # Keep the previous image and backup. Database downgrades are never automatic.
 FAILED=1
 failed_release() {
