@@ -1,6 +1,7 @@
 import json
 
 import boto3
+import pytest
 from botocore.exceptions import ClientError
 
 from experiments.data_api.__main__ import cleanup, equivalent, live, wait_stack
@@ -232,3 +233,116 @@ def test_capacity_observation_allows_administrative_cooldown(monkeypatch):
     result = entrypoint.pause_check(CloudWatch(), "fixture")
     assert result["status"] == "passed"
     assert result["elapsed_seconds"] == 21 * 60
+
+
+@pytest.mark.parametrize("readiness_case", ["resuming", "timeout", "denied"])
+def test_legacy_validation_waits_for_readiness_and_cleans_up(tmp_path, monkeypatch, readiness_case):
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+
+    from experiments.data_api import __main__ as runner
+    from experiments.data_api import sql as transport
+
+    outputs = {
+        key: key.lower()
+        for key in ("Artifacts", "Api", "Baseline", "ClusterArn", "SecretArn", "WriterId")
+    }
+    cf, s3, lambdas = Mock(), Mock(), Mock()
+    cf.create_stack.return_value = {"StackId": "owned-stack"}
+    cf.describe_stacks.return_value = {
+        "Stacks": [
+            {
+                "Outputs": [
+                    {"OutputKey": key, "OutputValue": value} for key, value in outputs.items()
+                ]
+            }
+        ]
+    }
+    cf.describe_stack_events.return_value = {"StackEvents": []}
+    clients = {
+        "cloudformation": cf,
+        "s3": s3,
+        "lambda": lambdas,
+        "rds-data": object(),
+        "cloudwatch": object(),
+    }
+    monkeypatch.setattr(
+        boto3,
+        "Session",
+        lambda **kwargs: SimpleNamespace(client=lambda service, **options: clients[service]),
+    )
+    monkeypatch.setattr(runner, "wait_stack", lambda *args, **kwargs: None)
+    events = []
+    clock = 0
+
+    def advance(seconds):
+        nonlocal clock
+        clock += 150 if readiness_case == "timeout" else seconds
+
+    monkeypatch.setattr(runner.time, "monotonic", lambda: clock)
+    monkeypatch.setattr(runner.time, "sleep", advance)
+
+    class SQL:
+        attempts = 0
+
+        def __init__(self, client, cluster, secret):
+            assert client is clients["rds-data"]
+            assert (cluster, secret) == (outputs["ClusterArn"], outputs["SecretArn"])
+
+        def query(self, statement):
+            if statement == "SELECT 1 AS ready":
+                self.attempts += 1
+                events.append("readiness")
+                if readiness_case == "denied":
+                    raise ClientError(
+                        {"Error": {"Code": "AccessDeniedException"}}, "ExecuteStatement"
+                    )
+                if readiness_case == "timeout" or self.attempts == 1:
+                    raise ClientError(
+                        {"Error": {"Code": "DatabaseResumingException"}}, "ExecuteStatement"
+                    )
+                return [{"ready": 1}]
+            assert statement.startswith("DROP SCHEMA ")
+            return []
+
+    monkeypatch.setattr(transport, "DataSQL", SQL)
+    resume = runner.resume_check
+
+    def readiness(sql, *, timeout):
+        assert timeout == 300
+        return resume(sql, timeout=timeout)
+
+    monkeypatch.setattr(runner, "resume_check", readiness)
+
+    def validate(client, function, event):
+        events.append("invoke")
+        assert events[:2] == ["readiness", "readiness"]
+        assert function == outputs["Api"] and event["action"] == "validate"
+        # Probe outcome is outside this lifecycle/order regression.
+        return {"status": "failed", "checks": {"retrieval": {"status": "failed"}}}
+
+    def cleanup(*args):
+        assert args[:3] == (cf, s3, "owned-stack")
+        events.append("cleanup")
+        return {"status": "passed"}
+
+    monkeypatch.setattr(runner, "invoke", validate)
+    monkeypatch.setattr(runner, "cleanup", cleanup)
+    monkeypatch.setattr(runner, "pause_check", lambda *args: {"status": "not_run"})
+    archive = tmp_path / "fixture.zip"
+    archive.write_bytes(b"synthetic")
+    assert live(tmp_path, "ap-southeast-2", "17.9", archive) == 1
+    report = json.loads((tmp_path / "report.json").read_text())
+    assert report["status"] == "failed"
+    assert events[-1] == "cleanup" and events.count("cleanup") == 1
+    if readiness_case == "resuming":
+        assert report["data_api_readiness"]["status"] == "passed"
+        assert events.count("invoke") == 1
+    else:
+        assert "invoke" not in events
+        assert all(check["status"] == "not_run" for check in report["checks"].values())
+        if readiness_case == "denied":
+            assert events.count("readiness") == 1
+            assert report["aws_error_code"] == "AccessDeniedException"
+        else:
+            assert report["data_api_readiness"]["status"] == "failed"

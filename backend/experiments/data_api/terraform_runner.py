@@ -133,7 +133,8 @@ def live(directory, region, engine_version, zip_path=None):
         )
         phase = "data_api_readiness"
         report["data_api_readiness"] = resume_check(sql, timeout=300)
-        assert report["data_api_readiness"]["status"] == "passed"
+        if report["data_api_readiness"]["status"] != "passed":
+            raise RuntimeError("Data API did not become ready before validation.")
         assert sql.query("SELECT current_user AS identity") == [{"identity": "validator"}]
         phase = "mechanism_probes"
         result = invoke(

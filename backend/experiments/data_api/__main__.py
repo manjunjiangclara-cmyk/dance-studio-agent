@@ -263,6 +263,14 @@ def live(directory, region, engine_version, zip_path=None):
                 FunctionName=outputs[name], Handler="experiments.data_api.lambda_function.handler"
             )
             lambdas.get_waiter("function_updated_v2").wait(FunctionName=outputs[name])
+        sql = DataSQL(
+            session.client("rds-data", config=Config(retries={"total_max_attempts": 1})),
+            outputs["ClusterArn"],
+            outputs["SecretArn"],
+        )
+        report["data_api_readiness"] = resume_check(sql, timeout=300)
+        if report["data_api_readiness"]["status"] != "passed":
+            raise RuntimeError("Data API did not become ready before validation.")
         schema = "data_api_" + uuid4().hex
         started = time.monotonic()
         result = invoke(lambdas, outputs["Api"], {"action": "validate", "schema": schema})
@@ -279,11 +287,6 @@ def live(directory, region, engine_version, zip_path=None):
             }
             if not parity:
                 report["status"] = "failed"
-        sql = DataSQL(
-            session.client("rds-data", config=Config(retries={"total_max_attempts": 1})),
-            outputs["ClusterArn"],
-            outputs["SecretArn"],
-        )
         sql.query(f"DROP SCHEMA {schema} CASCADE")
         try:
             report["auto_pause"] = pause_check(session.client("cloudwatch"), outputs["WriterId"])

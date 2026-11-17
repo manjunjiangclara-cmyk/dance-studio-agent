@@ -106,6 +106,10 @@ uv run ruff check .
 uv run ruff format --check .
 ```
 
+The default `uv sync --frozen` installs the development group, including the AWS
+validation test dependencies (`boto3`/`botocore`). No extra AWS group flag is needed
+for the documented test commands; these tests use mocked AWS clients.
+
 Tests are grouped by execution requirements and behavior:
 
 - `backend/tests/unit/`: enrolment rules and the OpenAI SDK adapter with mocked HTTP; no database or live OpenAI calls.
