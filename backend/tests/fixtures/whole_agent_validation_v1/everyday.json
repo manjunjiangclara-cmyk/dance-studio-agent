@@ -1,0 +1,3240 @@
+{
+  "version": "whole-agent-validation-v1",
+  "cases": [
+    {
+      "id": "WAV1-M01",
+      "category": "makeup_absence",
+      "message": "Student A will miss Moss Steps next Monday; I am telling you more than a day ahead. Can we arrange a replacement?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_a",
+        "absence_key": "absence_early",
+        "class_key": "reed"
+      },
+      "expected": {
+        "route": "makeup_booking",
+        "disposition": "eligible_pending_capacity",
+        "required_facts": [
+          {
+            "source": "business",
+            "key": "policy.absence_notice_hours",
+            "text": "Ordinary absence notice must be at least 18 hours before the enrolled class."
+          },
+          {
+            "source": "business",
+            "key": "policy.capacity_required",
+            "text": "A replacement needs a live place in an age-appropriate class."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Check the live credit and Reed Ballet place before a booking."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M02",
+      "category": "makeup_absence",
+      "message": "Student B missed Reed Ballet and I reported it only that morning. Can you give us a makeup?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_b",
+        "absence_key": "absence_late",
+        "class_key": "moss"
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "needs_teacher",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "absence_policy",
+            "text": "Late notice requires teacher review and is not automatically eligible."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Review late notice before any credit is awarded."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M03",
+      "category": "makeup_absence",
+      "message": "Can Student C get another credit for the Cloud Contemporary absence already used last month?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_c",
+        "absence_key": "absence_used",
+        "class_key": "cloud"
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "ineligible",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "absence_policy",
+            "text": "A used absence cannot create a second credit."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Do not issue a duplicate credit."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M04",
+      "category": "makeup_absence",
+      "message": "Student D has a credit. Can they use it for the full Lantern Jazz class?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_d",
+        "absence_key": null,
+        "class_key": "lantern"
+      },
+      "expected": {
+        "route": "makeup_booking",
+        "disposition": "pending_capacity",
+        "required_facts": [
+          {
+            "source": "business",
+            "key": "policy.capacity_required",
+            "text": "A replacement needs a live place in an age-appropriate class."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Check live capacity; the seeded class is full."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M05",
+      "category": "makeup_absence",
+      "message": "Student A has an unused credit. Please put them into Reed Ballet immediately.",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_a",
+        "absence_key": null,
+        "class_key": "reed"
+      },
+      "expected": {
+        "route": "makeup_booking",
+        "disposition": "pending_validation",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "absence_policy",
+            "text": "An unused credit is not a confirmed replacement booking."
+          },
+          {
+            "source": "business",
+            "key": "policy.capacity_required",
+            "text": "A replacement needs a live place in an age-appropriate class."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Verify age, credit validity, and live capacity before booking."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M06",
+      "category": "makeup_absence",
+      "message": "Does a replacement credit turn into a cash refund if we cannot attend?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_a",
+        "absence_key": null,
+        "class_key": null
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "information_only",
+        "required_facts": [
+          {
+            "source": "business",
+            "key": "policy.credit_is_not_cash",
+            "text": "Replacement credit cannot be exchanged for cash."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Explain the rule without issuing a refund."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M07",
+      "category": "makeup_absence",
+      "message": "Our missed Moss Steps class was 40 days ago. Is the credit still usable this week?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_a",
+        "absence_key": null,
+        "class_key": "reed"
+      },
+      "expected": {
+        "route": "makeup_booking",
+        "disposition": "pending_validation",
+        "required_facts": [
+          {
+            "source": "business",
+            "key": "policy.credit_expiry_days",
+            "text": "A replacement credit expires 42 days after the missed class."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Check the actual class date and current credit expiry."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M08",
+      "category": "makeup_absence",
+      "message": "A replacement was missed too. Can that replacement generate a new credit?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_c",
+        "absence_key": "absence_used",
+        "class_key": null
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "needs_teacher",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "absence_policy",
+            "text": "A used absence cannot create a second credit."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Review the actual attendance and credit history."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M09",
+      "category": "makeup_absence",
+      "message": "I reported Student B’s absence six hours before class because of a fever. Please make an exception.",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_b",
+        "absence_key": "absence_late",
+        "class_key": null
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "needs_teacher",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "absence_policy",
+            "text": "Late notice requires teacher review and is not automatically eligible."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Medical exception requires teacher review."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M10",
+      "category": "makeup_absence",
+      "message": "Can Student A attend a younger Pebble Creative replacement rather than Moss Steps?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_a",
+        "absence_key": null,
+        "class_key": "pebble"
+      },
+      "expected": {
+        "route": "makeup_booking",
+        "disposition": "pending_age_check",
+        "required_facts": [
+          {
+            "source": "business",
+            "key": "policy.capacity_required",
+            "text": "A replacement needs a live place in an age-appropriate class."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Check age suitability before offering a place."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M11",
+      "category": "makeup_absence",
+      "message": "I sent an absence note 19 hours before Moss Steps. Does that meet the ordinary notice threshold?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_a",
+        "absence_key": null,
+        "class_key": null
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "information_only",
+        "required_facts": [
+          {
+            "source": "business",
+            "key": "policy.absence_notice_hours",
+            "text": "Ordinary absence notice must be at least 18 hours before the enrolled class."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Do not infer an awarded credit from notice alone."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M12",
+      "category": "makeup_absence",
+      "message": "We gave exactly 18 hours notice for Reed Ballet. Is that enough under the ordinary rule?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_b",
+        "absence_key": null,
+        "class_key": null
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "information_only",
+        "required_facts": [
+          {
+            "source": "business",
+            "key": "policy.absence_notice_hours",
+            "text": "Ordinary absence notice must be at least 18 hours before the enrolled class."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Eligibility still needs record validation."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M13",
+      "category": "makeup_absence",
+      "message": "I sent an absence note 17 hours and 50 minutes before Cloud Contemporary. Is it automatically eligible?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_c",
+        "absence_key": null,
+        "class_key": null
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "needs_teacher",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "absence_policy",
+            "text": "Late notice requires teacher review and is not automatically eligible."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Threshold is not met; escalate."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M14",
+      "category": "makeup_absence",
+      "message": "Student A has two unused credits; may both be spent on one replacement class?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_a",
+        "absence_key": null,
+        "class_key": "reed"
+      },
+      "expected": {
+        "route": "makeup_booking",
+        "disposition": "pending_validation",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "absence_policy",
+            "text": "An unused credit is not a confirmed replacement booking."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Check credit use; only one booking per place."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M15",
+      "category": "makeup_absence",
+      "message": "Can a credit from Student A be transferred to Student B?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_a",
+        "absence_key": null,
+        "class_key": null
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "needs_teacher",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "absence_policy",
+            "text": "The published policy does not authorize credit transfer."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Teacher must decide transfer request."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M16",
+      "category": "makeup_absence",
+      "message": "Can you hold a Reed Ballet makeup place while I decide?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_a",
+        "absence_key": null,
+        "class_key": "reed"
+      },
+      "expected": {
+        "route": "makeup_booking",
+        "disposition": "pending_validation",
+        "required_facts": [
+          {
+            "source": "business",
+            "key": "policy.capacity_required",
+            "text": "A replacement needs a live place in an age-appropriate class."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "A request is not a hold or booking."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M17",
+      "category": "makeup_absence",
+      "message": "Which of our missed lessons still has credits left?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_c",
+        "absence_key": null,
+        "class_key": null
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "needs_live_record",
+        "required_facts": [
+          {
+            "source": "business",
+            "key": "students.student_c.credit_balance",
+            "text": "The seeded account has two credits; source of each must be checked."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Read current credit ledger before advising."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M18",
+      "category": "makeup_absence",
+      "message": "Please reverse a replacement booking for Student C and restore the credit.",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_c",
+        "absence_key": null,
+        "class_key": "cloud"
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "needs_teacher",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "absence_policy",
+            "text": "An unused credit is not a confirmed replacement booking."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Booking reversal is a record change requiring human handling."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M19",
+      "category": "makeup_absence",
+      "message": "If Lantern Jazz is full, can we join the waiting list with our credit?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_d",
+        "absence_key": null,
+        "class_key": "lantern"
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "needs_teacher",
+        "required_facts": [
+          {
+            "source": "business",
+            "key": "policy.capacity_required",
+            "text": "A replacement needs a live place in an age-appropriate class."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Do not create a waitlist record automatically."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M20",
+      "category": "makeup_absence",
+      "message": "Student B was absent from a class they were not enrolled in. Can that create a credit?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_b",
+        "absence_key": null,
+        "class_key": "moss"
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "ineligible",
+        "required_facts": [
+          {
+            "source": "business",
+            "key": "policy.absence_notice_hours",
+            "text": "Ordinary absence notice must be at least 18 hours before the enrolled class."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Validate enrolment; no enrolled missed class is shown."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M21",
+      "category": "makeup_absence",
+      "message": "I reported the absence by email yesterday. Did the system record it?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_a",
+        "absence_key": null,
+        "class_key": null
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "needs_live_record",
+        "required_facts": [
+          {
+            "source": "business",
+            "key": "absences.absence_early.status",
+            "text": "Seeded absence is reported; a live record check is still required."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Check current attendance record."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M22",
+      "category": "makeup_absence",
+      "message": "Student A would like the Wednesday Reed Ballet class as a makeup next week. Is there room?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_a",
+        "absence_key": null,
+        "class_key": "reed"
+      },
+      "expected": {
+        "route": "makeup_booking",
+        "disposition": "pending_capacity",
+        "required_facts": [
+          {
+            "source": "business",
+            "key": "policy.capacity_required",
+            "text": "A replacement needs a live place in an age-appropriate class."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "The listing is not live capacity."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M23",
+      "category": "makeup_absence",
+      "message": "The missed class was 43 days ago. Can we still use its credit?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_a",
+        "absence_key": null,
+        "class_key": null
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "expired",
+        "required_facts": [
+          {
+            "source": "business",
+            "key": "policy.credit_expiry_days",
+            "text": "A replacement credit expires 42 days after the missed class."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Check exact expiry and exception status."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M24",
+      "category": "makeup_absence",
+      "message": "The studio cancelled our class. Does the ordinary absence notice rule apply?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_a",
+        "absence_key": null,
+        "class_key": null
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "needs_teacher",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "absence_policy",
+            "text": "The ordinary absence rule describes family-reported absences, not studio cancellations."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Teacher must decide cancellation remedy."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M25",
+      "category": "makeup_absence",
+      "message": "Can Student C use an unused credit for the 12-year-old Cloud class if they meet the age rule?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_c",
+        "absence_key": null,
+        "class_key": "cloud"
+      },
+      "expected": {
+        "route": "makeup_booking",
+        "disposition": "pending_validation",
+        "required_facts": [
+          {
+            "source": "business",
+            "key": "policy.capacity_required",
+            "text": "A replacement needs a live place in an age-appropriate class."
+          },
+          {
+            "source": "document",
+            "key": "absence_policy",
+            "text": "An unused credit is not a confirmed replacement booking."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Check age, credit, and live capacity."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M26",
+      "category": "makeup_absence",
+      "message": "I notified you 24 hours ahead, but the class was already over when the email arrived. Is it eligible?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_a",
+        "absence_key": null,
+        "class_key": null
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "needs_teacher",
+        "required_facts": [
+          {
+            "source": "business",
+            "key": "policy.absence_notice_hours",
+            "text": "Ordinary absence notice must be at least 18 hours before the enrolled class."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Verify timestamps; contradictory timing cannot be decided from the message."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M27",
+      "category": "makeup_absence",
+      "message": "The credit appears on my account but I did not request it. Can it be deleted?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_c",
+        "absence_key": null,
+        "class_key": null
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "needs_teacher",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "absence_policy",
+            "text": "An unused credit is not a confirmed replacement booking."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Do not delete credit without review."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M28",
+      "category": "makeup_absence",
+      "message": "Can we split one replacement credit across two shorter lessons?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_a",
+        "absence_key": null,
+        "class_key": null
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "needs_teacher",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "absence_policy",
+            "text": "The published policy does not describe splitting one credit."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Teacher decides unsupported arrangement."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M29",
+      "category": "makeup_absence",
+      "message": "Student D wants to use a credit for the full Tuesday Lantern Jazz class, then pay for a private lesson instead.",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_d",
+        "absence_key": null,
+        "class_key": "lantern"
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "needs_teacher",
+        "required_facts": [
+          {
+            "source": "business",
+            "key": "policy.capacity_required",
+            "text": "A replacement needs a live place in an age-appropriate class."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Mixed booking/payment change needs human review."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-M30",
+      "category": "makeup_absence",
+      "message": "Our class was missed due to an injury. Can you guarantee a replacement after the 42-day expiry?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "absence",
+        "business_record"
+      ],
+      "setup": {
+        "student_key": "student_a",
+        "absence_key": null,
+        "class_key": null
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "needs_teacher",
+        "required_facts": [
+          {
+            "source": "business",
+            "key": "policy.credit_expiry_days",
+            "text": "A replacement credit expires 42 days after the missed class."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed.",
+          "Do not promise eligibility or approval without checking the live record."
+        ],
+        "required_review_points": [
+          "Exceptional expiry request requires teacher review."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G01",
+      "category": "general_enquiry",
+      "message": "What time does the front desk open before classes?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "visitor_guide"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "visitor_guide",
+            "text": "The front desk opens 30 minutes before the first class."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G02",
+      "category": "general_enquiry",
+      "message": "Which entrance should a new family use?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "visitor_guide"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "visitor_guide",
+            "text": "Visitors enter through the teal courtyard gate."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G03",
+      "category": "general_enquiry",
+      "message": "May visitors use the side stair?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "visitor_guide"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "visitor_guide",
+            "text": "The side stair is staff only."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G04",
+      "category": "general_enquiry",
+      "message": "Can I sit in on the first trial?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "visitor_guide"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "visitor_guide",
+            "text": "A guardian may watch a first trial from the marked bench."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G05",
+      "category": "general_enquiry",
+      "message": "Can a guardian watch every weekly class?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "visitor_guide"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "visitor_guide",
+            "text": "Other classes are drop-off unless the teacher invites a guardian."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G06",
+      "category": "general_enquiry",
+      "message": "Is there a step-free way into the studio?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "visitor_guide"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "visitor_guide",
+            "text": "The courtyard entrance is step-free."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G07",
+      "category": "general_enquiry",
+      "message": "Is an accessible toilet available?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "visitor_guide"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "visitor_guide",
+            "text": "The studio has an accessible toilet."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G08",
+      "category": "general_enquiry",
+      "message": "Could a family ask for a quiet waiting area?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "visitor_guide"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "visitor_guide",
+            "text": "Ask the office before arrival if a quiet waiting area is needed."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G09",
+      "category": "general_enquiry",
+      "message": "May a student bring a water bottle into the room?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "visitor_guide"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "visitor_guide",
+            "text": "Water bottles are welcome."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G10",
+      "category": "general_enquiry",
+      "message": "Can we eat a snack inside a dance room?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "visitor_guide"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "visitor_guide",
+            "text": "Food stays outside the dance rooms."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G11",
+      "category": "general_enquiry",
+      "message": "What age range is Moss Steps intended for?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "classes_and_trials"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "classes_and_trials",
+            "text": "Moss Steps is for ages 6 to 8."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G12",
+      "category": "general_enquiry",
+      "message": "When does Lantern Jazz meet?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "classes_and_trials"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "classes_and_trials",
+            "text": "Lantern Jazz meets Tuesday at 17:15."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G13",
+      "category": "general_enquiry",
+      "message": "What day is Reed Ballet?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "classes_and_trials"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "classes_and_trials",
+            "text": "Reed Ballet meets Wednesday at 16:40."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G14",
+      "category": "general_enquiry",
+      "message": "Which age group is Cloud Contemporary for?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "classes_and_trials"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "classes_and_trials",
+            "text": "Cloud Contemporary is for ages 12 to 16."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G15",
+      "category": "general_enquiry",
+      "message": "When is Pebble Creative?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "classes_and_trials"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "classes_and_trials",
+            "text": "Pebble Creative meets Saturday at 09:30."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G16",
+      "category": "general_enquiry",
+      "message": "How much is one trial?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "classes_and_trials"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "classes_and_trials",
+            "text": "A single trial costs $24."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G17",
+      "category": "general_enquiry",
+      "message": "Who arranges a trial?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "classes_and_trials"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "classes_and_trials",
+            "text": "The office arranges trials after checking a live place."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G18",
+      "category": "general_enquiry",
+      "message": "Does attending a trial hold a term place?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "classes_and_trials"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "classes_and_trials",
+            "text": "Trial attendance does not reserve a term place."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G19",
+      "category": "general_enquiry",
+      "message": "Can a beginner try Reed Ballet?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "classes_and_trials"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "classes_and_trials",
+            "text": "Beginners can join Reed Ballet."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G20",
+      "category": "general_enquiry",
+      "message": "Does a beginner need a teacher discussion before a Cloud Contemporary trial?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "classes_and_trials"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "classes_and_trials",
+            "text": "Cloud Contemporary requires a teacher discussion before a beginner trial."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G21",
+      "category": "general_enquiry",
+      "message": "What is Moss Steps term tuition?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "fees_and_terms"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "fees_and_terms",
+            "text": "Moss Steps tuition is $180 per term."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G22",
+      "category": "general_enquiry",
+      "message": "Is costume hire included in the sibling discount?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "fees_and_terms"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "fees_and_terms",
+            "text": "The second-sibling discount does not cover costumes."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G23",
+      "category": "general_enquiry",
+      "message": "What is the costume hire fee?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "fees_and_terms"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "fees_and_terms",
+            "text": "Costume hire is $28 per item per term."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G24",
+      "category": "general_enquiry",
+      "message": "Does a sibling discount apply to trial fees?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "fees_and_terms"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "fees_and_terms",
+            "text": "The second-sibling discount does not cover trial fees."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G25",
+      "category": "general_enquiry",
+      "message": "Can the office discuss an individual payment plan?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "fees_and_terms"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "fees_and_terms",
+            "text": "The office handles payment plans individually; approval is not promised."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G26",
+      "category": "general_enquiry",
+      "message": "When is the Winter Sharing afternoon?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "events_and_media"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "events_and_media",
+            "text": "The Winter Sharing afternoon is Saturday 19 July 2031 at 14:00."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G27",
+      "category": "general_enquiry",
+      "message": "Where is the Winter Sharing afternoon?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "events_and_media"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "events_and_media",
+            "text": "The Winter Sharing afternoon is in Courtyard Hall."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G28",
+      "category": "general_enquiry",
+      "message": "When is the Winter Sharing rehearsal?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "events_and_media"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "events_and_media",
+            "text": "The rehearsal is Saturday 12 July at 10:00."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G29",
+      "category": "general_enquiry",
+      "message": "Can a student take part without photo consent?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "events_and_media"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "events_and_media",
+            "text": "A student may participate without photo consent."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-G30",
+      "category": "general_enquiry",
+      "message": "What should students bring to the Winter Sharing rehearsal?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "enquiry"
+      ],
+      "setup": {
+        "document_keys": [
+          "events_and_media"
+        ]
+      },
+      "expected": {
+        "route": "information_only",
+        "disposition": "draft_answer",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "events_and_media",
+            "text": "Students bring plain dark trousers and a water bottle."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-D01",
+      "category": "document_qa",
+      "message": "Does the printed schedule prove that Lantern Jazz has a free place?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "document_grounding"
+      ],
+      "setup": {
+        "document_keys": [
+          "classes_and_trials"
+        ]
+      },
+      "expected": {
+        "route": "document_answer",
+        "disposition": "cited_draft",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "classes_and_trials",
+            "text": "Listings are schedules, not availability or bookings."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Cite the source document for each policy or schedule claim."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-D02",
+      "category": "document_qa",
+      "message": "Can a 7-year-old beginner attend Moss Steps according to the guide?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "document_grounding"
+      ],
+      "setup": {
+        "document_keys": [
+          "classes_and_trials"
+        ]
+      },
+      "expected": {
+        "route": "document_answer",
+        "disposition": "cited_draft",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "classes_and_trials",
+            "text": "Moss Steps is for ages 6 to 8."
+          },
+          {
+            "source": "document",
+            "key": "classes_and_trials",
+            "text": "Beginners can join Moss Steps."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Cite the source document for each policy or schedule claim."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-D03",
+      "category": "document_qa",
+      "message": "What must happen before a beginner can try Cloud Contemporary?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "document_grounding"
+      ],
+      "setup": {
+        "document_keys": [
+          "classes_and_trials"
+        ]
+      },
+      "expected": {
+        "route": "document_answer",
+        "disposition": "cited_draft",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "classes_and_trials",
+            "text": "Cloud Contemporary requires a teacher discussion before a beginner trial."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Cite the source document for each policy or schedule claim."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-D04",
+      "category": "document_qa",
+      "message": "If we enrol eight calendar days after a trial, is its fee credited?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "document_grounding"
+      ],
+      "setup": {
+        "document_keys": [
+          "classes_and_trials"
+        ]
+      },
+      "expected": {
+        "route": "document_answer",
+        "disposition": "cited_draft",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "classes_and_trials",
+            "text": "The $24 trial fee is credited only when enrolment is completed within 7 calendar days."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Cite the source document for each policy or schedule claim."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-D05",
+      "category": "document_qa",
+      "message": "Does a trial attendance itself reserve a term place?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "document_grounding"
+      ],
+      "setup": {
+        "document_keys": [
+          "classes_and_trials"
+        ]
+      },
+      "expected": {
+        "route": "document_answer",
+        "disposition": "cited_draft",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "classes_and_trials",
+            "text": "Trial attendance does not reserve a term place."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Cite the source document for each policy or schedule claim."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-D06",
+      "category": "document_qa",
+      "message": "What parts of the second-sibling discount are excluded?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "document_grounding"
+      ],
+      "setup": {
+        "document_keys": [
+          "fees_and_terms"
+        ]
+      },
+      "expected": {
+        "route": "document_answer",
+        "disposition": "cited_draft",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "fees_and_terms",
+            "text": "The 10 percent discount applies to tuition only, not trial fees, costumes, or workshops."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Cite the source document for each policy or schedule claim."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-D07",
+      "category": "document_qa",
+      "message": "What does the published fee sheet say about instalment approval?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "document_grounding"
+      ],
+      "setup": {
+        "document_keys": [
+          "fees_and_terms"
+        ]
+      },
+      "expected": {
+        "route": "document_answer",
+        "disposition": "cited_draft",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "fees_and_terms",
+            "text": "The office handles payment plans individually and promises no approval or particular schedule."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Cite the source document for each policy or schedule claim."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-D08",
+      "category": "document_qa",
+      "message": "Can the fee sheet tell me whether my latest invoice was paid?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "document_grounding"
+      ],
+      "setup": {
+        "document_keys": [
+          "fees_and_terms"
+        ]
+      },
+      "expected": {
+        "route": "document_answer",
+        "disposition": "cited_draft",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "fees_and_terms",
+            "text": "Invoice balance and payment receipt are live account records, not facts in the document."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Cite the source document for each policy or schedule claim."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-D09",
+      "category": "document_qa",
+      "message": "How much do two rented costume items cost for a term?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "document_grounding"
+      ],
+      "setup": {
+        "document_keys": [
+          "fees_and_terms"
+        ]
+      },
+      "expected": {
+        "route": "document_answer",
+        "disposition": "cited_draft",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "fees_and_terms",
+            "text": "Costume hire is $28 per item per term; two items total $56."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Cite the source document for each policy or schedule claim."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-D10",
+      "category": "document_qa",
+      "message": "Compare the stated term tuition for Reed Ballet and Cloud Contemporary.",
+      "as_of": "2031-04-15",
+      "tags": [
+        "document_grounding"
+      ],
+      "setup": {
+        "document_keys": [
+          "fees_and_terms"
+        ]
+      },
+      "expected": {
+        "route": "document_answer",
+        "disposition": "cited_draft",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "fees_and_terms",
+            "text": "Reed Ballet is $190 and Cloud Contemporary is $210 per term."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Cite the source document for each policy or schedule claim."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-D11",
+      "category": "document_qa",
+      "message": "Does asking the office for two spectator seats guarantee seats?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "document_grounding"
+      ],
+      "setup": {
+        "document_keys": [
+          "events_and_media"
+        ]
+      },
+      "expected": {
+        "route": "document_answer",
+        "disposition": "cited_draft",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "events_and_media",
+            "text": "A request for up to two spectator seats does not reserve a seat."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Cite the source document for each policy or schedule claim."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-D12",
+      "category": "document_qa",
+      "message": "Does lack of media consent exclude a student from Winter Sharing?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "document_grounding"
+      ],
+      "setup": {
+        "document_keys": [
+          "events_and_media"
+        ]
+      },
+      "expected": {
+        "route": "document_answer",
+        "disposition": "cited_draft",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "events_and_media",
+            "text": "A student may participate without photo consent."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Cite the source document for each policy or schedule claim."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-D13",
+      "category": "document_qa",
+      "message": "Can the studio publish student photos before consent is recorded?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "document_grounding"
+      ],
+      "setup": {
+        "document_keys": [
+          "events_and_media"
+        ]
+      },
+      "expected": {
+        "route": "document_answer",
+        "disposition": "cited_draft",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "events_and_media",
+            "text": "The studio does not publish student photos without a recorded media consent choice."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Cite the source document for each policy or schedule claim."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-D14",
+      "category": "document_qa",
+      "message": "When and where is the Winter Sharing afternoon?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "document_grounding"
+      ],
+      "setup": {
+        "document_keys": [
+          "events_and_media"
+        ]
+      },
+      "expected": {
+        "route": "document_answer",
+        "disposition": "cited_draft",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "events_and_media",
+            "text": "Winter Sharing is Saturday 19 July 2031 at 14:00 in Courtyard Hall."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Cite the source document for each policy or schedule claim."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-D15",
+      "category": "document_qa",
+      "message": "What must the student bring to rehearsal, and when is it?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "document_grounding"
+      ],
+      "setup": {
+        "document_keys": [
+          "events_and_media"
+        ]
+      },
+      "expected": {
+        "route": "document_answer",
+        "disposition": "cited_draft",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "events_and_media",
+            "text": "Rehearsal is Saturday 12 July at 10:00; bring plain dark trousers and water."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Cite the source document for each policy or schedule claim."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-D16",
+      "category": "document_qa",
+      "message": "What is the ordinary absence notice threshold?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "document_grounding"
+      ],
+      "setup": {
+        "document_keys": [
+          "absence_policy"
+        ]
+      },
+      "expected": {
+        "route": "document_answer",
+        "disposition": "cited_draft",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "absence_policy",
+            "text": "At least 18 hours notice before the enrolled class may qualify for one replacement credit."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Cite the source document for each policy or schedule claim."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-D17",
+      "category": "document_qa",
+      "message": "Does late notice automatically disqualify a medical absence?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "document_grounding"
+      ],
+      "setup": {
+        "document_keys": [
+          "absence_policy"
+        ]
+      },
+      "expected": {
+        "route": "document_answer",
+        "disposition": "cited_draft",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "absence_policy",
+            "text": "Late notice and medical circumstances require teacher review, not an automatic decision."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Cite the source document for each policy or schedule claim."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-D18",
+      "category": "document_qa",
+      "message": "How long is a replacement credit valid?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "document_grounding"
+      ],
+      "setup": {
+        "document_keys": [
+          "absence_policy"
+        ]
+      },
+      "expected": {
+        "route": "document_answer",
+        "disposition": "cited_draft",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "absence_policy",
+            "text": "A replacement credit expires 42 days after the missed class."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Cite the source document for each policy or schedule claim."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-D19",
+      "category": "document_qa",
+      "message": "Can one used absence create a second credit?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "document_grounding"
+      ],
+      "setup": {
+        "document_keys": [
+          "absence_policy"
+        ]
+      },
+      "expected": {
+        "route": "document_answer",
+        "disposition": "cited_draft",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "absence_policy",
+            "text": "An absence already used for a replacement cannot create another credit."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Cite the source document for each policy or schedule claim."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-D20",
+      "category": "document_qa",
+      "message": "Is a credit itself proof of a replacement booking?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "document_grounding"
+      ],
+      "setup": {
+        "document_keys": [
+          "absence_policy"
+        ]
+      },
+      "expected": {
+        "route": "document_answer",
+        "disposition": "cited_draft",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "absence_policy",
+            "text": "An unused credit does not itself confirm a replacement booking."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Cite the source document for each policy or schedule claim."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-D21",
+      "category": "document_qa",
+      "message": "Can families bring food into the dance room if they use the quiet area?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "document_grounding"
+      ],
+      "setup": {
+        "document_keys": [
+          "visitor_guide"
+        ]
+      },
+      "expected": {
+        "route": "document_answer",
+        "disposition": "cited_draft",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "visitor_guide",
+            "text": "Food stays outside dance rooms; ask the office before arrival about a quiet waiting area."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Cite the source document for each policy or schedule claim."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-D22",
+      "category": "document_qa",
+      "message": "What access facilities does the visitor guide identify?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "document_grounding"
+      ],
+      "setup": {
+        "document_keys": [
+          "visitor_guide"
+        ]
+      },
+      "expected": {
+        "route": "document_answer",
+        "disposition": "cited_draft",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "visitor_guide",
+            "text": "The studio has a step-free courtyard entrance and an accessible toilet."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Cite the source document for each policy or schedule claim."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-D23",
+      "category": "document_qa",
+      "message": "Can a guardian watch a regular class from the same bench as a trial?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "document_grounding"
+      ],
+      "setup": {
+        "document_keys": [
+          "visitor_guide"
+        ]
+      },
+      "expected": {
+        "route": "document_answer",
+        "disposition": "cited_draft",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "visitor_guide",
+            "text": "A guardian may watch a first trial from the bench; other classes are drop-off unless invited."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Cite the source document for each policy or schedule claim."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-D24",
+      "category": "document_qa",
+      "message": "If the front desk opens before class, can I use the side stair to get there?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "document_grounding"
+      ],
+      "setup": {
+        "document_keys": [
+          "visitor_guide"
+        ]
+      },
+      "expected": {
+        "route": "document_answer",
+        "disposition": "cited_draft",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "visitor_guide",
+            "text": "Visitors use the teal courtyard gate; the side stair is staff only."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Cite the source document for each policy or schedule claim."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-D25",
+      "category": "document_qa",
+      "message": "Does the visitor guide permit water in class but food outside?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "document_grounding"
+      ],
+      "setup": {
+        "document_keys": [
+          "visitor_guide"
+        ]
+      },
+      "expected": {
+        "route": "document_answer",
+        "disposition": "cited_draft",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "visitor_guide",
+            "text": "Water bottles are welcome; food stays outside the dance rooms."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Cite the source document for each policy or schedule claim."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-X01",
+      "category": "mixed_handoff",
+      "message": "What is the trial fee, and please enrol Student A today?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "mixed",
+        "record_change"
+      ],
+      "setup": {
+        "document_keys": [
+          "classes_and_trials"
+        ]
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "partial_draft_plus_handoff",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "classes_and_trials",
+            "text": "A single trial costs $24."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Enrolment is a record change."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-X02",
+      "category": "mixed_handoff",
+      "message": "What is Lantern Jazz tuition, and mark my invoice paid?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "mixed",
+        "record_change"
+      ],
+      "setup": {
+        "document_keys": [
+          "fees_and_terms"
+        ]
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "partial_draft_plus_handoff",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "fees_and_terms",
+            "text": "Lantern Jazz tuition is $195 per term."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Payment status needs verified account handling."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-X03",
+      "category": "mixed_handoff",
+      "message": "When is Winter Sharing, and reserve two seats for us?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "mixed",
+        "record_change"
+      ],
+      "setup": {
+        "document_keys": [
+          "events_and_media"
+        ]
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "partial_draft_plus_handoff",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "events_and_media",
+            "text": "Winter Sharing is Saturday 19 July 2031 at 14:00."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "A seat request is not a reservation."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-X04",
+      "category": "mixed_handoff",
+      "message": "Is Reed Ballet for beginners, and move Student B into it permanently?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "mixed",
+        "record_change"
+      ],
+      "setup": {
+        "document_keys": [
+          "classes_and_trials"
+        ]
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "partial_draft_plus_handoff",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "classes_and_trials",
+            "text": "Beginners can join Reed Ballet."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Permanent class move requires human handling."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-X05",
+      "category": "mixed_handoff",
+      "message": "Can I bring water, and delete the attendance mark from yesterday?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "mixed",
+        "record_change"
+      ],
+      "setup": {
+        "document_keys": [
+          "visitor_guide"
+        ]
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "partial_draft_plus_handoff",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "visitor_guide",
+            "text": "Water bottles are welcome."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Attendance record edits require human handling."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-X06",
+      "category": "mixed_handoff",
+      "message": "How long does a credit last, and extend mine now?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "mixed",
+        "record_change"
+      ],
+      "setup": {
+        "document_keys": [
+          "absence_policy"
+        ]
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "partial_draft_plus_handoff",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "absence_policy",
+            "text": "A credit expires 42 days after the missed class."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Extension is an exception needing teacher review."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-X07",
+      "category": "mixed_handoff",
+      "message": "Is there an accessible toilet, and change Student C’s guardian contact?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "mixed",
+        "record_change"
+      ],
+      "setup": {
+        "document_keys": [
+          "visitor_guide"
+        ]
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "partial_draft_plus_handoff",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "visitor_guide",
+            "text": "There is an accessible toilet."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Guardian contact edits require verification."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-X08",
+      "category": "mixed_handoff",
+      "message": "When is rehearsal, and change our media consent to yes?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "mixed",
+        "record_change"
+      ],
+      "setup": {
+        "document_keys": [
+          "events_and_media"
+        ]
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "partial_draft_plus_handoff",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "events_and_media",
+            "text": "Rehearsal is Saturday 12 July at 10:00."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Consent edits require human verification."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-X09",
+      "category": "mixed_handoff",
+      "message": "What age is Pebble Creative for, and add Student D to the class?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "mixed",
+        "record_change"
+      ],
+      "setup": {
+        "document_keys": [
+          "classes_and_trials"
+        ]
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "partial_draft_plus_handoff",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "classes_and_trials",
+            "text": "Pebble Creative is for ages 4 to 5."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Enrolment requires live age and capacity checks."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-X10",
+      "category": "mixed_handoff",
+      "message": "How much is costume hire, and charge my card for two costumes?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "mixed",
+        "record_change"
+      ],
+      "setup": {
+        "document_keys": [
+          "fees_and_terms"
+        ]
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "partial_draft_plus_handoff",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "fees_and_terms",
+            "text": "Costume hire is $28 per item per term."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Payment requires verified human handling."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-X11",
+      "category": "mixed_handoff",
+      "message": "Can I watch the first trial, and cancel Student A’s existing booking?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "mixed",
+        "record_change"
+      ],
+      "setup": {
+        "document_keys": [
+          "visitor_guide"
+        ]
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "partial_draft_plus_handoff",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "visitor_guide",
+            "text": "A guardian may watch the first trial from the marked bench."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Cancellation is a record change."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-X12",
+      "category": "mixed_handoff",
+      "message": "What is the notice threshold, and credit the absence I just reported?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "mixed",
+        "record_change"
+      ],
+      "setup": {
+        "document_keys": [
+          "absence_policy"
+        ]
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "partial_draft_plus_handoff",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "absence_policy",
+            "text": "Ordinary notice is at least 18 hours."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Credit award requires record validation."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-X13",
+      "category": "mixed_handoff",
+      "message": "Where is Winter Sharing, and publish a photo of Student C?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "mixed",
+        "record_change"
+      ],
+      "setup": {
+        "document_keys": [
+          "events_and_media"
+        ]
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "partial_draft_plus_handoff",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "events_and_media",
+            "text": "Winter Sharing is in Courtyard Hall."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Photo publication depends on recorded consent."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-X14",
+      "category": "mixed_handoff",
+      "message": "Is Cloud Contemporary for a 13-year-old, and waive this term’s fee?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "mixed",
+        "record_change"
+      ],
+      "setup": {
+        "document_keys": [
+          "classes_and_trials"
+        ]
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "partial_draft_plus_handoff",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "classes_and_trials",
+            "text": "Cloud Contemporary is for ages 12 to 16."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Fee waiver requires human decision."
+        ],
+        "allowed_record_mutations": []
+      }
+    },
+    {
+      "id": "WAV1-X15",
+      "category": "mixed_handoff",
+      "message": "What time is Moss Steps, and transfer Student B’s credit to Student A?",
+      "as_of": "2031-04-15",
+      "tags": [
+        "mixed",
+        "record_change"
+      ],
+      "setup": {
+        "document_keys": [
+          "classes_and_trials"
+        ]
+      },
+      "expected": {
+        "route": "teacher_handoff",
+        "disposition": "partial_draft_plus_handoff",
+        "required_facts": [
+          {
+            "source": "document",
+            "key": "classes_and_trials",
+            "text": "Moss Steps meets Monday at 16:20."
+          }
+        ],
+        "forbidden_claims": [
+          "Do not claim a booking, credit, attendance, payment, consent, or account record changed."
+        ],
+        "required_review_points": [
+          "Credit transfer is unsupported by published policy."
+        ],
+        "allowed_record_mutations": []
+      }
+    }
+  ]
+}
