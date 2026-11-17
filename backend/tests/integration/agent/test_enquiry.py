@@ -466,7 +466,7 @@ def test_informational_makeup_cannot_propose_or_approve_a_booking(rig, scenario,
     assert business_records(db_engine) == before
 
 
-def test_empty_extraction_uses_a_safe_acknowledgement(rig, scenario):
+def test_empty_extraction_preserves_source_request_for_teacher_review(rig, scenario):
     model = rig[1]
     configure_enquiry(model)
     original = model.interpret_enquiry
@@ -482,7 +482,11 @@ def test_empty_extraction_uses_a_safe_acknowledgement(rig, scenario):
         references=[],
     )
     run = start(rig, scenario)
-    assert run["draft_details"]["answers"] == []
+    answers = run["draft_details"]["answers"]
+    assert len(answers) == 1
+    assert answers[0]["question"] == "Thursday please"
+    assert answers[0]["status"] == "needs_teacher"
+    assert answers[0]["question_id"] in run["draft_details"]["required_question_ids"]
     assert "unsupported answer" not in run["draft_details"]["body"]
     assert run["draft_details"]["body"].strip()
 
