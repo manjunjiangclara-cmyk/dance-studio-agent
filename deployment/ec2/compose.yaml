@@ -1,0 +1,71 @@
+name: dance-studio-cloud
+x-logging: &logging
+  driver: local
+  options:
+    max-size: 10m
+    max-file: "3"
+services:
+  db:
+    image: pgvector/pgvector:0.8.7-pg18-trixie
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: copilot
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set the persistent database password}
+      POSTGRES_DB: studio_copilot
+    volumes:
+      - ${STUDIO_DATA_DIR:-/srv/studio}/postgres:/var/lib/postgresql
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -h 127.0.0.1 -U copilot -d studio_copilot]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    mem_limit: 384m
+    logging: *logging
+    networks: [database]
+  app:
+    image: ${STUDIO_IMAGE:?Set an immutable release image}
+    restart: unless-stopped
+    env_file: ${STUDIO_DATA_DIR:-/srv/studio}/config/app.env
+    environment:
+      DATABASE_URL: postgresql+psycopg://copilot:${POSTGRES_PASSWORD}@db:5432/studio_copilot
+    volumes:
+      - ${STUDIO_DATA_DIR:-/srv/studio}/policy:/data/policy
+      - ${STUDIO_DATA_DIR:-/srv/studio}/public-demo:/data/public-demo
+      - ${STUDIO_DATA_DIR:-/srv/studio}/operations:/data/operations
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
+      interval: 10s
+      timeout: 6s
+      start_period: 30s
+      retries: 6
+    mem_limit: 1400m
+    memswap_limit: 2800m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    logging: *logging
+    networks: [database, web]
+  proxy:
+    image: caddy:2.11.2-alpine
+    restart: unless-stopped
+    environment:
+      STUDIO_DOMAIN: ${STUDIO_DOMAIN:?Set the HTTPS domain}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${STUDIO_DATA_DIR:-/srv/studio}/caddy-data:/data
+      - ${STUDIO_DATA_DIR:-/srv/studio}/caddy-config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    mem_limit: 96m
+    logging: *logging
+    networks: [web]
+networks:
+  database:
+    internal: true
+  web:

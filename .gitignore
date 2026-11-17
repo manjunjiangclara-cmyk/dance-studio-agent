@@ -23,3 +23,8 @@ backend/experiments/data_api/results/
 **/*.tfstate
 **/*.tfstate.*
 **/*.tfplan
+
+# Private EC2 deployment records, generated configuration and bootstrap backend file.
+deployment/ec2/.state/
+infrastructure/ec2-demo/backend.json
+infrastructure/ec2-demo/terraform.tfvars.json
