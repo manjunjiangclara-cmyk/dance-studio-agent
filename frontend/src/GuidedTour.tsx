@@ -178,8 +178,8 @@ function TourContent({ scenario }: { scenario: TourScenario }) {
       </header>
       <p className="notice" role="note">
         {liveMode
-          ? "Live AI · Fictional data · 20 shared runs per day. Results disappear when you leave or refresh. No email is sent."
-          : "Recorded demo · Fictional data · No live AI. Results disappear when you leave or refresh. No email is sent."}
+          ? "Live AI · Fictional data · 20 shared runs per day. Results are unavailable after you leave or refresh. No email is sent."
+          : "Recorded demo · Fictional data · No live AI. Results are unavailable after you leave or refresh. No email is sent."}
       </p>
       <div className="tour-tabs" role="tablist" aria-label="Demo scenarios">
         {(["booking", "document"] as const).map((value) => (
