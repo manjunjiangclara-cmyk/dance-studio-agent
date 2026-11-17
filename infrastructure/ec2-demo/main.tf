@@ -141,7 +141,8 @@ resource "aws_instance" "app" {
   lifecycle {
     prevent_destroy = true
     # Cloud-init is initial host setup. Reviewed release archives update host helpers.
-    ignore_changes = [user_data_base64]
+    # The separately managed Elastic IP makes the provider observe a public-IP mapping.
+    ignore_changes = [user_data_base64, associate_public_ip_address]
   }
 }
 resource "aws_volume_attachment" "data" {
