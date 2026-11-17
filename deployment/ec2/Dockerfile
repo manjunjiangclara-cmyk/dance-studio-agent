@@ -27,6 +27,9 @@ RUN uv sync --frozen --no-dev --group rerank \
     && python -c 'from studio_copilot.documents.reranking.runtime import LocalReranker; r=LocalReranker("/app/assets/reranker", "cross-encoder/ms-marco-MiniLM-L6-v2"); assert len(r.rank("ballet", [{"text":"A ballet class", "text_sha256":"build-smoke"}])) == 1' \
     && useradd --uid 10001 --create-home studio
 COPY --from=frontend /build/dist/ /app/frontend/dist/
+# Tokenizer preparation uses a mode-0600 temporary file; it is a public vocabulary.
+RUN chmod 644 /app/assets/tokenizer/cl100k_base.tiktoken
 USER 10001:10001
+RUN python -c 'from pathlib import Path; from studio_copilot.documents.chunking import Tokenizer; from studio_copilot.documents.reranking.runtime import LocalReranker; Tokenizer(Path("/app/assets/tokenizer")); r=LocalReranker("/app/assets/reranker", "cross-encoder/ms-marco-MiniLM-L6-v2"); assert len(r.rank("ballet", [{"text":"A ballet class", "text_sha256":"nonroot-smoke"}])) == 1'
 EXPOSE 8000
 CMD ["uvicorn", "studio_copilot.api.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--proxy-headers", "--forwarded-allow-ips", "*", "--no-access-log"]

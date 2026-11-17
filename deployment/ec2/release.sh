@@ -39,7 +39,7 @@ fi
 # Bootstrap creates the dedicated builder container before its first prune.
 docker buildx inspect --bootstrap studio-application
 # Scope cache retention to this application's builder.
-docker buildx prune --builder studio-application --force --keep-storage 3GB
+docker buildx prune --builder studio-application --force --keep-storage 10GB
 docker buildx build --builder studio-application --load --pull --tag "$IMAGE" --file "$RELEASE/deployment/ec2/Dockerfile" "$RELEASE"
 if [ ! -f /srv/studio/policy/studio.yaml ]; then
     install -o 10001 -g 10001 -m 600 "$RELEASE/backend/policies/studio.yaml" /srv/studio/policy/studio.yaml
