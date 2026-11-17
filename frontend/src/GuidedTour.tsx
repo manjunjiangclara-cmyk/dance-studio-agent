@@ -178,7 +178,7 @@ function TourContent({ scenario }: { scenario: TourScenario }) {
       </header>
       <p className="notice" role="note">
         {liveMode
-          ? "Live AI · Fixed fictional inputs · 20 shared demo runs per day. Find evidence and generate a draft with the buttons below. Booking remains simulated; no email is sent or studio records changed."
+          ? "Live AI · Fictional data · 20 shared runs per day. Results disappear when you leave or refresh. No email is sent."
           : "Curated simulation · Fictional data · No live model calls. All changes stay in this tour and disappear when you leave or reload. No email is sent."}
       </p>
       <div className="tour-tabs" role="tablist" aria-label="Demo scenarios">
@@ -265,6 +265,7 @@ function TourContent({ scenario }: { scenario: TourScenario }) {
                   your studio's database or run the full production RAG
                   pipeline.
                 </p>
+                <p className="muted">A run starts when you request evidence.</p>
                 <button
                   className="button primary"
                   disabled={Boolean(live.busy) || Boolean(live.evidence)}
