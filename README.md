@@ -106,6 +106,10 @@ uv run ruff check .
 uv run ruff format --check .
 ```
 
+The default `uv sync --frozen` installs the development group, including the AWS
+validation test dependencies (`boto3`/`botocore`). No extra AWS group flag is needed
+for the documented test commands; these tests use mocked AWS clients.
+
 Tests are grouped by execution requirements and behavior:
 
 - `backend/tests/unit/`: enrolment rules and the OpenAI SDK adapter with mocked HTTP; no database or live OpenAI calls.
@@ -137,6 +141,7 @@ Alembic upgrades the consolidated initial schema through the independent-session
 - [Administration API guide](docs/07-api.md)
 - [Agent setup, APIs, and evaluation](docs/08-agent-api.md)
 - [Website and owner workspace](docs/09-website.md)
+- [Isolated Aurora Data API feasibility validation](docs/22-aurora-data-api-validation.md)
 - [Document ingestion and revision APIs](docs/10-document-ingestion.md)
 - [Document RAG design and roadmap](docs/11-rag-design.md)
 - [Revision-pinned embedding CLI and recovery](docs/13-document-embeddings.md)

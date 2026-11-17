@@ -26,7 +26,11 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["httpx2>=2,<3", "pytest>=8,<10", "ruff>=0.11,<1"]
+dev = [
+    "httpx2>=2,<3", "pytest>=8,<10", "ruff>=0.11,<1",
+    { include-group = "aws-validation" },
+]
+aws-validation = ["boto3>=1.40,<2"]
 rerank = [
     "huggingface-hub>=0.28,<1",
     "torch>=2.6,<3",
