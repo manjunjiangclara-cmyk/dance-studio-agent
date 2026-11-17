@@ -123,12 +123,6 @@
 .tour-completion-actions .button.primary {
   margin-left: auto;
 }
-.engineering-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  margin: 18px 0;
-}
 @media (max-width: 650px) {
   .tour-columns {
     grid-template-columns: 1fr;

@@ -679,47 +679,6 @@ function Overview() {
         )}
       </section>
       {!workspace && (
-        <section className="panel">
-          <div className="eyebrow">BEHIND THE EXPERIENCE</div>
-          <h2>Engineering and measured limits</h2>
-          <p>
-            FastAPI, PostgreSQL, LangGraph and React connect deterministic
-            booking checks, document retrieval and teacher review.
-          </p>
-          <nav className="engineering-links" aria-label="Engineering resources">
-            <a
-              className="inline-link"
-              href="https://github.com/manjunjiangclara-cmyk/dance-studio-agent"
-            >
-              GitHub repository
-            </a>
-            <a
-              className="inline-link"
-              href="https://github.com/manjunjiangclara-cmyk/dance-studio-agent/blob/master/docs/04-architecture.md"
-            >
-              Architecture
-            </a>
-            <a
-              className="inline-link"
-              href="https://github.com/manjunjiangclara-cmyk/dance-studio-agent/blob/master/docs/measurements/integrated-rag-2026-11-11.md"
-            >
-              Integrated evaluation report
-            </a>
-          </nav>
-          <p>
-            11 November 2026: a live integrated evaluation reached teacher
-            review in 30/30 fictional cases. Independent AI review judged 27/30
-            emails supported and 16/30 ready without correction. The report
-            recommends holding routine use pending quality improvements.
-          </p>
-          <p className="muted">
-            This small synthetic evaluation is not human ground truth or
-            evidence of production reliability. The guided demo uses fictional
-            inputs; on-demand live results are not part of this evaluation.
-          </p>
-        </section>
-      )}
-      {!workspace && (
         <div className="example-footnote">
           <CircleHelp size={16} />
           <p>{examples.notice}</p>
