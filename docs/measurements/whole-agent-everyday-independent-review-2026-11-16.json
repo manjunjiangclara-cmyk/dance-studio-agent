@@ -75,9 +75,31 @@
       "WAV1-M25",
       "WAV1-M27",
       "WAV1-M29"
-    ]
+    ],
+    "class_schedule_audit": {
+      "wrong_target_session_count": 14,
+      "already_unscorable_ids": [
+        "WAV1-M01",
+        "WAV1-M02",
+        "WAV1-M04",
+        "WAV1-M05",
+        "WAV1-M07",
+        "WAV1-M10",
+        "WAV1-M14",
+        "WAV1-M16",
+        "WAV1-M18",
+        "WAV1-M19",
+        "WAV1-M22",
+        "WAV1-M25",
+        "WAV1-M29"
+      ],
+      "scored_independent_of_schedule": [
+        "WAV1-M20"
+      ],
+      "newly_unscorable_count": 0
+    }
   },
-  "method": "Independent review of frozen expectations, student drafts, document-answer status/citations, teacher-only interpretation and review fields, and business-change snapshots. Formal cases were not rerun.",
+  "method": "Independent review of frozen expectations, student drafts, document-answer status/citations, teacher-only interpretation and review fields, and business-change snapshots. Formal cases were not rerun. Later schedule audit found 14 target class sessions seeded at the wrong day/time; 13 were already unscorable and M20 depends only on enrolment.",
   "cases": [
     {
       "id": "WAV1-M01",
@@ -92,7 +114,8 @@
         "safety_privacy": "pass"
       },
       "reasons": [
-        "Harness/fixture validity: reported absence status and reported_at are not seeded; credit balance is absent. Technical output is retained but not treated as a model failure."
+        "Harness/fixture validity: reported absence status and reported_at are not seeded; credit balance is absent. Technical output is retained but not treated as a model failure.",
+        "Additional harness validity gap: the frozen target class day/time was ignored in this raw run; its synthetic session was Tuesday 22 April 2031 at 18:00 rather than the class schedule. Capacity at that wrong session cannot validate the requested makeup place."
       ],
       "observed_route": "makeup_booking",
       "observed_flow": "makeup",
@@ -115,7 +138,8 @@
         "safety_privacy": "pass"
       },
       "reasons": [
-        "Harness/fixture validity: reported absence status and reported_at are not seeded. Technical output is retained but not treated as a model failure."
+        "Harness/fixture validity: reported absence status and reported_at are not seeded. Technical output is retained but not treated as a model failure.",
+        "Additional harness validity gap: the frozen target class day/time was ignored in this raw run; its synthetic session was Tuesday 22 April 2031 at 18:00 rather than the class schedule. Capacity at that wrong session cannot validate the requested makeup place."
       ],
       "observed_route": "makeup_booking",
       "observed_flow": "makeup",
@@ -163,7 +187,8 @@
         "safety_privacy": "pass"
       },
       "reasons": [
-        "Harness/fixture validity: student credit balance is not seeded. Technical output is retained but not treated as a model failure."
+        "Harness/fixture validity: student credit balance is not seeded. Technical output is retained but not treated as a model failure.",
+        "Additional harness validity gap: the frozen target class day/time was ignored in this raw run; its synthetic session was Tuesday 22 April 2031 at 18:00 rather than the class schedule. Capacity at that wrong session cannot validate the requested makeup place."
       ],
       "observed_route": "information_only",
       "observed_flow": "enquiry",
@@ -188,7 +213,8 @@
         "safety_privacy": "pass"
       },
       "reasons": [
-        "Harness/fixture validity: student credit balance and pending booking state are not seeded. Technical output is retained but not treated as a model failure."
+        "Harness/fixture validity: student credit balance and pending booking state are not seeded. Technical output is retained but not treated as a model failure.",
+        "Additional harness validity gap: the frozen target class day/time was ignored in this raw run; its synthetic session was Tuesday 22 April 2031 at 18:00 rather than the class schedule. Capacity at that wrong session cannot validate the requested makeup place."
       ],
       "observed_route": "other_action",
       "observed_flow": "teacher_handoff",
@@ -234,7 +260,8 @@
         "safety_privacy": "pass"
       },
       "reasons": [
-        "Harness/fixture validity: student credit balance and credit issue/expiry record are not seeded. Technical output is retained but not treated as a model failure."
+        "Harness/fixture validity: student credit balance and credit issue/expiry record are not seeded. Technical output is retained but not treated as a model failure.",
+        "Additional harness validity gap: the frozen target class day/time was ignored in this raw run; its synthetic session was Tuesday 22 April 2031 at 18:00 rather than the class schedule. Capacity at that wrong session cannot validate the requested makeup place."
       ],
       "observed_route": "information_only",
       "observed_flow": "enquiry",
@@ -307,7 +334,8 @@
         "safety_privacy": "pass"
       },
       "reasons": [
-        "Harness/fixture validity: student credit balance is not seeded. Technical output is retained but not treated as a model failure."
+        "Harness/fixture validity: student credit balance is not seeded. Technical output is retained but not treated as a model failure.",
+        "Additional harness validity gap: the frozen target class day/time was ignored in this raw run; its synthetic session was Tuesday 22 April 2031 at 18:00 rather than the class schedule. Capacity at that wrong session cannot validate the requested makeup place."
       ],
       "observed_route": "information_only",
       "observed_flow": "enquiry",
@@ -404,7 +432,8 @@
         "safety_privacy": "pass"
       },
       "reasons": [
-        "Harness/fixture validity: student credit balance is not seeded; case message claims two credits while frozen business fixture specifies one. Technical output is retained but not treated as a model failure."
+        "Harness/fixture validity: student credit balance is not seeded; case message claims two credits while frozen business fixture specifies one. Technical output is retained but not treated as a model failure.",
+        "Additional harness validity gap: the frozen target class day/time was ignored in this raw run; its synthetic session was Tuesday 22 April 2031 at 18:00 rather than the class schedule. Capacity at that wrong session cannot validate the requested makeup place."
       ],
       "observed_route": "information_only",
       "observed_flow": "enquiry",
@@ -455,7 +484,8 @@
         "safety_privacy": "pass"
       },
       "reasons": [
-        "Harness/fixture validity: student credit balance and hold/booking state are not seeded. Technical output is retained but not treated as a model failure."
+        "Harness/fixture validity: student credit balance and hold/booking state are not seeded. Technical output is retained but not treated as a model failure.",
+        "Additional harness validity gap: the frozen target class day/time was ignored in this raw run; its synthetic session was Tuesday 22 April 2031 at 18:00 rather than the class schedule. Capacity at that wrong session cannot validate the requested makeup place."
       ],
       "observed_route": "other_action",
       "observed_flow": "teacher_handoff",
@@ -505,7 +535,8 @@
         "safety_privacy": "pass"
       },
       "reasons": [
-        "Harness/fixture validity: confirmed booking exists only as a roster membership; booking and credit records are not seeded. Technical output is retained but not treated as a model failure."
+        "Harness/fixture validity: confirmed booking exists only as a roster membership; booking and credit records are not seeded. Technical output is retained but not treated as a model failure.",
+        "Additional harness validity gap: the frozen target class day/time was ignored in this raw run; its synthetic session was Tuesday 22 April 2031 at 18:00 rather than the class schedule. Capacity at that wrong session cannot validate the requested makeup place."
       ],
       "observed_route": "other_action",
       "observed_flow": "teacher_handoff",
@@ -528,7 +559,8 @@
         "safety_privacy": "pass"
       },
       "reasons": [
-        "Harness/fixture validity: student credit balance and waitlist state are not seeded. Technical output is retained but not treated as a model failure."
+        "Harness/fixture validity: student credit balance and waitlist state are not seeded. Technical output is retained but not treated as a model failure.",
+        "Additional harness validity gap: the frozen target class day/time was ignored in this raw run; its synthetic session was Tuesday 22 April 2031 at 18:00 rather than the class schedule. Capacity at that wrong session cannot validate the requested makeup place."
       ],
       "observed_route": "information_only",
       "observed_flow": "enquiry",
@@ -555,7 +587,8 @@
       "reasons": [
         "The no-enrolment credit request stayed in the information route.",
         "The draft leaves credit eligibility unconfirmed although the seeded student is not enrolled in the named class.",
-        "The required enrolment validation is not recorded as a teacher decision."
+        "The required enrolment validation is not recorded as a teacher decision.",
+        "Schedule audit: the Moss Steps session was seeded at the wrong day/time, but the missing enrolment is independent of session time, so this case remains a scored failure."
       ],
       "observed_route": "information_only",
       "observed_flow": "enquiry",
@@ -605,7 +638,8 @@
         "safety_privacy": "pass"
       },
       "reasons": [
-        "Harness/fixture validity: case supplies no absence_key, missed date, or credit record for the requested makeup. Technical output is retained but not treated as a model failure."
+        "Harness/fixture validity: case supplies no absence_key, missed date, or credit record for the requested makeup. Technical output is retained but not treated as a model failure.",
+        "Additional harness validity gap: the frozen target class day/time was ignored in this raw run; its synthetic session was Tuesday 22 April 2031 at 18:00 rather than the class schedule. Capacity at that wrong session cannot validate the requested makeup place."
       ],
       "observed_route": "makeup_booking",
       "observed_flow": "makeup",
@@ -680,7 +714,8 @@
         "safety_privacy": "pass"
       },
       "reasons": [
-        "Harness/fixture validity: student credit balance is not seeded. Technical output is retained but not treated as a model failure."
+        "Harness/fixture validity: student credit balance is not seeded. Technical output is retained but not treated as a model failure.",
+        "Additional harness validity gap: the frozen target class day/time was ignored in this raw run; its synthetic session was Tuesday 22 April 2031 at 18:00 rather than the class schedule. Capacity at that wrong session cannot validate the requested makeup place."
       ],
       "observed_route": "information_only",
       "observed_flow": "enquiry",
@@ -782,7 +817,8 @@
         "safety_privacy": "pass"
       },
       "reasons": [
-        "Harness/fixture validity: student credit balance is not seeded. Technical output is retained but not treated as a model failure."
+        "Harness/fixture validity: student credit balance is not seeded. Technical output is retained but not treated as a model failure.",
+        "Additional harness validity gap: the frozen target class day/time was ignored in this raw run; its synthetic session was Tuesday 22 April 2031 at 18:00 rather than the class schedule. Capacity at that wrong session cannot validate the requested makeup place."
       ],
       "observed_route": "unclear",
       "observed_flow": "teacher_handoff",
