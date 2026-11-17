@@ -105,13 +105,23 @@ for path in ('/health', '/demo', '/workspace', '/auth/me'):
         if path == '/auth/me':
             assert json.loads(body)['login_available'] is True
 PY
-if [ -n "$PREVIOUS" ]; then ln -sfn "$PREVIOUS" /srv/studio/previous; fi
+ROLLBACK_RELEASE=$PREVIOUS
+if [ "$PREVIOUS" = "$RELEASE" ]; then
+    # A configuration-only redeploy must retain the last distinct release.
+    ROLLBACK_RELEASE=$(readlink /srv/studio/previous 2>/dev/null || true)
+elif [ -n "$PREVIOUS" ]; then
+    ln -sfn "$PREVIOUS" /srv/studio/previous
+fi
+ROLLBACK_IMAGE=''
+if [ -n "$ROLLBACK_RELEASE" ]; then
+    ROLLBACK_IMAGE=studio-copilot:$(basename "$ROLLBACK_RELEASE")
+fi
 ln -sfn "$RELEASE" /srv/studio/current
 printf 'ready %s\n' "$SHA" > /srv/studio/deployment-status
 printf '%s\n' "$SHA" > /srv/studio/initialized
 # Keep only deployment-owned current/previous images; never prune other projects.
 for image in $(docker images studio-copilot --format '{{.Repository}}:{{.Tag}}'); do
-    if [ "$image" != "$IMAGE" ] && [ "$image" != "studio-copilot:$(basename "${PREVIOUS:-none}")" ]; then
+    if [ "$image" != "$IMAGE" ] && [ "$image" != "$ROLLBACK_IMAGE" ]; then
         docker image rm "$image" || true
     fi
 done

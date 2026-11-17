@@ -132,7 +132,9 @@ the encrypted data disk; Docker reads it when creating the application container
 Releases require a clean committed checkout. The CLI archives that commit, uploads
 it to the private release prefix and sends only its commit and SHA-256 identities
 through SSM. The host validates the archive, updates versioned host helpers, builds
-an immutable application image and preserves current/previous images. A shared host
+an immutable application image and preserves current/previous images. Redeploying the
+same commit for configuration or hostname changes keeps the last distinct release
+and its image as the rollback target. A shared host
 lock excludes overlapping releases and backups. Build failures leave the previous
 application running. Application/database changes after the backup boundary have a
 maintenance window; failed migrations or readiness checks stop the candidate. The
