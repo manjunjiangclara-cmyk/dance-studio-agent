@@ -1,0 +1,82 @@
+#!/bin/bash
+set -euo pipefail
+export DEBIAN_FRONTEND=noninteractive
+# EIP association is a separate Terraform operation after the instance launches.
+# Retry until networking is ready instead of racing the association.
+for attempt in $(seq 1 60); do
+    if apt-get -o Acquire::Retries=3 update -qq && apt-get -o Acquire::Retries=3 install -y docker.io docker-buildx docker-compose-v2 python3-boto3 unattended-upgrades; then break; fi
+    sleep 10
+done
+command -v docker
+python3 -c 'import boto3'
+# Bound peak CPU-model memory on the Free Plan's 2 GiB instance.
+if [ ! -f /swapfile ]; then
+    fallocate -l 2G /swapfile
+    chmod 600 /swapfile
+    mkswap /swapfile
+    echo '/swapfile none swap sw 0 0' >> /etc/fstab
+fi
+swapon /swapfile || true
+systemctl enable --now docker
+# The separate EBS data disk must be attached before any application service starts.
+VOLUME_SERIAL='${replace(volume_id, "-", "")}'
+DEVICE=''
+for attempt in $(seq 1 180); do
+    DEVICE=$(lsblk -dn -o PATH,SERIAL | awk -v serial="$VOLUME_SERIAL" '$2 == serial { print $1 }')
+    if [ -n "$DEVICE" ]; then break; fi
+    sleep 5
+done
+test -n "$DEVICE"
+if ! blkid "$DEVICE" >/dev/null 2>&1; then
+    # This is a newly created, deployment-owned disk. Never format a disk with a signature.
+    if wipefs --no-act "$DEVICE" | tail -n +2 | grep -q .; then exit 1; fi
+    mkfs.ext4 -L studio-data "$DEVICE"
+fi
+test "$(blkid -s TYPE -o value "$DEVICE")" = ext4
+mkdir -p /srv/studio
+UUID=$(blkid -s UUID -o value "$DEVICE")
+echo "UUID=$UUID /srv/studio ext4 defaults 0 2" >> /etc/fstab
+mount /srv/studio
+install -d -m 700 /srv/studio/config /srv/studio/releases /srv/studio/backups
+install -d -o 10001 -g 10001 -m 700 /srv/studio/policy /srv/studio/public-demo /srv/studio/operations
+install -d -o 999 -g 999 -m 700 /srv/studio/postgres
+install -d -m 700 /srv/studio/caddy-data /srv/studio/caddy-config
+cat > /etc/studio-host.json <<'CONFIG'
+{"region":"ap-southeast-2","bucket":"${bucket}","secret_arn":"${secret_arn}","domain":"${domain}"}
+CONFIG
+cat > /usr/local/bin/studio-host <<'PYTHON'
+${host_python}
+PYTHON
+cat > /usr/local/bin/studio-release <<'RELEASE'
+${release}
+RELEASE
+cat > /usr/local/bin/studio-backup <<'BACKUP'
+${backup}
+BACKUP
+chmod 700 /usr/local/bin/studio-{host,release,backup}
+cat > /etc/systemd/system/studio-backup.service <<'UNIT'
+[Unit]
+Description=Consistent Dance Studio off-host backup
+After=docker.service
+RequiresMountsFor=/srv/studio
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/studio-backup
+UNIT
+cat > /etc/systemd/system/studio-backup.timer <<'UNIT'
+[Unit]
+Description=Daily Dance Studio backup
+[Timer]
+OnCalendar=*-*-* 04:00:00 Australia/Sydney
+RandomizedDelaySec=1800
+Persistent=true
+[Install]
+WantedBy=timers.target
+UNIT
+systemctl daemon-reload
+systemctl enable --now studio-backup.timer
+# Keep OS security updates automatic, but reboot explicitly after checking application health.
+cat > /etc/apt/apt.conf.d/52studio-unattended <<'CONF'
+Unattended-Upgrade::Automatic-Reboot "false";
+CONF
+touch /srv/studio/host-ready

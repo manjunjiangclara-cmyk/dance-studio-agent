@@ -10,6 +10,13 @@ Dated sessions have independent student rosters. Staff separately record attenda
 
 The public record browser and recorded tour use predefined fictional data without API or model calls. The guided tour also offers opt-in live AI: visitors click to select supporting evidence from a fixed fictional catalog, then click to generate a fresh draft. A separate persistent ledger limits the public service to 20 runs per Melbourne day. Booking and database confirmations remain simulated, and studio records are never accessed or changed. Email walkthrough also lets visitors select a fictional student and simulate their own email, with editable draft and evidence, under the same allowance. See [public live demo](docs/22-public-live-demo.md). The owner workspace provides a review queue, Studio knowledge area for rules and documents, attendance controls, and database inspection. The library accepts UTF-8 `.txt` and `.md` files up to 10 MB, retains immutable revisions, and supports effective dates, duplicate-content notices, and paginated previews. Files up to 1 MB can also be edited inline. Ingestion alone does not publish or enable documents for the agent. See [document ingestion](docs/10-document-ingestion.md). See [website setup](docs/09-website.md).
 
+## AWS deployment
+
+The complete application can be packaged for a single EC2 host while retaining its
+PostgreSQL/pgvector and LangGraph persistence. See the [EC2 deployment guide](docs/23-ec2-deployment.md)
+for Terraform, private configuration, HTTPS, releases and backup verification. The Aurora
+Data API work remains an isolated feasibility experiment.
+
 ## Local setup
 
 In Codex, use `$run-dance-studio-app` to start the local app with the portal origin matched to the configured Google callback.
