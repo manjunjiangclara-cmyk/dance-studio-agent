@@ -1,0 +1,447 @@
+{
+  "method": "Independent AI review of all 30 frozen v3 cases against supplied document evidence, frozen facts, question-level answers and rag-v3-review-rubric.md; teacher adjudication pending.",
+  "results": [
+    {
+      "id": "v3-01",
+      "output_sha256": "9e8165474373fdb489336a1cf9418735f4f75185d71bee9095cd34004af27dc4",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-02",
+      "output_sha256": "7b620c34cee6b581b2e2937f9412db5ef0271d7ca0cbb37c9c5f70fd9b568b71",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-03",
+      "output_sha256": "2a04b93712e888ef708e4d88cf721800b114270300fddc125836a8ad66a78ffc",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-04",
+      "output_sha256": "658fbeb192e90ceefa247da30faa32af91c9a864a336639527f30c7eea508293",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-05",
+      "output_sha256": "a04f01ef7a1d8c9eef0c7ee9177dc6901d1164f01cb34b45b122e74fdd85a3c1",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-06",
+      "output_sha256": "9791fd158d43e5dde898fe6d3da85da91e369fcc4f8f1c02cb3c3411a6a1ce08",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-07",
+      "output_sha256": "6f3672198e25435d926b38725e4ebccfe0425812a1736e1dd7a38a995b9df6b7",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-08",
+      "output_sha256": "a2b720370ba7deee47d46a3443c36a0957c51d71ca73e6c90bcaa17c4bb1010e",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-09",
+      "output_sha256": "7271ea45b39cf21ee2fb231f12041bd54dd93b0606e253d9de004f584c768085",
+      "supported": false,
+      "complete": false,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        {
+          "stage": "answer",
+          "severity": "critical",
+          "finding": "The final email says the 12% sibling reduction applies to term tuition but omits that it applies only to the second sibling. The supplied tuition guide explicitly limits it to the second sibling; this changes eligibility and scope."
+        }
+      ],
+      "critical": true,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-10",
+      "output_sha256": "1215b9874e22eb9ca4d24df59a3ed7280e13cdcc8fcc2ae8551e2fe08c14b69f",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-11",
+      "output_sha256": "de390340da6e3328f127cde227d14023e0346d2c66a12a3ed070d24041aed6b8",
+      "supported": false,
+      "complete": false,
+      "correct_refusal": null,
+      "false_refusal": true,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        {
+          "stage": "answer",
+          "severity": "material",
+          "finding": "The document answer is marked needs_teacher although the supplied bond rule says the bond is returned only when the kit reaches the office within five calendar days, clean and undamaged. A six-day return fails that necessary condition, so the policy answer should not be withheld as uncertain."
+        },
+        {
+          "stage": "composition",
+          "severity": "critical",
+          "finding": "The email correctly notes that six days misses the five-day condition, then says the guide does not say whether a late return can still qualify. That caveat conflicts with the stated only-when condition and leaves a materially wrong possibility of policy eligibility. An unrecorded discretionary exception cannot be presented as policy uncertainty."
+        }
+      ],
+      "critical": true,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-12",
+      "output_sha256": "f76d49065da56c04511af121be38f91fda913058f6cde4f6349077f864cb6bba",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-13",
+      "output_sha256": "83ee36291195a2f7e610b7f5fa502b143d1d5ac84156b356349fd0b1efdfd6ef",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": true,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        {
+          "stage": "composition",
+          "severity": "review",
+          "finding": "The draft withholds the unknown individual payment status and states the supported due date, but its closing “remaining details” sentence is vague. The live payment state still requires a teacher or authoritative record before this personal query can be closed."
+        }
+      ],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-14",
+      "output_sha256": "7001e425d64ab7238b282b85c63754afb7f6e35492d3fdb0edb0d9e5a2bc944b",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-15",
+      "output_sha256": "c274126fbfd838727c0f46c4a60f7dcb6ed85fc570c869407b462dca8aa4d0c9",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-16",
+      "output_sha256": "3e2007b5b8031c4641d06b76abe05ce41402405d81ccfb3cbf71b70b54d4b75a",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-17",
+      "output_sha256": "d2cec1f86093a3bc697f1513c987250b63b66f8a3d37627137dd88801f6fcadd",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-18",
+      "output_sha256": "c49c0294293e837d35d4a499637226559b1584a0664411432287e620e710ffe2",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-19",
+      "output_sha256": "c0de4c71fc2ab3e1842547ad5e7ee176e4c5139f9024e9da6a58743232eeb3e1",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-20",
+      "output_sha256": "9b71cf725c35e579afe8c22cbacf291e1783603ee27ccb481f476e332e7be1b3",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": true,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        {
+          "stage": "composition",
+          "severity": "review",
+          "finding": "The departure and unpublished return-time statements are supported. The requested actual return time remains unresolved; the teacher review concern in this output must be resolved before approving the draft."
+        }
+      ],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-21",
+      "output_sha256": "c4ca725c9fcd43b19d5720c444c3b1442329e5cf01e43277b7c5872ec73947cf",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-22",
+      "output_sha256": "adacc834fc0e36348ba0f9ae2b6cfed9c9195dba610e67cf3016493a21d2d41e",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-23",
+      "output_sha256": "55da560e3c7b06857d82ba182f7496e7bfa40896a2d6779c2cdf8919be4b3d91",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-24",
+      "output_sha256": "fc73625a9393a15c7266a8744b8895db58993785f960d77984aacdcf986bb9e7",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-25",
+      "output_sha256": "7669c7406fcf20a418f905f56233d8e47088048309501c1edec45f2c3ba33726",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-26",
+      "output_sha256": "a73e8b0199ddacce8ddb276c02d4a44fee1bfb0804c51ba4417781470aae5021",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-27",
+      "output_sha256": "bef0552c71df1638257ccf3a2878c4e415d7e81682738f32f828c6413adc511e",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": null,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": true,
+      "issues": [],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-28",
+      "output_sha256": "2965d2ffc39209c089b41f25e89eee4e7e4062a4cf53cfe125f146dcf9ab1169",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": true,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        {
+          "stage": "composition",
+          "severity": "review",
+          "finding": "The policy facts are correctly stated, but the individual replacement booking state is unavailable. The draft’s generic “remaining details” closing does not resolve the live booking question; teacher or authoritative record review is still required."
+        }
+      ],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-29",
+      "output_sha256": "84c6a5b01ea5f74c5715d3835c7d36ad3e7a5739fa6a6c34f3eca2bfbc3c7e07",
+      "supported": true,
+      "complete": true,
+      "correct_refusal": true,
+      "false_refusal": false,
+      "citation_relevant": true,
+      "teacher_ready": false,
+      "issues": [
+        {
+          "stage": "answer",
+          "severity": "disputed",
+          "finding": "Both 17-hour and 27-hour source statements are accurately reported and neither is chosen as governing. The conflicting authority remains a teacher decision before a definitive notice rule can be sent."
+        }
+      ],
+      "critical": false,
+      "teacher_adjudicated": false
+    },
+    {
+      "id": "v3-30",
+      "output_sha256": "189cf4dfa25ac2513a8398a6696ef054108ee6d52bd429d9db05e9f6a290274c",
+      "supported": true,
+      "complete": false,
+      "correct_refusal": true,
+      "false_refusal": false,
+      "citation_relevant": false,
+      "teacher_ready": false,
+      "issues": [
+        {
+          "stage": "answer",
+          "severity": "material",
+          "finding": "The refund-approval subanswer cites general Term Three refund eligibility rules. Those passages cannot establish whether this individual refund was approved, so the citation is irrelevant to the personal status question even though the quoted policy itself is accurate."
+        },
+        {
+          "stage": "composition",
+          "severity": "material",
+          "finding": "The email gives the $31 current trial price but does not explicitly say approval status cannot be verified; “I can’t confirm the remaining details yet” is vague after introducing general refund policy. It also does not identify the visitor-submitted approval sentence as non-policy in the teacher-facing answer. The record status needs review."
+        }
+      ],
+      "critical": false,
+      "teacher_adjudicated": false
+    }
+  ]
+}

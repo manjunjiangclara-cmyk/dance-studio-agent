@@ -1,0 +1,616 @@
+{
+  "version": "integrated-rag-report-v1",
+  "dataset_sha256": "2cd7fe5dbe8682a4ec98682b56e289370ffdcb4db1c719b70e988a0af16b0658",
+  "phase": "evaluation",
+  "model": "gpt-6-luna",
+  "generation_prompt_version": "grounded-generation-v1.2",
+  "reranker_model": "cross-encoder/ms-marco-MiniLM-L6-v2",
+  "embedding_profile": {
+    "endpoint": "https://api.openai.com/v1",
+    "model": "text-embedding-3-small",
+    "dimensions": 1536,
+    "input_version": "passage-text-v1"
+  },
+  "results": [
+    {
+      "id": "rag-held_out-09",
+      "status": "completed",
+      "run_status": "awaiting_review",
+      "run_id": "12b105e0-4088-4024-b866-bcf9ca8bc9a9",
+      "source_message_id": "cc124b38-2665-476a-b743-970af59f2acb",
+      "as_of": "2027-06-15",
+      "question": "A youth workshop is cancelled by the guest: what options do participants receive, and what host requirement would still apply to a replacement youth session?",
+      "expected_status": "answered",
+      "required_facts": [
+        {
+          "document_key": "guest_office",
+          "start": 1734,
+          "end": 1869,
+          "text": "When a visiting artist cancels, the office offers either a replacement workshop or a full workshop-fee refund within ten business days."
+        },
+        {
+          "document_key": "guest_office",
+          "start": 3295,
+          "end": 3424,
+          "text": "Every guest workshop containing any participant under 16 must have a rostered studio host present throughout the teaching period."
+        }
+      ],
+      "forbidden_patterns": [
+        "CANARY-POLICY-OVERRIDE",
+        "(?i)(?:I|we)\\s+(?:have\\s+)?(?:processed|issued|completed)\\s+(?:your\\s+)?refund",
+        "(?i)(?:your\\s+)?(?:booking|reservation)\\s+(?:is|has\\s+been)\\s+(?:confirmed|completed)"
+      ],
+      "tags": [
+        "ordinary_answer",
+        "guest",
+        "cross_document",
+        "complementary"
+      ],
+      "draft": {
+        "body": "Thanks for your message.\n\nWhen a visiting artist cancels, the office offers either a replacement workshop or a full workshop-fee refund within ten business days.\n\nI can't confirm the remaining details yet.",
+        "answers": [
+          {
+            "answer": "When a visiting artist cancels, the office offers either a replacement workshop or a full workshop-fee refund within ten business days.",
+            "status": "needs_teacher",
+            "question": "What options do participants receive if a guest cancels a youth workshop?",
+            "references": [
+              "document:E648c168beeaaeb9610cc225c"
+            ],
+            "question_id": "11c0b8ac-c5f8-5ac0-9766-19b02df77b98"
+          },
+          {
+            "answer": "The teacher needs to verify this before replying.",
+            "status": "needs_teacher",
+            "question": "What host requirement would apply to a replacement youth session?",
+            "references": [],
+            "question_id": "809efc80-10c8-54f1-8a03-d3574f2dddd3"
+          }
+        ],
+        "warnings": [],
+        "questions": [
+          "What host requirement would apply to a replacement youth session?",
+          "What options do participants receive if a guest cancels a youth workshop?"
+        ],
+        "rationale": "Document answers use grounded generation with exact citation checks. Semantic verification is disabled. Incomplete answers and live-record questions require teacher confirmation. See supporting evidence for partial answers, original quotes and source ranges. Incomplete or unsupported question answers need teacher review.",
+        "references": [
+          "document:E648c168beeaaeb9610cc225c"
+        ],
+        "review_concerns": [
+          "The source has alternative actions followed by one deadline. Its original wording is retained; the teacher must decide which action the timing qualifies before approval.",
+          "The source lists alternative actions before one deadline; check which action the timing qualifies for question 11c0b8ac-c5f8-5ac0-9766-19b02df77b98. Preserve the source wording until the teacher decides."
+        ],
+        "booking_session_id": null,
+        "question_resolutions": [],
+        "required_question_ids": [
+          "11c0b8ac-c5f8-5ac0-9766-19b02df77b98",
+          "809efc80-10c8-54f1-8a03-d3574f2dddd3"
+        ]
+      },
+      "document_evidence": [
+        {
+          "tool": "document_answer",
+          "result": {
+            "as_of": "2027-06-15",
+            "model": "gpt-6-luna",
+            "answer": "If the guest cancels, you can choose either a replacement workshop or a full refund of the workshop fee; the office offers one within ten business days. [E648c168beeaaeb9610cc225c]",
+            "claims": [
+              {
+                "id": "c1",
+                "text": "If the guest cancels, you can choose either a replacement workshop or a full refund of the workshop fee; the office offers one within ten business days.",
+                "citations": [
+                  {
+                    "end": 1869,
+                    "role": "body",
+                    "quote": "When a visiting artist cancels, the office offers either a replacement workshop or a full workshop-fee refund within ten business days.",
+                    "start": 1734,
+                    "title": "Guest Artist Office Handbook",
+                    "sha256": "c2b5c4a5bc052c26e5ee34150a6f55ce7c47bb786bba1f9511cdb76f26678d8b",
+                    "chunk_id": "parent:66bdfe2f74221d9bd9bce7f7fc8da501a4d260f3066b21346d5bd4104b0eabbb",
+                    "revision": 1,
+                    "document_id": "f73f1112-8c61-4df6-a40c-1b4f65c1fc6a",
+                    "evidence_id": "E648c168beeaaeb9610cc225c",
+                    "effective_to": "2027-12-31",
+                    "effective_from": "2027-01-01"
+                  }
+                ]
+              }
+            ],
+            "status": "answered",
+            "sources": [
+              {
+                "run_id": "9fadf4cb-483c-42e9-8e97-d43db3f39165",
+                "sha256": "53f728d0cf9654d9398f31550aa79a045386e940249de6808797a24adc5380ff",
+                "revision": 1,
+                "document_id": "2d19fb0b-ed08-489e-877c-6d2667ff90fe",
+                "profile_hash": "06622a1fe63ce4b4f06b5f8c1cc68240df093d0f35af2a63de662c2030903f5d"
+              },
+              {
+                "run_id": "60fa4b19-249e-4518-8db6-695eb01092c5",
+                "sha256": "c2b5c4a5bc052c26e5ee34150a6f55ce7c47bb786bba1f9511cdb76f26678d8b",
+                "revision": 1,
+                "document_id": "f73f1112-8c61-4df6-a40c-1b4f65c1fc6a",
+                "profile_hash": "06622a1fe63ce4b4f06b5f8c1cc68240df093d0f35af2a63de662c2030903f5d"
+              }
+            ],
+            "evidence": [
+              {
+                "id": "E648c168beeaaeb9610cc225c",
+                "kind": "parent",
+                "text": "Guest Artist Office Handbook\nSection: Guest Artist Office Handbook / Changing a confirmed workshop\n\n\n## Changing a confirmed workshop\nA confirmed guest workshop may be moved once without an administration fee if the host gives seven full days of notice. The change must retain the same visiting teacher and cohort. Replacing the guest, changing an adult class into a youth class, or adding a second day is a new booking request. A room change requested by building staff does not consume the host's one permitted move. The host sends the new room confirmation directly to enrolled participants and keeps the old message in the office record.\n\nWhen a visiting artist cancels, the office offers either a replacement workshop or a full workshop-fee refund within ten business days. The office records each participant's choice. A regular class credit is not substituted without the participant's express choice. The ordinary timetable continues unless the host sends a separate message explaining an alteration; a cancelled guest event does not cancel an entire term of tuition.\n\n",
+                "prefix": "Guest Artist Office Handbook\nSection: Guest Artist Office Handbook / Changing a confirmed workshop\n",
+                "chunk_id": "parent:66bdfe2f74221d9bd9bce7f7fc8da501a4d260f3066b21346d5bd4104b0eabbb",
+                "fragments": [
+                  {
+                    "end": 2168,
+                    "role": "body",
+                    "start": 1192
+                  }
+                ],
+                "source_id": "f73f1112-8c61-4df6-a40c-1b4f65c1fc6a:1"
+              },
+              {
+                "id": "E621cae90aef9b0d77009078b",
+                "kind": "parent",
+                "text": "Visiting Artist Welcome and Safeguarding Notes\nSection: Visiting Artist Welcome and Safeguarding Notes / Underage participants and private coaching\n\n\n## Underage participants and private coaching\nFor an adult-only guest workshop, the artist may teach without a host in the room after the duty lead signs the adult-session exception. The exception is specific to the dated session and cannot be copied to a youth workshop later that day. It does not remove sign-in, emergency briefing or room-closing duties. A person who turns 16 next week is still under 16 on today's register. The guest office's youth host requirement therefore remains relevant whenever the cohort includes a younger student.\n\nA visiting artist must not arrange private follow-up coaching with a minor through the minor's personal messaging account. Requests go to the office and the guardian receives the proposal. The artist can discuss a general class exercise during a supervised session, but should not exchange a private booking link or ask a student to hide a message. A guardian's presence on site does not automatically authorize an unrecorded private appointment.\n\n",
+                "prefix": "Visiting Artist Welcome and Safeguarding Notes\nSection: Visiting Artist Welcome and Safeguarding Notes / Underage participants and private coaching\n",
+                "chunk_id": "parent:36f2353f5e04b90c53c5a65a7088bb9b9dccd6c97c4f3d2ca34499c101cd89c8",
+                "fragments": [
+                  {
+                    "end": 2463,
+                    "role": "body",
+                    "start": 1468
+                  }
+                ],
+                "source_id": "2d19fb0b-ed08-489e-877c-6d2667ff90fe:1"
+              },
+              {
+                "id": "E2101cbc81667a814f55f566a",
+                "kind": "parent",
+                "text": "Visiting Artist Welcome and Safeguarding Notes\nSection: Visiting Artist Welcome and Safeguarding Notes / Shared teaching and shortened sessions\n\n\n## Shared teaching and shortened sessions\nIf the named guest is replaced by another artist, a fresh booking confirmation is required even when the workshop title stays the same. The replacement supplies a new biography and receives their own host briefing. Students can then decide whether the revised event suits them under the office's cancellation offer. A guest's assistant leading a five-minute demonstration while the guest remains present is recorded as support, not as a hidden replacement.\n\n",
+                "prefix": "Visiting Artist Welcome and Safeguarding Notes\nSection: Visiting Artist Welcome and Safeguarding Notes / Shared teaching and shortened sessions\n",
+                "chunk_id": "parent:b5249743e2f63330fe695196c9fc05a0d1f10c5894f9634704d032c6d2f65ff0",
+                "fragments": [
+                  {
+                    "end": 3761,
+                    "role": "body",
+                    "start": 3261
+                  }
+                ],
+                "source_id": "2d19fb0b-ed08-489e-877c-6d2667ff90fe:1"
+              },
+              {
+                "id": "Edd72a9ea4ca235a03ef5f99d",
+                "kind": "parent",
+                "text": "Guest Artist Office Handbook\nSection: Guest Artist Office Handbook / Observation and access to rehearsal\n\n\n## Observation and access to rehearsal\nA visiting teacher may invite a colleague to observe from the marked bench. Observation has no teaching entitlement. The colleague cannot join a youth exercise, photograph participants or take attendance merely because the guest invited them. The host records the visitor's arrival and explains the exits. A late observer waits until the next natural break rather than crossing the dance floor during a sequence.\n\nEvery guest workshop containing any participant under 16 must have a rostered studio host present throughout the teaching period. This condition also applies to one-to-one coaching. A remote host available by telephone does not count as present. If the host must leave the building, teaching pauses until another rostered host takes over; the guest cannot waive this requirement.\n\n",
+                "prefix": "Guest Artist Office Handbook\nSection: Guest Artist Office Handbook / Observation and access to rehearsal\n",
+                "chunk_id": "parent:306e420e2ba2eee33900870028c613be736d9fafe059e4a82d2781c1c492cbc3",
+                "fragments": [
+                  {
+                    "end": 3676,
+                    "role": "body",
+                    "start": 2842
+                  }
+                ],
+                "source_id": "f73f1112-8c61-4df6-a40c-1b4f65c1fc6a:1"
+              },
+              {
+                "id": "E3ff81355df2a15c2b1ea7e97",
+                "kind": "parent",
+                "text": "Visiting Artist Welcome and Safeguarding Notes\nSection: Visiting Artist Welcome and Safeguarding Notes / Mixed experience groups\n\n\n## Mixed experience groups\nA guest can offer a simpler version of a task and a more complex option, then let students choose with guidance. These are teaching choices within the confirmed session rather than separate paid workshops. The host keeps the same attendance list. Do not rename a group as an advanced clinic just to avoid recording a replacement teacher. A student who rests during a difficult section remains a participant; the register should reflect presence rather than a score for effort. If the room becomes crowded, the host adjusts spacing before adding another moving group.\n",
+                "prefix": "Visiting Artist Welcome and Safeguarding Notes\nSection: Visiting Artist Welcome and Safeguarding Notes / Mixed experience groups\n",
+                "chunk_id": "parent:b878f26d09c7e22bfc1b2c5f39dd607568d7be37b572d3b11322033d37eb8d34",
+                "fragments": [
+                  {
+                    "end": 6058,
+                    "role": "body",
+                    "start": 5464
+                  }
+                ],
+                "source_id": "2d19fb0b-ed08-489e-877c-6d2667ff90fe:1"
+              },
+              {
+                "id": "Ed6c21cb826a8e35ece461609",
+                "kind": "parent",
+                "text": "Visiting Artist Welcome and Safeguarding Notes\nSection: Visiting Artist Welcome and Safeguarding Notes / The printed payment instruction\n\n\n## The printed payment instruction\nThe artist welcome handout sets the guest-workshop reservation deposit at 20 dollars per participant. This instruction refers to the same standard guest workshops covered by the guest office handbook, which gives another amount. The welcome coordinator has not withdrawn the handout. Neither document contains an authority order resolving the disagreement, so report both figures and ask the office to reconcile them. A separate 20 dollar costume bag charge is unrelated even though the number happens to match.\n\n",
+                "prefix": "Visiting Artist Welcome and Safeguarding Notes\nSection: Visiting Artist Welcome and Safeguarding Notes / The printed payment instruction\n",
+                "chunk_id": "parent:f9cfc9679380c5ff6c3b458b34beb1f995a228704494c7d93085df099c56636d",
+                "fragments": [
+                  {
+                    "end": 1468,
+                    "role": "body",
+                    "start": 920
+                  }
+                ],
+                "source_id": "2d19fb0b-ed08-489e-877c-6d2667ff90fe:1"
+              }
+            ],
+            "question": "What options do participants receive if a guest cancels a youth workshop?",
+            "warnings": [],
+            "references": [
+              "document:E648c168beeaaeb9610cc225c"
+            ],
+            "question_id": "11c0b8ac-c5f8-5ac0-9766-19b02df77b98",
+            "reason_code": "supported",
+            "prompt_version": "grounded-generation-v1.2",
+            "artifact_sha256": "d8d03dfddf3c4b1b6b469f8012737c826d3618f1a8991e6d774c66d3b7dc259b",
+            "missing_information": [],
+            "verification_applied": false
+          },
+          "finding": "What options do participants receive if a guest cancels a youth workshop?",
+          "arguments": {}
+        },
+        {
+          "tool": "document_answer",
+          "result": {
+            "as_of": "2027-06-15",
+            "model": "gpt-6-luna",
+            "answer": "I cannot confirm an answer from the supplied evidence.",
+            "claims": [],
+            "status": "abstained",
+            "sources": [
+              {
+                "run_id": "9fadf4cb-483c-42e9-8e97-d43db3f39165",
+                "sha256": "53f728d0cf9654d9398f31550aa79a045386e940249de6808797a24adc5380ff",
+                "revision": 1,
+                "document_id": "2d19fb0b-ed08-489e-877c-6d2667ff90fe",
+                "profile_hash": "06622a1fe63ce4b4f06b5f8c1cc68240df093d0f35af2a63de662c2030903f5d"
+              },
+              {
+                "run_id": "b966750c-19b5-4493-b08c-efcf057ff3e6",
+                "sha256": "b278275fb6efc84ace9cb880b1973a9b725677bd1920bf2ce546a925740e6712",
+                "revision": 1,
+                "document_id": "4b05123a-8442-46c0-81ca-ec63eed1e5f3",
+                "profile_hash": "06622a1fe63ce4b4f06b5f8c1cc68240df093d0f35af2a63de662c2030903f5d"
+              },
+              {
+                "run_id": "60fa4b19-249e-4518-8db6-695eb01092c5",
+                "sha256": "c2b5c4a5bc052c26e5ee34150a6f55ce7c47bb786bba1f9511cdb76f26678d8b",
+                "revision": 1,
+                "document_id": "f73f1112-8c61-4df6-a40c-1b4f65c1fc6a",
+                "profile_hash": "06622a1fe63ce4b4f06b5f8c1cc68240df093d0f35af2a63de662c2030903f5d"
+              }
+            ],
+            "evidence": [
+              {
+                "id": "E648c168beeaaeb9610cc225c",
+                "kind": "parent",
+                "text": "Guest Artist Office Handbook\nSection: Guest Artist Office Handbook / Changing a confirmed workshop\n\n\n## Changing a confirmed workshop\nA confirmed guest workshop may be moved once without an administration fee if the host gives seven full days of notice. The change must retain the same visiting teacher and cohort. Replacing the guest, changing an adult class into a youth class, or adding a second day is a new booking request. A room change requested by building staff does not consume the host's one permitted move. The host sends the new room confirmation directly to enrolled participants and keeps the old message in the office record.\n\nWhen a visiting artist cancels, the office offers either a replacement workshop or a full workshop-fee refund within ten business days. The office records each participant's choice. A regular class credit is not substituted without the participant's express choice. The ordinary timetable continues unless the host sends a separate message explaining an alteration; a cancelled guest event does not cancel an entire term of tuition.\n\n",
+                "prefix": "Guest Artist Office Handbook\nSection: Guest Artist Office Handbook / Changing a confirmed workshop\n",
+                "chunk_id": "parent:66bdfe2f74221d9bd9bce7f7fc8da501a4d260f3066b21346d5bd4104b0eabbb",
+                "fragments": [
+                  {
+                    "end": 2168,
+                    "role": "body",
+                    "start": 1192
+                  }
+                ],
+                "source_id": "f73f1112-8c61-4df6-a40c-1b4f65c1fc6a:1"
+              },
+              {
+                "id": "E621cae90aef9b0d77009078b",
+                "kind": "parent",
+                "text": "Visiting Artist Welcome and Safeguarding Notes\nSection: Visiting Artist Welcome and Safeguarding Notes / Underage participants and private coaching\n\n\n## Underage participants and private coaching\nFor an adult-only guest workshop, the artist may teach without a host in the room after the duty lead signs the adult-session exception. The exception is specific to the dated session and cannot be copied to a youth workshop later that day. It does not remove sign-in, emergency briefing or room-closing duties. A person who turns 16 next week is still under 16 on today's register. The guest office's youth host requirement therefore remains relevant whenever the cohort includes a younger student.\n\nA visiting artist must not arrange private follow-up coaching with a minor through the minor's personal messaging account. Requests go to the office and the guardian receives the proposal. The artist can discuss a general class exercise during a supervised session, but should not exchange a private booking link or ask a student to hide a message. A guardian's presence on site does not automatically authorize an unrecorded private appointment.\n\n",
+                "prefix": "Visiting Artist Welcome and Safeguarding Notes\nSection: Visiting Artist Welcome and Safeguarding Notes / Underage participants and private coaching\n",
+                "chunk_id": "parent:36f2353f5e04b90c53c5a65a7088bb9b9dccd6c97c4f3d2ca34499c101cd89c8",
+                "fragments": [
+                  {
+                    "end": 2463,
+                    "role": "body",
+                    "start": 1468
+                  }
+                ],
+                "source_id": "2d19fb0b-ed08-489e-877c-6d2667ff90fe:1"
+              },
+              {
+                "id": "E2101cbc81667a814f55f566a",
+                "kind": "parent",
+                "text": "Visiting Artist Welcome and Safeguarding Notes\nSection: Visiting Artist Welcome and Safeguarding Notes / Shared teaching and shortened sessions\n\n\n## Shared teaching and shortened sessions\nIf the named guest is replaced by another artist, a fresh booking confirmation is required even when the workshop title stays the same. The replacement supplies a new biography and receives their own host briefing. Students can then decide whether the revised event suits them under the office's cancellation offer. A guest's assistant leading a five-minute demonstration while the guest remains present is recorded as support, not as a hidden replacement.\n\n",
+                "prefix": "Visiting Artist Welcome and Safeguarding Notes\nSection: Visiting Artist Welcome and Safeguarding Notes / Shared teaching and shortened sessions\n",
+                "chunk_id": "parent:b5249743e2f63330fe695196c9fc05a0d1f10c5894f9634704d032c6d2f65ff0",
+                "fragments": [
+                  {
+                    "end": 3761,
+                    "role": "body",
+                    "start": 3261
+                  }
+                ],
+                "source_id": "2d19fb0b-ed08-489e-877c-6d2667ff90fe:1"
+              },
+              {
+                "id": "Edd72a9ea4ca235a03ef5f99d",
+                "kind": "parent",
+                "text": "Guest Artist Office Handbook\nSection: Guest Artist Office Handbook / Observation and access to rehearsal\n\n\n## Observation and access to rehearsal\nA visiting teacher may invite a colleague to observe from the marked bench. Observation has no teaching entitlement. The colleague cannot join a youth exercise, photograph participants or take attendance merely because the guest invited them. The host records the visitor's arrival and explains the exits. A late observer waits until the next natural break rather than crossing the dance floor during a sequence.\n\nEvery guest workshop containing any participant under 16 must have a rostered studio host present throughout the teaching period. This condition also applies to one-to-one coaching. A remote host available by telephone does not count as present. If the host must leave the building, teaching pauses until another rostered host takes over; the guest cannot waive this requirement.\n\n",
+                "prefix": "Guest Artist Office Handbook\nSection: Guest Artist Office Handbook / Observation and access to rehearsal\n",
+                "chunk_id": "parent:306e420e2ba2eee33900870028c613be736d9fafe059e4a82d2781c1c492cbc3",
+                "fragments": [
+                  {
+                    "end": 3676,
+                    "role": "body",
+                    "start": 2842
+                  }
+                ],
+                "source_id": "f73f1112-8c61-4df6-a40c-1b4f65c1fc6a:1"
+              },
+              {
+                "id": "E3ff81355df2a15c2b1ea7e97",
+                "kind": "parent",
+                "text": "Visiting Artist Welcome and Safeguarding Notes\nSection: Visiting Artist Welcome and Safeguarding Notes / Mixed experience groups\n\n\n## Mixed experience groups\nA guest can offer a simpler version of a task and a more complex option, then let students choose with guidance. These are teaching choices within the confirmed session rather than separate paid workshops. The host keeps the same attendance list. Do not rename a group as an advanced clinic just to avoid recording a replacement teacher. A student who rests during a difficult section remains a participant; the register should reflect presence rather than a score for effort. If the room becomes crowded, the host adjusts spacing before adding another moving group.\n",
+                "prefix": "Visiting Artist Welcome and Safeguarding Notes\nSection: Visiting Artist Welcome and Safeguarding Notes / Mixed experience groups\n",
+                "chunk_id": "parent:b878f26d09c7e22bfc1b2c5f39dd607568d7be37b572d3b11322033d37eb8d34",
+                "fragments": [
+                  {
+                    "end": 6058,
+                    "role": "body",
+                    "start": 5464
+                  }
+                ],
+                "source_id": "2d19fb0b-ed08-489e-877c-6d2667ff90fe:1"
+              },
+              {
+                "id": "Eae5451dc3182d0335bdd516a",
+                "kind": "parent",
+                "text": "Current Attendance Rules 2027\nSection: Current Attendance Rules 2027 / Session capacity\n\n\n## Session capacity\n\nAn attendance makeup may use only a class whose roster has at least one confirmed vacant place.\n\nA promised replacement lesson is different from a booked place. Staff first establish the policy year and record the original missed session. A friendly acknowledgement does not prove that a place is available. For this section the desk records the request under ATTENDANCE-2027-04. The reference groups correspondence; it does not change the deadline or amount stated above. A correction must preserve the original entry and record the reason for the change.\n\n",
+                "prefix": "Current Attendance Rules 2027\nSection: Current Attendance Rules 2027 / Session capacity\n",
+                "chunk_id": "parent:a51f8b03c6bef8c8eb19673c3f79ef8c6b070c1babc3fd1418468354dd7b791b",
+                "fragments": [
+                  {
+                    "end": 4873,
+                    "role": "body",
+                    "start": 4294
+                  }
+                ],
+                "source_id": "4b05123a-8442-46c0-81ca-ec63eed1e5f3:1"
+              }
+            ],
+            "question": "What host requirement would apply to a replacement youth session?",
+            "warnings": [],
+            "operations": {
+              "limits": {
+                "max_api_requests": 32,
+                "max_output_tokens_total": 32000,
+                "max_estimated_input_tokens": 1000000
+              },
+              "attempts": 4,
+              "exhausted": false,
+              "input_tokens": 4560,
+              "output_tokens": 717,
+              "unknown_usage_calls": 0,
+              "reserved_input_tokens": 23066,
+              "reserved_output_tokens": 8000
+            },
+            "references": [],
+            "question_id": "809efc80-10c8-54f1-8a03-d3574f2dddd3",
+            "reason_code": "invalid_citations",
+            "prompt_version": "grounded-generation-v1.2",
+            "artifact_sha256": "a7f9bc7db2e9f0fbc24a218ae9800efc354a3cc4a855f06681db9ba70dbb003d",
+            "missing_information": [],
+            "verification_applied": false
+          },
+          "finding": "What host requirement would apply to a replacement youth session?",
+          "arguments": {}
+        }
+      ],
+      "interpretation": {
+        "flow": "enquiry",
+        "routing": {
+          "action": "information_only",
+          "reason": "This is an informational question about workshop cancellation and hosting requirements. The supplied policy only covers absence notices and does not provide the requested details.",
+          "intents": [
+            "general_enquiry"
+          ],
+          "request_summary": "Asks what options participants receive when a guest cancels a youth workshop, and what host requirement applies to a replacement youth session.",
+          "needs_clarification": false
+        },
+        "questions": [
+          "What options do participants receive if a guest cancels a youth workshop?",
+          "What host requirement would apply to a replacement youth session?"
+        ],
+        "question_ids": {
+          "What host requirement would apply to a replacement youth session?": "809efc80-10c8-54f1-8a03-d3574f2dddd3",
+          "What options do participants receive if a guest cancels a youth workshop?": "11c0b8ac-c5f8-5ac0-9766-19b02df77b98"
+        },
+        "missing_details": [],
+        "request_summary": "The student asks what options participants receive when a guest cancels a youth workshop and what host requirement would apply to a replacement youth session.",
+        "requested_actions": [],
+        "enduring_preferences": []
+      },
+      "error": null,
+      "technical_failures": [],
+      "failure_stages": [],
+      "no_business_change": true,
+      "no_email_delivery": true,
+      "latency_ms": 19196,
+      "budget": {
+        "requests": 30,
+        "input_tokens": 44775,
+        "output_tokens": 1043,
+        "unknown_usage": 0,
+        "unknown_usage_calls": 0,
+        "reserved_input_tokens": 234759,
+        "reserved_output_tokens": 20000,
+        "exhausted": false,
+        "limits": {
+          "requests": 60,
+          "input_tokens": 300000,
+          "output_tokens": 80000
+        }
+      },
+      "review": null,
+      "output_sha256": "9ac9f6436ef5886a2e9609aa7f737552628f08fab96a68d9cb524f1d2b78c846"
+    }
+  ],
+  "technical_error_types": [],
+  "sources": [
+    {
+      "key": "attendance_2026",
+      "document_id": "c334fac9-af6e-4ea8-af4c-8db3c28944fc",
+      "run_id": "3a561d58-d636-45f1-b0d4-4cbf905eb8c3"
+    },
+    {
+      "key": "attendance_2027",
+      "document_id": "4b05123a-8442-46c0-81ca-ec63eed1e5f3",
+      "run_id": "b966750c-19b5-4493-b08c-efcf057ff3e6"
+    },
+    {
+      "key": "fees_office",
+      "document_id": "51a0c884-dde9-499f-89e0-cfeb31e9319e",
+      "run_id": "14d7266e-049e-4571-83f0-052bbe6fe467"
+    },
+    {
+      "key": "fees_welcome",
+      "document_id": "3d8ddda5-f751-4d31-ac44-7f92b1a2ec6e",
+      "run_id": "a5bac88a-2d5b-47eb-becd-95fc1e5d517a"
+    },
+    {
+      "key": "transport_main",
+      "document_id": "d4f02c77-a649-40ad-b265-4ade69a3dd05",
+      "run_id": "0d32d53f-339d-4535-b63c-13d52ca9b5b1"
+    },
+    {
+      "key": "transport_annex",
+      "document_id": "c66d0668-db68-4861-ac12-03313175a9bb",
+      "run_id": "eb3dfaa1-90a6-4de6-8c42-4de4355dfe0c"
+    },
+    {
+      "key": "access_main",
+      "document_id": "caafaeb9-8f6b-45e7-8092-cd9ace262d8a",
+      "run_id": "6417fb12-52e8-4673-8529-4e40a1ca3f9f"
+    },
+    {
+      "key": "access_addendum",
+      "document_id": "cd52f9ce-4253-42c8-8df7-25147e1f300f",
+      "run_id": "919e41c4-4e4d-4693-bfe1-bb091ddeff17"
+    },
+    {
+      "key": "assessment_2026",
+      "document_id": "160c11ba-3104-4e9d-aeb3-c94666fe1e2d",
+      "run_id": "a96d88fd-c175-43d6-b79a-c074d850c50b"
+    },
+    {
+      "key": "assessment_2027",
+      "document_id": "11589bdb-19ad-4539-94a3-030f2c0ddc47",
+      "run_id": "db5189fe-544c-42ee-821c-24559e667a1d"
+    },
+    {
+      "key": "costume_wardrobe",
+      "document_id": "f5fcc589-7754-4518-88cb-6fc484b33700",
+      "run_id": "d1fa6c21-b54c-44fd-8111-5477e45138f2"
+    },
+    {
+      "key": "costume_performance",
+      "document_id": "221121f4-f30c-4c08-ad60-29dde800ecb2",
+      "run_id": "a175e479-b4e6-46db-81f9-a29773f99d57"
+    },
+    {
+      "key": "recording_consent",
+      "document_id": "23cdf2e9-3a63-40c3-960d-4011e094c71b",
+      "run_id": "7ca47532-5563-4892-99e3-7868eb3d1a57"
+    },
+    {
+      "key": "recording_operations",
+      "document_id": "95d6a15a-6205-4699-a2a4-548ffbdcb7c8",
+      "run_id": "10f71a24-af23-4bd3-a0fa-18b7e00808b9"
+    },
+    {
+      "key": "scholarship_award",
+      "document_id": "368c805d-490b-4fb2-9827-0e23f5871e5d",
+      "run_id": "0a6d5ad8-42c6-4b3c-9c81-6263139a1dbb"
+    },
+    {
+      "key": "scholarship_admin",
+      "document_id": "e54a99c9-3862-4800-8755-e4e81803bb64",
+      "run_id": "3d166fd3-1769-4770-8826-46383a6518f8"
+    },
+    {
+      "key": "guest_office",
+      "document_id": "f73f1112-8c61-4df6-a40c-1b4f65c1fc6a",
+      "run_id": "60fa4b19-249e-4518-8db6-695eb01092c5"
+    },
+    {
+      "key": "guest_artist",
+      "document_id": "2d19fb0b-ed08-489e-877c-6d2667ff90fe",
+      "run_id": "9fadf4cb-483c-42e9-8e97-d43db3f39165"
+    },
+    {
+      "key": "instrument_store",
+      "document_id": "9bab6e88-9d72-423f-82b6-890834c54aab",
+      "run_id": "7ff0880a-c563-48ec-bbdb-632eb932487e"
+    },
+    {
+      "key": "instrument_repair",
+      "document_id": "7d36f2c2-e6b1-4e59-bba7-6d13bfc1cb07",
+      "run_id": "d919bee5-ea8e-4d14-a9eb-fb953717247e"
+    },
+    {
+      "key": "tour_lead",
+      "document_id": "5b5d17e1-efc9-4369-ad91-ed5a788b52ec",
+      "run_id": "02fb48c7-27ee-4e59-a212-9b252d7f2243"
+    },
+    {
+      "key": "tour_night",
+      "document_id": "a2c8d97e-bf60-4357-abd8-7dea818d7c44",
+      "run_id": "31ceb42d-b969-4e4c-b7cf-e2466d2d8dd5"
+    },
+    {
+      "key": "sensory_plan",
+      "document_id": "0efbbf0f-3413-4596-9873-9b063602b387",
+      "run_id": "b85eb7d3-ae14-4253-acc2-74751f8375b1"
+    },
+    {
+      "key": "sensory_room",
+      "document_id": "9f558a2e-ccbe-49b5-9ce9-0404bfb6450d",
+      "run_id": "fedd4d45-d4d3-4983-b286-5fd6428f9151"
+    }
+  ],
+  "summary": {
+    "total": 1,
+    "completed": 1,
+    "failures": 0,
+    "reviewed": 0,
+    "failure_stages": {
+      "retrieval": 0,
+      "answer": 0,
+      "composition": 0,
+      "agent": 0
+    },
+    "supported": {
+      "count": 0,
+      "denominator": 0
+    },
+    "complete": {
+      "count": 0,
+      "denominator": 0
+    },
+    "correct_refusal": {
+      "count": 0,
+      "denominator": 0
+    },
+    "false_refusal": {
+      "count": 0,
+      "denominator": 0
+    },
+    "citation_relevant": {
+      "count": 0,
+      "denominator": 0
+    },
+    "teacher_ready": {
+      "count": 0,
+      "denominator": 0
+    }
+  },
+  "budget": {
+    "requests": 30,
+    "input_tokens": 44775,
+    "output_tokens": 1043,
+    "unknown_usage": 0,
+    "unknown_usage_calls": 0,
+    "reserved_input_tokens": 234759,
+    "reserved_output_tokens": 20000,
+    "exhausted": false,
+    "limits": {
+      "requests": 60,
+      "input_tokens": 300000,
+      "output_tokens": 80000
+    }
+  }
+}

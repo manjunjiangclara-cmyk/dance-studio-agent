@@ -1,0 +1,76 @@
+{
+  "version": "whole-agent-validation-v1",
+  "created_at": "2026-11-16",
+  "fictional": true,
+  "counts": {
+    "smoke": 5,
+    "everyday": {
+      "makeup_absence": 30,
+      "general_enquiry": 30,
+      "document_qa": 25,
+      "mixed_handoff": 15
+    },
+    "high_risk": {
+      "prompt_injection": 5,
+      "identity_privacy": 5,
+      "transaction_integrity": 5,
+      "ambiguity_conflict": 5,
+      "medical_exception": 5
+    }
+  },
+  "documents": [
+    {
+      "key": "visitor_guide",
+      "title": "Juniper Lantern visitor guide",
+      "file": "documents/visitor_guide.md",
+      "effective_from": "2031-04-01",
+      "effective_to": null,
+      "sha256": "0d0d719a5e7c68ae806606d8047952ea272b6f0245fd1adf8f284118ee682a7c"
+    },
+    {
+      "key": "classes_and_trials",
+      "title": "Juniper Lantern classes and trials",
+      "file": "documents/classes_and_trials.md",
+      "effective_from": "2031-04-01",
+      "effective_to": null,
+      "sha256": "7eff96595afe66b68916aa9d4e84cc02901a554f451659af7b852027e8729ec7"
+    },
+    {
+      "key": "fees_and_terms",
+      "title": "Juniper Lantern fees and terms",
+      "file": "documents/fees_and_terms.md",
+      "effective_from": "2031-04-01",
+      "effective_to": null,
+      "sha256": "042c90d1a9c7a2f53ba70947db24feeb145f7ab8ab5738469e4d9638d9ff4fa8"
+    },
+    {
+      "key": "events_and_media",
+      "title": "Juniper Lantern events and media",
+      "file": "documents/events_and_media.md",
+      "effective_from": "2031-04-01",
+      "effective_to": null,
+      "sha256": "59b5c83beb8e105cbbdc78b745678762fa57d3ba5f972c6beacd01228f183a8d"
+    },
+    {
+      "key": "absence_policy",
+      "title": "Juniper Lantern absence and replacement policy",
+      "file": "documents/absence_policy.md",
+      "effective_from": "2031-04-01",
+      "effective_to": null,
+      "sha256": "103cdc0e35fbb6eb80bce88df8b6db310c18e1e7ce53d72f4d5207d3886275d4"
+    }
+  ],
+  "files": {
+    "business.json": "c1888233ae3bcb70e8a489e94f3be271f7409e757b9cf793722be49252a51156",
+    "documents/absence_policy.md": "103cdc0e35fbb6eb80bce88df8b6db310c18e1e7ce53d72f4d5207d3886275d4",
+    "documents/classes_and_trials.md": "7eff96595afe66b68916aa9d4e84cc02901a554f451659af7b852027e8729ec7",
+    "documents/events_and_media.md": "59b5c83beb8e105cbbdc78b745678762fa57d3ba5f972c6beacd01228f183a8d",
+    "documents/fees_and_terms.md": "042c90d1a9c7a2f53ba70947db24feeb145f7ab8ab5738469e4d9638d9ff4fa8",
+    "documents/visitor_guide.md": "0d0d719a5e7c68ae806606d8047952ea272b6f0245fd1adf8f284118ee682a7c",
+    "everyday.json": "9691767e1d12c6dd51802585c554f00b916dba821886632682d18dfe2671ea93",
+    "high_risk.json": "683b908caee3b7706e5044f705f268e24cf6bab97c1158cb04bb34ecfc559443",
+    "smoke.json": "9744583bc67b913084551613899d5d2bec11ede0fe04a6191790bb4e57d152f1"
+  },
+  "rubric_file": "docs/measurements/whole-agent-validation-v1-rubric.md",
+  "rubric_sha256": "13432fb53cfcac5768ef2a36cc28d408542b3d177d50a2bcaedbf69c89317fda"
+}

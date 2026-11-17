@@ -159,6 +159,7 @@ Alembic upgrades the consolidated initial schema through the independent-session
 - [Production foundations: ACL, query cache, task budgets and private telemetry](docs/18-production-controls.md)
 - [Online document answers and source activation](docs/20-online-document-answers.md)
 - [Integrated RAG quality evaluation](docs/21-integrated-rag-evaluation.md)
+- [Whole-agent simulated-use evaluation and results](docs/measurements/whole-agent-portfolio-evaluation-2026-11-16.md)
 - [Tracing and observability](docs/19-tracing-and-observability.md)
 - [Offline chunking and inspection CLI](docs/12-document-chunking.md)
 

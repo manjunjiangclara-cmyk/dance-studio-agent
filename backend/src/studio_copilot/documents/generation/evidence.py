@@ -77,6 +77,12 @@ def validate_artifact(artifact, tokenizer):
             or "\x00" in value["question"]
         ):
             raise ValueError
+        if "request_context" in value and (
+            not isinstance(value["request_context"], str)
+            or len(value["request_context"]) > 2000
+            or "\x00" in value["request_context"]
+        ):
+            raise ValueError
         as_of = date.fromisoformat(value["as_of"])
         if value["variant"] not in {"actual", "standard"} or len(value["blocks"]) > 20:
             raise ValueError
@@ -164,7 +170,7 @@ def resolve_quote(artifact, citation):
 
 def model_payload(artifact):
     sources = {source_id(s): s for s in artifact["sources"]}
-    return dict(
+    payload = dict(
         question=artifact["question"],
         as_of=artifact["as_of"],
         evidence=[
@@ -179,3 +185,6 @@ def model_payload(artifact):
             for b in artifact["blocks"]
         ],
     )
+    if artifact.get("request_context"):
+        payload["request_context"] = artifact["request_context"]
+    return payload

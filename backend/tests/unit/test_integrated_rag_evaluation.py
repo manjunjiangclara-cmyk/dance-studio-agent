@@ -6,7 +6,13 @@ import re
 
 import pytest
 
-from integrated_rag_evaluation.__main__ import VALIDATION_CASES, VALIDATION_SOURCES
+from integrated_rag_evaluation.__main__ import (
+    BLIND_CASES,
+    BLIND_SOURCES,
+    FROZEN_BLIND_SHA256,
+    VALIDATION_CASES,
+    VALIDATION_SOURCES,
+)
 from integrated_rag_evaluation.review import decision, merge
 from integrated_rag_evaluation.runner import (
     BudgetExceeded,
@@ -27,6 +33,16 @@ def test_fresh_validation_is_frozen_and_separate_from_regressions():
     )
     assert all(case["id"].startswith("fresh-") for case in cases["evaluation"])
     assert fingerprint(VALIDATION_CASES, VALIDATION_SOURCES)
+
+
+def test_blind_validation_manifest_is_frozen_before_paid_runs():
+    assert hashlib.sha256(BLIND_CASES.read_bytes()).hexdigest() == FROZEN_BLIND_SHA256
+    cases = load_dataset(BLIND_CASES, BLIND_SOURCES)
+    assert len(cases["smoke"]) == 5
+    assert len(cases["evaluation"]) == 30
+    assert fingerprint(BLIND_CASES, BLIND_SOURCES) == (
+        "ae7d736dc1007390f7db98c808a16af3d7bf0727d99c640331e15fdabc6b2fe0"
+    )
 
 
 def test_pilot_decision_requires_teacher_adjudication_and_readiness():
@@ -55,7 +71,7 @@ def test_pilot_decision_requires_teacher_adjudication_and_readiness():
     assert decision(summarize(rows), rows, "evaluation").startswith("pilot candidate")
     for row in rows[:7]:
         row["review"]["teacher_ready"] = False
-    assert "teacher_ready" in decision(summarize(rows), rows, "evaluation")
+    assert decision(summarize(rows), rows, "evaluation").startswith("hold: teacher_ready")
 
 
 def test_fingerprint_is_content_based_and_reproducible(tmp_path):
