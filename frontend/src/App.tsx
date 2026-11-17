@@ -2223,7 +2223,26 @@ function Timetable() {
                       part !== weekday,
                   );
                   const classTitle = titleParts.join(" · ") || cls.name;
-                  const locationLabel = location?.name.split(" · ").at(-1);
+                  const locationParts = location?.name.split(" · ") || [];
+                  const locationPrefix = locationParts.slice(0, -1).join(" · ");
+                  const locationSuffix = locationParts.at(-1);
+                  const canShortenLocation =
+                    locationParts.length > 1 &&
+                    value.locations.length > 1 &&
+                    value.locations.every((item) => {
+                      const parts = item.name.split(" · ");
+                      return (
+                        parts.length > 1 &&
+                        parts.slice(0, -1).join(" · ") === locationPrefix
+                      );
+                    }) &&
+                    value.locations.filter(
+                      (item) =>
+                        item.name.split(" · ").at(-1) === locationSuffix,
+                    ).length === 1;
+                  const locationLabel = canShortenLocation
+                    ? locationSuffix
+                    : location?.name;
                   return (
                     <section className="panel class-card" key={cls.id}>
                       <div className="class-card-header">
