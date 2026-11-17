@@ -24,6 +24,7 @@ import {
   BookOpen,
   CalendarDays,
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   CircleHelp,
@@ -2147,42 +2148,59 @@ function Timetable() {
       ) : (
         value && (
           <>
-            <div className="panel filters">
+            <div className="panel filters timetable-filters">
+              <div className="timetable-filter-title">
+                <strong>Find a class</strong>
+                <span>Filter by term or location</span>
+              </div>
               <label className="select-field">
                 <span>Term</span>
-                <select
-                  aria-label="Filter term"
-                  value={termFilter}
-                  onChange={(event) => setTermFilter(event.target.value)}
-                >
-                  <option value="">All terms</option>
-                  {value.terms.map((term) => (
-                    <option value={term.id} key={term.id}>
-                      {term.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="timetable-select-wrap">
+                  <select
+                    aria-label="Filter term"
+                    value={termFilter}
+                    onChange={(event) => setTermFilter(event.target.value)}
+                  >
+                    <option value="">All terms</option>
+                    {value.terms.map((term) => (
+                      <option value={term.id} key={term.id}>
+                        {term.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} aria-hidden="true" />
+                </div>
               </label>
               <label className="select-field">
                 <span>Location</span>
-                <select
-                  aria-label="Filter location"
-                  value={locationFilter}
-                  onChange={(event) => setLocationFilter(event.target.value)}
-                >
-                  <option value="">All locations</option>
-                  {value.locations.map((location) => (
-                    <option value={location.id} key={location.id}>
-                      {location.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="timetable-select-wrap">
+                  <select
+                    aria-label="Filter location"
+                    value={locationFilter}
+                    onChange={(event) => setLocationFilter(event.target.value)}
+                  >
+                    <option value="">All locations</option>
+                    {value.locations.map((location) => (
+                      <option value={location.id} key={location.id}>
+                        {location.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} aria-hidden="true" />
+                </div>
               </label>
               {classFilter && (
                 <button className="text-button" onClick={() => setParams({})}>
                   Clear class filter <X size={13} />
                 </button>
               )}
+            </div>
+            <div className="timetable-section-heading">
+              <h2>Classes</h2>
+              <span>
+                {visibleClasses?.length || 0}{" "}
+                {visibleClasses?.length === 1 ? "class" : "classes"}
+              </span>
             </div>
             <div className="class-grid">
               {visibleClasses?.length ? (
@@ -2191,18 +2209,58 @@ function Timetable() {
                       (row) => row.id === cls.location_id,
                     ),
                     term = value.terms.find((row) => row.id === cls.term_id);
+                  const nameParts = cls.name
+                    .split(" · ")
+                    .map((part) => part.trim());
+                  const weekday = nameParts.find((part) =>
+                    /^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$/i.test(
+                      part,
+                    ),
+                  );
+                  const titleParts = nameParts.filter(
+                    (part) =>
+                      part.toLowerCase() !== cls.level.trim().toLowerCase() &&
+                      part !== weekday,
+                  );
+                  const classTitle = titleParts.join(" · ") || cls.name;
+                  const locationLabel = location?.name.split(" · ").at(-1);
                   return (
                     <section className="panel class-card" key={cls.id}>
-                      <div className="eyebrow">{cls.level}</div>
-                      <h2>{cls.name}</h2>
-                      <p>
-                        {location?.name} · {term?.name}
-                      </p>
-                      <small className="muted">{location?.address}</small>
-                      <p className="prerequisites">
-                        {cls.prerequisites || "No prerequisites recorded."}
-                      </p>
+                      <div className="class-card-header">
+                        <h2>{classTitle}</h2>
+                        <div className="class-tags">
+                          {cls.level && (
+                            <span className="class-tag-level">{cls.level}</span>
+                          )}
+                          {weekday && (
+                            <span
+                              className="class-tag-day"
+                              aria-label={weekday}
+                            >
+                              {weekday.slice(0, 3)}
+                            </span>
+                          )}
+                          {locationLabel && (
+                            <span className="class-tag-location">
+                              {locationLabel}
+                            </span>
+                          )}
+                        </div>
+                        <p className="class-meta">{term?.name}</p>
+                        {location?.address && (
+                          <p className="class-address">{location.address}</p>
+                        )}
+                        {cls.prerequisites && (
+                          <p className="prerequisites">
+                            <strong>Prerequisites</strong> {cls.prerequisites}
+                          </p>
+                        )}
+                      </div>
                       <div className="session-list">
+                        <div className="session-list-heading">
+                          Sessions{" "}
+                          <span>Select a session to view students</span>
+                        </div>
                         {value.sessions
                           .filter((row) => row.class_id === cls.id)
                           .map((session) => (
@@ -2230,7 +2288,10 @@ function Timetable() {
                                   </small>
                                 </span>
                                 <span className="session-action">
-                                  View students <ArrowUpRight size={15} />
+                                  {session.id === selectedSession
+                                    ? "Close"
+                                    : "Students"}{" "}
+                                  <ArrowUpRight size={15} />
                                 </span>
                               </button>
                               {session.id === selectedSession && (
@@ -2312,7 +2373,7 @@ function Timetable() {
                 <Empty>No classes match these filters.</Empty>
               )}
             </div>
-            <div className="panel term-location-grid">
+            <div className="panel term-location-grid timetable-reference">
               <div>
                 <h2>Teaching periods</h2>
                 {value.terms.map((term) => (

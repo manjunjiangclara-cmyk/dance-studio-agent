@@ -111,6 +111,25 @@ test("public examples work without touching the workspace API", async ({
   expect(calls).toEqual([]);
 });
 
+test("timetable highlights class details and filters by location", async ({
+  page,
+}) => {
+  await page.goto("/demo/timetable");
+  const monday = page.locator(".class-card").filter({ hasText: "Mon" });
+  await expect(
+    monday.getByRole("heading", { name: "Adult Ballet", exact: true }),
+  ).toBeVisible();
+  await expect(monday.locator(".class-tags")).toHaveText("Level 2MonBrunswick");
+  const carlton = examples.locations.find((location) =>
+    location.name.endsWith("Carlton"),
+  )!;
+  await page.getByLabel("Filter location").selectOption(carlton.id);
+  await expect(page.locator(".class-card")).toHaveCount(1);
+  await expect(page.locator(".class-tags")).toContainText("Thu");
+  await page.locator(".session-row").click();
+  await expect(page.locator(".session-roster")).toBeVisible();
+});
+
 test("owner workspace requires sign-in and public API is protected", async ({
   page,
   request,
