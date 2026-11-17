@@ -78,6 +78,23 @@ EXPLICIT_RECORD_OUTCOME = re.compile(
     r"processed|issued|recorded|active|gone through)\b",
     re.IGNORECASE,
 )
+INFORMATION_REQUEST = re.compile(
+    r"^\s*(?:explain|state|identify|compare|determine|decide|choose|describe|summarise|"
+    r"summarize|tell me which)\b",
+    re.IGNORECASE,
+)
+PERSONAL_OUTCOME_CLAIM = re.compile(
+    r"\b(?:your|my|our|this|their)\s+(?:booking|payment|refund|balance|credit|"
+    r"reservation|invoice|enrolment|attendance|record|account|status)\b|"
+    r"\b(?:you|we|I)(?:'ve|\s+(?:have|had|already|will))\s+"
+    r"(?:paid|booked|confirmed|approved|received|cancelled|processed|issued|changed)\b",
+    re.IGNORECASE,
+)
+AMBIGUOUS_ALTERNATIVE_DEADLINE = re.compile(
+    r"\beither\b[^.!?]{0,180}\bor\b[^.!?]{0,180}\bwithin\s+"
+    r"(?:\w+\s+){0,3}(?:days?|hours?|weeks?)\b",
+    re.IGNORECASE,
+)
 
 
 def _live_record_question(question: str) -> bool:
@@ -97,6 +114,69 @@ def _claim_references(claim: dict, answer_references: list[str]) -> list[str]:
     return list(dict.fromkeys(citations)) if citations else answer_references
 
 
+def _ambiguous_deadline_quote(claim: dict) -> str:
+    for citation in claim.get("citations", []):
+        quote = citation.get("quote", "")
+        for sentence in re.split(r"(?<=[.!?])\s+", quote):
+            if len(sentence) <= 1000 and AMBIGUOUS_ALTERNATIVE_DEADLINE.search(sentence):
+                return sentence.strip()
+    return ""
+
+
+def _safe_general_process_quote(claim: dict) -> str:
+    """Keep only a cited, complete process rule for a live-record handoff."""
+    for citation in claim.get("citations", []):
+        for sentence in re.split(r"(?<=[.!?])\s+", citation.get("quote", "")):
+            sentence = sentence.strip()
+            if not sentence or len(sentence) > 300:
+                continue
+            parts = re.split(r",?\s+but\s+|;\s+", sentence, maxsplit=1)
+            if len(parts) == 2:
+                # A following condition belongs to the rule. Only an explicit
+                # source-scope disclaimer can be omitted from a process quote.
+                if not re.match(
+                    r"(?:this (?:guide|document|page|policy) does not (?:show|record|confirm)\b)",
+                    parts[1].strip(),
+                    re.IGNORECASE,
+                ):
+                    continue
+                sentence = parts[0].strip()
+            if (
+                not PERSONAL_OUTCOME_CLAIM.search(sentence)
+                and not re.search(r"\b(?:your|my|our|their|we|I)\b", sentence, re.IGNORECASE)
+                and re.search(r"\b(?:may|can|must|should)\b", sentence, re.IGNORECASE)
+                and re.search(
+                    r"\b(?:request(?:ed)?|provid(?:e|ed)|submit(?:ted)?|ask|contact|send|obtain)\b",
+                    sentence,
+                    re.IGNORECASE,
+                )
+            ):
+                return sentence.rstrip(".") + "."
+    return ""
+
+
+def _same_process(left: str, right: str) -> bool:
+    def terms(value: str) -> set[str]:
+        value = re.sub(r"\brequest(?:ed|ing|s)?\b", "request", value.lower())
+        return set(re.findall(r"\b[a-z0-9]+\b", value)) - {
+            "a",
+            "an",
+            "be",
+            "by",
+            "can",
+            "from",
+            "is",
+            "may",
+            "of",
+            "the",
+            "to",
+            "you",
+        }
+
+    a, b = terms(left), terms(right)
+    return bool(a and b and len(a & b) / len(a | b) >= 0.8)
+
+
 def _unsigned_email(body: str, *, has_signature: bool) -> tuple[str, bool]:
     if has_signature:
         return body, False
@@ -110,6 +190,14 @@ def _composition_concerns(body: str, facts: list[dict], *, deferred: bool) -> li
     if not deferred and PROMISE.search(body):
         concerns.append("The draft promises a follow-up without an explicit teacher deferral.")
     for fact in facts:
+        if any(
+            AMBIGUOUS_ALTERNATIVE_DEADLINE.search(quote) for quote in fact.get("source_quotes", [])
+        ):
+            concerns.append(
+                "The source lists alternative actions before one deadline; check which action "
+                f"the timing qualifies for question {fact['question_id']}. Preserve the source "
+                "wording until the teacher decides."
+            )
         source = fact["text"].lower()
         source_topics = {topic for topic in TOPICS if topic in source}
         if not source_topics:
@@ -319,6 +407,18 @@ class WorkflowNodes:
             "unclear",
         }:
             parsed.requested_actions = [state["routing"]["request_summary"]]
+        if state["routing"].get("action") == "information_only":
+            # A request to explain or compare policies is a question, even when
+            # the extractor puts its imperative wording in requested_actions.
+            information_requests = [
+                action for action in parsed.requested_actions if INFORMATION_REQUEST.match(action)
+            ]
+            parsed.questions = list(dict.fromkeys([*parsed.questions, *information_requests]))
+            parsed.requested_actions = [
+                action for action in parsed.requested_actions if action not in information_requests
+            ]
+            if not parsed.questions:
+                parsed.questions = [state["context"]["source"]["body"][:2000]]
         return parsed
 
     def interpret_general(self, state: State) -> dict:
@@ -369,6 +469,7 @@ class WorkflowNodes:
                 str(item.get("question_id")) for item in state.get("question_resolutions", [])
             }
             live_state_questions = []
+            safe_live_claims = {}
             for item in draft.answers:
                 if item.question_id in applied_ids:
                     continue
@@ -377,8 +478,44 @@ class WorkflowNodes:
                 ) == "requires_live_data" or _live_record_question(item.question):
                     live_state_questions.append(item.question)
                     item.status = "needs_teacher"
-                    item.answer = "The teacher needs to verify this before replying."
-                    item.references = []
+                    source_claims = results.get(item.question_id, {}).get("claims", [])
+                    policy_claims = []
+                    for claim in source_claims:
+                        text = _safe_general_process_quote(claim)
+                        if text and not any(
+                            _same_process(text, prior["text"]) for prior in policy_claims
+                        ):
+                            policy_claims.append({**claim, "text": text})
+                    safe_live_claims[item.question_id] = policy_claims
+                    item.answer = (
+                        "\n\n".join(claim["text"] for claim in policy_claims)
+                        if policy_claims
+                        else "The teacher needs to verify this before replying."
+                    )
+                    item.references = list(
+                        dict.fromkeys(
+                            ref for claim in policy_claims for ref in _claim_references(claim, [])
+                        )
+                    )
+                    if item.question_id:
+                        draft.required_question_ids.append(item.question_id)
+                    if item.question not in draft.questions:
+                        draft.questions.append(item.question)
+            draft.required_question_ids = sorted(set(draft.required_question_ids))
+            safe_claims = {}
+            ambiguous_questions = []
+            for item in draft.answers:
+                claims = []
+                for claim in safe_live_claims.get(
+                    item.question_id, results.get(item.question_id, {}).get("claims", [])
+                ):
+                    quote = _ambiguous_deadline_quote(claim)
+                    claims.append({**claim, "text": quote or claim.get("text", "")})
+                safe_claims[item.question_id] = claims
+                if any(_ambiguous_deadline_quote(claim) for claim in claims):
+                    ambiguous_questions.append(item.question)
+                    item.answer = "\n\n".join(claim["text"] for claim in claims if claim["text"])
+                    item.status = "needs_teacher"
                     if item.question_id:
                         draft.required_question_ids.append(item.question_id)
                     if item.question not in draft.questions:
@@ -393,12 +530,22 @@ class WorkflowNodes:
                     "question": item.question,
                     "text": claim.get("text", ""),
                     "citations": _claim_references(claim, item.references),
-                    "status": item.status,
+                    "source_quotes": [
+                        citation.get("quote", "")
+                        for citation in claim.get("citations", [])
+                        if citation.get("quote")
+                    ],
+                    "supported": True,
+                    "answer_status": item.status,
                 }
                 for item in draft.answers
                 if item.references and all(ref.startswith("document:") for ref in item.references)
-                for claim in results.get(item.question_id, {}).get("claims", [])
+                for claim in safe_claims.get(item.question_id, [])
                 if claim.get("text")
+                and (
+                    item.question not in live_state_questions
+                    or not PERSONAL_OUTCOME_CLAIM.search(claim["text"])
+                )
             ]
             composition_context = {
                 "student": state["context"].get("student", {}),
@@ -414,6 +561,9 @@ class WorkflowNodes:
                         "status": item.status,
                         "answer": item.answer,
                         "references": item.references,
+                        "unresolved_details": results.get(item.question_id, {}).get(
+                            "missing_information", []
+                        ),
                     }
                     for item in draft.answers
                 ],
@@ -423,16 +573,31 @@ class WorkflowNodes:
                 "requested_actions": state["interpretation"].get("requested_actions", []),
             }
             try:
-                if composition_context["unresolved_actions"] or live_state_questions:
+                if (
+                    composition_context["unresolved_actions"]
+                    or live_state_questions
+                    or ambiguous_questions
+                ):
                     handoff = document_safe_body(draft.answers)
-                    if "I can't confirm" not in handoff:
+                    if (
+                        composition_context["unresolved_actions"] or live_state_questions
+                    ) and "I can't confirm" not in handoff:
                         handoff += "\n\nI can't confirm the requested change or live status yet."
-                    composed = DocumentEmailComposition(
-                        body=handoff,
-                        review_concerns=[
+                    concerns = []
+                    if ambiguous_questions:
+                        concerns.append(
+                            "The source has alternative actions followed by one deadline. "
+                            "Its original wording is retained; the teacher must decide which "
+                            "action the timing qualifies before approval."
+                        )
+                    if composition_context["unresolved_actions"] or live_state_questions:
+                        concerns.append(
                             "The live status or requested record change needs a teacher decision; "
                             "no current state or completed action was confirmed."
-                        ],
+                        )
+                    composed = DocumentEmailComposition(
+                        body=handoff,
+                        review_concerns=concerns,
                     )
                 else:
                     composed = DocumentEmailComposition.model_validate(

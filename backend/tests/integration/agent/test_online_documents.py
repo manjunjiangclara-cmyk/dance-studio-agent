@@ -204,6 +204,31 @@ def test_question_automatically_gets_exact_citations_and_remains_a_draft(
     assert response.json()["status"] == "approved"
 
 
+def test_information_only_explanation_with_empty_extraction_still_gets_document_answer(
+    online_rig, rig, scenario, db_engine
+):
+    question = "Explain the trial cost."
+    with Session(db_engine) as db, db.begin():
+        db.get(Message, scenario["source"]).body = question
+    model = rig[1]
+    model.interpret_enquiry = lambda context: EnquiryInterpretation(
+        request_summary=question,
+        missing_details=[],
+        enduring_preferences=[],
+        questions=[],
+        requested_actions=[question],
+    )
+
+    run = start(rig, scenario)
+
+    assert run["interpretation"]["questions"] == [question]
+    assert run["interpretation"]["requested_actions"] == []
+    assert run["evidence"][0]["tool"] == "document_answer"
+    assert run["draft_details"]["answers"][0]["status"] == "answered"
+    assert "A trial costs $20" in run["draft_details"]["body"]
+    assert run["approved_response_id"] is None
+
+
 def test_regenerate_after_document_failure_uses_new_cited_answer(
     online_rig, rig, scenario, monkeypatch
 ):

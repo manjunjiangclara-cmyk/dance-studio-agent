@@ -221,6 +221,32 @@ def test_split_question_retrieval_keeps_original_request_context(monkeypatch):
     ]
 
 
+def test_long_request_context_does_not_reach_limited_reranker(monkeypatch):
+    seen = []
+
+    def capture(*args, **kwargs):
+        return {"degraded": False, "candidates": [object()]}
+
+    def rank(reranker, query, candidates):
+        seen.append(query)
+        raise RuntimeError("Stop after reranking input")
+
+    monkeypatch.setattr(online, "capture", capture)
+    monkeypatch.setattr(online, "rank", rank)
+    with pytest.raises(RuntimeError, match="Stop after reranking input"):
+        online.question_answer(
+            object(),
+            config(),
+            "When is the refund deadline?",
+            "case",
+            date(2028, 6, 1),
+            object(),
+            object(),
+            request_context="context " * 500,
+        )
+    assert seen == ["When is the refund deadline?"]
+
+
 def test_missing_resources_gives_reviewable_failure_without_provider(monkeypatch):
     attempted = []
 
