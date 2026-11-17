@@ -124,16 +124,34 @@ def _ambiguous_deadline_quote(claim: dict) -> str:
 
 
 def _safe_general_process_quote(claim: dict) -> str:
-    """Retain a standalone generic process clause from a mixed live-state citation."""
+    """Keep only a cited, complete process rule for a live-record handoff."""
     for citation in claim.get("citations", []):
-        for clause in re.split(r",?\s+but\s+|;\s+", citation.get("quote", ""), maxsplit=1):
-            clause = clause.strip().rstrip(".")
+        for sentence in re.split(r"(?<=[.!?])\s+", citation.get("quote", "")):
+            sentence = sentence.strip()
+            if not sentence or len(sentence) > 300:
+                continue
+            parts = re.split(r",?\s+but\s+|;\s+", sentence, maxsplit=1)
+            if len(parts) == 2:
+                # A following condition belongs to the rule. Only an explicit
+                # source-scope disclaimer can be omitted from a process quote.
+                if not re.match(
+                    r"(?:this (?:guide|document|page|policy) does not (?:show|record|confirm)\b)",
+                    parts[1].strip(),
+                    re.IGNORECASE,
+                ):
+                    continue
+                sentence = parts[0].strip()
             if (
-                0 < len(clause) <= 300
-                and not PERSONAL_OUTCOME_CLAIM.search(clause)
-                and re.search(r"\b(?:may|can|must|should|requires?)\b", clause, re.IGNORECASE)
+                not PERSONAL_OUTCOME_CLAIM.search(sentence)
+                and not re.search(r"\b(?:your|my|our|their|we|I)\b", sentence, re.IGNORECASE)
+                and re.search(r"\b(?:may|can|must|should)\b", sentence, re.IGNORECASE)
+                and re.search(
+                    r"\b(?:request(?:ed)?|provid(?:e|ed)|submit(?:ted)?|ask|contact|send|obtain)\b",
+                    sentence,
+                    re.IGNORECASE,
+                )
             ):
-                return clause + "."
+                return sentence.rstrip(".") + "."
     return ""
 
 
@@ -392,10 +410,12 @@ class WorkflowNodes:
         if state["routing"].get("action") == "information_only":
             # A request to explain or compare policies is a question, even when
             # the extractor puts its imperative wording in requested_actions.
+            information_requests = [
+                action for action in parsed.requested_actions if INFORMATION_REQUEST.match(action)
+            ]
+            parsed.questions = list(dict.fromkeys([*parsed.questions, *information_requests]))
             parsed.requested_actions = [
-                action
-                for action in parsed.requested_actions
-                if not INFORMATION_REQUEST.match(action)
+                action for action in parsed.requested_actions if action not in information_requests
             ]
             if not parsed.questions:
                 parsed.questions = [state["context"]["source"]["body"][:2000]]
@@ -459,19 +479,13 @@ class WorkflowNodes:
                     live_state_questions.append(item.question)
                     item.status = "needs_teacher"
                     source_claims = results.get(item.question_id, {}).get("claims", [])
-                    policy_claims = [
-                        claim
-                        for claim in source_claims
-                        if claim.get("text") and not PERSONAL_OUTCOME_CLAIM.search(claim["text"])
-                    ]
+                    policy_claims = []
                     for claim in source_claims:
-                        text = claim.get("text", "")
-                        if PERSONAL_OUTCOME_CLAIM.search(text):
-                            text = _safe_general_process_quote(claim)
-                            if text and not any(
-                                _same_process(text, prior["text"]) for prior in policy_claims
-                            ):
-                                policy_claims.append({**claim, "text": text})
+                        text = _safe_general_process_quote(claim)
+                        if text and not any(
+                            _same_process(text, prior["text"]) for prior in policy_claims
+                        ):
+                            policy_claims.append({**claim, "text": text})
                     safe_live_claims[item.question_id] = policy_claims
                     item.answer = (
                         "\n\n".join(claim["text"] for claim in policy_claims)

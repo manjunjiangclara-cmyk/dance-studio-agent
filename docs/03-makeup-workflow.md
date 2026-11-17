@@ -8,16 +8,16 @@ This diagram shows the user-facing workflow, including teacher review actions ou
 flowchart TD
     A[Load student, email history, memory and policy] --> R[Identify intents and requested business action]
     R -->|Makeup booking and related absence| B[Makeup-specific interpretation]
-    R -->|Information only| X[Enquiry questions and original request context]
+    R -->|Information only| X[Enquiry questions, information requests and original context]
     R -->|Other or unclear action| X
     B --> C[Save student-stated memory]
     X --> C
     C --> D[Verify makeup evidence or gather read-only enquiry facts]
-    D -->|Enabled documents| D1[Retrieve and rerank each question with original request context]
+    D -->|Enabled documents| D1[Retrieve with original context; rerank each target question]
     D1 --> E[Draft response from evidence and teacher decisions]
     D -->|Other paths| E
     E -->|Enquiry or handoff| K["Validate answers, citations and teacher decisions; prepare checklist"]
-    K -->|Document answers| K1["Compose question-linked cited facts and flag uncertainty; deterministic handoff for live state, actions or ambiguous deadlines"]
+    K -->|Document answers| K1["Compose cited facts and flag uncertainty; retain only complete source process rules in live-state handoff"]
     K1 --> F[Pause for teacher review]
     K -->|Other enquiry| F
     E -->|Makeup draft| F
@@ -45,7 +45,7 @@ New and existing senders use the same router. Intake still creates a minimal pro
 
 `MakeupInterpretation` contains booking-specific dates and preferences. `EnquiryInterpretation` extends the shared summary/memory fields with individual questions and requested actions; both enquiry and handoff use it. Each draft records `answers` with the exact question, `answered`/`needs_student`/`needs_teacher` status, proposed response and evidence references. Missing, duplicate or unsupported answers become teacher tasks; unsupported factual claims trigger a conservative draft rebuild. Citation validation checks identifiers, not semantic correctness, so teacher review remains required.
 
-For information-only routes, explanation and comparison requests extracted as actions are treated as document questions. If extraction yields no question, the original request becomes the question. Retrieval and reranking retain the original request to disambiguate split subquestions; generation still answers one target question at a time. Supported general document facts can appear in a deterministic live-status handoff, while the personal record status remains a teacher task.
+For information-only routes, explanation and comparison requests extracted as actions join the question checklist even when other questions exist. If extraction yields no question, the original request becomes the question. Retrieval uses the original request to disambiguate split subquestions; the bounded reranker receives only the target question, which generation answers. A deterministic live-status handoff may retain a complete, cited general process rule; personal record status remains a teacher task.
 
 Enquiry tool dispatch allows only timetable, session and location lookups. Already-loaded student records and non-draft conversation messages are retained as context evidence so personal facts can be cited; student statements do not establish studio policy or completed actions. Revision feedback is retained with the draft evidence across successive reviews; the latest correction supersedes conflicting earlier feedback. Information-only makeup results cannot establish eligibility or reserve a place. Human handoff may gather bounded read-only facts but cannot execute actions. Only makeup approval can book a validated replacement. Revisions refresh enquiry interpretation and evidence; teacher-supplied facts may use the `teacher_feedback` reference when feedback exists. Old graph nodes and missing metadata remain compatible with pending reviews.
 
