@@ -62,8 +62,28 @@ terraform -chdir=infrastructure/ec2-bootstrap output -json backend \
   > infrastructure/ec2-demo/backend.json
 ```
 
-Keep bootstrap state private. The application stack uses the created private,
-versioned S3 backend with native Terraform locking. The backend and generated input
+The first-ever bootstrap creates the state bucket using private local state. Then
+connect that bootstrap itself to S3 (the generated backend file is ignored):
+
+```sh
+cat > infrastructure/ec2-bootstrap/backend.tf <<'BACKEND'
+terraform {
+  backend "s3" {}
+}
+BACKEND
+terraform -chdir=infrastructure/ec2-bootstrap init -migrate-state -force-copy \
+  -backend-config=bucket=dance-studio-ec2-state-YOUR_ACCOUNT_ID \
+  -backend-config=key=bootstrap/terraform.tfstate \
+  -backend-config=region=ap-southeast-2 -backend-config=encrypt=true \
+  -backend-config=use_lockfile=true
+```
+
+For an **existing** deployment in a fresh checkout, create that backend file and use
+`init -reconfigure` with those options **before** planning/applying bootstrap; connect
+to the existing remote state rather than creating duplicate IAM resources from empty
+local state. Do not force-copy stale local state over an existing remote deployment.
+Bootstrap uses the original profile; the application's separate backend assumes the
+deployer role. Both use private versioned S3 state and native Terraform locking. The backend and generated input
 files are ignored. Before applying, obtain the official Ubuntu 24.04 amd64 AMI from
 `/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id`
 and select an available Sydney AZ; save `account_id`, `ami_id`, `availability_zone`
@@ -123,7 +143,9 @@ are separate explicit release steps. Fictional fixtures are inserted only on the
 first application setup; subsequent releases preserve teacher edits. The writable
 policy **directory**, public demo ledger and PostgreSQL data live on the separate
 data disk. Container recreation does not reset daily demo allowances or policy edits.
-Caddy certificates are persistent on that disk as well.
+Caddy certificates are persistent on that disk as well. The PostgreSQL bind-mount
+parent is owned by the pinned image's postgres UID/GID, with mode 0700; release
+checks traversal/write access as that user before database startup.
 
 ## Backups and recovery verification
 

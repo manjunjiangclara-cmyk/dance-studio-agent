@@ -28,3 +28,6 @@ backend/experiments/data_api/results/
 deployment/ec2/.state/
 infrastructure/ec2-demo/backend.json
 infrastructure/ec2-demo/terraform.tfvars.json
+
+# Generated bootstrap backend connection, created after the state bucket exists.
+infrastructure/ec2-bootstrap/backend.tf

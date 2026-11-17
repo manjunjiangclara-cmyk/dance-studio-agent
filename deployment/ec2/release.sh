@@ -46,7 +46,16 @@ if [ ! -f /srv/studio/policy/studio.yaml ]; then
 fi
 PREVIOUS=$(studio-host current)
 if [ -n "$PREVIOUS" ]; then studio-backup --locked; fi
-compose up -d --wait db
+# PostgreSQL 18's entrypoint chowns PGDATA, not its parent bind mount.
+# A root-owned mode-0700 mount prevents postgres from traversing that parent.
+compose pull db
+DATABASE_IMAGE=pgvector/pgvector:0.8.7-pg18-trixie
+DATABASE_OWNER=$(docker run --rm --network none --entrypoint sh "$DATABASE_IMAGE" -c 'printf "%s:%s" "$(id -u postgres)" "$(id -g postgres)"')
+[[ "$DATABASE_OWNER" =~ ^[0-9]+:[0-9]+$ ]]
+chown "$DATABASE_OWNER" /srv/studio/postgres
+chmod 700 /srv/studio/postgres
+docker run --rm --network none --user "$DATABASE_OWNER" --entrypoint sh -v /srv/studio/postgres:/var/lib/postgresql "$DATABASE_IMAGE" -c 'test -x /var/lib/postgresql && test -w /var/lib/postgresql'
+compose up -d --wait --wait-timeout 300 db
 # Keep the previous image and backup. Database downgrades are never automatic.
 FAILED=1
 failed_release() {

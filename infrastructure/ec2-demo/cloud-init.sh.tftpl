@@ -39,7 +39,8 @@ echo "UUID=$UUID /srv/studio ext4 defaults 0 2" >> /etc/fstab
 mount /srv/studio
 install -d -m 700 /srv/studio/config /srv/studio/releases /srv/studio/backups
 install -d -o 10001 -g 10001 -m 700 /srv/studio/policy /srv/studio/public-demo /srv/studio/operations
-install -d -m 700 /srv/studio/postgres /srv/studio/caddy-data /srv/studio/caddy-config
+install -d -o 999 -g 999 -m 700 /srv/studio/postgres
+install -d -m 700 /srv/studio/caddy-data /srv/studio/caddy-config
 cat > /etc/studio-host.json <<'CONFIG'
 {"region":"ap-southeast-2","bucket":"${bucket}","secret_arn":"${secret_arn}","domain":"${domain}"}
 CONFIG
