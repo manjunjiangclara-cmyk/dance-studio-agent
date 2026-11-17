@@ -355,8 +355,7 @@ export default function App() {
             </span>
             <strong>A working idea, made visible.</strong>
             <p>
-              From an email to an informed draft. Explore the records behind
-              every response.
+              From an email to an informed draft.
             </p>
             <Link to={`${base}/database`}>
               Browse the database <ArrowUpRight size={15} />
@@ -589,13 +588,6 @@ function Overview() {
             {workspace ? "Open review queue" : "Try the guided demo"}
             <ArrowRight size={17} />
           </Link>
-          {!workspace && (
-            <p>
-              <Link className="inline-link" to="/demo/reviews">
-                Explore the records <ArrowRight size={16} />
-              </Link>
-            </p>
-          )}
           <span className="hero-caption">
             {workspace
               ? "Approval books a proposed session and saves the response."
