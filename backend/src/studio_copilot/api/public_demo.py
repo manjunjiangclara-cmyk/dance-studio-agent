@@ -19,7 +19,7 @@ class LimitedRoute(APIRoute):
             chunks, size = [], 0
             async for chunk in request.stream():
                 size += len(chunk)
-                if size > 12000:
+                if size > 120000:
                     raise HTTPException(413, "Demo request too large.")
                 chunks.append(chunk)
             request._body = b"".join(chunks)
@@ -46,6 +46,11 @@ class CreateRun(BaseModel):
         elif self.student is not None or self.email_body is not None:
             raise ValueError("Guided scenarios use fixed inputs.")
         return self
+
+
+class DraftInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    teacher_answers: list[str] = Field(default_factory=list, max_length=9)
 
 
 class Empty(BaseModel):
@@ -86,8 +91,8 @@ def evidence(request: Request, body: Empty):
 
 
 @router.post("/draft")
-def draft(request: Request, body: Empty):
-    return service(request).execute(token(request), "draft")
+def draft(request: Request, body: DraftInput):
+    return service(request).execute(token(request), "draft", teacher_answers=body.teacher_answers)
 
 
 def create_public_demo_app():

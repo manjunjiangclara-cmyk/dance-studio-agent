@@ -38,6 +38,9 @@ export function CustomEmail() {
   const [error, setError] = useState("");
   const [evidence, setEvidence] = useState<Evidence | null>(null);
   const [draft, setDraft] = useState("");
+  const [generated, setGenerated] = useState(false);
+  const [answers, setAnswers] = useState<string[]>([]);
+  const [answersLocked, setAnswersLocked] = useState(false);
   const attempt = useRef<Attempt | null>(null);
   const pending = useRef(false);
   const alive = useRef(true);
@@ -53,6 +56,9 @@ export function CustomEmail() {
     setError("");
     setEvidence(null);
     setDraft("");
+    setGenerated(false);
+    setAnswers([]);
+    setAnswersLocked(false);
   }
   async function simulate() {
     if (pending.current || !body.trim()) return;
@@ -93,21 +99,8 @@ export function CustomEmail() {
         );
         if (!alive.current) return;
       }
-      if (!current.draft) {
-        setStage("Generating draft…");
-        const result = await request<{ body: string }>(
-          "/api/public-demo/draft",
-          { method: "POST", headers, body: "{}" },
-        );
-        if (!alive.current) return;
-        if (!result.body?.trim())
-          throw new Error(
-            "The live service returned an empty draft. Retry this simulation.",
-          );
-        current.draft = result.body;
-      }
       setEvidence(current.evidence);
-      setDraft(current.draft);
+      setAnswers(current.evidence.missing_information.map(() => ""));
       requestAnimationFrame(() => {
         if (alive.current) resultHeading.current?.focus();
       });
@@ -119,6 +112,54 @@ export function CustomEmail() {
             : caught instanceof Error
               ? caught.message
               : "The email simulation could not complete.",
+        );
+    } finally {
+      pending.current = false;
+      if (alive.current) {
+        setBusy(false);
+        setStage("");
+      }
+    }
+  }
+  async function generateDraft() {
+    const current = attempt.current;
+    if (
+      !current?.token ||
+      !current.evidence ||
+      pending.current ||
+      answers.some((a) => !a.trim()) ||
+      answers.length !== current.evidence.missing_information.length
+    )
+      return;
+    pending.current = true;
+    setBusy(true);
+    setAnswersLocked(true);
+    setError("");
+    setStage("Generating draft…");
+    try {
+      const result = await request<{ body: string }>("/api/public-demo/draft", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${current.token}`,
+        },
+        body: JSON.stringify({ teacher_answers: answers }),
+      });
+      if (!result.body?.trim())
+        throw new Error(
+          "The live service returned an empty draft. Retry this step.",
+        );
+      if (alive.current) {
+        current.draft = result.body;
+        setDraft(result.body);
+        setGenerated(true);
+      }
+    } catch (caught) {
+      if (alive.current)
+        setError(
+          caught instanceof Error
+            ? caught.message
+            : "The draft could not be generated.",
         );
     } finally {
       pending.current = false;
@@ -188,7 +229,7 @@ export function CustomEmail() {
               the limit of 20 demo runs per day. No email is sent and no studio
               records are changed.
             </p>
-            {error && (
+            {error && !evidence && (
               <div role="alert">
                 <p>{error}</p>
                 <button
@@ -201,7 +242,10 @@ export function CustomEmail() {
                 </button>
               </div>
             )}
-            <button className="button primary" disabled={busy || !body.trim()}>
+            <button
+              className="button primary"
+              disabled={busy || !body.trim() || Boolean(evidence)}
+            >
               {busy ? "Simulating email…" : "Simulate email"}
             </button>
             {busy && <p role="status">{stage}</p>}
@@ -227,9 +271,9 @@ export function CustomEmail() {
           className="panel custom-email-result"
           aria-labelledby="custom-result-title"
         >
-          <div className="eyebrow">DRAFT FOR HUMAN REVIEW</div>
+          <div className="eyebrow">TEACHER REVIEW</div>
           <h2 ref={resultHeading} tabIndex={-1} id="custom-result-title">
-            Review the draft
+            Review missing information
           </h2>
           <p className="custom-route">
             {evidence.route === "makeup"
@@ -239,27 +283,74 @@ export function CustomEmail() {
                 : "Enquiry"}{" "}
             · {evidence.model}
           </p>
-          <label htmlFor="custom-response">Draft response</label>
-          <textarea
-            id="custom-response"
-            value={draft}
-            rows={9}
-            maxLength={5000}
-            onChange={(event) => setDraft(event.target.value)}
-          />
-          <p className="muted">
-            You can edit this draft locally. No email was sent. This simulation
-            does not book classes or change studio records.
-          </p>
           {evidence.missing_information.length > 0 && (
-            <section aria-label="Information to confirm">
-              <h3>Information to confirm</h3>
-              <ul>
-                {evidence.missing_information.map((item, index) => (
-                  <li key={index}>{item}</li>
-                ))}
-              </ul>
+            <section aria-label="Information needed from teacher">
+              <h3>Information needed from teacher</h3>
+              <p>
+                Provide a response for each item, or say you will confirm it
+                later. These responses will be used to generate the draft.
+              </p>
+              {evidence.missing_information.map((item, index) => (
+                <div key={index}>
+                  <label htmlFor={`missing-${index}`}>{item}</label>
+                  <textarea
+                    id={`missing-${index}`}
+                    maxLength={2000}
+                    value={answers[index] || ""}
+                    disabled={answersLocked || busy}
+                    onChange={(event) =>
+                      setAnswers((previous) =>
+                        previous.map((value, i) =>
+                          i === index ? event.target.value : value,
+                        ),
+                      )
+                    }
+                  />
+                </div>
+              ))}
             </section>
+          )}
+          {!generated && (
+            <button
+              className="button primary"
+              disabled={
+                busy ||
+                answers.length !== evidence.missing_information.length ||
+                answers.some((answer) => !answer.trim())
+              }
+              onClick={() => void generateDraft()}
+            >
+              Generate draft
+            </button>
+          )}
+          {busy && <p role="status">{stage}</p>}
+          {error && (
+            <div role="alert">
+              <p>{error}</p>
+              <button
+                className="button secondary"
+                disabled={busy}
+                onClick={() => void generateDraft()}
+              >
+                Retry draft
+              </button>
+            </div>
+          )}
+          {generated && (
+            <>
+              <label htmlFor="custom-response">Draft response</label>
+              <textarea
+                id="custom-response"
+                value={draft}
+                rows={9}
+                maxLength={5000}
+                onChange={(event) => setDraft(event.target.value)}
+              />
+              <p className="muted">
+                You can edit this draft locally. No email was sent. This
+                simulation does not book classes or change studio records.
+              </p>
+            </>
           )}
           <details>
             <summary>Supporting evidence</summary>

@@ -26,7 +26,8 @@ async function sandbox(page: Page, failDraft = false) {
         json: { scenario: "custom", token: `token-${body.request_id}` },
       });
     }
-    expect(body).toEqual({});
+    if (stage === "evidence") expect(body).toEqual({});
+    else expect(body).toEqual({ teacher_answers: ["I will confirm later."] });
     expect(req.headers().authorization).toMatch(/^Bearer token-/);
     if (stage === "evidence")
       return route.fulfill({
@@ -73,8 +74,16 @@ test("visitors write their own email against a fictional student without touchin
     .getByRole("button", { name: "Simulate email", exact: true })
     .dblclick();
   await expect(
-    page.getByRole("heading", { name: "Review the draft", exact: true }),
+    page.getByRole("heading", {
+      name: "Review missing information",
+      exact: true,
+    }),
   ).toBeVisible();
+  expect(api.calls.map((c) => c.stage)).toEqual(["runs", "evidence"]);
+  await page.getByLabel("Trial fee").fill("I will confirm later.");
+  await page
+    .getByRole("button", { name: "Generate draft", exact: true })
+    .click();
   await expect(page.getByLabel("Draft response", { exact: true })).toHaveValue(
     /I'll confirm/,
   );
@@ -119,12 +128,19 @@ test("retry reuses the custom run and evidence; changed email creates a new requ
   await page
     .getByRole("button", { name: "Simulate email", exact: true })
     .click();
+  await page.getByLabel("Trial fee").fill("I will confirm later.");
+  await page
+    .getByRole("button", { name: "Generate draft", exact: true })
+    .click();
   await expect(page.getByRole("alert")).toContainText(
     "Temporary model failure",
   );
-  await page.getByRole("button", { name: "Retry", exact: true }).click();
+  await page.getByRole("button", { name: "Retry draft", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Review the draft", exact: true }),
+    page.getByRole("heading", {
+      name: "Review missing information",
+      exact: true,
+    }),
   ).toBeVisible();
   expect(api.calls.map((c) => c.stage)).toEqual([
     "runs",
@@ -137,13 +153,19 @@ test("retry reuses the custom run and evidence; changed email creates a new requ
     .getByLabel("Email body", { exact: true })
     .fill("Can I attend the Saturday class?");
   await expect(
-    page.getByRole("heading", { name: "Review the draft", exact: true }),
+    page.getByRole("heading", {
+      name: "Review missing information",
+      exact: true,
+    }),
   ).toHaveCount(0);
   await page
     .getByRole("button", { name: "Simulate email", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Review the draft", exact: true }),
+    page.getByRole("heading", {
+      name: "Review missing information",
+      exact: true,
+    }),
   ).toBeVisible();
   const runs = api.calls.filter((c) => c.stage === "runs");
   expect(runs).toHaveLength(2);

@@ -33,7 +33,7 @@ class PublicDemo:
                 lease TEXT
             )""")
             columns = {row["name"] for row in db.execute("PRAGMA table_info(runs)")}
-            for column in ("student", "email_body"):
+            for column in ("student", "email_body", "draft_answers"):
                 if column not in columns:
                     db.execute(f"ALTER TABLE runs ADD COLUMN {column} TEXT")
         Path(path).chmod(0o600)
@@ -100,7 +100,7 @@ class PublicDemo:
             )
         return {"token": token, "scenario": scenario}
 
-    def execute(self, token, stage):
+    def execute(self, token, stage, *, teacher_answers=None):
         now = self.clock()
         lease = secrets.token_hex(16)
         # stage is a server-owned literal from separate endpoint functions, never user SQL.
@@ -113,12 +113,36 @@ class PublicDemo:
             day = datetime.fromtimestamp(now, ZoneInfo("Australia/Melbourne")).date().isoformat()
             if now - row["created"] > 3600 or row["day"] != day:
                 raise HTTPException(410, "This demo run expired. Restart the demo.")
+            if stage == "draft" and not row["evidence"]:
+                raise HTTPException(409, "Find supporting evidence before generating a draft.")
+            answers = teacher_answers or []
+            if stage == "draft":
+                missing = (
+                    ["Trial fee"]
+                    if row["scenario"] == "document"
+                    else json.loads(row["evidence"]).get("missing_information", [])
+                    if row["scenario"] == "custom" and row["evidence"]
+                    else []
+                )
+                if len(answers) != len(missing) or any(
+                    not isinstance(answer, str) or not answer.strip() or len(answer) > 2000
+                    for answer in answers
+                ):
+                    raise HTTPException(
+                        422, "Provide a response for each missing item before generating."
+                    )
+                answers = [answer.strip() for answer in answers]
+                encoded_answers = json.dumps(answers, ensure_ascii=False)
+                if row["draft_answers"] is not None and row["draft_answers"] != encoded_answers:
+                    raise HTTPException(
+                        409,
+                        "This draft attempt already has different teacher responses. "
+                        "Start a new run.",
+                    )
             if row[stage]:
                 return json.loads(row[stage])
             if row["busy_until"] > now:
                 raise HTTPException(409, "This demo is processing. Wait before retrying.")
-            if stage == "draft" and not row["evidence"]:
-                raise HTTPException(409, "Find supporting evidence before generating a draft.")
             if row[f"{stage}_attempts"] >= 2:
                 raise HTTPException(
                     429, "This step's two attempts are used. Please try another example later."
@@ -128,6 +152,10 @@ class PublicDemo:
                 "busy_until = ?, lease = ? WHERE token = ?",
                 (now + 60, lease, token),
             )
+            if stage == "draft":
+                db.execute(
+                    "UPDATE runs SET draft_answers = ? WHERE token = ?", (encoded_answers, token)
+                )
             scenario = row["scenario"]
             evidence = json.loads(row["evidence"])["evidence"] if row["evidence"] else []
         model = None
@@ -138,7 +166,22 @@ class PublicDemo:
                     scenario,
                     stage,
                     evidence,
-                    context={"student": row["student"], "email_body": row["email_body"]},
+                    context={
+                        "student": row["student"],
+                        "email_body": row["email_body"],
+                        **(
+                            {"teacher_answers": list(zip(missing, answers))}
+                            if stage == "draft" and missing
+                            else {}
+                        ),
+                    },
+                )
+            elif scenario == "document" and stage == "draft":
+                result = model.call(
+                    scenario,
+                    stage,
+                    evidence,
+                    context={"teacher_answers": list(zip(missing, answers))},
                 )
             else:
                 result = model.call(scenario, stage, evidence)

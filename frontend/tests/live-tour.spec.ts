@@ -15,7 +15,7 @@ interface ResponseOverride {
 const generatedBooking =
   "Hi Alex, I've booked Saturday 13 February at 6 pm at our Brunswick studio for your makeup class. See you then!\n\nMerri Ballet team";
 const generatedDocument =
-  "Hi Jules, comfortable clothes and socks are suitable for your first class. Ballet shoes are optional.\n\n[Teacher decision needed: trial fee]\n\nMerri Ballet team";
+  "Hi Jules, comfortable clothes and socks are suitable for your first class. Ballet shoes are optional.\n\nThe trial costs $20.\n\nMerri Ballet team";
 
 function deferred() {
   let release!: () => void;
@@ -82,7 +82,8 @@ async function mockLive(
         .catch(() => {});
       return;
     }
-    expect(call.body).toEqual({});
+    if (stage === "evidence") expect(call.body).toEqual({});
+    else expect(Array.isArray(call.body.teacher_answers)).toBe(true);
     const scenario = tokens.get(
       call.authorization?.replace(/^Bearer /, "") ?? "",
     );
@@ -208,7 +209,7 @@ test("live requests require explicit clicks, prevent double submission and reuse
     expect(api.count("draft")).toBe(0);
     await expect(
       page.getByLabel("Final response", { exact: true }),
-    ).toHaveValue("");
+    ).toHaveCount(0);
     await expect(
       page.getByRole("button", {
         name: "Simulate approval and booking",
@@ -266,37 +267,29 @@ test("live document citations remain canonical and teacher decisions cost no ext
     .click();
   await expect(page.locator("mark")).toHaveText(tourSource.quote);
   await enterReview(page);
-  await expect(
-    page.getByRole("radio", { name: "Confirm later", exact: true }),
-  ).toBeDisabled();
-  await expect(
-    page.getByRole("button", { name: "Update draft", exact: true }),
-  ).toBeDisabled();
-  await page
-    .getByRole("button", { name: "Generate draft", exact: true })
-    .click();
-  await expect(page.getByLabel("Final response", { exact: true })).toHaveValue(
-    generatedDocument,
-  );
   const approve = page.getByRole("button", {
     name: "Simulate approval",
     exact: true,
   });
-  await expect(approve).toBeDisabled();
+  const generate = page.getByRole("button", {
+    name: "Generate draft",
+    exact: true,
+  });
+  await expect(generate).toBeDisabled();
   await page
     .getByRole("radio", { name: "Provide an answer", exact: true })
     .check();
   await page
     .getByLabel("Trial fee answer", { exact: true })
     .fill("The trial costs $20.");
-  await page.getByRole("button", { name: "Update draft", exact: true }).click();
+  await generate.click();
+  await expect(page.getByLabel("Final response", { exact: true })).toHaveValue(
+    generatedDocument,
+  );
+  expect(api.calls.find((call) => call.stage === "draft")?.body).toEqual({
+    teacher_answers: ["The trial costs $20."],
+  });
   await expect(approve).toBeEnabled();
-  await expect(page.getByLabel("Final response", { exact: true })).toHaveValue(
-    /The trial costs \$20/,
-  );
-  await expect(page.getByLabel("Final response", { exact: true })).toHaveValue(
-    /Hi Jules, comfortable clothes and socks are suitable for your first class/,
-  );
   await approve.click();
   await expect(
     page.getByRole("heading", { name: "Response approved", exact: true }),
@@ -344,8 +337,8 @@ test("evidence and draft failures retry with the existing token without fixture 
   await expect(page.getByRole("alert")).toContainText(
     "draft temporarily unavailable",
   );
-  await expect(page.getByLabel("Final response", { exact: true })).toHaveValue(
-    "",
+  await expect(page.getByLabel("Final response", { exact: true })).toHaveCount(
+    0,
   );
   await page.getByRole("button", { name: "Retry", exact: true }).click();
   await expect(page.getByLabel("Final response", { exact: true })).toHaveValue(
@@ -486,7 +479,7 @@ test("leaving ignores a late draft and returning starts a fresh empty live run",
     await enterReview(page);
     await expect(
       page.getByLabel("Final response", { exact: true }),
-    ).toHaveValue("");
+    ).toHaveCount(0);
     const admissions = api.calls.filter((call) => call.stage === "runs");
     expect(admissions).toHaveLength(2);
     expect(admissions[0].body.request_id).not.toBe(
@@ -506,6 +499,11 @@ for (const scenario of ["booking", "document"] as const) {
     await enterEvidence(page, scenario);
     await findEvidence(page);
     await enterReview(page);
+    if (scenario === "document") {
+      await page
+        .getByRole("radio", { name: "Confirm later", exact: true })
+        .check();
+    }
     await page
       .getByRole("button", { name: "Generate draft", exact: true })
       .click();
@@ -514,17 +512,6 @@ for (const scenario of ["booking", "document"] as const) {
     ).toHaveValue(
       scenario === "booking" ? generatedBooking : generatedDocument,
     );
-    if (scenario === "document") {
-      await page
-        .getByRole("radio", { name: "Confirm later", exact: true })
-        .check();
-      await page
-        .getByRole("button", { name: "Update draft", exact: true })
-        .click();
-      await expect(
-        page.getByLabel("Final response", { exact: true }),
-      ).toHaveValue(/I'll confirm the trial fee with you before you decide\./);
-    }
     await page
       .getByRole("button", {
         name:

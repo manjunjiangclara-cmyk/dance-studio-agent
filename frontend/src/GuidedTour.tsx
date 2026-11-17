@@ -30,7 +30,7 @@ function useTourState(scenario: TourScenario, liveMode: boolean) {
   const live = useLiveDemo(scenario);
   const [step, setStep] = useState(0);
   const [body, setBody] = useState(
-    liveMode ? "" : tourFixtures[scenario].draft,
+    liveMode || scenario === "document" ? "" : tourFixtures[scenario].draft,
   );
   const [decision, setDecision] = useState<Decision>("");
   const [answer, setAnswer] = useState("");
@@ -41,7 +41,11 @@ function useTourState(scenario: TourScenario, liveMode: boolean) {
   );
   const signature =
     decision === "answer" ? `answer:${answer.trim()}` : decision;
+  const generated = liveMode
+    ? live.draft !== null
+    : scenario === "booking" || Boolean(applied);
   const resolved =
+    Boolean(body) &&
     (!liveMode || live.draft !== null) &&
     (scenario === "booking" ||
       Boolean(
@@ -52,19 +56,29 @@ function useTourState(scenario: TourScenario, liveMode: boolean) {
   useEffect(() => {
     if (liveMode && live.draft !== null) {
       setBody(live.draft);
-      setApplied("");
     }
   }, [liveMode, live.draft]);
-  function updateDraft() {
-    if (!decision || (decision === "answer" && !answer.trim())) return;
-    setBody(
-      documentDraft(
-        decision,
-        answer,
-        liveMode ? live.draft || undefined : undefined,
-      ),
-    );
+  function generateDraft() {
+    if (
+      scenario === "document" &&
+      (!decision || (decision === "answer" && !answer.trim()))
+    )
+      return;
     setApplied(signature);
+    if (liveMode) {
+      void live.execute(
+        "draft",
+        scenario === "document"
+          ? [
+              decision === "answer"
+                ? answer.trim()
+                : "I will confirm the trial fee later.",
+            ]
+          : [],
+      );
+    } else if (scenario === "document") {
+      setBody(documentDraft(decision as "answer" | "defer", answer));
+    }
   }
   return {
     live,
@@ -74,6 +88,7 @@ function useTourState(scenario: TourScenario, liveMode: boolean) {
     body,
     setBody,
     decision,
+    applied,
     setDecision,
     answer,
     setAnswer,
@@ -82,7 +97,8 @@ function useTourState(scenario: TourScenario, liveMode: boolean) {
     confirmation,
     setConfirmation,
     resolved,
-    updateDraft,
+    generated,
+    generateDraft,
   };
 }
 const TourContext = createContext<ReturnType<typeof useTourState> | null>(null);
@@ -350,53 +366,16 @@ function TourContent({ scenario }: { scenario: TourScenario }) {
         )}
         {state.step === 2 && (
           <>
-            {liveMode && (
-              <div className="tour-live-generation">
-                <p>
-                  Generate a fresh response from the selected fictional
-                  evidence. Model output still needs teacher review.
-                </p>
-                <button
-                  className="button primary"
-                  disabled={
-                    Boolean(live.busy) || Boolean(live.draft) || !live.evidence
-                  }
-                  onClick={() => live.execute("draft")}
-                >
-                  {live.busy === "draft"
-                    ? "Generating draft…"
-                    : "Generate draft"}
-                </button>
-                {live.busy === "draft" && (
-                  <p role="status">Generating draft…</p>
-                )}
-                {live.error && (
-                  <div role="alert">
-                    <p>{live.error}</p>
-                    <button
-                      className="button secondary"
-                      disabled={Boolean(live.busy)}
-                      onClick={() => live.execute("draft")}
-                    >
-                      Retry
-                    </button>
-                  </div>
-                )}
-                {live.draft && (
-                  <p className="muted">Generated live · {live.model}</p>
-                )}
-              </div>
-            )}
             {scenario === "document" && (
               <fieldset
                 className="tour-decision"
-                disabled={liveMode && !live.draft}
+                disabled={Boolean(state.applied) || Boolean(live.busy)}
               >
                 <legend>What does a trial cost?</legend>
                 <p>
                   {liveMode
-                    ? "The source does not specify a fee. Supply a teacher fact or choose to confirm later, then update the draft. This adds your decision to the generated response and replaces any direct wording edits."
-                    : "The source does not specify a fee. Supply a teacher fact or choose to confirm later, then update the draft. Updating replaces the response with the predetermined template and your decision."}
+                    ? "The source does not specify a fee. Provide an answer or choose to confirm later before generating the draft."
+                    : "The source does not specify a fee. Provide an answer or choose to confirm later before generating the draft."}
                 </p>
                 <label>
                   <input
@@ -421,37 +400,67 @@ function TourContent({ scenario }: { scenario: TourScenario }) {
                     <label htmlFor="tour-fee-answer">Trial fee answer</label>
                     <textarea
                       id="tour-fee-answer"
+                      maxLength={2000}
                       value={state.answer}
                       onChange={(event) => state.setAnswer(event.target.value)}
                     />
                   </div>
                 )}
-                <button
-                  className="button secondary"
-                  onClick={state.updateDraft}
-                  disabled={
-                    !state.decision ||
-                    (state.decision === "answer" && !state.answer.trim())
-                  }
-                >
-                  Update draft
-                </button>
-                <p role="status">
-                  {state.resolved
-                    ? "Teacher decision applied. Review the final response below."
-                    : "Teacher decision needed. Apply an answer or deferral before approval."}
-                </p>
               </fieldset>
             )}
-            <div className="tour-response">
-              <label htmlFor="tour-final-response">Final response</label>
-              <textarea
-                id="tour-final-response"
-                rows={9}
-                value={state.body}
-                onChange={(event) => state.setBody(event.target.value)}
-              />
-            </div>
+            {(liveMode || scenario === "document") && (
+              <div className="tour-live-generation">
+                <p>
+                  Generate a fresh response from the selected fictional
+                  evidence. Model output still needs teacher review.
+                </p>
+                <button
+                  className="button primary"
+                  disabled={
+                    Boolean(live.busy) ||
+                    state.generated ||
+                    (liveMode && !live.evidence) ||
+                    (scenario === "document" &&
+                      (!state.decision ||
+                        (state.decision === "answer" && !state.answer.trim())))
+                  }
+                  onClick={state.generateDraft}
+                >
+                  {live.busy === "draft"
+                    ? "Generating draft…"
+                    : "Generate draft"}
+                </button>
+                {live.busy === "draft" && (
+                  <p role="status">Generating draft…</p>
+                )}
+                {live.error && (
+                  <div role="alert">
+                    <p>{live.error}</p>
+                    <button
+                      className="button secondary"
+                      disabled={Boolean(live.busy)}
+                      onClick={state.generateDraft}
+                    >
+                      Retry
+                    </button>
+                  </div>
+                )}
+                {liveMode && live.draft && (
+                  <p className="muted">Generated live · {live.model}</p>
+                )}
+              </div>
+            )}
+            {state.generated && (
+              <div className="tour-response">
+                <label htmlFor="tour-final-response">Final response</label>
+                <textarea
+                  id="tour-final-response"
+                  rows={9}
+                  value={state.body}
+                  onChange={(event) => state.setBody(event.target.value)}
+                />
+              </div>
+            )}
             <p className="muted">
               Your edits are saved verbatim in the simulated outcome. No AI
               checks or validates your edited text.
