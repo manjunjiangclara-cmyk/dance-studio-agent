@@ -65,7 +65,7 @@ test("homepage starts a clearly labelled guided demo with editable simulated boo
   ).toHaveCount(0);
   await page.goto("/demo/tour?mode=recorded");
   await expectStep(page, "Email");
-  await expect(page.getByText(/no live model calls/i)).toBeVisible();
+  await expect(page.getByText(/no live AI/i)).toBeVisible();
   await expect(page.getByText(/Actually, Saturday/)).toBeVisible();
   await next(page, "Evidence");
   await next(page, "Teacher review");

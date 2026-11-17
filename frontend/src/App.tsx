@@ -530,7 +530,7 @@ export default function App() {
                       new URLSearchParams(location.search).get("mode") !==
                         "recorded"
                     ? "Fictional data · Live AI · Simulated booking"
-                  : "Fictional data · Predefined examples"}
+                    : "Fictional data · Predefined examples"}
               <span className="footer-dot">·</span>Australia / Melbourne
             </span>
           </footer>

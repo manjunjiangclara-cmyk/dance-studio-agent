@@ -643,9 +643,7 @@ function Confirmation({ snapshot }: { snapshot: TourConfirmation }) {
       </details>
       <section className="tour-email-status" aria-label="Email delivery">
         <h3>Email not sent</h3>
-        <p>
-          The reviewed response was saved in this simulation.
-        </p>
+        <p>The reviewed response was saved in this simulation.</p>
       </section>
     </div>
   );

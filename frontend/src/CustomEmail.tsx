@@ -226,7 +226,8 @@ export function CustomEmail() {
             </p>
             <p>
               Use fictional content only. Live AI · 20 shared runs per day.
-              Results are unavailable after you leave or refresh. No email is sent.
+              Results are unavailable after you leave or refresh. No email is
+              sent.
             </p>
             {error && !evidence && (
               <div role="alert">
