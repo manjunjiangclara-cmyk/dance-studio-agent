@@ -250,15 +250,39 @@ def test_model_handles_incomplete_and_refusal(status, parsed):
         model.call("booking", "draft", ["fixed"])
 
 
-def test_document_draft_always_requires_teacher_fee_decision():
-    model, _ = model_with(
-        SimpleNamespace(
-            status="completed", output_parsed=GeneratedDraft(body="Socks are suitable.")
-        )
+def test_document_draft_includes_teacher_decision_in_model_input():
+    model, calls = model_with(
+        SimpleNamespace(status="completed", output_parsed=GeneratedDraft(body="The trial is $20."))
     )
-    result = model.call("document", "draft", [CATALOG["document"]["clothing"]])
-    assert "Socks are suitable." in result["body"]
-    assert result["body"].count("[Teacher decision needed: trial fee]") == 1
+    result = model.call(
+        "document",
+        "draft",
+        [CATALOG["document"]["clothing"]],
+        context={"teacher_answers": [("Trial fee", "$20")]},
+    )
+    assert result["body"] == "The trial is $20."
+    assert json.loads(calls[0]["input"])["teacher_answers"] == [["Trial fee", "$20"]]
+
+
+def test_document_requires_answers_and_cache_matches_them(demo):
+    class DocumentFake(Fake):
+        def call(self, scenario, stage, evidence, *, context=None):
+            if stage == "draft":
+                return {"body": context["teacher_answers"][0][1], "model": "fake"}
+            return super().call(scenario, stage, evidence)
+
+    demo.factory = DocumentFake
+    token = create(demo, "document")
+    demo.execute(token, "evidence")
+    for answers in ([], ["  "]):
+        with pytest.raises(HTTPException) as error:
+            demo.execute(token, "draft", teacher_answers=answers)
+        assert error.value.status_code == 422
+    assert demo.execute(token, "draft", teacher_answers=["$20"])["body"] == "$20"
+    assert demo.execute(token, "draft", teacher_answers=["$20"])["body"] == "$20"
+    with pytest.raises(HTTPException) as error:
+        demo.execute(token, "draft", teacher_answers=["$30"])
+    assert error.value.status_code == 409
 
 
 def test_public_router_is_integrated_without_unlocking_staff_api(client):
@@ -376,10 +400,14 @@ def test_custom_email_pipeline_accepts_empty_evidence_and_caches_calls(demo):
     demo.factory = CustomFake
     run = demo.create("custom", str(uuid4()), student="jules", email_body="Can I get a refund?")
     assert demo.execute(run["token"], "evidence")["evidence"] == []
-    result = demo.execute(run["token"], "draft")
-    assert demo.execute(run["token"], "draft") == result
+    result = demo.execute(run["token"], "draft", teacher_answers=["I will confirm later"])
+    assert demo.execute(run["token"], "draft", teacher_answers=["I will confirm later"]) == result
     assert len(contexts) == 2
-    assert contexts[1][3] == {"student": "jules", "email_body": "Can I get a refund?"}
+    assert contexts[1][3] == {
+        "student": "jules",
+        "email_body": "Can I get a refund?",
+        "teacher_answers": [("Refund policy", "I will confirm later")],
+    }
 
 
 def test_existing_ledger_upgrade_preserves_daily_admission(tmp_path):

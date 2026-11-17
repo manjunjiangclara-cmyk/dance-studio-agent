@@ -19,7 +19,10 @@ export function useLiveDemo(scenario: TourScenario) {
     };
   }, []);
 
-  async function execute(stage: "evidence" | "draft") {
+  async function execute(
+    stage: "evidence" | "draft",
+    teacherAnswers: string[] = [],
+  ) {
     if (
       pending.current ||
       (stage === "evidence" && evidence) ||
@@ -49,7 +52,9 @@ export function useLiveDemo(scenario: TourScenario) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${runToken.current}`,
         },
-        body: "{}",
+        body: JSON.stringify(
+          stage === "draft" ? { teacher_answers: teacherAnswers } : {},
+        ),
       });
       if (!mounted.current) return;
       if (stage === "evidence" && result.evidence?.length)

@@ -48,6 +48,11 @@ class CreateRun(BaseModel):
         return self
 
 
+class DraftInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    teacher_answers: list[str] = Field(default_factory=list, max_length=8)
+
+
 class Empty(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -86,8 +91,8 @@ def evidence(request: Request, body: Empty):
 
 
 @router.post("/draft")
-def draft(request: Request, body: Empty):
-    return service(request).execute(token(request), "draft")
+def draft(request: Request, body: DraftInput):
+    return service(request).execute(token(request), "draft", teacher_answers=body.teacher_answers)
 
 
 def create_public_demo_app():

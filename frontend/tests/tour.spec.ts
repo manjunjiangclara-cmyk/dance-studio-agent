@@ -322,7 +322,9 @@ test("document evidence opens its exact saved source and requires a teacher deci
     .getByLabel("Trial fee answer", { exact: true })
     .fill(teacherAnswer);
   await expect(approve).toBeDisabled();
-  await page.getByRole("button", { name: "Update draft", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Generate draft", exact: true })
+    .click();
   await expect(page.getByLabel("Final response", { exact: true })).toHaveValue(
     /A trial costs \$20/,
   );
@@ -352,65 +354,47 @@ test("document evidence opens its exact saved source and requires a teacher deci
   ).toBeVisible();
 });
 
-test("teacher deferral composes a draft and changing the decision blocks approval again", async ({
+test("teacher deferral composes a draft and locks the applied decision", async ({
   page,
 }) => {
   await review(page, "document");
-  const approve = page.getByRole("button", {
-    name: "Simulate approval",
-    exact: true,
-  });
   await page.getByRole("radio", { name: "Confirm later", exact: true }).check();
-  await expect(approve).toBeDisabled();
-  await page.getByRole("button", { name: "Update draft", exact: true }).click();
-  await expect(approve).toBeEnabled();
-  await expect(page.getByLabel("Final response", { exact: true })).toHaveValue(
-    /I'll confirm the trial fee with you before you decide\./,
-  );
   await page
-    .getByRole("radio", { name: "Provide an answer", exact: true })
-    .check();
-  await expect(approve).toBeDisabled();
-  await page.getByLabel("Trial fee answer", { exact: true }).fill("   ");
+    .getByRole("button", { name: "Generate draft", exact: true })
+    .click();
+  await expect(page.getByLabel("Final response", { exact: true })).toHaveValue(
+    /I'll confirm the trial fee/,
+  );
   await expect(
-    page.getByRole("button", { name: "Update draft", exact: true }),
+    page.getByRole("radio", { name: "Provide an answer", exact: true }),
   ).toBeDisabled();
-  await expect(approve).toBeDisabled();
-  await page.getByRole("radio", { name: "Confirm later", exact: true }).check();
-  await page.getByRole("button", { name: "Update draft", exact: true }).click();
-  await approve.click();
+  await page
+    .getByRole("button", { name: "Simulate approval", exact: true })
+    .click();
   await expectStep(page, "Response approved");
 });
 
-test("editing an applied teacher answer requires updating the draft again", async ({
+test("teacher answer is preserved literally in the generated draft", async ({
   page,
 }) => {
   await review(page, "document");
   await page
     .getByRole("radio", { name: "Provide an answer", exact: true })
     .check();
-  const answer = page.getByLabel("Trial fee answer", { exact: true });
-  const approve = page.getByRole("button", {
-    name: "Simulate approval",
-    exact: true,
-  });
-  await answer.fill(teacherAnswer);
-  await page.getByRole("button", { name: "Update draft", exact: true }).click();
-  await expect(approve).toBeEnabled();
-  await answer.fill("A trial costs $25.");
-  await expect(approve).toBeDisabled();
-  await page.getByRole("button", { name: "Update draft", exact: true }).click();
-  await expect(page.getByLabel("Final response", { exact: true })).toHaveValue(
-    /\$25/,
-  );
-  await expect(approve).toBeEnabled();
   const literalAnswer =
     "A trial costs $25; literal tokens $& $' $` remain teacher text.";
-  await answer.fill(literalAnswer);
-  await page.getByRole("button", { name: "Update draft", exact: true }).click();
+  await page
+    .getByLabel("Trial fee answer", { exact: true })
+    .fill(literalAnswer);
+  await page
+    .getByRole("button", { name: "Generate draft", exact: true })
+    .click();
   expect(
     await page.getByLabel("Final response", { exact: true }).inputValue(),
   ).toContain(literalAnswer);
+  await expect(
+    page.getByLabel("Trial fee answer", { exact: true }),
+  ).toBeDisabled();
 });
 
 test("blank response blocks approval and an invalid scenario uses the booking default", async ({
