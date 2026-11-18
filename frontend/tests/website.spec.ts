@@ -79,6 +79,44 @@ test("public examples work without touching the workspace API", async ({
   await expect(
     page.getByRole("heading", { name: "Current enrolments" }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "About this student" }),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator(".profile-memory-activity")
+      .getByText("Has practised ballet for two years"),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator(".profile-memory-activity")
+      .getByText("enjoys evening ballet classes and barre work"),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator(".profile-request-summary")
+      .getByText("Saturday replaces the earlier Thursday preference."),
+  ).toBeVisible();
+  await expect(page.getByText("Ongoing class registrations")).toBeVisible();
+  const enrolments = page.locator(".profile-enrolments");
+  await expect(enrolments.getByText("Level 2").first()).toBeVisible();
+  await expect(enrolments.getByText("Thursday").first()).toBeVisible();
+  await expect(
+    enrolments.getByText("Merri Ballet · Carlton").first(),
+  ).toBeVisible();
+  await expect(
+    enrolments.getByRole("link", { name: "Adult Ballet" }).first(),
+  ).toHaveAttribute("href", /timetable\?class=/);
+  const sessions = page.getByRole("region", { name: "Confirmed sessions" });
+  await expect(sessions.getByText("Monday")).toBeVisible();
+  await expect(sessions.getByText("Merri Ballet · Brunswick")).toBeVisible();
+  await expect(
+    sessions.getByRole("link", { name: "Adult Ballet" }).first(),
+  ).toHaveAttribute("href", /timetable\?session=/);
+
+  await expect(
+    page.getByText("Individual classes on the schedule"),
+  ).toBeVisible();
   await expect(page.getByLabel("Enrolments as of date")).toHaveCount(0);
   await expect(page.locator(".enrolment-history")).not.toHaveAttribute(
     "open",
@@ -114,6 +152,35 @@ test("public examples work without touching the workspace API", async ({
     page.getByRole("button", { name: "Simulate email", exact: true }),
   ).toBeDisabled();
   expect(calls).toEqual([]);
+});
+
+test("student directory supports search and profile navigation", async ({
+  page,
+}) => {
+  await page.goto("/demo/students");
+  await expect(
+    page.getByRole("heading", { name: "Students", exact: true }),
+  ).toBeVisible();
+  const search = page.getByLabel("Search students");
+  await search.fill(alex.email);
+  const cards = page.locator(".student-card");
+  await expect(cards).toHaveCount(1);
+  await expect(cards.first()).toContainText(alex.display_name);
+  await expect(cards.first()).toContainText("Level 2");
+  await expect(cards.first()).toHaveAttribute(
+    "href",
+    `/demo/students/${alex.id}`,
+  );
+  await search.fill("jules@example.test");
+  await expect(cards.first()).toContainText("Level not recorded");
+  await search.fill("no-such-student@example.test");
+  await expect(page.getByText("No students match this search.")).toBeVisible();
+  await expect(cards).toHaveCount(0);
+  await search.fill("Alex Morgan");
+  await cards.first().click();
+  await expect(
+    page.getByRole("heading", { name: "Alex Morgan" }),
+  ).toBeVisible();
 });
 
 test("student conversations use the review message presentation", async ({
@@ -172,6 +239,77 @@ test("timetable highlights class details and filters by location", async ({
   await expect(page.locator(".class-tags")).toContainText("Thu");
   await page.locator(".session-row").click();
   await expect(page.locator(".session-roster")).toBeVisible();
+});
+
+test("student memory separates requests and keeps approved-response context", async ({
+  page,
+}) => {
+  await mockWorkspace(page);
+  await page.route(`**/api/v1/students/${alex.id}*`, (route) =>
+    route.fulfill({
+      json: {
+        ...alex,
+        current_enrolments: [],
+        enrolment_history: [],
+        as_of: examples.as_of,
+        ai_summary:
+          "Full stored memory, including approved response delivery details.",
+        context: {
+          _agent_memory: {
+            preferences: {
+              class_time: {
+                value: "Prefers evening classes.",
+                kind: "student_stated",
+              },
+              invalid: null,
+            },
+            requests: {
+              first: {
+                request_summary: "Asked about Monday.",
+                kind: "student_stated",
+                source_message_id: "new",
+              },
+              second: {
+                request_summary: "Asked about Saturday.",
+                kind: "teacher_reviewed",
+                approved_response_id: "response-2",
+                source_message_id: "response-2",
+              },
+            },
+            approved_responses: {
+              "response-1": {
+                conversation_id: "first",
+                request_summary: "Earlier response about Monday.",
+              },
+              "response-2": {
+                conversation_id: "second",
+                request_summary: "Asked about Saturday.",
+              },
+            },
+          },
+        },
+      },
+    }),
+  );
+  await page.goto(`/workspace/students/${alex.id}`);
+  const memory = page.locator(".profile-memory-content");
+  await expect(memory.getByText("Prefers evening classes.")).toBeVisible();
+  await expect(memory.getByText("Asked about Monday.")).toBeVisible();
+  await expect(
+    memory.getByText("Asked about Saturday.", { exact: false }),
+  ).toContainText("delivery unconfirmed");
+  await expect(
+    memory.getByText("Earlier response about Monday.", { exact: false }),
+  ).toContainText("Delivery unconfirmed");
+  await expect(
+    memory.getByText("Asked about Saturday.", { exact: false }),
+  ).toHaveCount(1);
+  await memory.getByText("View full stored summary").click();
+  await expect(
+    memory.getByText(
+      "Full stored memory, including approved response delivery details.",
+    ),
+  ).toBeVisible();
 });
 
 test("owner workspace requires sign-in and public API is protected", async ({

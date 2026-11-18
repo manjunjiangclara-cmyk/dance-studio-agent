@@ -108,11 +108,21 @@
       "display_name": "Alex Morgan",
       "email": "alex@example.test",
       "highest_level": "Level 2",
-      "ai_summary": "Saturday replaces the earlier Thursday preference.",
+      "ai_summary": "Has practised ballet for two years and enjoys evening ballet classes and barre work.",
       "context": {
         "_agent_memory": {
+          "preferences": {
+            "class_preference": {
+              "value": "Enjoys evening ballet classes and barre work.",
+              "source_message_id": "92f76986-8fde-575c-ae10-194f8b550877",
+              "kind": "student_stated"
+            }
+          },
           "request_summary": "Saturday replaces the earlier Thursday preference.",
-          "source_message_ids": ["97aa529c-2ca7-5ee9-86c6-0d7c9da03752"]
+          "source_message_ids": [
+            "92f76986-8fde-575c-ae10-194f8b550877",
+            "97aa529c-2ca7-5ee9-86c6-0d7c9da03752"
+          ]
         }
       }
     },
@@ -263,7 +273,7 @@
       "updated_at": "2027-02-07T00:00:00Z",
       "conversation_id": "9cd9b2cd-7029-5591-a118-e6eedb5b9b1a",
       "kind": "student_email",
-      "body": "I cannot attend Monday 8 February. Could I come Thursday instead?",
+      "body": "I cannot attend Monday 8 February. Could I come Thursday instead? I've practised ballet for two years, and I enjoy evening classes and barre work.",
       "occurred_at": "2027-02-07T10:00:00+11:00",
       "review_managed": false
     },

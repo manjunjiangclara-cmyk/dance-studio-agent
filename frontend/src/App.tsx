@@ -1821,10 +1821,15 @@ function Students() {
       <PageHeader eyebrow="PEOPLE, WITH CONTEXT" title="Student stories.">
         Profiles connect official enrolments with the conversations around them.
       </PageHeader>
-      <section className="panel">
-        <div className="filters">
-          <label className="search-field">
-            <Search size={17} />
+      <div className="panel filters timetable-filters student-filters">
+        <div className="timetable-filter-title">
+          <strong>Find a student</strong>
+          <span>Search by name or email</span>
+        </div>
+        <label className="student-search-label">
+          <span>Student</span>
+          <span className="search-field">
+            <Search size={17} aria-hidden="true" />
             <input
               aria-label="Search students"
               placeholder="Search by name or email"
@@ -1833,54 +1838,81 @@ function Students() {
                 setParams(event.target.value ? { q: event.target.value } : {})
               }
             />
-          </label>
-          <span className="muted">Read-only profiles</span>
-        </div>
-        <ErrorBox error={error} retry={refresh} />
-        {loading ? (
-          <Loading />
-        ) : (
-          value && (
-            <>
-              {value.items.length ? (
-                <div className="student-list">
-                  {value.items.map((student) => (
-                    <Link
-                      className="student-row"
-                      key={student.id}
-                      to={`${base}/students/${student.id}`}
-                    >
-                      <span className="avatar">
-                        {student.display_name
-                          .split(" ")
-                          .map((word) => word[0])
-                          .slice(0, 2)
-                          .join("")}
-                      </span>
-                      <div>
-                        <strong>{student.display_name}</strong>
+          </span>
+        </label>
+      </div>
+      <ErrorBox error={error} retry={refresh} />
+      {loading ? (
+        <Loading />
+      ) : (
+        value && (
+          <>
+            <div className="timetable-section-heading">
+              <h2>Students</h2>
+              <span>
+                {value.total} {value.total === 1 ? "student" : "students"}
+              </span>
+            </div>
+            {value.items.length ? (
+              <div className="students-grid">
+                {value.items.map((student) => (
+                  <Link
+                    className="panel student-card"
+                    key={student.id}
+                    to={`${base}/students/${student.id}`}
+                  >
+                    <div className="student-card-content">
+                      <div className="student-card-header">
+                        <span className="avatar" aria-hidden="true">
+                          {student.display_name
+                            .trim()
+                            .split(/\s+/)
+                            .map((word) => word[0])
+                            .slice(0, 2)
+                            .join("")
+                            .toUpperCase()}
+                        </span>
+                        <h3>{student.display_name}</h3>
+                      </div>
+                      <div className="class-tags student-card-tags">
+                        <span
+                          className={
+                            student.highest_level
+                              ? "class-tag-level"
+                              : "student-tag-unknown"
+                          }
+                        >
+                          {student.highest_level || "Level not recorded"}
+                        </span>
+                      </div>
+                      <div className="student-contact">
+                        <span>Email</span>
                         <span>{student.email}</span>
                       </div>
-                      <span className="level-tag">
-                        {student.highest_level || "Level unknown"}
+                    </div>
+                    <div className="student-card-footer">
+                      <span>Student profile</span>
+                      <span>
+                        View profile <ArrowUpRight size={15} />
                       </span>
-                      <ArrowUpRight size={17} />
-                    </Link>
-                  ))}
-                </div>
-              ) : (
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="panel">
                 <Empty>No students match this search.</Empty>
-              )}
-              <Pager
-                page={value}
-                onChange={(offset) =>
-                  setParams({ ...(q ? { q } : {}), offset: String(offset) })
-                }
-              />
-            </>
-          )
-        )}
-      </section>
+              </div>
+            )}
+            <Pager
+              page={value}
+              onChange={(offset) =>
+                setParams({ ...(q ? { q } : {}), offset: String(offset) })
+              }
+            />
+          </>
+        )
+      )}
     </>
   );
 }
@@ -1930,8 +1962,10 @@ function StudentPage({ id }: { id: string }) {
               eyebrow="STUDENT PROFILE"
               title={value.student.display_name}
             >
-              {value.student.email} ·{" "}
-              {value.student.highest_level || "Level not yet known"}
+              {value.student.email}{" "}
+              <span className="profile-heading-level">
+                {value.student.highest_level || "Level not recorded"}
+              </span>
             </PageHeader>
             <div className="profile-grid">
               <section className="panel profile-card profile-enrolments">
@@ -1939,9 +1973,13 @@ function StudentPage({ id }: { id: string }) {
                 <div className="section-heading">
                   <h2>Current enrolments</h2>
                 </div>
+                <p className="profile-card-description">
+                  Ongoing class registrations
+                </p>
                 <Enrolments
                   rows={value.student.current_enrolments}
                   classes={value.classes}
+                  locations={value.locations}
                 />
                 <details className="enrolment-history">
                   <summary>
@@ -1951,23 +1989,24 @@ function StudentPage({ id }: { id: string }) {
                   <Enrolments
                     rows={value.student.enrolment_history}
                     classes={value.classes}
+                    locations={value.locations}
                   />
                 </details>
               </section>
               <section className="panel context-card profile-card profile-memory">
-                <div className="eyebrow">SOURCE-LINKED MEMORY</div>
-                <h2>What the conversation tells us</h2>
-                <p>
-                  {value.student.ai_summary || "No conversational summary yet."}
+                <div className="eyebrow">CONVERSATION MEMORY</div>
+                <h2>About this student</h2>
+                <p className="profile-card-description">
+                  Details and preferences shared in conversations
                 </p>
+                <StudentMemorySections
+                  context={value.student.context}
+                  summary={value.student.ai_summary}
+                />
                 <details>
                   <summary>Inspect stored context</summary>
                   <Json value={value.student.context} />
                 </details>
-                <p className="muted footnote">
-                  Conversational memory does not establish placement, bookings,
-                  or enrolment changes.
-                </p>
               </section>
             </div>
             <section
@@ -1976,6 +2015,9 @@ function StudentPage({ id }: { id: string }) {
             >
               <div className="eyebrow">SCHEDULE</div>
               <h2 id="confirmed-sessions-title">Confirmed sessions</h2>
+              <p className="profile-card-description">
+                Individual classes on the schedule
+              </p>
               <ConfirmedSessionsList
                 student={value.student}
                 sessions={value.sessions}
@@ -2069,30 +2111,218 @@ function StudentPage({ id }: { id: string }) {
     </>
   );
 }
+function StudentMemorySections({
+  context,
+  summary,
+}: {
+  context: Record<string, unknown>;
+  summary: string | null;
+}) {
+  const memory = context._agent_memory;
+  const record =
+    memory && typeof memory === "object" && !Array.isArray(memory)
+      ? (memory as Record<string, unknown>)
+      : {};
+  const requestMap =
+    record.requests &&
+    typeof record.requests === "object" &&
+    !Array.isArray(record.requests)
+      ? Object.values(record.requests)
+      : [];
+  const requests = requestMap.flatMap((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    const entry = item as Record<string, unknown>;
+    return typeof entry.request_summary === "string" &&
+      entry.request_summary.trim()
+      ? [
+          {
+            text: entry.request_summary,
+            kind: entry.kind,
+            approved: typeof entry.approved_response_id === "string",
+          },
+        ]
+      : [];
+  });
+  if (
+    !requests.length &&
+    typeof record.request_summary === "string" &&
+    record.request_summary.trim()
+  )
+    requests.push({
+      text: record.request_summary,
+      kind: undefined,
+      approved: false,
+    });
+  const preferenceMap =
+    record.preferences &&
+    typeof record.preferences === "object" &&
+    !Array.isArray(record.preferences)
+      ? Object.values(record.preferences)
+      : [];
+  const preferences = preferenceMap.flatMap((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    const value = (item as Record<string, unknown>).value;
+    return typeof value === "string" && value.trim() ? [value] : [];
+  });
+  const hasStructuredRequests = requestMap.length > 0;
+  const requestsByConversation =
+    record.requests &&
+    typeof record.requests === "object" &&
+    !Array.isArray(record.requests)
+      ? (record.requests as Record<string, unknown>)
+      : {};
+  const approvedResponses =
+    record.approved_responses &&
+    typeof record.approved_responses === "object" &&
+    !Array.isArray(record.approved_responses)
+      ? Object.entries(record.approved_responses)
+      : [];
+  const earlierResponses = approvedResponses.flatMap(([id, item]) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    const entry = item as Record<string, unknown>;
+    const current =
+      typeof entry.conversation_id === "string"
+        ? requestsByConversation[entry.conversation_id]
+        : undefined;
+    const currentId =
+      current && typeof current === "object" && !Array.isArray(current)
+        ? (current as Record<string, unknown>).source_message_id
+        : undefined;
+    return currentId !== id &&
+      typeof entry.request_summary === "string" &&
+      entry.request_summary.trim()
+      ? [entry.request_summary]
+      : [];
+  });
+  return (
+    <div className="profile-memory-content">
+      <div className="profile-memory-activity">
+        <span>Conversation summary</span>
+        {hasStructuredRequests ? (
+          <p>
+            {preferences.length
+              ? preferences.join(" ")
+              : "No ongoing preferences recorded yet."}
+          </p>
+        ) : (
+          <p>{summary || "No conversation summary yet."}</p>
+        )}
+      </div>
+      <div className="profile-memory-activity profile-request-summary">
+        <span>Request summary</span>
+        {requests.length ? (
+          requests.map((request, index) => (
+            <p key={index}>
+              {request.text}
+              {request.kind === "teacher_reviewed" ? " (Teacher reviewed)" : ""}
+              {request.approved
+                ? " Response approved; delivery unconfirmed."
+                : ""}
+            </p>
+          ))
+        ) : (
+          <p>No requests recorded yet.</p>
+        )}
+      </div>
+      {earlierResponses.length > 0 && (
+        <div className="profile-memory-activity profile-request-summary">
+          <span>Earlier teacher-approved responses</span>
+          {earlierResponses.map((response, index) => (
+            <p key={index}>{response} Delivery unconfirmed.</p>
+          ))}
+        </div>
+      )}
+      {hasStructuredRequests && summary && (
+        <details className="profile-full-summary">
+          <summary>View full stored summary</summary>
+          <p>{summary}</p>
+        </details>
+      )}
+    </div>
+  );
+}
+function classIdentity(cls: StudioClass | undefined, fallback: string) {
+  if (!cls) return { title: fallback, weekday: undefined };
+  const parts = cls.name.split(" · ").map((part) => part.trim());
+  const weekday = parts.find((part) =>
+    /^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$/i.test(part),
+  );
+  const title =
+    parts
+      .filter(
+        (part) =>
+          part.toLowerCase() !== cls.level.trim().toLowerCase() &&
+          part !== weekday,
+      )
+      .join(" · ") || cls.name;
+  return { title, weekday };
+}
+function ProfileClassTags({
+  cls,
+  weekday,
+  location,
+  status,
+}: {
+  cls?: StudioClass;
+  weekday?: string;
+  location?: Location;
+  status?: string;
+}) {
+  return (
+    <div className="class-tags profile-class-tags">
+      {cls?.level && <span className="class-tag-level">{cls.level}</span>}
+      {weekday && <span className="class-tag-day">{weekday}</span>}
+      {location && <span className="class-tag-location">{location.name}</span>}
+      {status && (
+        <span
+          className={`profile-enrolment-status profile-enrolment-status-${status}`}
+        >
+          {status}
+        </span>
+      )}
+    </div>
+  );
+}
 function Enrolments({
   rows,
   classes,
+  locations,
 }: {
   rows: Enrolment[];
   classes: StudioClass[];
+  locations: Location[];
 }) {
   const { base } = useSite();
   return rows.length ? (
     <div className="enrolment-list">
-      {rows.map((row) => (
-        <div className="enrolment" key={row.id}>
-          <Link to={`${base}/timetable?class=${row.class_id}`}>
-            {classes.find((cls) => cls.id === row.class_id)?.name ||
-              row.class_id}
-            <ArrowUpRight size={14} />
-          </Link>
-          <span>
-            {dateLabel(row.starts_on)} →{" "}
-            {row.ends_on ? dateLabel(row.ends_on) : "Ongoing"}
-          </span>
-          <span className="level-tag">{row.status}</span>
-        </div>
-      ))}
+      {rows.map((row) => {
+        const cls = classes.find((item) => item.id === row.class_id);
+        const location = locations.find((item) => item.id === cls?.location_id);
+        const { title, weekday } = classIdentity(cls, row.class_id);
+        return (
+          <div className="profile-enrolment-item" key={row.id}>
+            <Link
+              className="profile-class-link"
+              to={`${base}/timetable?class=${row.class_id}`}
+            >
+              {title}
+              <ArrowUpRight size={14} />
+            </Link>
+            <ProfileClassTags cls={cls} status={row.status} />
+            {(weekday || location) && (
+              <p className="profile-class-location">
+                {weekday && <span>{weekday}</span>}
+                {weekday && location && " · "}
+                {location && <span>{location.name}</span>}
+              </p>
+            )}
+            <p className="profile-class-dates">
+              {dateLabel(row.starts_on)} →{" "}
+              {row.ends_on ? dateLabel(row.ends_on) : "Ongoing"}
+            </p>
+          </div>
+        );
+      })}
     </div>
   ) : (
     <p className="muted">No enrolments in this view.</p>
@@ -2120,25 +2350,38 @@ function ConfirmedSessionsList({
   if (!rows.length) return <p className="muted">No confirmed sessions.</p>;
   return (
     <>
-      <p className="muted">
+      <p className="profile-sessions-count">
         {rows.length} scheduled {rows.length === 1 ? "class" : "classes"}
       </p>
       <div className="confirmed-sessions-list">
-        {rows.map(({ session, regularClass, location }) => (
-          <div className="enrolment confirmed-session" key={session.id}>
-            <Link to={`${base}/timetable?session=${session.id}`}>
-              {regularClass.name}
-              <ArrowUpRight size={14} />
-            </Link>
-            <span>
-              {timeLabel(session.starts_at, location.timezone)} ·{" "}
-              {location.name}
-            </span>
-            <div className="session-source-tags">
-              <span className="level-tag">Session student</span>
+        {rows.map(({ session, regularClass, location }) => {
+          const { title, weekday } = classIdentity(
+            regularClass,
+            regularClass.name,
+          );
+          return (
+            <div className="enrolment confirmed-session" key={session.id}>
+              <span className="profile-session-icon" aria-hidden="true">
+                <CalendarDays size={18} />
+              </span>
+              <div className="profile-session-detail">
+                <Link to={`${base}/timetable?session=${session.id}`}>
+                  {title}
+                  <ArrowUpRight size={14} />
+                </Link>
+                <ProfileClassTags
+                  cls={regularClass}
+                  weekday={weekday}
+                  location={location}
+                />
+                <span>{timeLabel(session.starts_at, location.timezone)}</span>
+                <div className="session-source-tags">
+                  <span className="level-tag">Session student</span>
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </>
   );
