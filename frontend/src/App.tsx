@@ -49,6 +49,11 @@ import { confirmedSessions } from "./attendance";
 import { CustomEmail } from "./CustomEmail";
 import { BookingProposal } from "./BookingProposal";
 import { GuidedTour } from "./GuidedTour";
+import {
+  LiveReviewQueue,
+  LiveReviewDetail,
+  LiveReviewCases,
+} from "./LiveReviewQueue";
 import { PolicyPage } from "./PolicyPage";
 import { DocumentsPage } from "./DocumentsPage";
 import {
@@ -358,7 +363,7 @@ export default function App() {
                 <Icon size={18} />
                 <span>{label}</span>
                 {path === "reviews" && !workspace && (
-                  <span className="nav-count">3</span>
+                  <span className="nav-count">2</span>
                 )}
               </NavLink>
             ))}
@@ -464,10 +469,18 @@ export default function App() {
                 ) : page === "tour" && !workspace ? (
                   <GuidedTour />
                 ) : page === "reviews" ? (
-                  id ? (
+                  !workspace &&
+                  (id === "live-booking" || id === "live-document") ? (
+                    <LiveReviewDetail
+                      key={id}
+                      scenario={id === "live-booking" ? "booking" : "document"}
+                    />
+                  ) : id ? (
                     <ReviewDetail key={`${base}-${id}`} id={id} />
-                  ) : (
+                  ) : workspace || location.search ? (
                     <ReviewQueue />
+                  ) : (
+                    <LiveReviewQueue />
                   )
                 ) : page === "students" ? (
                   id ? (
@@ -547,9 +560,11 @@ export default function App() {
                 ? "Owner review workspace"
                 : page === "test-email"
                   ? "Fictional data · Live AI"
-                  : page === "tour" &&
-                      new URLSearchParams(location.search).get("mode") !==
-                        "recorded"
+                  : (page === "tour" &&
+                        new URLSearchParams(location.search).get("mode") !==
+                          "recorded") ||
+                      (page === "reviews" &&
+                        ((!id && !location.search) || id?.startsWith("live-")))
                     ? "Fictional data · Live AI · Simulated booking"
                     : "Fictional data · Predefined examples"}
               <span className="footer-dot">·</span>Australia / Melbourne
@@ -666,12 +681,12 @@ function Overview() {
       </section>
       <div className="metric-grid">
         <Metric
-          value={value?.pending.total}
-          label="Awaiting review"
+          value={workspace ? value?.pending.total : 2}
+          label={workspace ? "Awaiting review" : "Live enquiries"}
           note={
             workspace
               ? "Drafts ready for your attention"
-              : "Example drafts to explore"
+              : "Fictional enquiries to explore"
           }
           icon={<Mail size={20} />}
         />
@@ -698,13 +713,22 @@ function Overview() {
         {loading && !value ? (
           <Loading />
         ) : (
-          value && <RunRows runs={value.runs.items} />
+          value &&
+          (workspace ? (
+            <RunRows runs={value.runs.items} />
+          ) : (
+            <LiveReviewCases />
+          ))
         )}
       </section>
       {!workspace && (
         <div className="example-footnote">
           <CircleHelp size={16} />
-          <p>{examples.notice}</p>
+          <p>
+            Fictional examples. Review queue responses are generated on request;
+            other records are predefined. No real studio or student is
+            represented.
+          </p>
         </div>
       )}
     </>

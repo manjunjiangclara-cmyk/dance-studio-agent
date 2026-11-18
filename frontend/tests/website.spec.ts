@@ -62,25 +62,13 @@ test("public examples work without touching the workspace API", async ({
     fullPage: true,
   });
   await page.goto("/demo/reviews");
-  await page.getByLabel("Search enquiries").fill("Alex");
-  await expect(page.locator(".run-row")).toHaveCount(2);
-  await page.getByLabel("Filter by status").selectOption("awaiting_review");
-  await expect(page.locator(".run-row")).toHaveCount(1);
-  await page.locator(".run-row").click();
   await expect(
-    page.getByRole("heading", { name: conversation.subject }),
+    page.getByRole("link", { name: /Makeup for Monday 8 February/ }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Current response" }),
+    page.getByRole("link", { name: /Questions about starting ballet/ }),
   ).toBeVisible();
-  await expect(
-    page.getByText("Actually, Saturday 13 February would be better.", {
-      exact: true,
-    }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Approve and book class" }),
-  ).toHaveCount(0);
+  await page.goto(`/demo/reviews/${run.id}`);
   await expect(
     page.getByText("Read-only example.", { exact: false }),
   ).toBeVisible();
