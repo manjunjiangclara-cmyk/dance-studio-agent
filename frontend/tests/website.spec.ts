@@ -352,7 +352,7 @@ test("a stale review preserves edits and requires an explicit reload", async ({
     "My unsaved response",
   );
   await page
-    .getByRole("main")
+    .getByRole("navigation", { name: "Breadcrumb" })
     .getByRole("link", { name: "Review queue", exact: true })
     .click();
   await expect(page.getByRole("alertdialog")).toBeVisible();
