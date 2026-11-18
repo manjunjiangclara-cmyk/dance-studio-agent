@@ -116,6 +116,45 @@ test("public examples work without touching the workspace API", async ({
   expect(calls).toEqual([]);
 });
 
+test("student conversations use the review message presentation", async ({
+  page,
+}) => {
+  await page.goto(`/demo/students/${alex.id}`);
+  const thread = page.locator(".conversation-summary");
+  await expect(thread).not.toHaveAttribute("open", "");
+  await expect(thread.locator(".conversation-chevron")).toBeVisible();
+  await expect(
+    thread.locator(".live-conversation-bubble").first(),
+  ).toBeHidden();
+  await thread.locator("summary").click();
+  await expect(thread).toHaveAttribute("open", "");
+  await expect(
+    thread
+      .locator(".profile-message-student .live-conversation-sender strong")
+      .first(),
+  ).toHaveText("Alex Morgan");
+  await expect(
+    thread
+      .locator(".profile-message-response .live-conversation-sender strong")
+      .first(),
+  ).toHaveText("Generated draft");
+  await expect(thread).toContainText(
+    "Actually, Saturday 13 February would be better.",
+  );
+  await expect(thread.getByRole("link", { name: /View .* run/ })).toHaveCount(
+    0,
+  );
+  await expect(page.getByRole("link", { name: "Related runs" })).toHaveCount(0);
+  await thread.locator("summary").click();
+  await expect(
+    thread.locator(".live-conversation-bubble").first(),
+  ).toBeHidden();
+  await thread.locator("summary").click();
+  await expect(
+    thread.locator(".live-conversation-bubble").first(),
+  ).toBeVisible();
+});
+
 test("timetable highlights class details and filters by location", async ({
   page,
 }) => {

@@ -24,6 +24,7 @@ test("visitors generate and review a temporary live response", async ({
     }
   });
   await page.goto("/demo/reviews");
+  await expect(page.getByText("Live AI uses fictional data.")).toHaveCount(0);
   const alexRow = page.getByRole("link", {
     name: /Makeup for Monday 8 February/,
   });
@@ -46,6 +47,12 @@ test("visitors generate and review a temporary live response", async ({
     page.getByRole("heading", { name: "Makeup for Monday 8 February" }),
   ).toBeVisible();
   await expect(page.getByText(/From alex@example.test/)).toBeVisible();
+  await expect(
+    page.getByText("Starting a draft uses one of 20 shared daily runs."),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Drafts and results disappear when you leave or refresh."),
+  ).toBeVisible();
   const messages = page
     .getByRole("list", { name: "Student email conversation" })
     .getByRole("listitem");
