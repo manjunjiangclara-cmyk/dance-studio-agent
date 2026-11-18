@@ -293,7 +293,14 @@ test("student memory separates requests and keeps approved-response context", as
   );
   await page.goto(`/workspace/students/${alex.id}`);
   const memory = page.locator(".profile-memory-content");
-  await expect(memory.getByText("Prefers evening classes.")).toBeVisible();
+  await expect(
+    memory
+      .getByText(
+        "Full stored memory, including approved response delivery details.",
+        { exact: true },
+      )
+      .first(),
+  ).toBeVisible();
   await expect(memory.getByText("Asked about Monday.")).toBeVisible();
   await expect(
     memory.getByText("Asked about Saturday.", { exact: false }),
@@ -304,11 +311,79 @@ test("student memory separates requests and keeps approved-response context", as
   await expect(
     memory.getByText("Asked about Saturday.", { exact: false }),
   ).toHaveCount(1);
-  await memory.getByText("View full stored summary").click();
   await expect(
     memory.getByText(
       "Full stored memory, including approved response delivery details.",
     ),
+  ).toBeVisible();
+});
+
+test("generated student memory keeps its full source summary available", async ({
+  page,
+}) => {
+  await mockWorkspace(page);
+  await page.route(`**/api/v1/students/${alex.id}*`, (route) =>
+    route.fulfill({
+      json: {
+        ...alex,
+        current_enrolments: [],
+        enrolment_history: [],
+        as_of: examples.as_of,
+        ai_summary:
+          "Conversational memory; official student records remain authoritative.\nPreference days: Evenings (student_stated).\nRequest: A class question (student_stated).",
+        context: {
+          _agent_memory: {
+            preferences: {
+              days: { value: "Evenings", kind: "student_stated" },
+            },
+            requests: {
+              a: {
+                request_summary: "A class question",
+                kind: "student_stated",
+              },
+            },
+          },
+        },
+      },
+    }),
+  );
+  await page.goto(`/workspace/students/${alex.id}`);
+  const memory = page.locator(".profile-memory-content");
+  await expect(memory.getByText("Evenings", { exact: true })).toBeVisible();
+  await expect(
+    memory.getByText("A class question", { exact: true }),
+  ).toBeVisible();
+  await memory.getByText("View full stored summary").click();
+  await expect(
+    memory.getByText("Preference days: Evenings", { exact: false }),
+  ).toBeVisible();
+});
+
+test("confirmed session weekday follows the actual session date", async ({
+  page,
+}) => {
+  await mockWorkspace(page);
+  await page.route("**/api/v1/sessions*", (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            ...examples.class_sessions[0],
+            starts_at: "2027-02-09T18:00:00+11:00",
+            students: [alex.id],
+          },
+        ],
+        total: 1,
+        limit: 100,
+        offset: 0,
+      },
+    }),
+  );
+  await page.goto(`/workspace/students/${alex.id}`);
+  const sessions = page.getByRole("region", { name: "Confirmed sessions" });
+  await expect(sessions.getByText("Tuesday", { exact: true })).toBeVisible();
+  await expect(
+    sessions.getByText("9 Feb 2027, 6:00 pm", { exact: true }),
   ).toBeVisible();
 });
 

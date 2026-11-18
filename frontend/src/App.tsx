@@ -2165,6 +2165,9 @@ function StudentMemorySections({
     return typeof value === "string" && value.trim() ? [value] : [];
   });
   const hasStructuredRequests = requestMap.length > 0;
+  const generatedSummary = summary?.startsWith(
+    "Conversational memory; official student records remain authoritative.",
+  );
   const requestsByConversation =
     record.requests &&
     typeof record.requests === "object" &&
@@ -2198,7 +2201,7 @@ function StudentMemorySections({
     <div className="profile-memory-content">
       <div className="profile-memory-activity">
         <span>Conversation summary</span>
-        {hasStructuredRequests ? (
+        {hasStructuredRequests && generatedSummary ? (
           <p>
             {preferences.length
               ? preferences.join(" ")
@@ -2232,7 +2235,7 @@ function StudentMemorySections({
           ))}
         </div>
       )}
-      {hasStructuredRequests && summary && (
+      {hasStructuredRequests && generatedSummary && summary && (
         <details className="profile-full-summary">
           <summary>View full stored summary</summary>
           <p>{summary}</p>
@@ -2355,10 +2358,11 @@ function ConfirmedSessionsList({
       </p>
       <div className="confirmed-sessions-list">
         {rows.map(({ session, regularClass, location }) => {
-          const { title, weekday } = classIdentity(
-            regularClass,
-            regularClass.name,
-          );
+          const { title } = classIdentity(regularClass, regularClass.name);
+          const weekday = new Intl.DateTimeFormat("en-AU", {
+            weekday: "long",
+            timeZone: location.timezone,
+          }).format(new Date(session.starts_at));
           return (
             <div className="enrolment confirmed-session" key={session.id}>
               <span className="profile-session-icon" aria-hidden="true">
