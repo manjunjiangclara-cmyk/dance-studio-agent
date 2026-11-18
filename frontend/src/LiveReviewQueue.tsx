@@ -93,15 +93,7 @@ export function LiveReviewQueue() {
           </p>
         </div>
       </header>
-      <div className="notice">
-        <ul className="notice-list">
-          <li>Live AI uses fictional data.</li>
-          <li>Starting a draft uses one of 20 shared daily runs.</li>
-          <li>Drafts and results disappear when you leave or refresh.</li>
-          <li>No email is sent and no studio records are changed.</li>
-        </ul>
-      </div>
-      <div className="panel">
+      <div className="panel live-queue-panel">
         <LiveReviewCases />
       </div>
     </>

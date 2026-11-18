@@ -880,6 +880,34 @@ function ReviewQueue() {
   );
 }
 
+function ConversationMessage({
+  message,
+  studentName,
+}: {
+  message: Message;
+  studentName: string;
+}) {
+  return (
+    <article
+      id={`message-${message.id}`}
+      className={`message message-${message.kind}`}
+    >
+      <div className="message-meta">
+        <strong>
+          {message.kind === "student_email"
+            ? studentName
+            : message.kind === "teacher_response"
+              ? "Reviewed response"
+              : message.kind === "assistant_draft"
+                ? "Generated draft"
+                : "Staff note"}
+        </strong>
+        <small>{timeLabel(message.occurred_at)}</small>
+      </div>
+      <p>{message.body}</p>
+    </article>
+  );
+}
 function ReviewDetail({ id }: { id: string }) {
   const { workspace, base, identity } = useSite();
   const [draft, setDraft] = useState(""),
@@ -1583,25 +1611,11 @@ function ReviewDetail({ id }: { id: string }) {
               {messages
                 .filter((row) => row.id !== run.source_message_id)
                 .map((row) => (
-                  <article
-                    id={`message-${row.id}`}
-                    className={`message message-${row.kind}`}
+                  <ConversationMessage
                     key={row.id}
-                  >
-                    <div className="message-meta">
-                      <strong>
-                        {row.kind === "student_email"
-                          ? student.display_name
-                          : row.kind === "teacher_response"
-                            ? "Reviewed response"
-                            : row.kind === "assistant_draft"
-                              ? "Generated draft"
-                              : "Staff note"}
-                      </strong>
-                      <small>{timeLabel(row.occurred_at)}</small>
-                    </div>
-                    <p>{row.body}</p>
-                  </article>
+                    message={row}
+                    studentName={student.display_name}
+                  />
                 ))}
             </div>
           </details>
@@ -1873,7 +1887,7 @@ function Students() {
 function StudentPage({ id }: { id: string }) {
   const { workspace, base } = useSite();
   const { value, error, loading, refresh } = useLoad(async () => {
-    const [student, conversations, classes, runs, sessions, locations, terms] =
+    const [student, conversations, classes, sessions, locations, terms] =
       await Promise.all([
         get<StudentDetail>(
           workspace,
@@ -1882,7 +1896,6 @@ function StudentPage({ id }: { id: string }) {
         ),
         all<Conversation>(workspace, "/conversations", { student_id: id }),
         all<StudioClass>(workspace, "/classes"),
-        all<RunSummary>(workspace, "/agent-runs", { student_id: id }),
         all<Session>(workspace, "/sessions"),
         all<Location>(workspace, "/locations"),
         all<Term>(workspace, "/terms"),
@@ -1900,7 +1913,6 @@ function StudentPage({ id }: { id: string }) {
       student,
       threads,
       classes,
-      runs,
       sessions,
       locations,
       terms,
@@ -1922,7 +1934,8 @@ function StudentPage({ id }: { id: string }) {
               {value.student.highest_level || "Level not yet known"}
             </PageHeader>
             <div className="profile-grid">
-              <section className="panel">
+              <section className="panel profile-card profile-enrolments">
+                <div className="eyebrow">ENROLMENTS</div>
                 <div className="section-heading">
                   <h2>Current enrolments</h2>
                 </div>
@@ -1941,7 +1954,7 @@ function StudentPage({ id }: { id: string }) {
                   />
                 </details>
               </section>
-              <section className="panel context-card">
+              <section className="panel context-card profile-card profile-memory">
                 <div className="eyebrow">SOURCE-LINKED MEMORY</div>
                 <h2>What the conversation tells us</h2>
                 <p>
@@ -1958,9 +1971,10 @@ function StudentPage({ id }: { id: string }) {
               </section>
             </div>
             <section
-              className="panel"
+              className="panel profile-card profile-sessions"
               aria-labelledby="confirmed-sessions-title"
             >
+              <div className="eyebrow">SCHEDULE</div>
               <h2 id="confirmed-sessions-title">Confirmed sessions</h2>
               <ConfirmedSessionsList
                 student={value.student}
@@ -1972,54 +1986,77 @@ function StudentPage({ id }: { id: string }) {
             <section className="panel">
               <div className="section-heading">
                 <h2>Conversations</h2>
-                <Link
-                  className="inline-link"
-                  to={`${base}/reviews?student_id=${id}`}
-                >
-                  Related runs <ArrowUpRight size={15} />
-                </Link>
               </div>
               {value.threads.length ? (
                 value.threads.map(({ conversation, messages }) => (
                   <details
                     className="conversation-summary"
                     key={conversation.id}
-                    open={value.threads.length === 1}
                   >
                     <summary>
-                      {conversation.subject || "Untitled conversation"}
-                      <span>{messages.length} messages</span>
+                      <span className="conversation-title">
+                        {conversation.subject || "Untitled conversation"}
+                      </span>
+                      <span className="conversation-count">
+                        {messages.length}{" "}
+                        {messages.length === 1 ? "message" : "messages"}
+                      </span>
+                      <ChevronRight
+                        className="conversation-chevron"
+                        size={18}
+                        aria-hidden="true"
+                      />
                     </summary>
-                    <div className="thread">
-                      {messages.map((row) => (
-                        <article
-                          className={`message message-${row.kind}`}
-                          key={row.id}
-                        >
-                          <div className="message-meta">
-                            <strong>{row.kind.replaceAll("_", " ")}</strong>
-                            <small>{timeLabel(row.occurred_at)}</small>
-                          </div>
-                          <p>{row.body}</p>
-                        </article>
-                      ))}
-                    </div>
-                    <div className="button-row">
-                      {value.runs
-                        .filter(
-                          (run) => run.conversation_id === conversation.id,
-                        )
-                        .map((run) => (
-                          <Link
-                            className="inline-link"
-                            key={run.id}
-                            to={`${base}/reviews/${run.id}`}
+                    <ol
+                      className="live-conversation profile-conversation"
+                      aria-label="Conversation messages"
+                    >
+                      {messages.map((row) => {
+                        const isStudent = row.kind === "student_email";
+                        const sender = isStudent
+                          ? value.student.display_name
+                          : row.kind === "teacher_response"
+                            ? "Reviewed response"
+                            : row.kind === "assistant_draft"
+                              ? "Generated draft"
+                              : "Staff note";
+                        const initials = isStudent
+                          ? value.student.display_name
+                              .trim()
+                              .split(/\s+/)
+                              .slice(0, 2)
+                              .map((part) => part[0])
+                              .join("")
+                              .toUpperCase()
+                          : row.kind === "assistant_draft"
+                            ? "AI"
+                            : "ST";
+                        return (
+                          <li
+                            className={`live-conversation-message profile-message ${isStudent ? "profile-message-student" : "profile-message-response"}`}
+                            key={row.id}
                           >
-                            View {statusLabel[run.status].toLowerCase()} run{" "}
-                            <ArrowRight size={14} />
-                          </Link>
-                        ))}
-                    </div>
+                            <span
+                              className="live-conversation-avatar"
+                              aria-hidden="true"
+                            >
+                              {initials}
+                            </span>
+                            <div className="live-conversation-content">
+                              <div className="live-conversation-sender">
+                                <strong>{sender}</strong>
+                                <time dateTime={row.occurred_at}>
+                                  {timeLabel(row.occurred_at)}
+                                </time>
+                              </div>
+                              <div className="live-conversation-bubble">
+                                {row.body}
+                              </div>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ol>
                   </details>
                 ))
               ) : (

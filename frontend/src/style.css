@@ -910,6 +910,7 @@ code,
   color: #475569;
 }
 .search-field input {
+  margin: 0;
   border: 0;
   padding: 0;
   flex: 1;
@@ -1542,19 +1543,67 @@ dd {
   font-size: 14px;
 }
 .conversation-summary {
-  padding: 10px 0 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-top: 12px;
+  padding: 0 18px;
 }
 .conversation-summary > summary {
-  font-size: 16px;
   display: flex;
-  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 17px 0;
+  cursor: pointer;
+  list-style: none;
 }
-.conversation-summary > summary > span {
-  font-size: 14px;
-  color: #475569;
+.conversation-summary > summary::-webkit-details-marker {
+  display: none;
 }
-.conversation-summary .button-row {
-  margin-top: 20px;
+.conversation-title {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.conversation-count {
+  font-size: 13px;
+  color: #536579;
+  white-space: nowrap;
+}
+.conversation-chevron {
+  flex: none;
+  color: #536579;
+  transition: transform 0.2s;
+}
+.conversation-summary[open] .conversation-chevron {
+  transform: rotate(90deg);
+}
+.conversation-summary[open] .profile-conversation {
+  border-top: 1px solid var(--line);
+  padding: 20px 0;
+  margin-top: 0;
+}
+.profile-message-response {
+  flex-direction: row-reverse;
+}
+.profile-message-response .live-conversation-avatar {
+  background: #e5eee1;
+  color: #395f38;
+}
+.profile-message-response .live-conversation-bubble {
+  background: #f1f7ee;
+  border-color: #d3e4cd;
+  border-radius: 16px 16px 4px 16px;
+}
+.profile-conversation .live-conversation-sender {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: baseline;
+}
+.profile-message-response .live-conversation-sender {
+  justify-content: flex-end;
+  text-align: right;
 }
 .class-grid {
   display: grid;
@@ -3699,4 +3748,60 @@ h3 {
   .live-evidence-list {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+.live-queue-panel {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+.live-queue-panel .run-row {
+  min-height: 0;
+  padding: 12px 0;
+}
+
+/* Student profile information hierarchy */
+.profile-card .eyebrow {
+  margin-bottom: 9px;
+  color: #536579;
+}
+.profile-card h2 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.25;
+}
+.profile-card .section-heading {
+  margin-bottom: 10px;
+}
+.profile-enrolments .enrolment-list {
+  margin-bottom: 12px;
+}
+.profile-card .enrolment a {
+  font-weight: 650;
+  color: #173e57;
+}
+.profile-card .enrolment > span:not(.level-tag) {
+  font-size: 14px;
+  color: #536579;
+}
+.profile-memory {
+  border-top: 3px solid #9bb684;
+}
+.profile-memory > p:not(.footnote) {
+  color: #1e3346;
+  font-size: 17px;
+  line-height: 1.6;
+}
+.profile-memory .footnote {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.profile-sessions > .muted {
+  margin: 8px 0 4px;
+  font-size: 14px;
+}
+.profile-sessions .confirmed-session:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
 }
