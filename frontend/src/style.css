@@ -298,9 +298,24 @@ code,
   font-size: 15px;
   color: #475569;
 }
-.breadcrumb span {
-  padding: 0 12px;
-  color: #475569;
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.breadcrumb a {
+  color: var(--green);
+}
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+.breadcrumb span[aria-hidden] {
+  padding: 0 8px;
+}
+.breadcrumb span[aria-current] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .topbar-actions {
   display: flex;
@@ -2209,7 +2224,7 @@ dd {
     height: 64px;
   }
   .breadcrumb {
-    display: none;
+    font-size: 13px;
   }
   .topbar-actions {
     margin-left: auto;
