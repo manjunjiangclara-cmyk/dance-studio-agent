@@ -3805,3 +3805,494 @@ h3 {
   border-bottom: 0;
   padding-bottom: 0;
 }
+
+/* Student profile: give each kind of information a clear reading order. */
+.profile-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: stretch;
+}
+.profile-card {
+  min-width: 0;
+  padding: 24px;
+}
+.profile-card .eyebrow {
+  margin-bottom: 8px;
+  font-size: 11px;
+  letter-spacing: 0.09em;
+}
+.profile-card h2 {
+  font-size: 23px;
+}
+.profile-enrolments .section-heading {
+  margin: 0 0 18px;
+}
+.profile-enrolments .enrolment-list {
+  margin: 0;
+}
+.profile-enrolments .enrolment {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 12px;
+  padding: 15px 16px;
+  border: 1px solid #dce6eb;
+  border-radius: 8px;
+  background: #f8fbfc;
+}
+.profile-enrolments .enrolment + .enrolment {
+  margin-top: 8px;
+}
+.profile-enrolments .enrolment a {
+  min-width: 0;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.profile-enrolments .enrolment > span:not(.level-tag) {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  width: auto;
+}
+.profile-enrolments .level-tag {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: start;
+}
+.profile-enrolments .enrolment-history {
+  margin-top: 18px;
+  padding-top: 15px;
+}
+.profile-enrolments .enrolment-history > summary,
+.profile-memory details > summary {
+  cursor: pointer;
+  color: #075985;
+  font-size: 14px;
+  font-weight: 600;
+}
+.profile-enrolments .enrolment-history .enrolment-list {
+  margin-top: 14px;
+}
+.profile-memory {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--line);
+  background: #fbfcf9;
+}
+.profile-memory > .profile-memory-summary {
+  margin: 18px 0 12px;
+  padding-left: 14px;
+  border-left: 3px solid #9bb684;
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.profile-memory .footnote {
+  margin: 0 0 18px;
+  padding: 0;
+  border: 0;
+  color: #64748b;
+}
+.profile-memory details {
+  margin-top: auto;
+  padding-top: 15px;
+  border-top: 1px solid var(--line);
+  min-width: 0;
+}
+.profile-sessions-count {
+  margin: 7px 0 16px;
+  color: #536579;
+  font-size: 14px;
+}
+.profile-sessions .confirmed-sessions-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.profile-sessions .confirmed-session,
+.profile-sessions .confirmed-session:last-child {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  min-width: 0;
+  padding: 15px 16px;
+  border: 1px solid #dce6eb;
+  border-radius: 8px;
+  background: #f8fbfc;
+}
+.profile-sessions .confirmed-session a {
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.profile-sessions .confirmed-session > span:not(.level-tag) {
+  width: auto;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 900px) {
+  .profile-grid,
+  .profile-sessions .confirmed-sessions-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 650px) {
+  .profile-card {
+    padding: 20px;
+  }
+}
+
+.profile-card-description {
+  margin: 7px 0 16px;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.profile-enrolments .section-heading {
+  margin-bottom: 0;
+}
+.profile-memory-content {
+  margin-bottom: 14px;
+}
+.profile-memory-empty {
+  margin: 0;
+  color: #536579;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.profile-memory-facts {
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+.profile-memory-facts dt,
+.profile-memory-activity > span {
+  color: #536579;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+.profile-memory-facts dd {
+  margin: 3px 0 0;
+  overflow-wrap: anywhere;
+}
+.profile-memory-activity {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-left: 3px solid #9bb684;
+  background: #f1f5ed;
+}
+.profile-memory .profile-memory-activity p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.profile-sessions .profile-card-description {
+  margin-bottom: 0;
+}
+.profile-sessions-count {
+  margin: 5px 0 10px;
+}
+.profile-sessions .confirmed-sessions-list {
+  display: block;
+  border-top: 1px solid var(--line);
+}
+.profile-sessions .confirmed-session,
+.profile-sessions .confirmed-session:last-child {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 15px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+.profile-sessions .confirmed-session:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.profile-sessions .confirmed-session > .profile-session-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 38px;
+  height: 38px;
+  border-radius: 8px;
+  color: #266080;
+  background: #eaf3f8;
+}
+.profile-session-detail {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+.profile-session-detail > span {
+  color: #536579;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.profile-memory > .profile-card-description {
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Student directory follows the timetable's filters and card hierarchy. */
+.student-filters .student-search-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(100%, 340px);
+  color: #526174;
+  font-size: 12px;
+  font-weight: 600;
+}
+.student-filters .search-field {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 42px;
+  padding: 9px 13px;
+  border: 1px solid #d5dfe5;
+  border-radius: 8px;
+  background: #f8fafb;
+}
+.student-filters .search-field input {
+  margin: 0;
+  font-size: 14px;
+}
+.students-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.student-card.panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  color: inherit;
+  text-decoration: none;
+}
+.student-card:hover {
+  border-color: #8da7b6;
+}
+.student-card:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 3px;
+}
+.student-card-content {
+  flex: 1;
+  padding: 24px 25px 20px;
+}
+.student-card-header {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+  margin-bottom: 15px;
+}
+.student-card-header .avatar {
+  flex-shrink: 0;
+}
+.student-card-header h3 {
+  min-width: 0;
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.student-card-tags {
+  margin-bottom: 15px;
+}
+.student-card-tags .student-tag-unknown {
+  background: #f1f5f9;
+  color: #526174;
+}
+.student-contact {
+  display: grid;
+  gap: 4px;
+  color: #334155;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.student-contact > span:first-child {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+}
+.student-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 15px 25px;
+  border-top: 1px solid var(--line);
+  background: #fafbf8;
+  color: #536579;
+  font-size: 13px;
+}
+.student-card-footer > span:last-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #075985;
+  font-weight: 600;
+}
+@media (max-width: 700px) {
+  .students-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .student-filters .student-search-label {
+    width: 100%;
+  }
+  .student-card-content {
+    padding: 20px;
+  }
+  .student-card-footer {
+    padding: 14px 20px;
+  }
+}
+
+/* Profile class information uses the same labels as the timetable. */
+.profile-heading-level {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 5px 9px;
+  border-radius: 5px;
+  background: #eef3e7;
+  color: #526344;
+  font-size: 12px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+.profile-enrolment-item {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid #dce6eb;
+  border-radius: 8px;
+  background: #f8fbfc;
+}
+.profile-enrolment-item + .profile-enrolment-item {
+  margin-top: 8px;
+}
+.profile-class-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #173e57;
+  font-weight: 650;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.profile-class-tags {
+  margin: 10px 0 0;
+}
+.profile-class-tags .profile-enrolment-status {
+  background: #eef3e7;
+  color: #526344;
+  text-transform: capitalize;
+}
+.profile-class-tags .profile-enrolment-status-ended,
+.profile-class-tags .profile-enrolment-status-cancelled {
+  background: #f1f5f9;
+  color: #526174;
+}
+.profile-class-dates {
+  margin: 10px 0 0;
+  color: #536579;
+  font-size: 14px;
+}
+.profile-session-detail .profile-class-tags {
+  margin: 2px 0 3px;
+}
+.profile-memory-facts dt {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 5px;
+  background: #e8f0fa;
+  color: #315b88;
+}
+.profile-memory-facts dd {
+  margin-top: 7px;
+}
+
+/* Keep the key status labels prominent and the supporting details quiet. */
+.profile-class-location {
+  margin: 11px 0 0;
+  color: #536579;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.profile-enrolment-item .profile-class-dates {
+  margin-top: 4px;
+}
+.profile-memory-facts dt {
+  padding: 0;
+  background: transparent;
+  color: #536579;
+  font-size: 12px;
+}
+.profile-memory-facts dd {
+  margin-top: 5px;
+  color: #24384a;
+  font-size: 15px;
+  line-height: 1.55;
+}
+.profile-memory-activity {
+  margin-top: 18px;
+  padding: 16px 0 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: transparent;
+}
+.profile-memory .profile-memory-activity p {
+  margin-top: 5px;
+  color: #24384a;
+  font-size: 15px;
+}
+
+.profile-memory > p.profile-card-description:not(.footnote) {
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.profile-memory-activity {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.profile-memory .profile-memory-activity p {
+  white-space: pre-wrap;
+}
+.profile-memory-content {
+  margin-bottom: 18px;
+}
+
+.profile-request-summary {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.profile-full-summary {
+  margin-top: 14px;
+}
+.profile-full-summary > summary {
+  font-size: 13px;
+  color: #075985;
+  cursor: pointer;
+}
+.profile-memory .profile-full-summary p {
+  margin: 10px 0 0;
+  font-size: 14px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
