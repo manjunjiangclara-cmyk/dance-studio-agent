@@ -315,6 +315,13 @@ export function LiveReviewDetail({ scenario }: { scenario: TourScenario }) {
                 />
               </label>
             )}
+            {answersLocked && live.error && (
+              <p className="muted">
+                Your decision is locked for this attempt so a retry uses the
+                same answer. To change it, leave and reopen this enquiry; a new
+                attempt uses another daily run.
+              </p>
+            )}
           </div>
         )}
         {!live.draft && (

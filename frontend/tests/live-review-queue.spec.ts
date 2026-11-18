@@ -362,3 +362,50 @@ test("policy evidence links to the fictional original and its version", async ({
   ).toBeVisible();
   await expect(card.getByText(fact, { exact: true })).toBeVisible();
 });
+
+test("a failed document draft explains its locked decision and retries the same answer", async ({
+  page,
+}) => {
+  const answers: string[][] = [];
+  let runs = 0;
+  await page.route("**/api/public-demo/**", async (route) => {
+    const stage = new URL(route.request().url()).pathname.split("/").at(-1);
+    if (stage === "runs") {
+      runs++;
+      await route.fulfill({ json: { token: "token" } });
+    } else if (stage === "evidence")
+      await route.fulfill({
+        json: { evidence: ["Fee unknown"], model: "test" },
+      });
+    else {
+      answers.push(route.request().postDataJSON().teacher_answers);
+      await route.fulfill(
+        answers.length === 1
+          ? { status: 502, json: { detail: "Try again" } }
+          : { json: { body: "I will confirm.", model: "test" } },
+      );
+    }
+  });
+  await page.goto("/demo/reviews/live-document");
+  await page
+    .getByRole("button", { name: "Generate draft", exact: true })
+    .click();
+  await page.getByLabel("Confirm the fee later").check();
+  await page
+    .getByRole("button", { name: "Generate draft with decision" })
+    .click();
+  await expect(page.getByRole("alert")).toContainText("Try again");
+  await expect(
+    page.getByText(/Your decision is locked for this attempt/),
+  ).toBeVisible();
+  await expect(page.getByLabel("Confirm the fee later")).toBeDisabled();
+  await page.getByRole("button", { name: "Retry" }).click();
+  await expect(page.getByRole("textbox", { name: "Response" })).toHaveValue(
+    "I will confirm.",
+  );
+  expect(answers).toEqual([
+    ["I will confirm the trial fee later."],
+    ["I will confirm the trial fee later."],
+  ]);
+  expect(runs).toBe(1);
+});
