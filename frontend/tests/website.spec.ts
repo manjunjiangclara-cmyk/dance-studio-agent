@@ -13,6 +13,23 @@ const session = examples.class_sessions.find((item) =>
   item.starts_at.startsWith("2027-02-13"),
 )!;
 
+test("breadcrumb follows the current page and links back from details", async ({
+  page,
+}) => {
+  await page.goto("/demo/reviews");
+  const breadcrumb = page.getByRole("navigation", { name: "Breadcrumb" });
+  await expect(breadcrumb).toHaveText("Review queue");
+  await page.locator(".run-row").first().click();
+  await expect(breadcrumb.getByText("Conversation review")).toBeVisible();
+  await breadcrumb.getByRole("link", { name: "Review queue" }).click();
+  await expect(page).toHaveURL(/\/demo\/reviews$/);
+  await page.goto(`/demo/students/${alex.id}`);
+  await expect(breadcrumb.getByText("Student profile")).toBeVisible();
+  await breadcrumb.getByRole("link", { name: "Students" }).click();
+  await expect(page).toHaveURL(/\/demo\/students$/);
+  await expect(page.getByText("Public walkthrough")).toHaveCount(0);
+});
+
 test("public examples work without touching the workspace API", async ({
   page,
 }, testInfo) => {
@@ -335,7 +352,7 @@ test("a stale review preserves edits and requires an explicit reload", async ({
     "My unsaved response",
   );
   await page
-    .getByRole("main")
+    .getByRole("navigation", { name: "Breadcrumb" })
     .getByRole("link", { name: "Review queue", exact: true })
     .click();
   await expect(page.getByRole("alertdialog")).toBeVisible();

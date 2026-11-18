@@ -298,6 +298,19 @@ export default function App() {
     ["knowledge", "Studio knowledge", BookOpen],
     ["test-email", workspace ? "Test email" : "Email walkthrough", Send],
   ] as const;
+  const pageLabel =
+    navigation.find(([path]) => path === page)?.[1] ||
+    (page === "tour" ? "Guided demo" : "Overview");
+  const detailLabel =
+    id && page === "reviews"
+      ? "Conversation review"
+      : id && page === "students"
+        ? "Student profile"
+        : page === "knowledge" && id === "documents"
+          ? "Documents"
+          : page === "knowledge" && id === "rules"
+            ? "Rules"
+            : undefined;
   async function logout() {
     try {
       await post("/auth/logout", identity.csrf_token || "");
@@ -375,10 +388,17 @@ export default function App() {
             >
               <Menu />
             </button>
-            <div className="breadcrumb">
-              {workspace ? "Studio Copilot" : "Merri Ballet"} <span>/</span>{" "}
-              {workspace ? "Owner workspace" : "Public walkthrough"}
-            </div>
+            <nav className="breadcrumb" aria-label="Breadcrumb">
+              {detailLabel ? (
+                <>
+                  <Link to={`${base}/${page}`}>{pageLabel}</Link>
+                  <span aria-hidden="true">/</span>
+                  <span aria-current="page">{detailLabel}</span>
+                </>
+              ) : (
+                <span aria-current="page">{pageLabel}</span>
+              )}
+            </nav>
             <div className="topbar-actions">
               <span className={`mode-badge ${workspace ? "owner-badge" : ""}`}>
                 <span />
@@ -1161,10 +1181,6 @@ function ReviewDetail({ id }: { id: string }) {
                 : undefined;
   return (
     <>
-      <Link className="back-link" to={`${base}/reviews`}>
-        <ChevronLeft size={15} />
-        Review queue
-      </Link>
       <PageHeader
         eyebrow={workspace ? "OWNER REVIEW" : "AN EXAMPLE ENQUIRY"}
         title={value.conversation.subject || "Conversation review"}
@@ -1868,10 +1884,6 @@ function StudentPage({ id }: { id: string }) {
   }, [workspace, id]);
   return (
     <>
-      <Link className="back-link" to={`${base}/students`}>
-        <ChevronLeft size={15} />
-        Students
-      </Link>
       <ErrorBox error={error} retry={refresh} />
       {loading ? (
         <Loading />
