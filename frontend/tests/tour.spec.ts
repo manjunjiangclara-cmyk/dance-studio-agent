@@ -51,18 +51,9 @@ async function review(page: Page, scenario = "booking") {
   await next(page, "Teacher review");
 }
 
-test("homepage starts a clearly labelled guided demo with editable simulated booking", async ({
+test("recorded guided demo supports editable simulated booking", async ({
   page,
 }) => {
-  await page.goto("/demo");
-  await page
-    .getByRole("link", { name: "Try the guided demo", exact: true })
-    .click();
-  await expect(page).toHaveURL(/\/demo\/tour(?:\?.*)?$/);
-  await expect(page).toHaveURL(/mode=live/);
-  await expect(
-    page.getByRole("link", { name: /Use (recorded demo|live AI)/ }),
-  ).toHaveCount(0);
   await page.goto("/demo/tour?mode=recorded");
   await expectStep(page, "Email");
   await expect(page.getByText(/no live AI/i)).toBeVisible();

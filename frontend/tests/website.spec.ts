@@ -40,7 +40,9 @@ test("public examples work without touching the workspace API", async ({
   });
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "A little more room to teach." }),
+    page.getByRole("heading", {
+      name: "Student enquiries, ready for teacher review.",
+    }),
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Explore the records", exact: true }),
@@ -55,13 +57,17 @@ test("public examples work without touching the workspace API", async ({
     page.getByRole("heading", { name: "Stories in the review queue" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Try the guided demo" }),
+    page.getByRole("link", { name: "Explore the review queue" }),
   ).toBeVisible();
   await page.screenshot({
     path: testInfo.outputPath("overview.png"),
     fullPage: true,
   });
-  await page.goto("/demo/reviews");
+  await page.getByRole("link", { name: "Explore the review queue" }).click();
+  await expect(page).toHaveURL(/\/demo\/reviews$/);
+  await expect(
+    page.getByText(/Choose a fictional enquiry to see the email/),
+  ).toBeVisible();
   await expect(
     page.getByRole("link", { name: /Makeup for Monday 8 February/ }),
   ).toBeVisible();

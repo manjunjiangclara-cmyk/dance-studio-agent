@@ -594,12 +594,14 @@ function Overview() {
       <PageHeader
         eyebrow={workspace ? "AT A GLANCE" : "A DANCE STUDIO AI COPILOT"}
         title={
-          workspace ? "Your studio, in view." : "A little more room to teach."
+          workspace
+            ? "Your studio, in view."
+            : "Student enquiries, ready for teacher review."
         }
       >
         {workspace
           ? "Review enquiries with the conversation and studio context beside you."
-          : "Less time piecing together emails. More context for the person making the decision."}
+          : "Explore fictional enquiries and see how the copilot prepares a response for a teacher to review."}
       </PageHeader>
       <section className="hero panel">
         <div className="hero-copy">
@@ -617,17 +619,14 @@ function Overview() {
             The copilot connects the conversation, student history, and class
             timetable to prepare a draft for a teacher to review.
           </p>
-          <Link
-            className="button primary"
-            to={workspace ? `${base}/reviews` : "/demo/tour?mode=live"}
-          >
-            {workspace ? "Open review queue" : "Try the guided demo"}
+          <Link className="button primary" to={`${base}/reviews`}>
+            {workspace ? "Open review queue" : "Explore the review queue"}
             <ArrowRight size={17} />
           </Link>
           <span className="hero-caption">
             {workspace
               ? "Approval books a proposed session and saves the response."
-              : "Two minutes. Live AI with fictional inputs, or explore the recorded demo."}
+              : "Choose a fictional enquiry to explore a live AI draft. No email is sent."}
           </span>
         </div>
         <div

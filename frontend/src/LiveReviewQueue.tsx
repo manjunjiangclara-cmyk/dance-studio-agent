@@ -88,8 +88,8 @@ export function LiveReviewQueue() {
           <div className="eyebrow">EMAILS → CONTEXT → DRAFTS</div>
           <h1>The review queue.</h1>
           <p>
-            Choose a fictional enquiry and generate a fresh AI response to
-            review.
+            Choose a fictional enquiry to see the email and supporting context,
+            then generate a fresh AI response to review.
           </p>
         </div>
       </header>
