@@ -2221,9 +2221,15 @@ dd {
   .topbar {
     padding: 0 20px;
     gap: 8px;
-    height: 64px;
+    height: auto;
+    min-height: 64px;
+    flex-wrap: wrap;
+    padding-top: 12px;
+    padding-bottom: 12px;
   }
   .breadcrumb {
+    order: 3;
+    flex-basis: 100%;
     font-size: 13px;
   }
   .topbar-actions {
