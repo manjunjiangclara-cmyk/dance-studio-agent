@@ -17,6 +17,12 @@ flowchart LR
     Review --> Confirmation[Simulated booking or response confirmation]
 ```
 
+## Public review queue
+
+`/demo/reviews` presents the same two fictional scenarios as a teacher-facing email queue. The visitor opens an enquiry and chooses **Generate draft**; the interface starts a run, retrieves the selected fictional evidence, and generates a response. For the document enquiry, it pauses for the teacher to supply or defer the missing trial fee before drafting. The editable response, evidence and decisions are temporary, and leaving or refreshing discards them. Approval is simulated and never sends email or changes studio records. For the booking scenario, the confirmation card shows the fixed example session; changing the response text does not change that session.
+
+Evidence cards show short descriptions and the exact fictional catalog text sent to the drafting model. The email example links to the displayed fictional messages, and the clothing example can show the fictional policy text and revision. Other catalog facts are synthetic demo inputs, not citations to underlying studio records. The public queue shares the existing daily run allowance and stage limits with the guided tour and email walkthrough. Historical predefined student and review records remain accessible from their existing links.
+
 ## Access and limits
 
 The opt-in public endpoints are `POST /api/public-demo/runs`, `/evidence` and `/draft`. They do not relax authentication on `/api/v1` or `/auth`. Each checks the exact configured `PUBLIC_BASE_URL` Origin. Guided run creation accepts only a scenario and a UUID request ID. Custom run creation additionally accepts the selected fictional student alias and an email body of 1–2,000 non-whitespace characters. The evidence endpoint accepts an empty object; the draft endpoint accepts a bounded list of teacher responses, one for each missing item, and both require an opaque run bearer token that stays in browser memory. Request bodies are limited to 120,000 bytes, including streamed bodies. Custom email text is untrusted user data inside a fixed server instruction, never a replacement prompt. Sources, tools and system instructions cannot be supplied by a visitor. Teacher responses are supplied as untrusted data to the drafting model and retained in the private run ledger for retry consistency.
