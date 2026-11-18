@@ -224,11 +224,12 @@ export function CustomEmail() {
             <p className="muted custom-email-limit">
               {body.length}/2000 characters
             </p>
-            <p>
-              Use fictional content only. Live AI · 20 shared runs per day.
-              Results are unavailable after you leave or refresh. No email is
-              sent.
-            </p>
+            <ul className="notice-list">
+              <li>Use fictional content only.</li>
+              <li>Live AI shares the limit of 20 demo runs per day.</li>
+              <li>Results are unavailable after you leave or refresh.</li>
+              <li>No email is sent and no studio records are changed.</li>
+            </ul>
             {error && !evidence && (
               <div role="alert">
                 <p>{error}</p>

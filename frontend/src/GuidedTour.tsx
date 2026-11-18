@@ -176,11 +176,29 @@ function TourContent({ scenario }: { scenario: TourScenario }) {
           </p>
         </div>
       </header>
-      <p className="notice" role="note">
-        {liveMode
-          ? "Live AI · Fictional data · 20 shared runs per day. Results are unavailable after you leave or refresh. No email is sent."
-          : "Recorded demo · Fictional data · No live AI. Results are unavailable after you leave or refresh. No email is sent."}
-      </p>
+      <div className="notice" role="note">
+        {liveMode ? (
+          <ul className="notice-list">
+            <li>Live AI uses fictional data.</li>
+            <li>Finding evidence starts one of 20 shared daily runs.</li>
+            <li>Results are unavailable after you leave or refresh.</li>
+            <li>
+              Booking is simulated: no email is sent and no studio records are
+              changed.
+            </li>
+          </ul>
+        ) : (
+          <ul className="notice-list">
+            <li>
+              Recorded demo with fictional data; no live AI or model calls.
+            </li>
+            <li>
+              Changes stay in this tour and disappear when you leave or reload.
+            </li>
+            <li>No email is sent.</li>
+          </ul>
+        )}
+      </div>
       <div className="tour-tabs" role="tablist" aria-label="Demo scenarios">
         {(["booking", "document"] as const).map((value) => (
           <button

@@ -65,6 +65,7 @@ export function useLiveDemo(scenario: TourScenario) {
           "The live service returned an empty result. Retry this step.",
         );
       setModel(result.model);
+      return true;
     } catch (caught) {
       if (mounted.current)
         setError(
