@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { ApiError, request } from "./data";
 import type { TourScenario } from "./tourData";
 
-export function useLiveDemo(scenario: TourScenario) {
+type CustomScenario = { student: string; email: string };
+export function useLiveDemo(scenario: TourScenario | CustomScenario) {
   const [evidence, setEvidence] = useState<string[] | null>(null);
+  const [missingInformation, setMissingInformation] = useState<string[]>([]);
   const [draft, setDraft] = useState<string | null>(null);
   const [model, setModel] = useState("");
   const [busy, setBusy] = useState<"evidence" | "draft" | null>(null);
@@ -37,13 +39,23 @@ export function useLiveDemo(scenario: TourScenario) {
         const run = await request<{ token: string }>("/api/public-demo/runs", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ scenario, request_id: requestId.current }),
+          body: JSON.stringify(
+            typeof scenario === "string"
+              ? { scenario, request_id: requestId.current }
+              : {
+                  scenario: "custom",
+                  student: scenario.student,
+                  email_body: scenario.email,
+                  request_id: requestId.current,
+                },
+          ),
         });
         if (!mounted.current) return;
         runToken.current = run.token;
       }
       const result = await request<{
         evidence?: string[];
+        missing_information?: string[];
         body?: string;
         model: string;
       }>(`/api/public-demo/${stage}`, {
@@ -57,15 +69,30 @@ export function useLiveDemo(scenario: TourScenario) {
         ),
       });
       if (!mounted.current) return;
-      if (stage === "evidence" && result.evidence?.length)
+      if (
+        stage === "evidence" &&
+        typeof scenario !== "string" &&
+        (!Array.isArray(result.missing_information) ||
+          result.missing_information.some((item) => typeof item !== "string"))
+      )
+        throw new Error(
+          "The live service returned incomplete review questions. Retry this step.",
+        );
+      if (
+        stage === "evidence" &&
+        Array.isArray(result.evidence) &&
+        (typeof scenario !== "string" || result.evidence.length)
+      ) {
         setEvidence(result.evidence);
-      else if (stage === "draft" && result.body?.trim()) setDraft(result.body);
+        setMissingInformation(result.missing_information || []);
+      } else if (stage === "draft" && result.body?.trim())
+        setDraft(result.body);
       else
         throw new Error(
           "The live service returned an empty result. Retry this step.",
         );
       setModel(result.model);
-      return true;
+      return result;
     } catch (caught) {
       if (mounted.current)
         setError(
@@ -80,5 +107,5 @@ export function useLiveDemo(scenario: TourScenario) {
       if (mounted.current) setBusy(null);
     }
   }
-  return { evidence, draft, model, busy, error, execute };
+  return { evidence, missingInformation, draft, model, busy, error, execute };
 }

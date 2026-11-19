@@ -18,11 +18,4 @@
 .policy-form[aria-label="Revision preview"] select {
   width: 100%;
   min-width: 0;
-  box-sizing: border-box;
-  padding: 0.65rem;
-  border: 1px solid var(--border, #c8d2dd);
-  border-radius: 0.4rem;
-  background: white;
-  color: inherit;
-  font: inherit;
 }
