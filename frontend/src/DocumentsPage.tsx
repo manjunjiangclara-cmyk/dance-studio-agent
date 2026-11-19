@@ -523,8 +523,7 @@ export function DocumentsPage({
       )}
       {!documents && !error && <p role="status">Loading documents…</p>}
       {documents && (
-        <section className="panel policy-form">
-          <h2>Document library</h2>
+        <div className="panel policy-form">
           {workspace && (
             <label>
               <input
@@ -589,7 +588,7 @@ export function DocumentsPage({
               />
             </label>
           )}
-        </section>
+        </div>
       )}
       {draft && (
         <form
@@ -894,7 +893,7 @@ export function DocumentsPage({
             aria-labelledby="document-leave-title"
           >
             <h2 id="document-leave-title">Leave without saving?</h2>
-            <p>Your document changes have not been saved.</p>
+            <p>Your changes have not been saved.</p>
             <div className="button-row">
               <button
                 className="button primary"

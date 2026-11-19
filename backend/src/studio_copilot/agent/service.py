@@ -84,7 +84,9 @@ class AgentService:
 
     def _policy(self):
         try:
-            return load_policy(self.policy_path)
+            policy = load_policy(self.policy_path)
+            policy.pop("explanation", None)
+            return policy
         except (OSError, ValueError, YAMLError) as error:
             raise AdministrationError(
                 503, "policy_unavailable", "The policy resource is invalid or unavailable."

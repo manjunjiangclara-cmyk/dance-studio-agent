@@ -1,6 +1,3 @@
 version: "1"
 absence_notice_before_start: true
-explanation: >-
-  An absence notice must arrive strictly before the session starts.
-  This check alone does not establish makeup eligibility or reserve a place.
-# Supported settings can change without code changes. Other policies are undefined.
+level_order: []

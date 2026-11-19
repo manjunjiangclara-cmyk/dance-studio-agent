@@ -11,7 +11,7 @@ from studio_copilot.agent.contracts import StrictModel
 class Policy(StrictModel):
     version: str = Field(min_length=1, max_length=100)
     absence_notice_before_start: StrictBool
-    explanation: str = Field(min_length=1, max_length=10_000)
+    explanation: str = Field(default="", max_length=10_000)
     level_order: list[str] = Field(default_factory=list)
 
     @field_validator("level_order")
@@ -43,11 +43,16 @@ def save_policy(policy: Policy, path: Path | None = None) -> dict:
             mode="w", encoding="utf-8", dir=configured.parent, delete=False
         ) as stream:
             temporary = Path(stream.name)
-            yaml.safe_dump(policy.model_dump(), stream, sort_keys=False, allow_unicode=True)
+            yaml.safe_dump(
+                policy.model_dump(exclude={"explanation"}),
+                stream,
+                sort_keys=False,
+                allow_unicode=True,
+            )
             stream.flush()
             os.fsync(stream.fileno())
         temporary.replace(configured)
     finally:
         if temporary is not None:
             temporary.unlink(missing_ok=True)
-    return policy.model_dump()
+    return policy.model_dump(exclude={"explanation"}) | {"explanation": ""}
