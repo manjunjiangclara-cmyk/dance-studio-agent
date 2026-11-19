@@ -44,6 +44,13 @@ test("homepage previews and links to both fictional enquiries", async ({
     page.getByText("FICTIONAL EXAMPLES", { exact: true }),
   ).toBeVisible();
   await expect(page.getByText("Explore example")).toHaveCount(2);
+  await expect(page.getByText("Example snapshot · 11 Feb 2027")).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "View timetable" }),
+  ).toHaveAttribute("href", "/demo/timetable");
+  await expect(
+    page.getByRole("link", { name: "Studio rules", exact: true }),
+  ).toHaveAttribute("href", "/demo/knowledge/rules");
   await page.getByRole("link", { name: /Alex Morgan/ }).click();
   await expect(page).toHaveURL(/\/demo\/reviews\/live-booking$/);
   await expect(
@@ -69,7 +76,7 @@ test("public examples work without touching the workspace API", async ({
   await page.goto("/");
   await expect(
     page.getByRole("heading", {
-      name: "Student enquiries.",
+      name: "Your studio at a glance.",
     }),
   ).toBeVisible();
   await expect(

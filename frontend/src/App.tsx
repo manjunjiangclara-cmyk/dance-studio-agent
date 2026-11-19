@@ -590,26 +590,91 @@ function Overview() {
     return { runs, students, pending };
   }, [workspace]);
   if (!workspace) {
+    const exampleSessions = examples.class_sessions
+      .filter((session) => session.starts_at.slice(0, 10) >= examples.as_of)
+      .slice()
+      .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+      .slice(0, 2);
     return (
       <>
-        <PageHeader eyebrow="PUBLIC DEMO" title="Student enquiries.">
-          Choose an example to explore how a teacher reviews an enquiry.
-        </PageHeader>
-        <section
-          className="panel overview-enquiries"
-          aria-labelledby="overview-enquiries-title"
+        <PageHeader
+          eyebrow="PUBLIC DEMO · FICTIONAL DATA"
+          title="Your studio at a glance."
         >
-          <div className="section-heading">
-            <div>
-              <div className="eyebrow">FICTIONAL EXAMPLES</div>
-              <h2 id="overview-enquiries-title">Choose an enquiry</h2>
+          Explore enquiries, classes and studio information using example data.
+        </PageHeader>
+        <div className="overview-dashboard">
+          <section
+            className="panel overview-enquiries"
+            aria-labelledby="overview-enquiries-title"
+          >
+            <div className="section-heading">
+              <div>
+                <div className="eyebrow">FICTIONAL EXAMPLES</div>
+                <h2 id="overview-enquiries-title">Choose an enquiry</h2>
+              </div>
+              <Link className="inline-link" to={`${base}/reviews`}>
+                View queue <ArrowRight size={16} />
+              </Link>
             </div>
-            <Link className="inline-link" to={`${base}/reviews`}>
-              View queue <ArrowRight size={16} />
-            </Link>
-          </div>
-          <LiveReviewCases dashboard />
-        </section>
+            <LiveReviewCases dashboard />
+          </section>
+          <aside
+            className="overview-dashboard-side"
+            aria-label="Studio overview"
+          >
+            <section
+              className="panel dashboard-timetable"
+              aria-labelledby="dashboard-timetable-title"
+            >
+              <div className="section-heading">
+                <div>
+                  <div className="eyebrow">EXAMPLE SCHEDULE</div>
+                  <h2 id="dashboard-timetable-title">Classes</h2>
+                </div>
+                <CalendarDays size={20} aria-hidden="true" />
+              </div>
+              <p className="dashboard-snapshot">
+                Example snapshot · {dateLabel(examples.as_of)}
+              </p>
+              {exampleSessions.map((session) => {
+                const cls = examples.classes.find(
+                  (item) => item.id === session.class_id,
+                );
+                const location = examples.locations.find(
+                  (item) => item.id === cls?.location_id,
+                );
+                return (
+                  <div className="dashboard-session" key={session.id}>
+                    <strong>{cls?.name ?? "Class"}</strong>
+                    <span>{timeLabel(session.starts_at)}</span>
+                    {location && <span>{location.name}</span>}
+                  </div>
+                );
+              })}
+              <Link className="inline-link" to={`${base}/timetable`}>
+                View timetable <ArrowRight size={16} />
+              </Link>
+            </section>
+            <section
+              className="panel dashboard-shortcuts"
+              aria-labelledby="dashboard-shortcuts-title"
+            >
+              <div className="section-heading">
+                <h2 id="dashboard-shortcuts-title">Studio resources</h2>
+                <BookOpen size={20} aria-hidden="true" />
+              </div>
+              <Link to={`${base}/knowledge/rules`}>
+                <span>Studio rules</span>
+                <ArrowUpRight size={16} />
+              </Link>
+              <Link to={`${base}/students`}>
+                <span>Student records</span>
+                <ArrowUpRight size={16} />
+              </Link>
+            </section>
+          </aside>
+        </div>
         <div className="example-footnote">
           <CircleHelp size={16} />
           <p>
