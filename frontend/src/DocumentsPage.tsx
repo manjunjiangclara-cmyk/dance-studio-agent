@@ -208,7 +208,10 @@ export function DocumentsPage({
   useEffect(() => {
     const sequence = ++loadSequence.current;
     setBusy(false);
-    if (!linkedDocument) return;
+    if (!linkedDocument) {
+      close();
+      return;
+    }
     if (dirty) {
       setError(
         "Save or discard your document edits before opening this citation.",

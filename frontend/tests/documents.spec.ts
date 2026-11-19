@@ -319,6 +319,7 @@ test("confirmed back navigation discards edits and opens the cited revision", as
   await page
     .getByRole("link", { name: "Back to documents", exact: true })
     .click();
+  await expect(page.locator(".document-preview")).toHaveCount(0);
   await page.getByRole("button", { name: "Trial handbook" }).click();
   await page.getByLabel("Document text").fill("Unsaved advice");
 
