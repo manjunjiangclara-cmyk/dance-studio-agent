@@ -34,6 +34,11 @@ test("homepage previews and links to both fictional enquiries", async ({
   page,
 }) => {
   await page.goto("/demo");
+  await expect(
+    page.getByText(
+      "See how AI helps turn student enquiries into drafts for teacher review.",
+    ),
+  ).toBeVisible();
   await expect(page.getByText("Live enquiries", { exact: true })).toHaveCount(
     0,
   );

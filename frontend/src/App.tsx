@@ -601,7 +601,8 @@ function Overview() {
           eyebrow="PUBLIC DEMO · FICTIONAL DATA"
           title="Your studio at a glance."
         >
-          Explore enquiries, classes and studio information using example data.
+          See how AI helps turn student enquiries into drafts for teacher
+          review.
         </PageHeader>
         <div className="overview-dashboard">
           <section
