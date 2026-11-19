@@ -26,6 +26,13 @@ test("sidebar groups navigation and keeps the demo independent of workspace APIs
   ).toBeVisible();
   expect(calls).toEqual([]);
   if (testInfo.project.name === "mobile") {
+    await nav.getByRole("link", { name: "Email walkthrough" }).focus();
+    await page.keyboard.press("Tab");
+    await expect(page.locator(".brand")).toBeFocused();
+    await page.keyboard.press("Shift+Tab");
+    await expect(
+      nav.getByRole("link", { name: "Email walkthrough" }),
+    ).toBeFocused();
     await page.keyboard.press("Escape");
     await expect(page.getByRole("button", { name: "Open menu" })).toBeFocused();
     await expect(nav).toBeHidden();

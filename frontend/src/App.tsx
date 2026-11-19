@@ -270,6 +270,7 @@ export default function App() {
   const [pendingCount, setPendingCount] = useState<number>();
   const menuButton = useRef<HTMLButtonElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
+  const sidebar = useRef<HTMLElement>(null);
   const closeMenu = useCallback(() => {
     setMobileOpen(false);
     menuButton.current?.focus();
@@ -278,7 +279,26 @@ export default function App() {
     if (!mobileOpen) return;
     closeButton.current?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
+      if (document.querySelector('[role="alertdialog"]')) return;
       if (event.key === "Escape") closeMenu();
+      if (event.key === "Tab") {
+        const focusable = sidebar.current?.querySelectorAll<HTMLElement>(
+          "a[href], button:not([disabled])",
+        );
+        if (!focusable?.length) return;
+        const first = focusable[0],
+          last = focusable[focusable.length - 1];
+        if (!sidebar.current?.contains(document.activeElement)) {
+          event.preventDefault();
+          (event.shiftKey ? last : first).focus();
+        } else if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
@@ -300,9 +320,11 @@ export default function App() {
         });
     };
     load();
+    window.addEventListener("review-queue-changed", load);
     const timer = window.setInterval(load, 30_000);
     return () => {
       active = false;
+      window.removeEventListener("review-queue-changed", load);
       window.clearInterval(timer);
     };
   }, [workspace, identity.authenticated, location.pathname]);
@@ -384,6 +406,7 @@ export default function App() {
           />
         )}
         <aside
+          ref={sidebar}
           id="main-sidebar"
           className={`sidebar ${mobileOpen ? "open" : ""}`}
         >
@@ -1076,6 +1099,7 @@ function ReviewDetail({ id }: { id: string }) {
                   : {}),
             },
       );
+      window.dispatchEvent(new Event("review-queue-changed"));
       setPollingStatus(result.status);
       if (result.status !== "failed") {
         const applied = result.draft_details.question_resolutions || [];
