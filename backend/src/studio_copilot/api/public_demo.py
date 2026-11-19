@@ -8,7 +8,7 @@ from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.routing import APIRoute
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from studio_copilot.public_demo.fixtures import PUBLIC_DOCUMENTS
+from studio_copilot.public_demo.fixtures import CUSTOM_STUDENTS, PUBLIC_DOCUMENTS
 from studio_copilot.public_demo.service import PublicDemo
 
 
@@ -36,13 +36,17 @@ class CreateRun(BaseModel):
     model_config = ConfigDict(extra="forbid")
     scenario: Literal["booking", "document", "custom"]
     request_id: UUID
-    student: Literal["alex", "jules"] | None = None
+    student: str | None = Field(default=None, max_length=36)
     email_body: str | None = Field(default=None, max_length=2000)
 
     @model_validator(mode="after")
     def validate_custom_email(self):
         if self.scenario == "custom":
-            if self.student is None or not self.email_body or not self.email_body.strip():
+            if (
+                self.student not in CUSTOM_STUDENTS
+                or not self.email_body
+                or not self.email_body.strip()
+            ):
                 raise ValueError("Select a fictional student and write an email.")
         elif self.student is not None or self.email_body is not None:
             raise ValueError("Guided scenarios use fixed inputs.")

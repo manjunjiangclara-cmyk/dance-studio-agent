@@ -200,7 +200,7 @@ test("public examples work without touching the workspace API", async ({
   ).toContainText(alex.email);
   await page.goto("/demo/test-email");
   await expect(
-    page.getByLabel("Fictional student", { exact: true }),
+    page.getByLabel("Sender context", { exact: true }),
   ).toBeVisible();
   await expect(page.getByLabel("Email body", { exact: true })).toBeEmpty();
   await expect(

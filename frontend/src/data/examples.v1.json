@@ -133,10 +133,10 @@
       "display_name": "Maya Chen",
       "email": "maya@example.test",
       "highest_level": "Level 2",
-      "ai_summary": "Teacher-reviewed response to a makeup enquiry.",
+      "ai_summary": "Asked about a makeup class for Monday 8 February.",
       "context": {
         "_agent_memory": {
-          "request_summary": "Teacher-reviewed response to a makeup enquiry.",
+          "request_summary": "Asked whether Saturday 13 February was an option. A teacher reviewed the response.",
           "source_message_ids": ["5032d2ca-83cc-546f-9f4f-e46202247081"]
         }
       }
@@ -148,10 +148,10 @@
       "display_name": "Noah Ellis",
       "email": "noah@example.test",
       "highest_level": "Level 2",
-      "ai_summary": "Missing absence and preferred dates.",
+      "ai_summary": "Asked whether a makeup class could be arranged.",
       "context": {
         "_agent_memory": {
-          "request_summary": "Missing absence and preferred dates.",
+          "request_summary": "The absence and preferred makeup dates were not provided.",
           "source_message_ids": ["11021b1d-f2c9-5bc0-bed7-01d1418e57bf"]
         }
       }
@@ -163,10 +163,10 @@
       "display_name": "Jules Park",
       "email": "jules@example.test",
       "highest_level": null,
-      "ai_summary": "New student enquiry requires teacher guidance.",
+      "ai_summary": "New to ballet and has never danced before.",
       "context": {
         "_agent_memory": {
-          "request_summary": "New student enquiry requires teacher guidance.",
+          "request_summary": "Asked about the Thursday class time and location, trial cost, and what to wear.",
           "source_message_ids": ["3a067002-bcaf-57b7-a336-a1e6dbe29914"]
         }
       }
@@ -178,10 +178,10 @@
       "display_name": "Riley James",
       "email": "riley@example.test",
       "highest_level": null,
-      "ai_summary": "Processing interrupted; the run can be retried.",
+      "ai_summary": "Asked for help choosing a ballet class.",
       "context": {
         "_agent_memory": {
-          "request_summary": "Processing interrupted; the run can be retried.",
+          "request_summary": "No class preferences or dance experience were provided.",
           "source_message_ids": ["e7006165-a655-507c-815c-2ead33050f7f"]
         }
       }
@@ -386,6 +386,16 @@
       "body": "Could you help me choose a class?",
       "occurred_at": "2027-02-07T10:00:00+11:00",
       "review_managed": false
+    },
+    {
+      "id": "5364b058-b7bf-4caa-a342-b05cb2d3f618",
+      "created_at": "2027-02-07T00:00:00Z",
+      "updated_at": "2027-02-07T00:00:00Z",
+      "conversation_id": "761d3067-777c-5844-8163-9ac42301741d",
+      "kind": "assistant_draft",
+      "body": "Hi Riley, I'd be happy to help you choose a class. Could you tell me about your dance experience and what days suit you?",
+      "occurred_at": "2027-02-07T10:06:00+11:00",
+      "review_managed": true
     }
   ],
   "agent_runs": [
@@ -696,12 +706,12 @@
       "updated_at": "2027-02-07T00:00:00Z",
       "conversation_id": "761d3067-777c-5844-8163-9ac42301741d",
       "source_message_id": "e7006165-a655-507c-815c-2ead33050f7f",
-      "draft_message_id": null,
+      "draft_message_id": "5364b058-b7bf-4caa-a342-b05cb2d3f618",
       "approved_response_id": null,
-      "status": "failed",
+      "status": "awaiting_review",
       "revision": 1,
       "interpretation": {
-        "request_summary": "Processing interrupted; the run can be retried.",
+        "request_summary": "Needs help choosing a ballet class.",
         "flow": "teacher_handoff",
         "missing_details": [],
         "routing": {
@@ -712,8 +722,8 @@
       },
       "evidence": [],
       "draft_details": {
-        "body": "",
-        "rationale": "Processing interrupted; the run can be retried.",
+        "body": "Hi Riley, I'd be happy to help you choose a class. Could you tell me about your dance experience and what days suit you?",
+        "rationale": "Ask about dance experience and schedule before suggesting a class.",
         "questions": [],
         "references": ["e7006165-a655-507c-815c-2ead33050f7f"],
         "booking_session_id": null
@@ -722,7 +732,7 @@
         "source": "Illustrative policy snapshot",
         "unknown_rules": "Refer suitability and availability to teacher review."
       },
-      "error": "Processing failed. Check configuration and retry this run."
+      "error": null
     }
   ],
   "session_attendance": [],

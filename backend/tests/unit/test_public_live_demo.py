@@ -557,3 +557,108 @@ def test_public_documents_supply_the_demo_catalog():
     assert welcome["content"] == CATALOG["document"]["unrelated"]
     assert documents["trials-and-fees"]["content"] in CATALOG["document"]["missing_fee"]
     assert clothing["byte_size"] == len(clothing["content"].encode("utf-8"))
+    from studio_copilot.public_demo.fixtures import CUSTOM_CATALOG
+
+    for catalog in CUSTOM_CATALOG.values():
+        assert documents["first-class-guide"]["content"] == catalog["first_class"]
+        assert documents["makeup-guidelines"]["content"] == catalog["makeup_guide"]
+        assert documents["class-information"]["content"] == catalog["class_information"]
+        assert documents["trials-and-fees"]["content"] == catalog["trials_and_fees"]
+        assert welcome["content"] == catalog["welcome"]
+
+
+def test_new_enquirer_has_no_existing_student_history(client, demo):
+    from studio_copilot.public_demo.fixtures import CUSTOM_CATALOG, CUSTOM_STUDENTS
+
+    response = client.post(
+        "/api/public-demo/runs",
+        json={
+            "scenario": "custom",
+            "student": "new",
+            "email_body": "What should I wear?",
+            "request_id": str(uuid4()),
+        },
+    )
+    assert response.status_code == 200
+    assert CUSTOM_STUDENTS["new"] == {"name": "New enquirer"}
+    assert "history" not in CUSTOM_CATALOG["new"]
+    assert "Alex" not in str(CUSTOM_CATALOG["new"])
+    assert "Jules" not in str(CUSTOM_CATALOG["new"])
+    assert "clothing" in CUSTOM_CATALOG["new"]
+
+
+def test_custom_students_match_public_example_profiles():
+    from pathlib import Path
+
+    from studio_copilot.public_demo.fixtures import CUSTOM_CATALOG, CUSTOM_MEMORY, CUSTOM_STUDENTS
+
+    examples_path = Path(__file__).resolve().parents[3] / "frontend/src/data/examples.v1.json"
+    students = json.loads(examples_path.read_text())["students"]
+    legacy = {
+        "3861ca04-d9bd-5994-af78-b1540c29f791": "alex",
+        "153dbe65-4865-5343-93a0-f9fa60a4f6e2": "jules",
+    }
+    expected = {
+        legacy.get(student["id"], student["id"]): {
+            "name": student["display_name"],
+            "email": student["email"],
+        }
+        for student in students
+    }
+    assert len(expected) == len(students)
+    assert {key: value for key, value in CUSTOM_STUDENTS.items() if key != "new"} == expected
+    assert set(CUSTOM_CATALOG) == set(CUSTOM_STUDENTS)
+    assert set(CUSTOM_MEMORY) == set(CUSTOM_STUDENTS)
+    assert CUSTOM_MEMORY["new"] == {}
+    for student in students:
+        key = legacy.get(student["id"], student["id"])
+        assert CUSTOM_MEMORY[key] == {
+            "conversation_summary": student["ai_summary"],
+            "request_summary": student["context"]["_agent_memory"]["request_summary"],
+        }
+
+
+@pytest.mark.parametrize(
+    "student",
+    [
+        "new",
+        "alex",
+        "jules",
+        "833efaed-1e89-5f89-8b47-cb9cbcf3399c",
+        "60bbb539-91bc-5858-80f5-a1b6ae915aae",
+        "2eca4988-037e-54f9-9668-59ee06b2888b",
+    ],
+)
+def test_each_custom_sender_is_admitted_and_receives_only_its_own_context(client, student):
+    from studio_copilot.public_demo.fixtures import CUSTOM_CATALOG, CUSTOM_MEMORY, CUSTOM_STUDENTS
+    from studio_copilot.public_demo.model import CustomSelection
+
+    response = client.post(
+        "/api/public-demo/runs",
+        json={
+            "scenario": "custom",
+            "student": student,
+            "email_body": "Hello",
+            "request_id": str(uuid4()),
+        },
+    )
+    assert response.status_code == 200
+    model, calls = model_with(
+        SimpleNamespace(
+            status="completed",
+            output_parsed=CustomSelection(route="enquiry", ids=[], missing_information=[]),
+        )
+    )
+    model.call("custom", "evidence", [], context={"student": student, "email_body": "Hello"})
+    supplied = json.loads(calls[0]["input"])
+    assert supplied["student"] == CUSTOM_STUDENTS[student]
+    assert supplied["facts"] == CUSTOM_CATALOG[student]
+    assert supplied["conversation_memory"] == CUSTOM_MEMORY[student]
+    for other, identity in CUSTOM_STUDENTS.items():
+        if other not in {student, "new"}:
+            assert identity["name"] not in str(supplied)
+    draft_model, draft_calls = model_with(
+        SimpleNamespace(status="completed", output_parsed=GeneratedDraft(body="A draft"))
+    )
+    draft_model.call("custom", "draft", [], context={"student": student, "email_body": "Hello"})
+    assert json.loads(draft_calls[0]["input"])["conversation_memory"] == CUSTOM_MEMORY[student]

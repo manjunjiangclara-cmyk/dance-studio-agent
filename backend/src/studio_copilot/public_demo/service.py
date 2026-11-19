@@ -15,6 +15,7 @@ from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
 
+from studio_copilot.public_demo.fixtures import CUSTOM_STUDENTS
 from studio_copilot.public_demo.model import DemoModel
 
 DAILY_RUN_LIMIT = 20
@@ -55,7 +56,7 @@ class PublicDemo:
     def create(self, scenario, request_id, *, student=None, email_body=None):
         if scenario == "custom":
             if (
-                student not in {"alex", "jules"}
+                student not in CUSTOM_STUDENTS
                 or not isinstance(email_body, str)
                 or not email_body.strip()
                 or len(email_body) > 2000

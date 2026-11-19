@@ -27,11 +27,14 @@
 }
 .email-form #demo-student {
   width: 100%;
-  padding: 12px;
   margin-top: 8px;
-  border: 1px solid #b8cbd6;
-  border-radius: 6px;
-  background: white;
-  color: inherit;
-  font: inherit;
+  margin-bottom: 22px;
+}
+
+.email-explainer {
+  align-self: start;
+}
+
+.email-notice {
+  margin: 16px 0;
 }

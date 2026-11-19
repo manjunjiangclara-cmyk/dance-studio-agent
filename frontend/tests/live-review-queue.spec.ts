@@ -1,5 +1,172 @@
 import { test, expect } from "@playwright/test";
 
+test("all unanswered emails share the same live review experience", async ({
+  page,
+}) => {
+  await page.goto("/demo/reviews");
+  await expect(page.getByText("Other unanswered emails")).toHaveCount(0);
+  await expect(page.getByText("Processing failed")).toHaveCount(0);
+  for (const item of [
+    {
+      subject: "Makeup options for next week",
+      route: "noah",
+      email: "Could I arrange a makeup class?",
+    },
+    {
+      subject: "Help choosing a ballet class",
+      route: "riley",
+      email: "Could you help me choose a class?",
+    },
+  ]) {
+    await page.getByRole("link", { name: new RegExp(item.subject) }).click();
+    await expect(page).toHaveURL(
+      new RegExp(`/demo/reviews/live-${item.route}$`),
+    );
+    await expect(
+      page.getByRole("heading", { name: item.subject }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("list", { name: "Student email conversation" }),
+    ).toContainText(item.email);
+    await expect(
+      page.getByRole("heading", { name: "Draft email" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Generate draft", exact: true }),
+    ).toBeVisible();
+    await page.goto("/demo/reviews");
+  }
+  await expect(page.getByText("maya@example.test")).toHaveCount(0);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+});
+
+test("new cases handle missing information and retry with the same run", async ({
+  page,
+}) => {
+  const calls: {
+    stage: string;
+    body: Record<string, unknown>;
+    token?: string;
+  }[] = [];
+  await page.route("**/api/public-demo/**", async (route) => {
+    const request = route.request();
+    const stage = new URL(request.url()).pathname.split("/").at(-1)!;
+    calls.push({
+      stage,
+      body: request.postDataJSON(),
+      token: request.headers().authorization,
+    });
+    if (stage === "runs")
+      return route.fulfill({ json: { token: "test-token" } });
+    if (stage === "evidence")
+      return route.fulfill({
+        json: {
+          evidence: [],
+          missing_information: ["Absence date", "Preferred date"],
+          route: "makeup",
+          model: "test",
+        },
+      });
+    if (calls.filter((call) => call.stage === "draft").length === 1)
+      return route.fulfill({
+        status: 502,
+        json: { detail: "Temporary failure" },
+      });
+    return route.fulfill({
+      json: { body: "Please tell me the dates.", model: "test" },
+    });
+  });
+  await page.goto("/demo/reviews/live-noah");
+  await page
+    .getByRole("button", { name: "Generate draft", exact: true })
+    .click();
+  await expect(page.getByLabel("Absence date")).toBeVisible();
+  await page
+    .getByLabel("Absence date")
+    .fill("I will confirm the absence date.");
+  await page
+    .getByLabel("Preferred date")
+    .fill("I will confirm the preferred date.");
+  await page
+    .getByRole("button", { name: "Generate draft", exact: true })
+    .click();
+  await expect(page.getByRole("alert")).toContainText("Temporary failure");
+  await expect(page.getByLabel("Absence date")).toBeDisabled();
+  await page.getByRole("button", { name: "Retry", exact: true }).click();
+  await expect(
+    page.getByRole("textbox", { name: "Response", exact: true }),
+  ).toHaveValue("Please tell me the dates.");
+  expect(calls.map((call) => call.stage)).toEqual([
+    "runs",
+    "evidence",
+    "draft",
+    "draft",
+  ]);
+  expect(calls[0].body).toMatchObject({
+    scenario: "custom",
+    student: "60bbb539-91bc-5858-80f5-a1b6ae915aae",
+    email_body: "Could I arrange a makeup class?",
+  });
+  expect(calls[2].body).toEqual({
+    teacher_answers: [
+      "I will confirm the absence date.",
+      "I will confirm the preferred date.",
+    ],
+  });
+  expect(calls[3].body).toEqual(calls[2].body);
+  expect(calls[3].token).toBe(calls[2].token);
+  await page.getByRole("button", { name: "Approve response" }).click();
+  await expect(
+    page.getByText(/Simulation complete. No email was sent/),
+  ).toBeVisible();
+});
+
+test("a new case accepts empty evidence when no teacher input is needed", async ({
+  page,
+}) => {
+  const calls: { stage: string; body: Record<string, unknown> }[] = [];
+  await page.route("**/api/public-demo/**", async (route) => {
+    const stage = new URL(route.request().url()).pathname.split("/").at(-1)!;
+    calls.push({ stage, body: route.request().postDataJSON() });
+    if (stage === "runs")
+      return route.fulfill({ json: { token: "test-token" } });
+    if (stage === "evidence")
+      return route.fulfill({
+        json: {
+          evidence: [],
+          missing_information: [],
+          route: "enquiry",
+          model: "test",
+        },
+      });
+    return route.fulfill({
+      json: { body: "Tell me what days work for you.", model: "test" },
+    });
+  });
+  await page.goto("/demo/reviews/live-riley");
+  await page
+    .getByRole("button", { name: "Generate draft", exact: true })
+    .click();
+  await expect(
+    page.getByRole("textbox", { name: "Response", exact: true }),
+  ).toHaveValue("Tell me what days work for you.");
+  expect(calls.map((call) => call.stage)).toEqual([
+    "runs",
+    "evidence",
+    "draft",
+  ]);
+  expect(calls[0].body).toMatchObject({
+    scenario: "custom",
+    student: "2eca4988-037e-54f9-9668-59ee06b2888b",
+    email_body: "Could you help me choose a class?",
+  });
+  expect(calls[2].body).toEqual({ teacher_answers: [] });
+});
+
 test("visitors generate and review a temporary live response", async ({
   page,
 }) => {
