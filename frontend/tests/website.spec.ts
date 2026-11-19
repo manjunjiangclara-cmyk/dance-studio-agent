@@ -34,6 +34,12 @@ test("homepage previews and links to both fictional enquiries", async ({
   page,
 }) => {
   await page.goto("/demo");
+  await expect(page.getByText("Live enquiries", { exact: true })).toHaveCount(
+    0,
+  );
+  await expect(page.getByText("Student profiles", { exact: true })).toHaveCount(
+    0,
+  );
   const preview = page.getByLabel("Example enquiry preview");
   await expect(
     preview.getByText(/Saturday 13 February would be better/),
@@ -543,6 +549,17 @@ async function mockWorkspace(
   });
   return { getBody: () => responseBody, getIntakeCount: () => intakeCount };
 }
+
+test("owner overview retains studio metrics", async ({ page }) => {
+  await mockWorkspace(page);
+  await page.goto("/workspace");
+  await expect(
+    page.getByText("Awaiting review", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Student profiles", { exact: true }),
+  ).toBeVisible();
+});
 
 test("owner approval submits edited text and the reviewed revision", async ({
   page,

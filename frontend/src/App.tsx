@@ -601,25 +601,23 @@ function Overview() {
       >
         {workspace
           ? "Review enquiries with the conversation and studio context beside you."
-          : "Explore fictional enquiries and see how the copilot prepares a response for a teacher to review."}
+          : "Explore how an enquiry becomes a draft for teacher review."}
       </PageHeader>
       <section className="hero panel">
         <div className="hero-copy">
           <div className="eyebrow">
             <span className="availability-dot" />
-            {workspace
-              ? "READY FOR HUMAN REVIEW"
-              : "EXPLORE A COMPLETE EXAMPLE"}
+            {workspace ? "READY FOR HUMAN REVIEW" : "HOW IT WORKS"}
           </div>
           <h2>
             {workspace
               ? "Every email has a story behind it."
-              : "See an enquiry through to review."}
+              : "From email to review."}
           </h2>
           <p>
             {workspace
               ? "The copilot connects the conversation, student history, and class timetable to prepare a draft for a teacher to review."
-              : "Choose a case to explore the email and supporting context, then generate a draft for review."}
+              : "Email + studio context → a draft for your review."}
           </p>
           <Link className="button primary" to={`${base}/reviews`}>
             {workspace ? "Open review queue" : "Explore the review queue"}
@@ -628,7 +626,7 @@ function Overview() {
           <span className="hero-caption">
             {workspace
               ? "Approval books a proposed session and saves the response."
-              : "Choose a fictional enquiry to explore a live AI draft. No email is sent."}
+              : "Fictional examples · No email sent"}
           </span>
         </div>
         {workspace ? (
@@ -689,17 +687,11 @@ function Overview() {
             </div>
             <div className="case-preview-step">
               <small>SUPPORTING CONTEXT</small>
-              <span>
-                Earlier request, attendance, studio policy and Saturday class
-                availability.
-              </span>
+              <span>Student history · Studio policy · Class availability</span>
             </div>
             <div className="case-preview-step">
               <small>TEACHER REVIEW</small>
-              <span>
-                Generate a draft and review the proposed booking before
-                deciding.
-              </span>
+              <span>Review the draft and proposed booking.</span>
             </div>
             <Link className="inline-link" to="/demo/reviews/live-booking">
               Explore this enquiry <ArrowRight size={16} />
@@ -707,29 +699,29 @@ function Overview() {
           </div>
         )}
       </section>
-      <div className="metric-grid">
-        <Metric
-          value={workspace ? value?.pending.total : 2}
-          label={workspace ? "Awaiting review" : "Live enquiries"}
-          note={
-            workspace
-              ? "Drafts ready for your attention"
-              : "Fictional enquiries to explore"
-          }
-          icon={<Mail size={20} />}
-        />
-        <Metric
-          value={value?.students.total}
-          label="Student profiles"
-          note="History and source-linked context"
-          icon={<Users size={20} />}
-        />
-      </div>
+      {workspace && (
+        <div className="metric-grid">
+          <Metric
+            value={value?.pending.total}
+            label="Awaiting review"
+            note="Drafts ready for your attention"
+            icon={<Mail size={20} />}
+          />
+          <Metric
+            value={value?.students.total}
+            label="Student profiles"
+            note="History and source-linked context"
+            icon={<Users size={20} />}
+          />
+        </div>
+      )}
       <ErrorBox error={error} retry={refresh} />
       <section className="panel">
         <div className="section-heading">
           <div>
-            <div className="eyebrow">THE CONVERSATION CONTINUES</div>
+            {workspace && (
+              <div className="eyebrow">THE CONVERSATION CONTINUES</div>
+            )}
             <h2>{workspace ? "Recent enquiries" : "Choose an enquiry"}</h2>
           </div>
           <Link className="inline-link" to={`${base}/reviews`}>
