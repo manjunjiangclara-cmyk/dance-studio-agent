@@ -91,7 +91,10 @@ export function DocumentsPage({
       : request<PublicDocument[]>("/api/public-demo/documents")
     )
       .then((value) => {
-        if (active) setDocuments(value);
+        if (active) {
+          setDocuments(value);
+          setError("");
+        }
       })
       .catch((err) => {
         if (active) setError((err as Error).message);

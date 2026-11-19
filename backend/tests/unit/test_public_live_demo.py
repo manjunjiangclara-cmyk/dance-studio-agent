@@ -555,4 +555,5 @@ def test_public_documents_supply_the_demo_catalog():
     welcome = documents["studio-welcome"]
     assert clothing["content"] in CATALOG["document"]["clothing"]
     assert welcome["content"] == CATALOG["document"]["unrelated"]
+    assert documents["trials-and-fees"]["content"] in CATALOG["document"]["missing_fee"]
     assert clothing["byte_size"] == len(clothing["content"].encode("utf-8"))

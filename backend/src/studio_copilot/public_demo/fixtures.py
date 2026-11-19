@@ -91,8 +91,8 @@ CATALOG = {
     },
     "document": {
         "clothing": "Beginner clothing policy, revision 1: " + PUBLIC_DOCUMENTS[0]["content"],
-        "missing_fee": "No trial fee is specified in this fictional source. A teacher "
-        "must provide the fee or choose to confirm later. Never invent an amount.",
+        "missing_fee": "No trial fee is specified in this fictional source. "
+        + PUBLIC_DOCUMENTS[5]["content"],
         "unrelated": PUBLIC_DOCUMENTS[1]["content"],
     },
 }
