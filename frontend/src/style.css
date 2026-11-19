@@ -748,12 +748,16 @@ code,
   margin: 0;
 }
 .live-conversation-heading p,
-.live-conversation-heading > span {
+.live-conversation-heading > span,
+.live-draft-description {
   color: #536579;
   font-size: 13px;
 }
 .live-conversation-heading p {
   margin: 6px 0 0;
+}
+.live-draft-description {
+  margin: 6px 0 16px;
 }
 .live-conversation-heading > span {
   white-space: nowrap;
@@ -4564,4 +4568,27 @@ h3 {
 }
 .brand small svg {
   flex-shrink: 0;
+}
+
+.live-draft-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+.live-draft-heading h2 {
+  margin: 0;
+}
+.live-ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid #c9bff1;
+  border-radius: 999px;
+  background: #f5f2ff;
+  color: #51449b;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
 }

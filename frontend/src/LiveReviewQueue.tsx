@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { Sparkles } from "lucide-react";
 import {
   tourBooking,
   tourFixtures,
@@ -271,9 +272,14 @@ export function LiveReviewDetail({ scenario }: { scenario: TourScenario }) {
         </ol>
       </section>
       <section className="panel" aria-labelledby="draft-heading">
-        <h2 id="draft-heading">Draft email</h2>
+        <div className="live-draft-heading">
+          <h2 id="draft-heading">Draft email</h2>
+          <span className="live-ai-badge">
+            <Sparkles size={14} aria-hidden="true" /> AI-assisted drafting
+          </span>
+        </div>
         {!live.draft && (
-          <p>
+          <p className="live-draft-description">
             Generate a response based on the email and available studio
             information. Review it before approving.
           </p>
@@ -367,7 +373,8 @@ export function LiveReviewDetail({ scenario }: { scenario: TourScenario }) {
         {live.draft && (
           <>
             <p className="muted">
-              Generated live · {live.model} · Review before approving
+              {edited === null ? "AI-generated draft" : "AI draft edited"} ·{" "}
+              {live.model} · Review before approving
             </p>
             {scenario === "booking" && !approved && (
               <p className="muted footnote">
