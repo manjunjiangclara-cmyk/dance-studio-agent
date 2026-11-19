@@ -4296,3 +4296,74 @@ h3 {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* Keep daily navigation prominent while separating setup and tools. */
+.sidebar {
+  overflow-y: auto;
+}
+.brand {
+  margin-bottom: 36px;
+}
+.nav-group + .nav-group {
+  margin-top: 24px;
+}
+.sidebar-label {
+  margin-bottom: 8px;
+  font-size: 11px;
+  letter-spacing: 1.2px;
+}
+.nav-item {
+  margin: 2px 0;
+}
+.sidebar-note {
+  margin-top: 30px;
+}
+.sidebar-footer {
+  padding-top: 28px;
+}
+.sidebar-overlay {
+  display: none;
+}
+@media (max-width: 650px) {
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 29;
+    border: 0;
+    background: #172b3a80;
+  }
+  .sidebar {
+    visibility: hidden;
+  }
+  .sidebar.open {
+    visibility: visible;
+  }
+  .brand {
+    margin-bottom: 32px;
+  }
+}
+.nav-item.active > svg {
+  color: #1d4ed8;
+  stroke-width: 2.3;
+}
+.brand small {
+  font-size: 10px;
+  letter-spacing: 0.8px;
+  white-space: nowrap;
+}
+.brand-mark {
+  flex-shrink: 0;
+}
+.brand small {
+  font-size: 9px;
+  letter-spacing: 0.3px;
+}
+.brand-mark {
+  font-family: Georgia, serif;
+  font-size: 29px;
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1;
+  transform: none;
+}
