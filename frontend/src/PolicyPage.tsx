@@ -129,6 +129,10 @@ export function PolicyPage({
             void save();
           }}
         >
+          <div className="knowledge-panel-heading">
+            <h2>Studio rules</h2>
+            <p>Settings used to check and explain responses.</p>
+          </div>
           <fieldset disabled={!workspace || busy}>
             <label>
               Policy version

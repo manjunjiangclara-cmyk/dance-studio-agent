@@ -544,3 +544,15 @@ def test_custom_fee_question_requires_teacher_even_if_model_omits_missing_item()
         context={"student": "jules", "email_body": "What is the trial fee?"},
     )
     assert result["missing_information"] == ["Trial fee"]
+
+
+def test_public_documents_supply_the_demo_catalog():
+    client = TestClient(api.create_public_demo_app())
+    response = client.get("/api/public-demo/documents")
+    assert response.status_code == 200
+    documents = {item["id"]: item for item in response.json()}
+    clothing = documents["beginner-clothing"]
+    welcome = documents["studio-welcome"]
+    assert clothing["content"] in CATALOG["document"]["clothing"]
+    assert welcome["content"] == CATALOG["document"]["unrelated"]
+    assert clothing["byte_size"] == len(clothing["content"].encode("utf-8"))

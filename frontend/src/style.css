@@ -3295,20 +3295,33 @@ h3 {
 
 .knowledge-nav {
   display: flex;
-  gap: 1.5rem;
-  border-bottom: 1px solid #ddd;
-  margin-bottom: 1.5rem;
+  gap: 8px;
+  padding: 6px;
+  margin-bottom: 28px;
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
 }
 .knowledge-nav a {
-  display: inline-block;
-  padding: 0.7rem 0;
-  color: inherit;
-  text-decoration: none;
-  border-bottom: 2px solid transparent;
+  padding: 9px 18px;
+  border-radius: 6px;
+  color: #475569;
+  font-weight: 600;
+}
+.knowledge-nav a:hover {
+  background: #f1f5f9;
 }
 .knowledge-nav a.active {
-  border-bottom-color: currentColor;
-  font-weight: 700;
+  background: #dbeafe;
+  color: #1e40af;
+}
+.knowledge-nav + .page-heading {
+  margin-bottom: 18px;
+}
+.knowledge-nav + .page-heading h2 {
+  margin-bottom: 6px;
 }
 
 /* Timetable */
