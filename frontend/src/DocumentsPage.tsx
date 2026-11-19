@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useBlocker, useSearchParams } from "react-router-dom";
+import { Link, useBlocker, useSearchParams } from "react-router-dom";
 import { ApiError, request } from "./data";
 import "./documents.css";
 
@@ -489,6 +489,11 @@ export function DocumentsPage({
           </p>
         </div>
       </div>
+      {linkedDocument && (
+        <Link className="inline-link" to="/workspace/knowledge/documents">
+          Back to documents
+        </Link>
+      )}
       {!workspace && (
         <div className="notice">
           Read-only example. Sign in to manage your studio documents.

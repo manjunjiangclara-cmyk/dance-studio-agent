@@ -316,7 +316,9 @@ test("confirmed back navigation discards edits and opens the cited revision", as
   const citation = `/workspace/knowledge/documents?document=${id}&revision=1&offset=0`;
   await page.goto(citation);
   await expect(page.locator(".document-preview")).toHaveText("Cited advice");
-  await page.getByRole("link", { name: "Documents", exact: true }).click();
+  await page
+    .getByRole("link", { name: "Back to documents", exact: true })
+    .click();
   await page.getByRole("button", { name: "Trial handbook" }).click();
   await page.getByLabel("Document text").fill("Unsaved advice");
 
