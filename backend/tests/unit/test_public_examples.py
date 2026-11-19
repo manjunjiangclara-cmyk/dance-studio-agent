@@ -61,9 +61,19 @@ def test_fixtures_have_consistent_links_and_only_published_fictional_identities(
     assert {run["status"] for run in data["agent_runs"]} >= {
         "awaiting_review",
         "approved",
-        "failed",
         "superseded",
     }
+    riley_run = next(
+        run
+        for run in data["agent_runs"]
+        if run["source_message_id"] == "e7006165-a655-507c-815c-2ead33050f7f"
+    )
+    assert riley_run["status"] == "awaiting_review"
+    assert riley_run["approved_response_id"] is None and riley_run["error"] is None
+    assert any(
+        row["id"] == riley_run["draft_message_id"] and row["kind"] == "assistant_draft"
+        for row in data["messages"]
+    )
     assert any(run["interpretation"].get("missing_details") for run in data["agent_runs"])
     assert any(run["interpretation"].get("flow") == "teacher_handoff" for run in data["agent_runs"])
 
