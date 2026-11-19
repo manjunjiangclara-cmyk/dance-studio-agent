@@ -1,21 +1,18 @@
 import { useEffect, useRef, useState } from "react";
-import { ApiError, request } from "./data";
+import { ApiError, examples, request } from "./data";
+import { StudentMemorySections } from "./StudentMemorySections";
 import "./custom-email.css";
 
-const students = {
-  alex: {
-    name: "Alex Morgan",
-    email: "alex@example.test",
-    context:
-      "Recorded Level 2 attendance; regular Thursday class; an earlier absence email about Monday 8 February.",
-  },
-  jules: {
-    name: "Jules Park",
-    email: "jules@example.test",
-    context: "New enquirer. No recorded level, attendance or enrolment.",
-  },
+// Preserve the original IDs for in-flight and retryable simulations.
+const legacyStudentIds: Record<string, string> = {
+  "3861ca04-d9bd-5994-af78-b1540c29f791": "alex",
+  "153dbe65-4865-5343-93a0-f9fa60a4f6e2": "jules",
 };
-type Student = keyof typeof students;
+const students = examples.students.map((student) => ({
+  ...student,
+  simulationId: legacyStudentIds[student.id] ?? student.id,
+}));
+type Student = string;
 interface Evidence {
   evidence: string[];
   route: "enquiry" | "makeup" | "teacher_handoff";
@@ -31,7 +28,10 @@ interface Attempt {
   draft?: string;
 }
 export function CustomEmail() {
-  const [student, setStudent] = useState<Student>("alex");
+  const [student, setStudent] = useState<Student>("new");
+  const selectedStudent = students.find(
+    (item) => item.simulationId === student,
+  );
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
   const [stage, setStage] = useState("");
@@ -176,8 +176,7 @@ export function CustomEmail() {
           <div className="eyebrow">EMAIL WALKTHROUGH</div>
           <h1>Try an email of your own.</h1>
           <p>
-            Choose a fictional student, write an email, and see how the copilot
-            prepares a response.
+            Write a fictional email and see how the copilot prepares a response.
           </p>
         </div>
       </header>
@@ -193,7 +192,7 @@ export function CustomEmail() {
               void simulate();
             }}
           >
-            <label htmlFor="demo-student">Fictional student</label>
+            <label htmlFor="demo-student">Sender context</label>
             <select
               id="demo-student"
               value={student}
@@ -203,10 +202,13 @@ export function CustomEmail() {
                 invalidate();
               }}
             >
-              <option value="alex">Alex Morgan</option>
-              <option value="jules">Jules Park</option>
+              <option value="new">New enquirer · no history</option>
+              {students.map((item) => (
+                <option key={item.id} value={item.simulationId}>
+                  {item.display_name}
+                </option>
+              ))}
             </select>
-            <p className="muted">From {students[student].email}</p>
             <label htmlFor="demo-email-body">Email body</label>
             <textarea
               id="demo-email-body"
@@ -224,12 +226,14 @@ export function CustomEmail() {
             <p className="muted custom-email-limit">
               {body.length}/2000 characters
             </p>
-            <ul className="notice-list">
-              <li>Use fictional content only.</li>
-              <li>Live AI shares the limit of 20 demo runs per day.</li>
-              <li>Results are unavailable after you leave or refresh.</li>
-              <li>No email is sent and no studio records are changed.</li>
-            </ul>
+            <div className="notice email-notice" role="note">
+              <ul className="notice-list">
+                <li>Use fictional content only.</li>
+                <li>Live AI shares the limit of 20 demo runs per day.</li>
+                <li>Results are unavailable after you leave or refresh.</li>
+                <li>No email is sent and no studio records are changed.</li>
+              </ul>
+            </div>
             {error && !evidence && (
               <div role="alert">
                 <p>{error}</p>
@@ -253,19 +257,16 @@ export function CustomEmail() {
             {busy && <p role="status">{stage}</p>}
           </form>
         </section>
-        <aside className="panel email-explainer">
-          <div className="eyebrow">FICTIONAL CONTEXT</div>
-          <h2>{students[student].name}</h2>
-          <p>{students[student].context}</p>
-          <h3>Available sources</h3>
-          <p>
-            A small fictional class timetable and beginner clothing policy.
-            Unknown fees and unsupported changes remain questions to confirm.
+        <aside className="panel context-card profile-card profile-memory email-explainer">
+          <div className="eyebrow">CONVERSATION MEMORY</div>
+          <h2>About this student</h2>
+          <p className="profile-card-description">
+            Details and preferences shared in conversations
           </p>
-          <p className="muted">
-            Reference date: 7 February 2027, Melbourne. Dates and records are
-            fictional.
-          </p>
+          <StudentMemorySections
+            context={selectedStudent?.context ?? {}}
+            summary={selectedStudent?.ai_summary ?? null}
+          />
         </aside>
       </div>
       {evidence && (

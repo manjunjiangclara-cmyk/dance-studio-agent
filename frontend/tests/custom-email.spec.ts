@@ -1,4 +1,13 @@
 import { test, expect, type Page } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import type { Examples } from "../src/types";
+
+const examples = JSON.parse(
+  readFileSync(
+    new URL("../src/data/examples.v1.json", import.meta.url),
+    "utf8",
+  ),
+) as Examples;
 interface Call {
   stage: string;
   body: Record<string, unknown>;
@@ -20,7 +29,17 @@ async function sandbox(page: Page, failDraft = false) {
     calls.push({ stage, body, token: req.headers().authorization });
     if (stage === "runs") {
       expect(body.scenario).toBe("custom");
-      expect(["alex", "jules"]).toContain(body.student);
+      expect([
+        "new",
+        "alex",
+        "jules",
+        ...examples.students
+          .filter(
+            (item) =>
+              !["Alex Morgan", "Jules Park"].includes(item.display_name),
+          )
+          .map((item) => item.id),
+      ]).toContain(body.student);
       expect(body.email_body).toBeTruthy();
       return route.fulfill({
         json: { scenario: "custom", token: `token-${body.request_id}` },
@@ -62,7 +81,7 @@ test("visitors write their own email against a fictional student without touchin
     page.getByRole("button", { name: "Simulate email", exact: true }),
   ).toBeDisabled();
   await page
-    .getByLabel("Fictional student", { exact: true })
+    .getByLabel("Sender context", { exact: true })
     .selectOption("jules");
   const email = "I'm new. What should I wear, and how much does a trial cost?";
   await page.getByLabel("Email body", { exact: true }).fill(email);
@@ -222,7 +241,7 @@ test("input stays fixed while a submission is running", async ({ page }) => {
     .getByRole("button", { name: "Simulate email", exact: true })
     .click();
   await expect(
-    page.getByLabel("Fictional student", { exact: true }),
+    page.getByLabel("Sender context", { exact: true }),
   ).toBeDisabled();
   await expect(page.getByLabel("Email body", { exact: true })).toBeDisabled();
   await expect(
@@ -231,4 +250,81 @@ test("input stays fixed while a submission is running", async ({ page }) => {
   release();
   await expect(page.getByRole("alert")).toContainText("Service unavailable");
   await expect(page.getByLabel("Email body", { exact: true })).toBeEnabled();
+});
+
+test("a new enquiry starts without a student history", async ({ page }) => {
+  const api = await sandbox(page);
+  await page.goto("/demo/test-email");
+  await expect(page.getByLabel("Sender context")).toHaveValue("new");
+  await expect(page.getByText("No conversation summary yet.")).toBeVisible();
+  await page.getByLabel("Email body").fill("What should I wear?");
+  await page
+    .getByRole("button", { name: "Simulate email", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Review missing information" }),
+  ).toBeVisible();
+  expect(api.calls[0].body.student).toBe("new");
+  await page.getByLabel("Sender context").selectOption("alex");
+  await expect(
+    page.getByRole("heading", { name: "Review missing information" }),
+  ).toHaveCount(0);
+});
+
+test("each example student can be selected and submitted with their own context", async ({
+  page,
+}) => {
+  const api = await sandbox(page);
+  await page.goto("/demo/test-email");
+  const selector = page.getByLabel("Sender context");
+  const options = await selector.locator("option").allTextContents();
+  expect(options.slice(1)).toEqual(
+    examples.students.map((item) => item.display_name),
+  );
+  await page.getByLabel("Email body").fill("What should I wear?");
+  for (const student of examples.students) {
+    const id =
+      student.display_name === "Alex Morgan"
+        ? "alex"
+        : student.display_name === "Jules Park"
+          ? "jules"
+          : student.id;
+    await selector.selectOption(id);
+    const context = page.locator(".email-explainer");
+    await expect(
+      context.getByRole("heading", { name: "About this student" }),
+    ).toBeVisible();
+    await expect(context).toContainText(
+      student.ai_summary || "No conversation summary yet.",
+    );
+    const memory = student.context._agent_memory as
+      { request_summary?: string } | undefined;
+    if (memory?.request_summary)
+      await expect(context).toContainText(memory.request_summary);
+    await expect(context).not.toContainText("Available sources");
+    await expect(context).not.toContainText("Student profile");
+    await expect(
+      page.getByText(`Example sender: ${student.email}`),
+    ).toHaveCount(0);
+    await page
+      .getByRole("button", { name: "Simulate email", exact: true })
+      .click();
+    await expect(
+      page.getByRole("heading", { name: "Review missing information" }),
+    ).toBeVisible();
+    expect(
+      api.calls.filter((call) => call.stage === "runs").at(-1)?.body.student,
+    ).toBe(id);
+    await selector.selectOption("new");
+    await expect(
+      page.getByRole("heading", { name: "Review missing information" }),
+    ).toHaveCount(0);
+  }
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    )
+    .toBe(true);
 });
