@@ -63,8 +63,8 @@ test("homepage previews and links to both fictional enquiries", async ({
     page.getByRole("link", { name: "View timetable" }),
   ).toHaveAttribute("href", "/demo/timetable");
   await expect(
-    page.getByRole("link", { name: "Studio rules", exact: true }),
-  ).toHaveAttribute("href", "/demo/knowledge/rules");
+    page.getByRole("link", { name: "Studio documents", exact: true }),
+  ).toHaveAttribute("href", "/demo/knowledge/documents");
   await page.getByRole("link", { name: /Alex Morgan/ }).click();
   await expect(page).toHaveURL(/\/demo\/reviews\/live-booking$/);
   await expect(
