@@ -74,6 +74,10 @@ test("visitors generate and review a temporary live response", async ({
     page.getByRole("heading", { name: "Draft email" }),
   ).toBeVisible();
   await expect(
+    page.getByText("AI-assisted drafting", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText(/AI-generated draft/)).toHaveCount(0);
+  await expect(
     page.getByRole("heading", { name: "Supporting evidence" }),
   ).toHaveCount(0);
   await page
@@ -82,9 +86,11 @@ test("visitors generate and review a temporary live response", async ({
   await expect(
     page.getByRole("textbox", { name: "Response", exact: true }),
   ).toHaveValue("A live response for Alex.");
+  await expect(page.getByText(/AI-generated draft · test/)).toBeVisible();
   await page
     .getByRole("textbox", { name: "Response", exact: true })
     .fill("Edited response");
+  await expect(page.getByText(/AI draft edited · test/)).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Booking confirmed" }),
   ).toHaveCount(0);
@@ -254,6 +260,10 @@ test("manual draft is editable and protected before generating", async ({
   });
   await expect(field).toBeEditable();
   await field.fill("My own reply");
+  await expect(
+    page.getByText("AI-assisted drafting", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText(/AI-generated draft/)).toHaveCount(0);
   const fieldBox = await field.boundingBox();
   const buttonBox = await button.boundingBox();
   expect(
