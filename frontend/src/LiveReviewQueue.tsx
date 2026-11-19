@@ -13,6 +13,7 @@ const cases: {
   subject: string;
   email: string;
   description: string;
+  category: string;
   received: string;
   messageTimes: string[];
 }[] = [
@@ -20,7 +21,8 @@ const cases: {
     scenario: "booking",
     subject: "Makeup for Monday 8 February",
     email: "alex@example.test",
-    description: "A makeup request with a change of preferred day.",
+    description: "Can't attend Monday and would prefer Saturday.",
+    category: "MAKEUP REQUEST",
     received: "2027-02-07",
     messageTimes: ["2027-02-07T10:00:00+11:00", "2027-02-07T10:05:00+11:00"],
   },
@@ -28,7 +30,8 @@ const cases: {
     scenario: "document",
     subject: "Questions about starting ballet",
     email: "jules@example.test",
-    description: "A beginner asks about starting ballet and trial fees.",
+    description: "Asks what to wear and how much a trial costs.",
+    category: "NEW STUDENT",
     received: "2027-02-07",
     messageTimes: ["2027-02-07T10:00:00+11:00"],
   },
@@ -103,7 +106,11 @@ export function LiveReviewQueue() {
   );
 }
 
-export function LiveReviewCases() {
+export function LiveReviewCases({
+  dashboard = false,
+}: {
+  dashboard?: boolean;
+}) {
   return (
     <div className="run-list">
       {cases.map((item) => (
@@ -116,15 +123,26 @@ export function LiveReviewCases() {
             {item.scenario === "booking" ? "AM" : "JP"}
           </span>
           <span className="run-person">
-            <strong>{item.subject}</strong>
+            {dashboard && (
+              <span className="dashboard-case-category">{item.category}</span>
+            )}
+            <strong>
+              {dashboard ? tourFixtures[item.scenario].student : item.subject}
+            </strong>
             <span className="case-description">{item.description}</span>
-            <span>{item.email}</span>
+            {!dashboard && <span>{item.email}</span>}
           </span>
-          <span className="run-meta live-case-date">
-            <time dateTime={item.received}>
-              {formatReceived(item.received)}
-            </time>
-          </span>
+          {dashboard ? (
+            <span className="dashboard-case-action">
+              Explore example <span aria-hidden="true">→</span>
+            </span>
+          ) : (
+            <span className="run-meta live-case-date">
+              <time dateTime={item.received}>
+                {formatReceived(item.received)}
+              </time>
+            </span>
+          )}
         </Link>
       ))}
     </div>

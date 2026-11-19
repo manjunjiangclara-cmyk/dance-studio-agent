@@ -4297,38 +4297,33 @@ h3 {
   overflow-wrap: anywhere;
 }
 
-/* Concrete example shown on the public overview. */
-.case-preview {
-  align-self: center;
-  background: #fff;
-  border: 1px solid #b8c9dc;
-  border-radius: 10px;
-  padding: 22px;
-  margin-left: 24px;
+/* Fictional enquiries on the public overview. */
+.overview-enquiries .run-row {
+  padding: 24px 4px;
 }
-.case-preview-step {
-  padding: 11px 0;
-  border-bottom: 1px solid #e2e8f0;
-  line-height: 1.5;
-  color: #334155;
-}
-.case-preview-step small {
-  display: block;
-  color: #475569;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 1px;
-  margin-bottom: 4px;
-}
-.case-preview .inline-link {
-  margin-top: 14px;
+.overview-enquiries .avatar {
+  width: 44px;
+  height: 44px;
 }
 .run-person > .case-description {
   white-space: normal;
   overflow: visible;
 }
-@media (max-width: 900px) {
-  .case-preview {
-    margin: 24px 0 0;
+.run-person > .dashboard-case-category {
+  color: #475569;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  margin: 0 0 5px;
+}
+.dashboard-case-action {
+  color: #075985;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+@media (max-width: 650px) {
+  .dashboard-case-action {
+    margin-left: 56px;
   }
 }

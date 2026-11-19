@@ -40,11 +40,11 @@ test("homepage previews and links to both fictional enquiries", async ({
   await expect(page.getByText("Student profiles", { exact: true })).toHaveCount(
     0,
   );
-  const preview = page.getByLabel("Example enquiry preview");
   await expect(
-    preview.getByText(/Saturday 13 February would be better/),
+    page.getByText("FICTIONAL EXAMPLES", { exact: true }),
   ).toBeVisible();
-  await preview.getByRole("link", { name: "Explore this enquiry" }).click();
+  await expect(page.getByText("Explore example")).toHaveCount(2);
+  await page.getByRole("link", { name: /Alex Morgan/ }).click();
   await expect(page).toHaveURL(/\/demo\/reviews\/live-booking$/);
   await expect(
     page.getByRole("heading", { name: "Makeup for Monday 8 February" }),
@@ -53,9 +53,7 @@ test("homepage previews and links to both fictional enquiries", async ({
     page.getByText("Actually, Saturday 13 February would be better."),
   ).toBeVisible();
   await page.goto("/demo");
-  await page
-    .getByRole("link", { name: /Questions about starting ballet/ })
-    .click();
+  await page.getByRole("link", { name: /Jules Park/ }).click();
   await expect(page).toHaveURL(/\/demo\/reviews\/live-document$/);
   await expect(page.getByText(/I'm new to ballet/)).toBeVisible();
 });
@@ -71,7 +69,7 @@ test("public examples work without touching the workspace API", async ({
   await page.goto("/");
   await expect(
     page.getByRole("heading", {
-      name: "Student enquiries, ready for teacher review.",
+      name: "Student enquiries.",
     }),
   ).toBeVisible();
   await expect(
@@ -87,13 +85,13 @@ test("public examples work without touching the workspace API", async ({
     page.getByRole("heading", { name: "Choose an enquiry" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Explore the review queue" }),
+    page.getByRole("link", { name: "View queue", exact: true }),
   ).toBeVisible();
   await page.screenshot({
     path: testInfo.outputPath("overview.png"),
     fullPage: true,
   });
-  await page.getByRole("link", { name: "Explore the review queue" }).click();
+  await page.getByRole("link", { name: "View queue", exact: true }).click();
   await expect(page).toHaveURL(/\/demo\/reviews$/);
   await expect(
     page.getByText(/Choose a fictional enquiry to see the email/),

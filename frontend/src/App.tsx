@@ -589,140 +589,128 @@ function Overview() {
     ]);
     return { runs, students, pending };
   }, [workspace]);
+  if (!workspace) {
+    return (
+      <>
+        <PageHeader eyebrow="PUBLIC DEMO" title="Student enquiries.">
+          Choose an example to explore how a teacher reviews an enquiry.
+        </PageHeader>
+        <section
+          className="panel overview-enquiries"
+          aria-labelledby="overview-enquiries-title"
+        >
+          <div className="section-heading">
+            <div>
+              <div className="eyebrow">FICTIONAL EXAMPLES</div>
+              <h2 id="overview-enquiries-title">Choose an enquiry</h2>
+            </div>
+            <Link className="inline-link" to={`${base}/reviews`}>
+              View queue <ArrowRight size={16} />
+            </Link>
+          </div>
+          <LiveReviewCases dashboard />
+        </section>
+        <div className="example-footnote">
+          <CircleHelp size={16} />
+          <p>
+            Fictional examples. Generate a response to review; no email is sent.
+          </p>
+        </div>
+      </>
+    );
+  }
   return (
     <>
-      <PageHeader
-        eyebrow={workspace ? "AT A GLANCE" : "A DANCE STUDIO AI COPILOT"}
-        title={
-          workspace
-            ? "Your studio, in view."
-            : "Student enquiries, ready for teacher review."
-        }
-      >
-        {workspace
-          ? "Review enquiries with the conversation and studio context beside you."
-          : "Explore how an enquiry becomes a draft for teacher review."}
+      <PageHeader eyebrow="AT A GLANCE" title="Your studio, in view.">
+        Review enquiries with the conversation and studio context beside you.
       </PageHeader>
       <section className="hero panel">
         <div className="hero-copy">
           <div className="eyebrow">
             <span className="availability-dot" />
-            {workspace ? "READY FOR HUMAN REVIEW" : "HOW IT WORKS"}
+            READY FOR HUMAN REVIEW
           </div>
-          <h2>
-            {workspace
-              ? "Every email has a story behind it."
-              : "From email to review."}
-          </h2>
+          <h2>Every email has a story behind it.</h2>
           <p>
-            {workspace
-              ? "The copilot connects the conversation, student history, and class timetable to prepare a draft for a teacher to review."
-              : "Email + studio context → a draft for your review."}
+            The copilot connects the conversation, student history, and class
+            timetable to prepare a draft for a teacher to review.
           </p>
           <Link className="button primary" to={`${base}/reviews`}>
-            {workspace ? "Open review queue" : "Explore the review queue"}
-            <ArrowRight size={17} />
+            Open review queue <ArrowRight size={17} />
           </Link>
           <span className="hero-caption">
-            {workspace
-              ? "Approval books a proposed session and saves the response."
-              : "Fictional examples · No email sent"}
+            Approval books a proposed session and saves the response.
           </span>
         </div>
-        {workspace ? (
-          <div
-            className="hero-visual"
-            aria-label="An email becomes a contextual draft for teacher review"
-          >
-            <div className="orbit orbit-one" />
-            <div className="orbit orbit-two" />
-            <div className="floating-note note-email">
-              <span className="visual-icon">
-                <Mail size={18} />
-              </span>
-              <div>
-                <small>INCOMING EMAIL</small>
-                <strong>
-                  “Actually, Saturday
-                  <br />
-                  would be better.”
-                </strong>
-              </div>
-              <span className="note-counter">01</span>
+        <div
+          className="hero-visual"
+          aria-label="An email becomes a contextual draft for teacher review"
+        >
+          <div className="orbit orbit-one" />
+          <div className="orbit orbit-two" />
+          <div className="floating-note note-email">
+            <span className="visual-icon">
+              <Mail size={18} />
+            </span>
+            <div>
+              <small>INCOMING EMAIL</small>
+              <strong>
+                “Actually, Saturday
+                <br />
+                would be better.”
+              </strong>
             </div>
-            <div className="visual-connector">
-              <ArrowDown size={23} />
-            </div>
-            <div className="floating-note note-context">
-              <span className="visual-icon">
-                <GitBranch size={18} />
-              </span>
-              <div>
-                <small>CONTEXT CONNECTED</small>
-                <strong>History. Memory. Timetable.</strong>
-              </div>
-              <Check size={17} />
-            </div>
-            <div className="floating-note note-draft">
-              <span className="visual-icon">
-                <FileText size={18} />
-              </span>
-              <div>
-                <small>A DRAFT, WITH REASONS</small>
-                <strong>Ready for a human perspective.</strong>
-              </div>
-              <span className="draft-dot" />
-            </div>
-            <div className="visual-footnote">
-              <Sparkles size={13} />
-              Assist the judgement. Keep the human.
-            </div>
+            <span className="note-counter">01</span>
           </div>
-        ) : (
-          <div className="case-preview" aria-label="Example enquiry preview">
-            <span className="eyebrow">A FICTIONAL ENQUIRY</span>
-            <div className="case-preview-step">
-              <small>STUDENT EMAIL</small>
-              <strong>“Actually, Saturday 13 February would be better.”</strong>
-            </div>
-            <div className="case-preview-step">
-              <small>SUPPORTING CONTEXT</small>
-              <span>Student history · Studio policy · Class availability</span>
-            </div>
-            <div className="case-preview-step">
-              <small>TEACHER REVIEW</small>
-              <span>Review the draft and proposed booking.</span>
-            </div>
-            <Link className="inline-link" to="/demo/reviews/live-booking">
-              Explore this enquiry <ArrowRight size={16} />
-            </Link>
+          <div className="visual-connector">
+            <ArrowDown size={23} />
           </div>
-        )}
-      </section>
-      {workspace && (
-        <div className="metric-grid">
-          <Metric
-            value={value?.pending.total}
-            label="Awaiting review"
-            note="Drafts ready for your attention"
-            icon={<Mail size={20} />}
-          />
-          <Metric
-            value={value?.students.total}
-            label="Student profiles"
-            note="History and source-linked context"
-            icon={<Users size={20} />}
-          />
+          <div className="floating-note note-context">
+            <span className="visual-icon">
+              <GitBranch size={18} />
+            </span>
+            <div>
+              <small>CONTEXT CONNECTED</small>
+              <strong>History. Memory. Timetable.</strong>
+            </div>
+            <Check size={17} />
+          </div>
+          <div className="floating-note note-draft">
+            <span className="visual-icon">
+              <FileText size={18} />
+            </span>
+            <div>
+              <small>A DRAFT, WITH REASONS</small>
+              <strong>Ready for a human perspective.</strong>
+            </div>
+            <span className="draft-dot" />
+          </div>
+          <div className="visual-footnote">
+            <Sparkles size={13} />
+            Assist the judgement. Keep the human.
+          </div>
         </div>
-      )}
+      </section>
+      <div className="metric-grid">
+        <Metric
+          value={value?.pending.total}
+          label="Awaiting review"
+          note="Drafts ready for your attention"
+          icon={<Mail size={20} />}
+        />
+        <Metric
+          value={value?.students.total}
+          label="Student profiles"
+          note="History and source-linked context"
+          icon={<Users size={20} />}
+        />
+      </div>
       <ErrorBox error={error} retry={refresh} />
       <section className="panel">
         <div className="section-heading">
           <div>
-            {workspace && (
-              <div className="eyebrow">THE CONVERSATION CONTINUES</div>
-            )}
-            <h2>{workspace ? "Recent enquiries" : "Choose an enquiry"}</h2>
+            <div className="eyebrow">THE CONVERSATION CONTINUES</div>
+            <h2>Recent enquiries</h2>
           </div>
           <Link className="inline-link" to={`${base}/reviews`}>
             View all <ArrowRight size={16} />
@@ -731,27 +719,13 @@ function Overview() {
         {loading && !value ? (
           <Loading />
         ) : (
-          value &&
-          (workspace ? (
-            <RunRows runs={value.runs.items} />
-          ) : (
-            <LiveReviewCases />
-          ))
+          value && <RunRows runs={value.runs.items} />
         )}
       </section>
-      {!workspace && (
-        <div className="example-footnote">
-          <CircleHelp size={16} />
-          <p>
-            Fictional examples. Review queue responses are generated on request;
-            other records are predefined. No real studio or student is
-            represented.
-          </p>
-        </div>
-      )}
     </>
   );
 }
+
 function Metric({
   value,
   label,
