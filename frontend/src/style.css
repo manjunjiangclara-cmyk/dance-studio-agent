@@ -4312,6 +4312,16 @@ h3 {
 .run-person > .case-description {
   white-space: normal;
   overflow: visible;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.review-email-address {
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 .run-person > .dashboard-case-category {
   color: #475569;

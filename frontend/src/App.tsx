@@ -918,7 +918,7 @@ function Overview() {
         {loading && !value ? (
           <Loading />
         ) : (
-          value && <RunRows runs={value.runs.items} />
+          value && <RunRows runs={value.runs.items} showEmailFallback />
         )}
       </section>
     </>
@@ -947,7 +947,13 @@ function Metric({
     </div>
   );
 }
-function RunRows({ runs }: { runs: RunSummary[] }) {
+function RunRows({
+  runs,
+  showEmailFallback = false,
+}: {
+  runs: RunSummary[];
+  showEmailFallback?: boolean;
+}) {
   const { base } = useSite();
   if (!runs.length) return <Empty>No enquiries match this view.</Empty>;
   return (
@@ -963,7 +969,12 @@ function RunRows({ runs }: { runs: RunSummary[] }) {
           </span>
           <div className="run-person">
             <strong>{run.student_name}</strong>
-            <span>{run.request_summary || run.student_email}</span>
+            {run.request_summary && (
+              <span className="case-description">{run.request_summary}</span>
+            )}
+            {showEmailFallback && !run.request_summary && (
+              <span>{run.student_email}</span>
+            )}
             <IntentBadges routing={run.routing} />
           </div>
           <div className="run-meta">
@@ -1560,6 +1571,7 @@ function ReviewDetail({ id }: { id: string }) {
             >
               <div className="message-meta">
                 <strong>{student.display_name}</strong>
+                <span className="review-email-address">{student.email}</span>
                 <small>{timeLabel(sourceMessage.occurred_at)}</small>
               </div>
               <p>{sourceMessage.body}</p>

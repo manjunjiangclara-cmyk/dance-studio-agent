@@ -31,12 +31,18 @@ test("visitors generate and review a temporary live response", async ({
   const julesRow = page.getByRole("link", {
     name: /Questions about starting ballet/,
   });
-  await expect(alexRow).toContainText("alex@example.test");
+  await expect(alexRow).not.toContainText("alex@example.test");
+  await expect(alexRow).toContainText("Can't attend Monday");
   await expect(alexRow).toContainText("7 Feb 2027");
   await expect(alexRow.locator("time")).toBeVisible();
-  await expect(julesRow).toContainText("jules@example.test");
+  await expect(julesRow).not.toContainText("jules@example.test");
+  await expect(julesRow).toContainText("Asks what to wear");
   await expect(julesRow).toContainText("7 Feb 2027");
   await expect(julesRow.locator("time")).toBeVisible();
+  await expect(alexRow.locator(".intent-badge")).toHaveText("Makeup");
+  await expect(julesRow.locator(".intent-badge")).toHaveText(
+    "New student enquiry",
+  );
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -47,6 +53,13 @@ test("visitors generate and review a temporary live response", async ({
     page.getByRole("heading", { name: "Makeup for Monday 8 February" }),
   ).toBeVisible();
   await expect(page.getByText(/From alex@example.test/)).toBeVisible();
+  await expect(page.getByText("alex@example.test", { exact: true })).toHaveCSS(
+    "font-family",
+    /monospace/,
+  );
+  await expect(page.locator(".page-heading .intent-badge")).toHaveText(
+    "Makeup",
+  );
   await expect(
     page.getByText("Starting a draft uses one of 20 shared daily runs."),
   ).toBeVisible();
@@ -57,6 +70,12 @@ test("visitors generate and review a temporary live response", async ({
     .getByRole("list", { name: "Student email conversation" })
     .getByRole("listitem");
   await expect(messages).toHaveCount(2);
+  for (const message of await messages.all()) {
+    await expect(message.locator(".live-conversation-bubble")).not.toHaveCSS(
+      "font-family",
+      /monospace/,
+    );
+  }
   await expect(messages.nth(0).locator("time")).toHaveAttribute(
     "datetime",
     "2027-02-07T10:00:00+11:00",
