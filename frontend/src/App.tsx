@@ -691,11 +691,50 @@ function Overview() {
       <>
         <PageHeader
           eyebrow="PUBLIC DEMO · FICTIONAL DATA"
-          title="Your studio at a glance."
+          title="AI support for every enquiry."
         >
-          See how AI helps turn student enquiries into drafts for teacher
-          review.
+          From a student’s email to a draft ready for your review.
         </PageHeader>
+        <section className="ai-workflow" aria-labelledby="ai-workflow-title">
+          <div className="ai-workflow-heading">
+            <span className="ai-workflow-sparkle">
+              <Sparkles size={19} aria-hidden="true" />
+            </span>
+            <div>
+              <span className="eyebrow">YOUR AI COPILOT</span>
+              <h2 id="ai-workflow-title">From enquiry to response</h2>
+            </div>
+          </div>
+          <ol className="ai-workflow-steps">
+            <li>
+              <span className="ai-step-icon">
+                <Mail size={18} aria-hidden="true" />
+              </span>
+              <div>
+                <strong>Student enquiry</strong>
+                <span>Read the conversation</span>
+              </div>
+            </li>
+            <li className="ai-step-highlight">
+              <span className="ai-step-icon">
+                <Sparkles size={18} aria-hidden="true" />
+              </span>
+              <div>
+                <strong>AI-assisted draft</strong>
+                <span>Uses example studio context</span>
+              </div>
+            </li>
+            <li>
+              <span className="ai-step-icon">
+                <ClipboardCheck size={18} aria-hidden="true" />
+              </span>
+              <div>
+                <strong>Teacher review</strong>
+                <span>You make the decision</span>
+              </div>
+            </li>
+          </ol>
+        </section>
         <div className="overview-dashboard">
           <section
             className="panel overview-enquiries"

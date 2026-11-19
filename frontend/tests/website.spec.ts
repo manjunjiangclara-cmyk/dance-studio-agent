@@ -35,10 +35,19 @@ test("homepage previews and links to both fictional enquiries", async ({
 }) => {
   await page.goto("/demo");
   await expect(
-    page.getByText(
-      "See how AI helps turn student enquiries into drafts for teacher review.",
-    ),
+    page.getByRole("heading", { name: "From enquiry to response" }),
   ).toBeVisible();
+  await expect(
+    page.getByText("AI-assisted draft", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("You make the decision", { exact: true }),
+  ).toBeVisible();
+  await expect(page.locator(".ai-workflow-steps li strong")).toHaveText([
+    "Student enquiry",
+    "AI-assisted draft",
+    "Teacher review",
+  ]);
   await expect(page.getByText("Live enquiries", { exact: true })).toHaveCount(
     0,
   );
@@ -81,7 +90,7 @@ test("public examples work without touching the workspace API", async ({
   await page.goto("/");
   await expect(
     page.getByRole("heading", {
-      name: "Your studio at a glance.",
+      name: "AI support for every enquiry.",
     }),
   ).toBeVisible();
   await expect(
