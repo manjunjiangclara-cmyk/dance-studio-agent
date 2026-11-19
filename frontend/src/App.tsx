@@ -28,13 +28,16 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleHelp,
+  ClipboardCheck,
   Database,
   FileText,
+  FlaskConical,
   GitBranch,
   LayoutDashboard,
   LockKeyhole,
   LogOut,
   Mail,
+  MailSearch,
   Menu,
   RefreshCw,
   Search,
@@ -264,6 +267,45 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(workspace);
   const [authError, setAuthError] = useState<Error>();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState<number>();
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const closeButton = useRef<HTMLButtonElement>(null);
+  const closeMenu = useCallback(() => {
+    setMobileOpen(false);
+    menuButton.current?.focus();
+  }, []);
+  useEffect(() => {
+    if (!mobileOpen) return;
+    closeButton.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeMenu();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [mobileOpen, closeMenu]);
+  useEffect(() => {
+    let active = true;
+    setPendingCount(undefined);
+    if (!workspace || !identity.authenticated) return;
+    const load = () => {
+      get<Page<RunSummary>>(workspace, "/agent-runs", {
+        status: "awaiting_review",
+        limit: 1,
+      })
+        .then((result) => {
+          if (active) setPendingCount(result.total);
+        })
+        .catch(() => {
+          if (active) setPendingCount(undefined);
+        });
+    };
+    load();
+    const timer = window.setInterval(load, 30_000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [workspace, identity.authenticated, location.pathname]);
   useEffect(() => {
     let active = true;
     setMobileOpen(false);
@@ -296,12 +338,16 @@ export default function App() {
     id = parts[2];
   const navigation = [
     ["overview", "Overview", LayoutDashboard],
-    ["reviews", "Review queue", Mail],
+    ["reviews", "Review queue", ClipboardCheck],
     ["students", "Students", Users],
     ["timetable", "Timetable", CalendarDays],
     ["database", "Database", Database],
     ["knowledge", "Studio knowledge", BookOpen],
-    ["test-email", workspace ? "Test email" : "Email walkthrough", Send],
+    [
+      "test-email",
+      workspace ? "Test email" : "Email walkthrough",
+      workspace ? FlaskConical : MailSearch,
+    ],
   ] as const;
   const pageLabel =
     navigation.find(([path]) => path === page)?.[1] ||
@@ -330,65 +376,80 @@ export default function App() {
         Skip to content
       </a>
       <div className="app-shell">
-        <aside className={`sidebar ${mobileOpen ? "open" : ""}`}>
+        {mobileOpen && (
+          <div
+            className="sidebar-overlay"
+            aria-hidden="true"
+            onClick={closeMenu}
+          />
+        )}
+        <aside
+          id="main-sidebar"
+          className={`sidebar ${mobileOpen ? "open" : ""}`}
+        >
           <Link className="brand" to={base}>
-            <span className="brand-mark">
-              <GitBranch size={23} />
+            <span className="brand-mark" aria-hidden="true">
+              S
             </span>
             <span>
               studio<span className="brand-light">copilot</span>
-              <small>SPACE TO TEACH</small>
+              <small>YOUR STUDIO, ORGANISED</small>
             </span>
           </Link>
           <button
+            ref={closeButton}
             className="mobile-close icon-button"
             aria-label="Close menu"
-            onClick={() => setMobileOpen(false)}
+            onClick={closeMenu}
           >
             <X />
           </button>
-          <div className="sidebar-label">
-            {workspace ? "YOUR WORKSPACE" : "EXPLORE THE PROJECT"}
-          </div>
           <nav aria-label="Main navigation">
-            {navigation.map(([path, label, Icon]) => (
-              <NavLink
-                key={path}
-                to={path === "overview" ? base : `${base}/${path}`}
-                end={path === "overview"}
-                className={({ isActive }) =>
-                  isActive ? "nav-item active" : "nav-item"
-                }
-              >
-                <Icon size={18} />
-                <span>{label}</span>
-                {path === "reviews" && !workspace && (
-                  <span className="nav-count">2</span>
-                )}
-              </NavLink>
+            {[
+              {
+                label: workspace ? "WORKSPACE" : "EXPLORE",
+                items: navigation.slice(0, 4),
+              },
+              { label: "STUDIO SETUP", items: [navigation[5], navigation[4]] },
+              { label: "TOOLS", items: navigation.slice(6) },
+            ].map((group) => (
+              <div className="nav-group" key={group.label}>
+                <div className="sidebar-label">{group.label}</div>
+                {group.items.map(([path, label, Icon]) => (
+                  <NavLink
+                    key={path}
+                    to={path === "overview" ? base : `${base}/${path}`}
+                    end={path === "overview"}
+                    className={({ isActive }) =>
+                      isActive ? "nav-item active" : "nav-item"
+                    }
+                  >
+                    <Icon size={18} aria-hidden="true" />
+                    <span>{label}</span>
+                    {path === "reviews" &&
+                      pendingCount !== undefined &&
+                      pendingCount > 0 && (
+                        <span
+                          className="nav-count"
+                          aria-label={`${pendingCount} awaiting review`}
+                        >
+                          {pendingCount}
+                        </span>
+                      )}
+                  </NavLink>
+                ))}
+              </div>
             ))}
           </nav>
-          <div className="sidebar-note">
-            <span className="tiny-icon">
-              <BookOpen size={19} />
-            </span>
-            <strong>A working idea, made visible.</strong>
-            <p>From an email to an informed draft.</p>
-            <Link to={`${base}/database`}>
-              Browse the database <ArrowUpRight size={15} />
-            </Link>
-          </div>
-          <div className="sidebar-footer">
-            <span className="availability-dot" />
-            Independent portfolio project
-            <small>Built for a dance studio workflow.</small>
-          </div>
         </aside>
         <div className="main-column">
           <header className="topbar">
             <button
+              ref={menuButton}
               className="mobile-menu icon-button"
               aria-label="Open menu"
+              aria-expanded={mobileOpen}
+              aria-controls="main-sidebar"
               onClick={() => setMobileOpen(true)}
             >
               <Menu />
