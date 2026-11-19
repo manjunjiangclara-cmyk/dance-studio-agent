@@ -609,7 +609,7 @@ export default function App() {
                   <>
                     <div className="page-heading">
                       <div>
-                        <div className="eyebrow">Studio settings</div>
+                        <div className="eyebrow">YOUR STUDIO · AI CONTEXT</div>
                         <h1>Studio knowledge</h1>
                         <p>
                           Manage the rules and reference material for your

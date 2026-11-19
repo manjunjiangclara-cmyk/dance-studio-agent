@@ -7,7 +7,7 @@ type Summary = {
   id: string;
   title: string;
   filename: string;
-  updated_at: string;
+  updated_at: string | null;
   current_revision: number;
   archived_at?: string | null;
   byte_size: number;
@@ -37,20 +37,7 @@ type Preview = {
   next_offset: number | null;
   total_characters: number;
 };
-const example: Summary & { content: string } = {
-  id: "example",
-  title: "Studio welcome",
-  filename: "welcome.md",
-  content: "# Welcome\n\nThis is an illustrative studio document.",
-  updated_at: "2026-01-01T00:00:00Z",
-  current_revision: 1,
-  byte_size: 59,
-  sha256: "",
-  hash_origin: "stored_text_utf8",
-  ingestion_status: "ready",
-  effective_from: null,
-  effective_to: null,
-};
+type PublicDocument = Summary & { content: string };
 const makeDraft = (value: Summary, content?: string): Draft => ({
   title: value.title,
   filename: value.filename,
@@ -101,10 +88,13 @@ export function DocumentsPage({
     let active = true;
     (workspace
       ? request<Summary[]>(`${root}?archived=${showArchived}`)
-      : Promise.resolve([example])
+      : request<PublicDocument[]>("/api/public-demo/documents")
     )
       .then((value) => {
-        if (active) setDocuments(value);
+        if (active) {
+          setDocuments(value);
+          setError("");
+        }
       })
       .catch((err) => {
         if (active) setError((err as Error).message);
@@ -159,9 +149,14 @@ export function DocumentsPage({
     target?: { revision: number; offset: number },
     sequence = ++loadSequence.current,
   ) {
+    const publicDocuments = workspace
+      ? []
+      : await request<PublicDocument[]>("/api/public-demo/documents");
+    const publicDocument = publicDocuments.find((item) => item.id === id);
+    if (!workspace && !publicDocument) throw new Error("Document not found.");
     const value = workspace
       ? await request<Summary>(`${root}/${id}/metadata`)
-      : example;
+      : publicDocument!;
     const [history, content] = await Promise.all([
       workspace
         ? request<Revision[]>(`${root}/${id}/revisions`)
@@ -171,7 +166,7 @@ export function DocumentsPage({
           ? request<{ content: string; current_revision: number }>(
               `${root}/${id}`,
             )
-          : Promise.resolve(example)
+          : Promise.resolve(publicDocument!)
         : Promise.resolve(undefined),
     ]);
     if (content && content.current_revision !== value.current_revision) {
@@ -188,10 +183,10 @@ export function DocumentsPage({
         )
       : {
           revision: 1,
-          content: example.content,
+          content: publicDocument!.content,
           offset: 0,
           next_offset: null,
-          total_characters: example.content.length,
+          total_characters: publicDocument!.content.length,
         };
     if (sequence !== loadSequence.current) return;
     const next = makeDraft(value, content?.content);
@@ -523,8 +518,17 @@ export function DocumentsPage({
       )}
       {!documents && !error && <p role="status">Loading documents…</p>}
       {documents && (
-        <section className="panel policy-form">
-          <h2>Document library</h2>
+        <section className="panel policy-form document-library">
+          <div className="document-library-heading">
+            <div>
+              <h2>Document library</h2>
+              <p>Reference material for answering student enquiries.</p>
+            </div>
+            <span className="document-count">
+              {documents.length}{" "}
+              {documents.length === 1 ? "document" : "documents"}
+            </span>
+          </div>
           {workspace && (
             <label>
               <input
@@ -560,11 +564,10 @@ export function DocumentsPage({
                   >
                     {item.title}
                   </button>
-                  <span>
-                    {" "}
-                    · Revision {item.current_revision} ·{" "}
-                    {item.byte_size.toLocaleString()} bytes · Updated{" "}
-                    {new Date(item.updated_at).toLocaleDateString()}
+                  <span className="document-meta">
+                    Revision {item.current_revision}
+                    {item.updated_at &&
+                      ` · Updated ${new Date(item.updated_at).toLocaleDateString()}`}
                   </span>
                 </li>
               ))}

@@ -546,6 +546,27 @@ def test_custom_fee_question_requires_teacher_even_if_model_omits_missing_item()
     assert result["missing_information"] == ["Trial fee"]
 
 
+def test_public_documents_supply_the_demo_catalog():
+    client = TestClient(api.create_public_demo_app())
+    response = client.get("/api/public-demo/documents")
+    assert response.status_code == 200
+    documents = {item["id"]: item for item in response.json()}
+    clothing = documents["beginner-clothing"]
+    welcome = documents["studio-welcome"]
+    assert clothing["content"] in CATALOG["document"]["clothing"]
+    assert welcome["content"] == CATALOG["document"]["unrelated"]
+    assert documents["trials-and-fees"]["content"] in CATALOG["document"]["missing_fee"]
+    assert clothing["byte_size"] == len(clothing["content"].encode("utf-8"))
+    from studio_copilot.public_demo.fixtures import CUSTOM_CATALOG
+
+    for catalog in CUSTOM_CATALOG.values():
+        assert documents["first-class-guide"]["content"] == catalog["first_class"]
+        assert documents["makeup-guidelines"]["content"] == catalog["makeup_guide"]
+        assert documents["class-information"]["content"] == catalog["class_information"]
+        assert documents["trials-and-fees"]["content"] == catalog["trials_and_fees"]
+        assert welcome["content"] == catalog["welcome"]
+
+
 def test_new_enquirer_has_no_existing_student_history(client, demo):
     from studio_copilot.public_demo.fixtures import CUSTOM_CATALOG, CUSTOM_STUDENTS
 

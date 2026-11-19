@@ -8,7 +8,7 @@ from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.routing import APIRoute
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from studio_copilot.public_demo.fixtures import CUSTOM_STUDENTS
+from studio_copilot.public_demo.fixtures import CUSTOM_STUDENTS, PUBLIC_DOCUMENTS
 from studio_copilot.public_demo.service import PublicDemo
 
 
@@ -81,6 +81,24 @@ def token(request):
     if not value.startswith("Bearer ") or len(value) > 100:
         raise HTTPException(401, "A demo-run token is required.")
     return value[7:]
+
+
+@router.get("/documents")
+def documents():
+    return [
+        {
+            **document,
+            "current_revision": document["revision"],
+            "byte_size": len(document["content"].encode("utf-8")),
+            "ingestion_status": "ready",
+            "updated_at": None,
+            "sha256": "",
+            "hash_origin": "stored_text_utf8",
+            "effective_from": None,
+            "effective_to": None,
+        }
+        for document in PUBLIC_DOCUMENTS
+    ]
 
 
 @router.post("/runs")
