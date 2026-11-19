@@ -30,6 +30,55 @@ test("breadcrumb follows the current page and links back from details", async ({
   await expect(page.getByText("Public walkthrough")).toHaveCount(0);
 });
 
+test("homepage previews and links to both fictional enquiries", async ({
+  page,
+}) => {
+  await page.goto("/demo");
+  await expect(
+    page.getByRole("heading", { name: "From enquiry to response" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("AI-assisted draft", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("You make the decision", { exact: true }),
+  ).toBeVisible();
+  await expect(page.locator(".ai-workflow-steps li strong")).toHaveText([
+    "Student enquiry",
+    "AI-assisted draft",
+    "Teacher review",
+  ]);
+  await expect(page.getByText("Live enquiries", { exact: true })).toHaveCount(
+    0,
+  );
+  await expect(page.getByText("Student profiles", { exact: true })).toHaveCount(
+    0,
+  );
+  await expect(
+    page.getByText("FICTIONAL EXAMPLES", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("Explore example")).toHaveCount(2);
+  await expect(page.getByText("Example snapshot · 11 Feb 2027")).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "View timetable" }),
+  ).toHaveAttribute("href", "/demo/timetable");
+  await expect(
+    page.getByRole("link", { name: "Studio rules", exact: true }),
+  ).toHaveAttribute("href", "/demo/knowledge/rules");
+  await page.getByRole("link", { name: /Alex Morgan/ }).click();
+  await expect(page).toHaveURL(/\/demo\/reviews\/live-booking$/);
+  await expect(
+    page.getByRole("heading", { name: "Makeup for Monday 8 February" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Actually, Saturday 13 February would be better."),
+  ).toBeVisible();
+  await page.goto("/demo");
+  await page.getByRole("link", { name: /Jules Park/ }).click();
+  await expect(page).toHaveURL(/\/demo\/reviews\/live-document$/);
+  await expect(page.getByText(/I'm new to ballet/)).toBeVisible();
+});
+
 test("public examples work without touching the workspace API", async ({
   page,
 }, testInfo) => {
@@ -40,7 +89,9 @@ test("public examples work without touching the workspace API", async ({
   });
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "A little more room to teach." }),
+    page.getByRole("heading", {
+      name: "AI support for every enquiry.",
+    }),
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Explore the records", exact: true }),
@@ -52,16 +103,20 @@ test("public examples work without touching the workspace API", async ({
     page.getByRole("navigation", { name: "Engineering resources" }),
   ).toHaveCount(0);
   await expect(
-    page.getByRole("heading", { name: "Stories in the review queue" }),
+    page.getByRole("heading", { name: "Choose an enquiry" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Try the guided demo" }),
+    page.getByRole("link", { name: "View queue", exact: true }),
   ).toBeVisible();
   await page.screenshot({
     path: testInfo.outputPath("overview.png"),
     fullPage: true,
   });
-  await page.goto("/demo/reviews");
+  await page.getByRole("link", { name: "View queue", exact: true }).click();
+  await expect(page).toHaveURL(/\/demo\/reviews$/);
+  await expect(
+    page.getByText(/Choose a fictional enquiry to see the email/),
+  ).toBeVisible();
   await expect(
     page.getByRole("link", { name: /Makeup for Monday 8 February/ }),
   ).toBeVisible();
@@ -513,6 +568,17 @@ async function mockWorkspace(
   });
   return { getBody: () => responseBody, getIntakeCount: () => intakeCount };
 }
+
+test("owner overview retains studio metrics", async ({ page }) => {
+  await mockWorkspace(page);
+  await page.goto("/workspace");
+  await expect(
+    page.getByText("Awaiting review", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Student profiles", { exact: true }),
+  ).toBeVisible();
+});
 
 test("owner approval submits edited text and the reviewed revision", async ({
   page,

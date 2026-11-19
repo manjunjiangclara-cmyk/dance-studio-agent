@@ -424,7 +424,9 @@ export default function App() {
             </span>
             <span>
               studio<span className="brand-light">copilot</span>
-              <small>YOUR STUDIO, ORGANISED</small>
+              <small>
+                <Sparkles size={10} aria-hidden="true" /> AI FOR YOUR STUDIO
+              </small>
             </span>
           </Link>
           <button
@@ -681,45 +683,162 @@ function Overview() {
     ]);
     return { runs, students, pending };
   }, [workspace]);
+  if (!workspace) {
+    const exampleSessions = examples.class_sessions
+      .filter((session) => session.starts_at.slice(0, 10) >= examples.as_of)
+      .slice()
+      .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+      .slice(0, 2);
+    return (
+      <>
+        <PageHeader
+          eyebrow="PUBLIC DEMO · FICTIONAL DATA"
+          title="AI support for every enquiry."
+        >
+          From a student’s email to a draft ready for your review.
+        </PageHeader>
+        <section className="ai-workflow" aria-labelledby="ai-workflow-title">
+          <div className="ai-workflow-heading">
+            <span className="ai-workflow-sparkle">
+              <Sparkles size={19} aria-hidden="true" />
+            </span>
+            <div>
+              <span className="eyebrow">YOUR AI COPILOT</span>
+              <h2 id="ai-workflow-title">From enquiry to response</h2>
+            </div>
+          </div>
+          <ol className="ai-workflow-steps">
+            <li>
+              <span className="ai-step-icon">
+                <Mail size={18} aria-hidden="true" />
+              </span>
+              <div>
+                <strong>Student enquiry</strong>
+                <span>Read the conversation</span>
+              </div>
+            </li>
+            <li className="ai-step-highlight">
+              <span className="ai-step-icon">
+                <Sparkles size={18} aria-hidden="true" />
+              </span>
+              <div>
+                <strong>AI-assisted draft</strong>
+                <span>Uses example studio context</span>
+              </div>
+            </li>
+            <li>
+              <span className="ai-step-icon">
+                <ClipboardCheck size={18} aria-hidden="true" />
+              </span>
+              <div>
+                <strong>Teacher review</strong>
+                <span>You make the decision</span>
+              </div>
+            </li>
+          </ol>
+        </section>
+        <div className="overview-dashboard">
+          <section
+            className="panel overview-enquiries"
+            aria-labelledby="overview-enquiries-title"
+          >
+            <div className="section-heading">
+              <div>
+                <div className="eyebrow">FICTIONAL EXAMPLES</div>
+                <h2 id="overview-enquiries-title">Choose an enquiry</h2>
+              </div>
+              <Link className="inline-link" to={`${base}/reviews`}>
+                View queue <ArrowRight size={16} />
+              </Link>
+            </div>
+            <LiveReviewCases dashboard />
+          </section>
+          <aside
+            className="overview-dashboard-side"
+            aria-label="Studio overview"
+          >
+            <section
+              className="panel dashboard-timetable"
+              aria-labelledby="dashboard-timetable-title"
+            >
+              <div className="section-heading">
+                <div>
+                  <div className="eyebrow">EXAMPLE SCHEDULE</div>
+                  <h2 id="dashboard-timetable-title">Classes</h2>
+                </div>
+                <CalendarDays size={20} aria-hidden="true" />
+              </div>
+              <p className="dashboard-snapshot">
+                Example snapshot · {dateLabel(examples.as_of)}
+              </p>
+              {exampleSessions.map((session) => {
+                const cls = examples.classes.find(
+                  (item) => item.id === session.class_id,
+                );
+                const location = examples.locations.find(
+                  (item) => item.id === cls?.location_id,
+                );
+                return (
+                  <div className="dashboard-session" key={session.id}>
+                    <strong>{cls?.name ?? "Class"}</strong>
+                    <span>{timeLabel(session.starts_at)}</span>
+                    {location && <span>{location.name}</span>}
+                  </div>
+                );
+              })}
+              <Link className="inline-link" to={`${base}/timetable`}>
+                View timetable <ArrowRight size={16} />
+              </Link>
+            </section>
+            <section
+              className="panel dashboard-shortcuts"
+              aria-labelledby="dashboard-shortcuts-title"
+            >
+              <div className="section-heading">
+                <h2 id="dashboard-shortcuts-title">Studio resources</h2>
+                <BookOpen size={20} aria-hidden="true" />
+              </div>
+              <Link to={`${base}/knowledge/rules`}>
+                <span>Studio rules</span>
+                <ArrowUpRight size={16} />
+              </Link>
+              <Link to={`${base}/students`}>
+                <span>Student records</span>
+                <ArrowUpRight size={16} />
+              </Link>
+            </section>
+          </aside>
+        </div>
+        <div className="example-footnote">
+          <CircleHelp size={16} />
+          <p>
+            Fictional examples. Generate a response to review; no email is sent.
+          </p>
+        </div>
+      </>
+    );
+  }
   return (
     <>
-      <PageHeader
-        eyebrow={workspace ? "AT A GLANCE" : "A DANCE STUDIO AI COPILOT"}
-        title={
-          workspace ? "Your studio, in view." : "A little more room to teach."
-        }
-      >
-        {workspace
-          ? "Review enquiries with the conversation and studio context beside you."
-          : "Less time piecing together emails. More context for the person making the decision."}
+      <PageHeader eyebrow="AT A GLANCE" title="Your studio, in view.">
+        Review enquiries with the conversation and studio context beside you.
       </PageHeader>
       <section className="hero panel">
         <div className="hero-copy">
           <div className="eyebrow">
             <span className="availability-dot" />
-            {workspace
-              ? "READY FOR HUMAN REVIEW"
-              : "EXPLORE A COMPLETE EXAMPLE"}
+            READY FOR HUMAN REVIEW
           </div>
-          <h2>
-            Every email has
-            <br />a story behind it.
-          </h2>
+          <h2>Every email has a story behind it.</h2>
           <p>
             The copilot connects the conversation, student history, and class
             timetable to prepare a draft for a teacher to review.
           </p>
-          <Link
-            className="button primary"
-            to={workspace ? `${base}/reviews` : "/demo/tour?mode=live"}
-          >
-            {workspace ? "Open review queue" : "Try the guided demo"}
-            <ArrowRight size={17} />
+          <Link className="button primary" to={`${base}/reviews`}>
+            Open review queue <ArrowRight size={17} />
           </Link>
           <span className="hero-caption">
-            {workspace
-              ? "Approval books a proposed session and saves the response."
-              : "Two minutes. Live AI with fictional inputs, or explore the recorded demo."}
+            Approval books a proposed session and saves the response.
           </span>
         </div>
         <div
@@ -773,13 +892,9 @@ function Overview() {
       </section>
       <div className="metric-grid">
         <Metric
-          value={workspace ? value?.pending.total : 2}
-          label={workspace ? "Awaiting review" : "Live enquiries"}
-          note={
-            workspace
-              ? "Drafts ready for your attention"
-              : "Fictional enquiries to explore"
-          }
+          value={value?.pending.total}
+          label="Awaiting review"
+          note="Drafts ready for your attention"
           icon={<Mail size={20} />}
         />
         <Metric
@@ -794,9 +909,7 @@ function Overview() {
         <div className="section-heading">
           <div>
             <div className="eyebrow">THE CONVERSATION CONTINUES</div>
-            <h2>
-              {workspace ? "Recent enquiries" : "Stories in the review queue"}
-            </h2>
+            <h2>Recent enquiries</h2>
           </div>
           <Link className="inline-link" to={`${base}/reviews`}>
             View all <ArrowRight size={16} />
@@ -805,27 +918,13 @@ function Overview() {
         {loading && !value ? (
           <Loading />
         ) : (
-          value &&
-          (workspace ? (
-            <RunRows runs={value.runs.items} />
-          ) : (
-            <LiveReviewCases />
-          ))
+          value && <RunRows runs={value.runs.items} />
         )}
       </section>
-      {!workspace && (
-        <div className="example-footnote">
-          <CircleHelp size={16} />
-          <p>
-            Fictional examples. Review queue responses are generated on request;
-            other records are predefined. No real studio or student is
-            represented.
-          </p>
-        </div>
-      )}
     </>
   );
 }
+
 function Metric({
   value,
   label,

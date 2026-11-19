@@ -4297,6 +4297,104 @@ h3 {
   overflow-wrap: anywhere;
 }
 
+/* Fictional enquiries on the public overview. */
+.overview-enquiries .run-row {
+  padding: 24px 4px;
+}
+.overview-enquiries .avatar {
+  width: 44px;
+  height: 44px;
+}
+.run-person > .case-description {
+  white-space: normal;
+  overflow: visible;
+}
+.run-person > .dashboard-case-category {
+  color: #475569;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  margin: 0 0 5px;
+}
+.dashboard-case-action {
+  color: #075985;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+@media (max-width: 650px) {
+  .dashboard-case-action {
+    margin-left: 56px;
+  }
+}
+
+.overview-dashboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(260px, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.overview-dashboard-side {
+  min-width: 0;
+}
+.dashboard-timetable .section-heading,
+.dashboard-shortcuts .section-heading {
+  margin-bottom: 12px;
+  color: #334155;
+}
+.dashboard-timetable h2,
+.dashboard-shortcuts h2 {
+  font-size: 23px;
+  color: #172235;
+}
+.dashboard-snapshot {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #475569;
+}
+.dashboard-session {
+  display: grid;
+  gap: 3px;
+  padding: 13px 0;
+  border-top: 1px solid #e2e8f0;
+  font-size: 14px;
+  color: #475569;
+}
+.dashboard-session strong {
+  color: #172235;
+  font-size: 15px;
+}
+.dashboard-timetable .inline-link {
+  margin-top: 12px;
+}
+.dashboard-shortcuts a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 0;
+  border-top: 1px solid #e2e8f0;
+  color: #075985;
+  font-weight: 600;
+}
+@media (max-width: 1050px) {
+  .overview-dashboard {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .overview-dashboard-side {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+}
+@media (max-width: 650px) {
+  .overview-dashboard-side {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
 /* Keep daily navigation prominent while separating setup and tools. */
 .sidebar {
   overflow-y: auto;
@@ -4366,4 +4464,104 @@ h3 {
   font-weight: 600;
   line-height: 1;
   transform: none;
+}
+
+/* A compact visual explanation of the AI-assisted workflow. */
+.ai-workflow {
+  margin-bottom: 24px;
+  border: 1px solid #bad0ef;
+  border-radius: 10px;
+  background: linear-gradient(115deg, #eef5ff, #f4f2ff);
+  padding: 21px 24px;
+}
+.ai-workflow-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 17px;
+}
+.ai-workflow-sparkle {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  color: white;
+  background: #514bb4;
+  flex-shrink: 0;
+}
+.ai-workflow-heading .eyebrow {
+  color: #514bb4;
+  font-size: 10px;
+}
+.ai-workflow-heading h2 {
+  font-size: 20px;
+  margin: 3px 0 0;
+}
+.ai-workflow-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  gap: 10px;
+}
+.ai-workflow-steps li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  background: #ffffffc9;
+  border: 1px solid #d9e3f3;
+  border-radius: 8px;
+}
+.ai-workflow-steps .ai-step-highlight {
+  border-color: #b8b0ed;
+  background: #f8f6ff;
+}
+.ai-step-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  height: 34px;
+  width: 34px;
+  border-radius: 9px;
+  color: #34568a;
+  background: #e8effa;
+}
+.ai-step-highlight .ai-step-icon {
+  color: #514bb4;
+  background: #e9e5ff;
+}
+.ai-workflow-steps strong,
+.ai-workflow-steps li div > span {
+  display: block;
+}
+.ai-workflow-steps strong {
+  color: #243248;
+  font-size: 14px;
+}
+.ai-workflow-steps li div > span {
+  color: #475569;
+  font-size: 12px;
+  margin-top: 3px;
+}
+@media (max-width: 650px) {
+  .ai-workflow {
+    padding: 18px;
+  }
+  .ai-workflow-steps {
+    grid-template-columns: 1fr;
+  }
+}
+
+.brand small {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #514bb4;
+}
+.brand small svg {
+  flex-shrink: 0;
 }
