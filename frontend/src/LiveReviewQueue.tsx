@@ -12,6 +12,7 @@ const cases: {
   scenario: TourScenario;
   subject: string;
   email: string;
+  description: string;
   received: string;
   messageTimes: string[];
 }[] = [
@@ -19,6 +20,7 @@ const cases: {
     scenario: "booking",
     subject: "Makeup for Monday 8 February",
     email: "alex@example.test",
+    description: "A makeup request with a change of preferred day.",
     received: "2027-02-07",
     messageTimes: ["2027-02-07T10:00:00+11:00", "2027-02-07T10:05:00+11:00"],
   },
@@ -26,6 +28,7 @@ const cases: {
     scenario: "document",
     subject: "Questions about starting ballet",
     email: "jules@example.test",
+    description: "A beginner asks about starting ballet and trial fees.",
     received: "2027-02-07",
     messageTimes: ["2027-02-07T10:00:00+11:00"],
   },
@@ -114,6 +117,7 @@ export function LiveReviewCases() {
           </span>
           <span className="run-person">
             <strong>{item.subject}</strong>
+            <span className="case-description">{item.description}</span>
             <span>{item.email}</span>
           </span>
           <span className="run-meta live-case-date">

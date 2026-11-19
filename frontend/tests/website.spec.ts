@@ -30,6 +30,30 @@ test("breadcrumb follows the current page and links back from details", async ({
   await expect(page.getByText("Public walkthrough")).toHaveCount(0);
 });
 
+test("homepage previews and links to both fictional enquiries", async ({
+  page,
+}) => {
+  await page.goto("/demo");
+  const preview = page.getByLabel("Example enquiry preview");
+  await expect(
+    preview.getByText(/Saturday 13 February would be better/),
+  ).toBeVisible();
+  await preview.getByRole("link", { name: "Explore this enquiry" }).click();
+  await expect(page).toHaveURL(/\/demo\/reviews\/live-booking$/);
+  await expect(
+    page.getByRole("heading", { name: "Makeup for Monday 8 February" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Actually, Saturday 13 February would be better."),
+  ).toBeVisible();
+  await page.goto("/demo");
+  await page
+    .getByRole("link", { name: /Questions about starting ballet/ })
+    .click();
+  await expect(page).toHaveURL(/\/demo\/reviews\/live-document$/);
+  await expect(page.getByText(/I'm new to ballet/)).toBeVisible();
+});
+
 test("public examples work without touching the workspace API", async ({
   page,
 }, testInfo) => {
@@ -54,7 +78,7 @@ test("public examples work without touching the workspace API", async ({
     page.getByRole("navigation", { name: "Engineering resources" }),
   ).toHaveCount(0);
   await expect(
-    page.getByRole("heading", { name: "Stories in the review queue" }),
+    page.getByRole("heading", { name: "Choose an enquiry" }),
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Explore the review queue" }),

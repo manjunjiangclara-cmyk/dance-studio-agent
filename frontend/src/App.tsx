@@ -612,12 +612,14 @@ function Overview() {
               : "EXPLORE A COMPLETE EXAMPLE"}
           </div>
           <h2>
-            Every email has
-            <br />a story behind it.
+            {workspace
+              ? "Every email has a story behind it."
+              : "See an enquiry through to review."}
           </h2>
           <p>
-            The copilot connects the conversation, student history, and class
-            timetable to prepare a draft for a teacher to review.
+            {workspace
+              ? "The copilot connects the conversation, student history, and class timetable to prepare a draft for a teacher to review."
+              : "Choose a case to explore the email and supporting context, then generate a draft for review."}
           </p>
           <Link className="button primary" to={`${base}/reviews`}>
             {workspace ? "Open review queue" : "Explore the review queue"}
@@ -629,54 +631,81 @@ function Overview() {
               : "Choose a fictional enquiry to explore a live AI draft. No email is sent."}
           </span>
         </div>
-        <div
-          className="hero-visual"
-          aria-label="An email becomes a contextual draft for teacher review"
-        >
-          <div className="orbit orbit-one" />
-          <div className="orbit orbit-two" />
-          <div className="floating-note note-email">
-            <span className="visual-icon">
-              <Mail size={18} />
-            </span>
-            <div>
-              <small>INCOMING EMAIL</small>
-              <strong>
-                “Actually, Saturday
-                <br />
-                would be better.”
-              </strong>
+        {workspace ? (
+          <div
+            className="hero-visual"
+            aria-label="An email becomes a contextual draft for teacher review"
+          >
+            <div className="orbit orbit-one" />
+            <div className="orbit orbit-two" />
+            <div className="floating-note note-email">
+              <span className="visual-icon">
+                <Mail size={18} />
+              </span>
+              <div>
+                <small>INCOMING EMAIL</small>
+                <strong>
+                  “Actually, Saturday
+                  <br />
+                  would be better.”
+                </strong>
+              </div>
+              <span className="note-counter">01</span>
             </div>
-            <span className="note-counter">01</span>
-          </div>
-          <div className="visual-connector">
-            <ArrowDown size={23} />
-          </div>
-          <div className="floating-note note-context">
-            <span className="visual-icon">
-              <GitBranch size={18} />
-            </span>
-            <div>
-              <small>CONTEXT CONNECTED</small>
-              <strong>History. Memory. Timetable.</strong>
+            <div className="visual-connector">
+              <ArrowDown size={23} />
             </div>
-            <Check size={17} />
-          </div>
-          <div className="floating-note note-draft">
-            <span className="visual-icon">
-              <FileText size={18} />
-            </span>
-            <div>
-              <small>A DRAFT, WITH REASONS</small>
-              <strong>Ready for a human perspective.</strong>
+            <div className="floating-note note-context">
+              <span className="visual-icon">
+                <GitBranch size={18} />
+              </span>
+              <div>
+                <small>CONTEXT CONNECTED</small>
+                <strong>History. Memory. Timetable.</strong>
+              </div>
+              <Check size={17} />
             </div>
-            <span className="draft-dot" />
+            <div className="floating-note note-draft">
+              <span className="visual-icon">
+                <FileText size={18} />
+              </span>
+              <div>
+                <small>A DRAFT, WITH REASONS</small>
+                <strong>Ready for a human perspective.</strong>
+              </div>
+              <span className="draft-dot" />
+            </div>
+            <div className="visual-footnote">
+              <Sparkles size={13} />
+              Assist the judgement. Keep the human.
+            </div>
           </div>
-          <div className="visual-footnote">
-            <Sparkles size={13} />
-            Assist the judgement. Keep the human.
+        ) : (
+          <div className="case-preview" aria-label="Example enquiry preview">
+            <span className="eyebrow">A FICTIONAL ENQUIRY</span>
+            <div className="case-preview-step">
+              <small>STUDENT EMAIL</small>
+              <strong>“Actually, Saturday 13 February would be better.”</strong>
+            </div>
+            <div className="case-preview-step">
+              <small>SUPPORTING CONTEXT</small>
+              <span>
+                Earlier request, attendance, studio policy and Saturday class
+                availability.
+              </span>
+            </div>
+            <div className="case-preview-step">
+              <small>TEACHER REVIEW</small>
+              <span>
+                Generate a draft and review the proposed booking before
+                deciding.
+              </span>
+            </div>
+            <Link className="inline-link" to="/demo/reviews/live-booking">
+              Explore this enquiry <ArrowRight size={16} />
+            </Link>
           </div>
-        </div>
+        )}
       </section>
       <div className="metric-grid">
         <Metric
@@ -701,9 +730,7 @@ function Overview() {
         <div className="section-heading">
           <div>
             <div className="eyebrow">THE CONVERSATION CONTINUES</div>
-            <h2>
-              {workspace ? "Recent enquiries" : "Stories in the review queue"}
-            </h2>
+            <h2>{workspace ? "Recent enquiries" : "Choose an enquiry"}</h2>
           </div>
           <Link className="inline-link" to={`${base}/reviews`}>
             View all <ArrowRight size={16} />
