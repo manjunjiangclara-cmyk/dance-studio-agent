@@ -4555,3 +4555,13 @@ h3 {
     grid-template-columns: 1fr;
   }
 }
+
+.brand small {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #514bb4;
+}
+.brand small svg {
+  flex-shrink: 0;
+}

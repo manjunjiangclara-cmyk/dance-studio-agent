@@ -13,7 +13,7 @@ test("sidebar groups navigation and keeps the demo independent of workspace APIs
     await page.getByRole("button", { name: "Open menu" }).click();
   if (testInfo.project.name === "mobile")
     await expect(page.locator(".mobile-close")).toBeFocused();
-  await expect(page.getByText("YOUR STUDIO, ORGANISED")).toBeVisible();
+  await expect(page.getByText("AI FOR YOUR STUDIO")).toBeVisible();
   await expect(page.getByText("A working idea, made visible.")).toHaveCount(0);
   const nav = page.getByRole("navigation", { name: "Main navigation" });
   await expect(nav.getByText("STUDIO SETUP")).toBeVisible();

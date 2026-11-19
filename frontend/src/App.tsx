@@ -424,7 +424,9 @@ export default function App() {
             </span>
             <span>
               studio<span className="brand-light">copilot</span>
-              <small>YOUR STUDIO, ORGANISED</small>
+              <small>
+                <Sparkles size={10} aria-hidden="true" /> AI FOR YOUR STUDIO
+              </small>
             </span>
           </Link>
           <button
