@@ -88,8 +88,13 @@ test("queue and detail expose the saved classification", async ({ page }) => {
   });
   await page.goto("/workspace/reviews");
   const row = page.locator(".run-row");
-  await expect(row).toContainText("Enrolment change");
-  await expect(row).toContainText("General enquiry");
+  await expect(row.locator(".intent-badge")).toHaveText([
+    "Enrolment change",
+    "General enquiry",
+  ]);
+  await expect(row.getByText("Intent:", { exact: true })).toHaveCount(0);
+  await expect(row).not.toContainText("alex@example.test");
+  await expect(row.getByText("Add Monday", { exact: true })).toBeVisible();
   await row.click();
   const supporting = page.locator(".review-support");
   await expect(supporting).not.toHaveAttribute("open", "");

@@ -20,12 +20,18 @@ function intents(routing: unknown): string[] {
     ? value.filter((item): item is string => typeof item === "string")
     : [];
 }
-export function IntentBadges({ routing }: { routing: unknown }) {
+export function IntentBadges({
+  routing,
+  showLabel = false,
+}: {
+  routing: unknown;
+  showLabel?: boolean;
+}) {
   const values = [...new Set(intents(routing))];
   if (!values.length) return null;
   return (
     <div className="intent-badges" aria-label="Classified intents">
-      <span className="intent-label">Intent:</span>
+      {showLabel && <span className="intent-label">Intent:</span>}
       {values.map((intent) => (
         <span className="intent-badge" key={intent}>
           {labels[intent] || intent.replaceAll("_", " ")}
@@ -58,7 +64,7 @@ export function ClassificationPanel({
       ) : (
         <>
           <div className="classification-overview">
-            <IntentBadges routing={routing} />
+            <IntentBadges routing={routing} showLabel />
             <dl className="classification-meta">
               <div>
                 <dt>Workflow</dt>

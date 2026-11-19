@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Sparkles } from "lucide-react";
+import { IntentBadges } from "./Classification";
 import {
   tourBooking,
   tourFixtures,
@@ -15,6 +16,7 @@ const cases: {
   email: string;
   description: string;
   category: string;
+  intent: string;
   received: string;
   messageTimes: string[];
 }[] = [
@@ -24,6 +26,7 @@ const cases: {
     email: "alex@example.test",
     description: "Can't attend Monday and would prefer Saturday.",
     category: "MAKEUP REQUEST",
+    intent: "makeup",
     received: "2027-02-07",
     messageTimes: ["2027-02-07T10:00:00+11:00", "2027-02-07T10:05:00+11:00"],
   },
@@ -33,6 +36,7 @@ const cases: {
     email: "jules@example.test",
     description: "Asks what to wear and how much a trial costs.",
     category: "NEW STUDENT",
+    intent: "new_student_enquiry",
     received: "2027-02-07",
     messageTimes: ["2027-02-07T10:00:00+11:00"],
   },
@@ -123,7 +127,7 @@ export function LiveReviewCases({
           <span className="avatar">
             {item.scenario === "booking" ? "AM" : "JP"}
           </span>
-          <span className="run-person">
+          <div className="run-person">
             {dashboard && (
               <span className="dashboard-case-category">{item.category}</span>
             )}
@@ -131,8 +135,10 @@ export function LiveReviewCases({
               {dashboard ? tourFixtures[item.scenario].student : item.subject}
             </strong>
             <span className="case-description">{item.description}</span>
-            {!dashboard && <span>{item.email}</span>}
-          </span>
+            {!dashboard && (
+              <IntentBadges routing={{ intents: [item.intent] }} />
+            )}
+          </div>
           {dashboard ? (
             <span className="dashboard-case-action">
               Explore example <span aria-hidden="true">→</span>
@@ -217,11 +223,13 @@ export function LiveReviewDetail({ scenario }: { scenario: TourScenario }) {
           <div className="eyebrow">LIVE AI · FICTIONAL ENQUIRY</div>
           <h1>{item.subject}</h1>
           <p>
-            From {item.email} · Received{" "}
+            From <span className="review-email-address">{item.email}</span> ·
+            Received{" "}
             <time dateTime={item.received}>
               {formatReceived(item.received)}
             </time>
           </p>
+          <IntentBadges routing={{ intents: [item.intent] }} />
         </div>
       </header>
       <div className="notice">
