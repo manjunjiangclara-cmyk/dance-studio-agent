@@ -276,6 +276,14 @@ export default function App() {
     menuButton.current?.focus();
   }, []);
   useEffect(() => {
+    const mobile = window.matchMedia("(max-width: 650px)");
+    const onChange = () => {
+      if (!mobile.matches) setMobileOpen(false);
+    };
+    mobile.addEventListener("change", onChange);
+    return () => mobile.removeEventListener("change", onChange);
+  }, []);
+  useEffect(() => {
     if (!mobileOpen) return;
     closeButton.current?.focus();
     const onKeyDown = (event: KeyboardEvent) => {

@@ -55,3 +55,24 @@ test("workspace badge uses the pending total", async ({ page }, testInfo) => {
       .getByLabel("7 awaiting review"),
   ).toBeVisible();
 });
+
+test("resizing to desktop releases the mobile drawer", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/demo");
+  const menu = page.getByRole("button", { name: "Open menu" });
+  await menu.click();
+  await expect(menu).toHaveAttribute("aria-expanded", "true");
+  await page.setViewportSize({ width: 1200, height: 844 });
+  await expect(page.locator(".mobile-menu")).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
+  const lastLink = page
+    .getByRole("navigation", { name: "Main navigation" })
+    .getByRole("link", { name: "Email walkthrough" });
+  await lastLink.focus();
+  await page.keyboard.press("Tab");
+  await expect(
+    page.getByRole("link", { name: "Owner workspace" }),
+  ).toBeFocused();
+});
