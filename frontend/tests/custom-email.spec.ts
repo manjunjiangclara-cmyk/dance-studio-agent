@@ -425,3 +425,38 @@ test("a new simulation supersedes an in-flight draft", async ({ page }) => {
   releaseDraft();
   await expect(page.getByText("Old draft")).toHaveCount(0);
 });
+
+test("makeup evidence identifies the studio guide and student context", async ({
+  page,
+}) => {
+  await page.route("**/api/public-demo/**", (route) => {
+    const stage = new URL(route.request().url()).pathname.split("/").at(-1);
+    if (stage === "runs")
+      return route.fulfill({ json: { token: "test-token" } });
+    return route.fulfill({
+      json: {
+        evidence: [
+          "# Absences and makeup classes\n\nTell the studio about an absence before class starts.",
+          "Maya Chen has a recorded Level 2 and an active enrolment. Do not infer attendance.",
+          "Maya previously wrote: I will miss Monday 8 February.",
+        ],
+        route: "makeup",
+        missing_information: [],
+        student_information: [],
+        model: "test-model",
+      },
+    });
+  });
+  await page.goto("/demo/test-email");
+  await page.getByLabel("Email body").fill("Can I do a makeup class?");
+  await page.getByRole("button", { name: "Simulate email" }).click();
+  const cards = page.locator(".live-evidence-card");
+  await expect(cards).toHaveCount(3);
+  await expect(cards.nth(0)).toContainText("Absences and makeup classes");
+  await expect(cards.nth(1)).toContainText("Student record");
+  await expect(cards.nth(2)).toContainText("Student conversation");
+  await cards.nth(2).getByText("View source").click();
+  await expect(cards.nth(2).locator(".live-evidence-original")).toContainText(
+    "Maya previously wrote: I will miss Monday 8 February.",
+  );
+});

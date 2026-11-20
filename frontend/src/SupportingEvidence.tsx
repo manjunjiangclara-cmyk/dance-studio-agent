@@ -28,6 +28,23 @@ function evidenceInfo(entry: string) {
         "The Saturday Level 2 class has one place available in this example.",
       source: "fact",
     };
+  if (entry.startsWith("# Absences and makeup classes"))
+    return {
+      label: "Absences and makeup classes",
+      summary: "Studio guidance on absence notices and makeup classes.",
+      source: "fact",
+    };
+  if (
+    /^[^\n]+ previously wrote:/.test(entry) ||
+    entry.startsWith("Earlier email,")
+  )
+    return { label: "Student conversation", summary: entry, source: "fact" };
+  if (
+    /^(?:A new enquirer|[^\n]+ has (?:a recorded|recorded|no recorded))/.test(
+      entry,
+    )
+  )
+    return { label: "Student record", summary: entry, source: "fact" };
   if (entry.startsWith("Beginner clothing policy, revision 1:"))
     return {
       label: "Studio policy",

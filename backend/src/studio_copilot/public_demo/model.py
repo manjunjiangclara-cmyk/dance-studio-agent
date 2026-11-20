@@ -124,7 +124,9 @@ class DemoModel:
             instructions += (
                 "Classify the new email: information-only as enquiry, a request to arrange "
                 "a makeup as makeup, unsupported/mixed business actions as teacher_handoff. "
-                "Select relevant catalog IDs for EVERY independent question; "
+                "Select relevant catalog IDs for EVERY independent question and requested action, "
+                "including relevant student history and studio guidance for absence and "
+                "makeup requests; "
                 "omit unrelated entries. "
                 "For what-to-wear questions include clothing; for fee or cost questions include "
                 "missing_fee even though it documents the missing price. An unknown price must "
@@ -191,6 +193,20 @@ class DemoModel:
             ):
                 if re.search(pattern, context["email_body"], re.IGNORECASE) and source not in ids:
                     ids.append(source)
+            email = context["email_body"]
+            makeup_request = parsed.route == "makeup" or re.search(
+                r"\bmake[\s-]?up\s+(?:(?:a|the|my)\s+)?(?:class|lesson|session)s?\b"
+                r"|\babsen(?:ce|t)\b|補課|补课|請假|请假",
+                email,
+                re.IGNORECASE,
+            )
+            missed_class = re.search(r"\b(?:miss|cancel)\w*\b", email, re.IGNORECASE) and re.search(
+                r"\b(?:class|lesson|session)\b", email, re.IGNORECASE
+            )
+            if makeup_request or missed_class:
+                for source in ("makeup_guide", "student", "history"):
+                    if source in catalog and source not in ids:
+                        ids.append(source)
             missing = list(parsed.missing_information)
             if re.search(r"fee|cost|price|費|费", context["email_body"], re.IGNORECASE) and not any(
                 re.search(r"fee|cost|price|費|费", item, re.IGNORECASE) for item in missing

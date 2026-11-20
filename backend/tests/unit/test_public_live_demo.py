@@ -760,3 +760,95 @@ def test_custom_draft_receives_student_clarification():
     )
     assert json.loads(calls[0]["input"])["student_information"] == ["Which class?"]
     assert "ask the student" in calls[0]["instructions"]
+
+
+@pytest.mark.parametrize(
+    "email",
+    [
+        "Hi can i do a makeup class for Monday 8 February.",
+        "Can I arrange a make-up lesson?",
+        "I need a make up class.",
+        "I will miss my class.",
+        "Can I cancel my lesson?",
+        "我想补课",
+        "我要請假",
+    ],
+)
+def test_makeup_evidence_backstop_uses_only_selected_student_catalog(email):
+    from studio_copilot.public_demo.fixtures import CUSTOM_CATALOG
+    from studio_copilot.public_demo.model import CustomSelection
+
+    student = "833efaed-1e89-5f89-8b47-cb9cbcf3399c"
+    model, _ = model_with(
+        SimpleNamespace(
+            status="completed",
+            output_parsed=CustomSelection(route="enquiry", ids=[], missing_information=[]),
+        )
+    )
+    result = model.call("custom", "evidence", [], context={"student": student, "email_body": email})
+    catalog = CUSTOM_CATALOG[student]
+    assert result["evidence"] == [catalog["makeup_guide"], catalog["student"], catalog["history"]]
+    assert all("Alex" not in item for item in result["evidence"])
+
+
+def test_makeup_backstop_deduplicates_and_does_not_invent_history():
+    from studio_copilot.public_demo.fixtures import CUSTOM_CATALOG
+    from studio_copilot.public_demo.model import CustomSelection
+
+    model, _ = model_with(
+        SimpleNamespace(
+            status="completed",
+            output_parsed=CustomSelection(
+                route="makeup", ids=["makeup_guide", "student"], missing_information=[]
+            ),
+        )
+    )
+    result = model.call(
+        "custom", "evidence", [], context={"student": "new", "email_body": "Can I make up a class?"}
+    )
+    assert result["evidence"] == [
+        CUSTOM_CATALOG["new"]["makeup_guide"],
+        CUSTOM_CATALOG["new"]["student"],
+    ]
+
+
+@pytest.mark.parametrize(
+    "email",
+    [
+        "What should I wear?",
+        "What is the trial fee?",
+        "Cancel my membership.",
+        "Can I wear makeup to my first class?",
+    ],
+)
+def test_unrelated_requests_do_not_add_makeup_guidance(email):
+    from studio_copilot.public_demo.fixtures import CUSTOM_CATALOG
+    from studio_copilot.public_demo.model import CustomSelection
+
+    model, _ = model_with(
+        SimpleNamespace(
+            status="completed",
+            output_parsed=CustomSelection(route="enquiry", ids=[], missing_information=[]),
+        )
+    )
+    result = model.call("custom", "evidence", [], context={"student": "new", "email_body": email})
+    assert CUSTOM_CATALOG["new"]["makeup_guide"] not in result["evidence"]
+
+
+def test_makeup_route_adds_relevant_sources_without_explicit_keyword():
+    from studio_copilot.public_demo.fixtures import CUSTOM_CATALOG
+    from studio_copilot.public_demo.model import CustomSelection
+
+    model, _ = model_with(
+        SimpleNamespace(
+            status="completed",
+            output_parsed=CustomSelection(route="makeup", ids=[], missing_information=[]),
+        )
+    )
+    result = model.call(
+        "custom",
+        "evidence",
+        [],
+        context={"student": "new", "email_body": "Can I attend Saturday instead?"},
+    )
+    assert CUSTOM_CATALOG["new"]["makeup_guide"] in result["evidence"]
