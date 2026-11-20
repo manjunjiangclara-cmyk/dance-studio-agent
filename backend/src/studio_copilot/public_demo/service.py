@@ -158,7 +158,8 @@ class PublicDemo:
                     "UPDATE runs SET draft_answers = ? WHERE token = ?", (encoded_answers, token)
                 )
             scenario = row["scenario"]
-            evidence = json.loads(row["evidence"])["evidence"] if row["evidence"] else []
+            evidence_result = json.loads(row["evidence"]) if row["evidence"] else {}
+            evidence = evidence_result.get("evidence", [])
         model = None
         try:
             model = self.factory()
@@ -170,6 +171,11 @@ class PublicDemo:
                     context={
                         "student": row["student"],
                         "email_body": row["email_body"],
+                        **(
+                            {"student_information": evidence_result["student_information"]}
+                            if stage == "draft" and evidence_result.get("student_information")
+                            else {}
+                        ),
                         **(
                             {"teacher_answers": list(zip(missing, answers))}
                             if stage == "draft" and missing

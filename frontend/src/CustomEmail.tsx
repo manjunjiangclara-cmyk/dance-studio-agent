@@ -18,6 +18,7 @@ interface Evidence {
   evidence: string[];
   route: "enquiry" | "makeup" | "teacher_handoff";
   missing_information: string[];
+  student_information?: string[];
   model: string;
 }
 interface Attempt {
@@ -283,6 +284,7 @@ export function CustomEmail() {
             disabled={!generated || busy}
             placeholder="Generate a draft to prepare a response."
             maxLength={5000}
+            showEditor={generated}
           />
           <p className="custom-route">
             {evidence.route === "makeup"
@@ -292,6 +294,17 @@ export function CustomEmail() {
                 : "Enquiry"}{" "}
             · {evidence.model}
           </p>
+          {Boolean(evidence.student_information?.length) && (
+            <section aria-label="Information to ask the student">
+              <h3>Information to ask the student</h3>
+              <p>The draft will ask the student for these details.</p>
+              <ul>
+                {evidence.student_information?.map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
+              </ul>
+            </section>
+          )}
           {evidence.missing_information.length > 0 && (
             <section aria-label="Information needed from teacher">
               <h3>Information needed from teacher</h3>

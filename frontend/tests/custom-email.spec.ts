@@ -328,3 +328,52 @@ test("each example student can be selected and submitted with their own context"
     )
     .toBe(true);
 });
+
+test("student clarification does not require a teacher answer", async ({
+  page,
+}) => {
+  const calls: string[] = [];
+  await page.route("**/api/public-demo/**", async (route) => {
+    const stage = new URL(route.request().url()).pathname.split("/").at(-1)!;
+    calls.push(stage);
+    if (stage === "runs")
+      return route.fulfill({ json: { token: "test-token" } });
+    if (stage === "evidence")
+      return route.fulfill({
+        json: {
+          evidence: [],
+          route: "teacher_handoff",
+          missing_information: [],
+          student_information: ["Which class should be cancelled?"],
+          model: "test-model",
+        },
+      });
+    expect(route.request().postDataJSON()).toEqual({ teacher_answers: [] });
+    return route.fulfill({
+      json: { body: "Which class should I cancel?", model: "test-model" },
+    });
+  });
+  await page.goto("/demo/test-email");
+  await page.getByLabel("Email body").fill("Please cancel my class.");
+  await page.getByRole("button", { name: "Simulate email" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Information to ask the student" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Which class should be cancelled?"),
+  ).toBeVisible();
+  await expect(page.getByLabel("Which class should be cancelled?")).toHaveCount(
+    0,
+  );
+  await expect(
+    page.getByRole("heading", { name: "Information needed from teacher" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("textbox", { name: "Response", exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Generate draft" }).click();
+  await expect(
+    page.getByRole("textbox", { name: "Response", exact: true }),
+  ).toHaveValue("Which class should I cancel?");
+  expect(calls).toEqual(["runs", "evidence", "draft"]);
+});

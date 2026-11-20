@@ -662,3 +662,101 @@ def test_each_custom_sender_is_admitted_and_receives_only_its_own_context(client
     )
     draft_model.call("custom", "draft", [], context={"student": student, "email_body": "Hello"})
     assert json.loads(draft_calls[0]["input"])["conversation_memory"] == CUSTOM_MEMORY[student]
+
+
+def test_custom_student_clarification_is_not_a_teacher_answer(demo):
+    contexts = []
+
+    class ClarificationFake(Fake):
+        def call(self, scenario, stage, evidence, *, context=None):
+            contexts.append(context)
+            if stage == "evidence":
+                return {
+                    "evidence": [],
+                    "route": "makeup",
+                    "missing_information": [],
+                    "student_information": ["Which class would you like to cancel?"],
+                    "model": "fake",
+                }
+            return {"body": "Which class would you like to cancel?", "model": "fake"}
+
+    demo.factory = ClarificationFake
+    run = demo.create("custom", str(uuid4()), student="new", email_body="Please cancel my class.")
+    found = demo.execute(run["token"], "evidence")
+    assert found["student_information"] == ["Which class would you like to cancel?"]
+    assert found["missing_information"] == []
+    draft = demo.execute(run["token"], "draft", teacher_answers=[])
+    assert "Which class" in draft["body"]
+    assert contexts[-1]["student_information"] == found["student_information"]
+    assert "teacher_answers" not in contexts[-1]
+    assert demo.execute(run["token"], "draft", teacher_answers=[]) == draft
+
+
+def test_custom_model_separates_student_and_teacher_questions():
+    from studio_copilot.public_demo.model import CustomSelection
+
+    model, calls = model_with(
+        SimpleNamespace(
+            status="completed",
+            output_parsed=CustomSelection(
+                route="teacher_handoff",
+                ids=[],
+                missing_information=["Refund policy"],
+                student_information=["Which class?"],
+            ),
+        )
+    )
+    result = model.call(
+        "custom", "evidence", [], context={"student": "new", "email_body": "Cancel my class"}
+    )
+    assert result["missing_information"] == ["Refund policy"]
+    assert result["student_information"] == ["Which class?"]
+    assert "only the student can supply" in calls[0]["instructions"]
+
+
+def test_custom_mixed_questions_only_require_teacher_answers(demo):
+    contexts = []
+
+    class MixedFake(Fake):
+        def call(self, scenario, stage, evidence, *, context=None):
+            contexts.append(context)
+            if stage == "evidence":
+                return {
+                    "evidence": [],
+                    "route": "enquiry",
+                    "missing_information": ["Trial fee"],
+                    "student_information": ["Which class date?"],
+                    "model": "fake",
+                }
+            return {"body": "Which date? I will confirm the fee.", "model": "fake"}
+
+    demo.factory = MixedFake
+    run = demo.create("custom", str(uuid4()), student="new", email_body="What is the trial fee?")
+    demo.execute(run["token"], "evidence")
+    with pytest.raises(HTTPException) as error:
+        demo.execute(run["token"], "draft", teacher_answers=[])
+    assert error.value.status_code == 422
+    demo.execute(run["token"], "draft", teacher_answers=["I will confirm later"])
+    assert contexts[-1]["teacher_answers"] == [("Trial fee", "I will confirm later")]
+    assert contexts[-1]["student_information"] == ["Which class date?"]
+
+
+def test_custom_draft_receives_student_clarification():
+    model, calls = model_with(
+        SimpleNamespace(
+            status="completed",
+            output_parsed=GeneratedDraft(body="Which class would you like to cancel?"),
+        )
+    )
+    model.call(
+        "custom",
+        "draft",
+        [],
+        context={
+            "student": "new",
+            "email_body": "Please cancel my class.",
+            "student_information": ["Which class?"],
+        },
+    )
+    assert json.loads(calls[0]["input"])["student_information"] == ["Which class?"]
+    assert "ask the student" in calls[0]["instructions"]
