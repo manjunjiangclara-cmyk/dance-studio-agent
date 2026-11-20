@@ -2,11 +2,17 @@ import { test, expect, type Page } from "@playwright/test";
 
 async function sandbox(
   page: Page,
-  options: { failEvidence?: boolean; quota?: boolean; offer?: boolean } = {},
+  options: {
+    failEvidence?: boolean;
+    quota?: boolean;
+    offer?: boolean;
+    failDraft?: boolean;
+  } = {},
 ) {
   const calls: string[] = [],
     forbidden: string[] = [];
   let failures = 0;
+  let draftFailures = 0;
   const accepted: Array<Record<string, unknown>> = [];
   let thread = {
     student: "new",
@@ -26,6 +32,7 @@ async function sandbox(
       reply: string | null;
       evidence: object | null;
       draft: object | null;
+      draft_answers: string[] | null;
     }>,
   };
   page.on("request", (r) => {
@@ -57,6 +64,7 @@ async function sandbox(
           reply: null,
           evidence: null,
           draft: null,
+          draft_answers: null,
         });
       return route.fulfill({ json: { request_id: body.request_id } });
     }
@@ -70,13 +78,16 @@ async function sandbox(
       turn.evidence = {
         evidence: ["Socks are suitable."],
         route: "enquiry",
-        missing_information: [],
+        missing_information: options.failDraft ? ["Trial fee"] : [],
         student_information: ["Preferred day"],
         model: "test",
       };
       return route.fulfill({ json: turn.evidence });
     }
     if (path.endsWith("/draft")) {
+      turn.draft_answers = req.postDataJSON().teacher_answers;
+      if (options.failDraft && draftFailures++ === 0)
+        return route.fulfill({ status: 502, json: { detail: "Draft failed" } });
       turn.draft = { body: "Socks are suitable. Which day?" };
       return route.fulfill({ json: turn.draft });
     }
@@ -163,4 +174,21 @@ test("reviewer explicitly confirms an offered class in the accepted reply", asyn
   await page.getByRole("button", { name: "Accept simulated reply" }).click();
   await expect.poll(() => api.accepted.length).toBe(1);
   expect(api.accepted[0].offer_confirmed).toBe(true);
+});
+
+test("failed draft restores locked teacher answers after refresh", async ({
+  page,
+}) => {
+  await sandbox(page, { failDraft: true });
+  await page.goto("/demo/test-email");
+  await page.getByLabel("Email body").fill("What does a trial cost?");
+  await page.getByRole("button", { name: "Simulate email" }).click();
+  await page.getByLabel("Trial fee").fill("I will confirm.");
+  await page.getByRole("button", { name: "Generate draft" }).click();
+  await expect(page.getByRole("alert")).toContainText("Draft failed");
+  await page.reload();
+  await expect(page.getByLabel("Trial fee")).toHaveValue("I will confirm.");
+  await expect(page.getByLabel("Trial fee")).toBeDisabled();
+  await page.getByRole("button", { name: "Generate draft" }).click();
+  await expect(page.getByLabel("Response")).toBeVisible();
 });

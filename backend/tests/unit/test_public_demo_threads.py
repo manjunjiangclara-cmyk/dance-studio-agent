@@ -228,3 +228,46 @@ def test_thread_api_origin_and_round_trip(monkeypatch, tmp_path):
         f"/api/public-demo/threads/current/turns/{turn_id}/evidence", headers=headers, json={}
     )
     assert evidence.status_code == 200
+
+
+def test_failed_draft_restores_bound_teacher_answers(tmp_path):
+    class FailingDraft(ThreadModel):
+        def call(self, scenario, stage, evidence, *, context):
+            if stage == "draft":
+                raise ValueError("temporary failure")
+            result = super().call(scenario, stage, evidence, context=context)
+            result["missing_information"] = ["Trial fee"]
+            return result
+
+    service = PublicDemo(tmp_path / "demo.sqlite", factory=FailingDraft)
+    token = service.create_thread("new")["token"]
+    turn = str(uuid4())
+    service.add_turn(token, turn, "What is the trial fee?")
+    service.thread_execute(token, turn, "evidence")
+    with pytest.raises(HTTPException) as error:
+        service.thread_execute(token, turn, "draft", teacher_answers=["I will confirm."])
+    assert error.value.status_code == 502
+    restored = PublicDemo(service.path, factory=FailingDraft).thread_view(token)
+    assert restored["turns"][0]["draft_answers"] == ["I will confirm."]
+    with pytest.raises(HTTPException) as error:
+        service.thread_execute(token, turn, "draft", teacher_answers=["Changed"])
+    assert error.value.status_code == 409
+
+
+def test_thread_creation_cleans_up_expired_runs(tmp_path):
+    now = 1_800_000_000
+    service = PublicDemo(tmp_path / "demo.sqlite", factory=ThreadModel, clock=lambda: now)
+    token = service.create_thread("new")["token"]
+    turn = str(uuid4())
+    service.add_turn(token, turn, "Fictional email")
+    with service.db() as db:
+        db.execute("UPDATE threads SET created=? WHERE token=?", (now - 4 * 86400, token))
+        db.execute("UPDATE runs SET created=? WHERE request_id=?", (now - 4 * 86400, turn))
+    service.create_thread("new")
+    with service.db() as db:
+        assert (
+            db.execute("SELECT count(*) FROM runs WHERE request_id=?", (turn,)).fetchone()[0] == 0
+        )
+        assert (
+            db.execute("SELECT count(*) FROM turns WHERE request_id=?", (turn,)).fetchone()[0] == 0
+        )

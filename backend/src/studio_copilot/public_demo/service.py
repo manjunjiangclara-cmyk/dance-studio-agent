@@ -130,6 +130,7 @@ class PublicDemo:
                 (now - 3 * 86400,),
             )
             db.execute("DELETE FROM threads WHERE created < ?", (now - 3 * 86400,))
+            db.execute("DELETE FROM runs WHERE created < ?", (now - 3 * 86400,))
             db.execute(
                 "INSERT INTO threads VALUES (?,?,?,?,?)",
                 (token, student, now, day, json.dumps(initial_state())),
@@ -151,7 +152,8 @@ class PublicDemo:
             thread = self._thread(db, token)
             rows = db.execute(
                 """SELECT t.request_id, t.original_body, t.accepted_reply,
-                r.evidence, r.draft FROM turns t JOIN runs r ON r.request_id=t.request_id
+                r.evidence, r.draft, r.draft_answers FROM turns t
+                JOIN runs r ON r.request_id=t.request_id
                 WHERE t.thread_token=? ORDER BY r.rowid""",
                 (token,),
             ).fetchall()
@@ -165,6 +167,9 @@ class PublicDemo:
                         "reply": r["accepted_reply"],
                         "evidence": json.loads(r["evidence"]) if r["evidence"] else None,
                         "draft": json.loads(r["draft"]) if r["draft"] else None,
+                        "draft_answers": json.loads(r["draft_answers"])
+                        if r["draft_answers"] is not None
+                        else None,
                     }
                     for r in rows
                 ],

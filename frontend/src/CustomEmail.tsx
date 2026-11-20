@@ -17,6 +17,7 @@ type Turn = {
   reply: string | null;
   evidence: Evidence | null;
   draft: { body: string } | null;
+  draft_answers: string[] | null;
 };
 type Thread = {
   student: string;
@@ -51,6 +52,7 @@ export function CustomEmail() {
   const [reply, setReply] = useState("");
   const [offerConfirmed, setOfferConfirmed] = useState(false);
   const [answers, setAnswers] = useState<string[]>([]);
+  const [answersLocked, setAnswersLocked] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const pending = useRef(false);
@@ -70,7 +72,12 @@ export function CustomEmail() {
     const last = data.turns.at(-1);
     if (last && !last.reply) {
       setReply(last.draft?.body || "");
-      setAnswers(last.evidence?.missing_information.map(() => "") || []);
+      setAnswers(
+        last.draft_answers ??
+          last.evidence?.missing_information.map(() => "") ??
+          [],
+      );
+      setAnswersLocked(last.draft_answers != null);
     }
     return data;
   }
@@ -134,16 +141,22 @@ export function CustomEmail() {
   async function generate() {
     if (!active || !token) return;
     await run(async () => {
-      const result = await request<{ body: string }>(
-        `/api/public-demo/threads/current/turns/${active.request_id}/draft`,
-        {
-          method: "POST",
-          headers: headers(token),
-          body: JSON.stringify({ teacher_answers: answers }),
-        },
-      );
-      await load(token);
-      setReply(result.body);
+      try {
+        const result = await request<{ body: string }>(
+          `/api/public-demo/threads/current/turns/${active.request_id}/draft`,
+          {
+            method: "POST",
+            headers: headers(token),
+            body: JSON.stringify({ teacher_answers: answers }),
+          },
+        );
+        await load(token);
+        setReply(result.body);
+      } catch (error) {
+        // The backend binds responses before calling the model, including on failure.
+        await load(token).catch(() => {});
+        throw error;
+      }
     });
   }
   async function accept() {
@@ -327,7 +340,7 @@ export function CustomEmail() {
                   <textarea
                     id={`missing-${i}`}
                     value={answers[i] || ""}
-                    disabled={busy || Boolean(active.draft)}
+                    disabled={busy || answersLocked || Boolean(active.draft)}
                     onChange={(e) =>
                       setAnswers((a) =>
                         a.map((x, j) => (j === i ? e.target.value : x)),
