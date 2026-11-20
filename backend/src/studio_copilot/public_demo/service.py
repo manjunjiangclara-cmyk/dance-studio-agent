@@ -48,6 +48,11 @@ class PublicDemo:
                 thread_token TEXT NOT NULL REFERENCES threads(token),
                 original_body TEXT NOT NULL, accepted_reply TEXT
             )""")
+            turn_columns = {row["name"] for row in db.execute("PRAGMA table_info(turns)")}
+            if "offer_confirmed" not in turn_columns:
+                db.execute(
+                    "ALTER TABLE turns ADD COLUMN offer_confirmed INTEGER NOT NULL DEFAULT 0"
+                )
         Path(path).chmod(0o600)
 
     @contextmanager
@@ -227,13 +232,13 @@ class PublicDemo:
             run_token = row["token"]
         return self.execute(run_token, stage, teacher_answers=teacher_answers)
 
-    def accept_reply(self, token, request_id, reply):
+    def accept_reply(self, token, request_id, reply, offer_confirmed=False):
         if not reply.strip() or len(reply) > 5000:
             raise HTTPException(422, "A reply of up to 5,000 characters is required.")
         with self.db() as db:
-            self._thread(db, token)
+            thread = self._thread(db, token)
             row = db.execute(
-                "SELECT t.accepted_reply, r.draft FROM turns t JOIN runs r "
+                "SELECT t.accepted_reply, t.offer_confirmed, r.draft FROM turns t JOIN runs r "
                 "ON r.request_id=t.request_id WHERE t.thread_token=? AND t.request_id=?",
                 (token, request_id),
             ).fetchone()
@@ -241,9 +246,19 @@ class PublicDemo:
                 raise HTTPException(404, "Email not found.")
             if not row["draft"]:
                 raise HTTPException(409, "Generate a draft first.")
-            if row["accepted_reply"] is not None and row["accepted_reply"] != reply:
-                raise HTTPException(409, "This reply has already been accepted.")
-            db.execute("UPDATE turns SET accepted_reply=? WHERE request_id=?", (reply, request_id))
+            if row["accepted_reply"] is not None:
+                if (
+                    row["accepted_reply"] != reply
+                    or bool(row["offer_confirmed"]) != offer_confirmed
+                ):
+                    raise HTTPException(409, "This reply has already been accepted.")
+                return {"accepted": True}
+            if offer_confirmed and json.loads(thread["state"])["booking_status"] != "offered":
+                raise HTTPException(409, "There is no class offer to confirm.")
+            db.execute(
+                "UPDATE turns SET accepted_reply=?, offer_confirmed=? WHERE request_id=?",
+                (reply, int(offer_confirmed), request_id),
+            )
         return {"accepted": True}
 
     def approve_mock(self, token, revision):
@@ -329,7 +344,7 @@ class PublicDemo:
             if thread_info:
                 self._thread(db, thread_info["thread_token"])
                 history = db.execute(
-                    """SELECT r.email_body, t.accepted_reply FROM turns t
+                    """SELECT r.email_body, t.accepted_reply, t.offer_confirmed FROM turns t
                     JOIN runs r ON r.request_id=t.request_id WHERE t.thread_token=?
                     AND t.accepted_reply IS NOT NULL
                     ORDER BY r.rowid""",
@@ -382,7 +397,7 @@ class PublicDemo:
                     json.loads(thread_info["state"]),
                     result.get("workflow_extraction", {}),
                     row["email_body"],
-                    history[-1]["accepted_reply"] if history else "",
+                    bool(history[-1]["offer_confirmed"]) if history else False,
                 )
                 patterns = {
                     "experience_level": r"experience|level",

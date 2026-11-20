@@ -63,7 +63,7 @@ test("custom email asks teacher before generating a single draft", async ({
   await expect(
     page.getByRole("button", { name: "Generate draft" }),
   ).toBeDisabled();
-  expect(calls).toEqual(["threads", "turns", "evidence", "current"]);
+  expect(calls).toEqual(["threads", "turns", "current", "evidence", "current"]);
   await page.getByLabel("Trial fee").fill("$20");
   await page.getByRole("button", { name: "Generate draft" }).click();
   await expect(

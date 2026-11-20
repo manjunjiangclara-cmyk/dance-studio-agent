@@ -76,7 +76,10 @@ def test_workflow_requires_explicit_consent_and_appropriate_class():
     rejected = update_state(state, {"customer_name": "Alex"}, "No, please don't book it")
     assert rejected["booking_status"] != "awaiting_approval"
     requested = update_state(
-        state, {"customer_name": "Alex"}, "Yes, please", "Would you like a trial in Level 2?"
+        state,
+        {"customer_name": "Alex"},
+        "Yes, please",
+        True,
     )
     assert requested["booking_status"] == "awaiting_approval"
 
@@ -90,7 +93,10 @@ def test_approval_is_revision_bound_and_idempotent(tmp_path):
     class Model(ThreadModel):
         def call(self, scenario, stage, evidence, *, context):
             if stage == "draft":
-                return {"body": "Would you like a trial in Level 2?", "model": "fake"}
+                return {
+                    "body": "Would you like a trial in Level 2 on Saturday 13 February 2027?",
+                    "model": "fake",
+                }
             extracted = {
                 "intents": ["trial_enquiry"],
                 "experience_level": None,
@@ -116,7 +122,9 @@ def test_approval_is_revision_bound_and_idempotent(tmp_path):
     service.add_turn(token, first, "I am intermediate and available Saturday.")
     service.thread_execute(token, first, "evidence")
     service.thread_execute(token, first, "draft")
-    service.accept_reply(token, first, "Would you like a trial in Level 2?")
+    service.accept_reply(
+        token, first, "Would you like a trial in Level 2 on Saturday 13 February 2027?", True
+    )
     second = str(uuid4())
     service.add_turn(token, second, "Yes please")
     service.thread_execute(token, second, "evidence")
@@ -131,3 +139,92 @@ def test_approval_is_revision_bound_and_idempotent(tmp_path):
     first_approval = service.approve_mock(token, state["revision"])
     assert first_approval["state"]["booking_status"] == "approved_mock"
     assert service.approve_mock(token, state["revision"]) == first_approval
+
+
+def test_consent_is_tied_to_the_specific_offer_and_cannot_survive_changed_mind():
+    offered = update_state(
+        initial_state(),
+        {
+            "intents": ["trial_enquiry"],
+            "experience_level": "intermediate",
+            "preferred_day": "Saturday",
+        },
+        "Intermediate Saturday",
+    )
+    assert (
+        update_state(offered, {"customer_name": "Alex"}, "Yes", False)["booking_status"]
+        == "offered"
+    )
+    assert (
+        update_state(
+            offered, {"customer_name": "Alex"}, "Please book the Monday class instead", True
+        )["booking_status"]
+        != "awaiting_approval"
+    )
+    assert (
+        update_state(offered, {}, "Yes, can you tell me the price before I decide?", True)[
+            "booking_status"
+        ]
+        == "offered"
+    )
+    assert (
+        update_state(offered, {}, "Yes, I want to wait until next month", True)["booking_status"]
+        == "offered"
+    )
+    collecting = update_state(offered, {}, "Yes, I'd love to", True)
+    assert collecting["booking_status"] == "collecting_name"
+    changed = update_state(
+        collecting, {"customer_name": "Alex"}, "My name is Alex, but I changed my mind"
+    )
+    assert changed["booking_status"] != "awaiting_approval"
+    pending = update_state(collecting, {"customer_name": "Alex"}, "My name is Alex")
+    assert pending["booking_status"] == "awaiting_approval"
+    approved = {**pending, "booking_status": "approved_mock", "next_action": "complete"}
+    assert (
+        update_state(approved, {"intents": ["faq"]}, "What should I wear?")["booking_status"]
+        == "approved_mock"
+    )
+    assert (
+        update_state(pending, {"intents": ["faq"]}, "What should I wear?")["booking_status"]
+        == "awaiting_approval"
+    )
+
+
+def test_quotes_include_outlook_and_prefixed_lines():
+    assert strip_quotes("New text\n> Old text\nNew paragraph") == "New text\nNew paragraph"
+    assert strip_quotes("New text\nFrom: sender@example.com\nSent: Monday\nold") == "New text"
+
+
+def test_thread_api_origin_and_round_trip(monkeypatch, tmp_path):
+    from fastapi.testclient import TestClient
+
+    from studio_copilot.api import public_demo as api
+
+    monkeypatch.setenv("STUDIO_PUBLIC_LIVE_DEMO", "true")
+    monkeypatch.setenv("STUDIO_PUBLIC_DEMO_DB", str(tmp_path / "api.sqlite"))
+    monkeypatch.setenv("OPENAI_MODEL", "test")
+    monkeypatch.setenv("OPENAI_API_KEY", "test")
+    monkeypatch.setenv("PUBLIC_BASE_URL", "http://localhost:8000")
+    monkeypatch.setattr(api, "PublicDemo", lambda path: PublicDemo(path, factory=ThreadModel))
+    client = TestClient(api.create_public_demo_app())
+    assert client.post("/api/public-demo/threads", json={"student": "new"}).status_code == 403
+    headers = {"Origin": "http://localhost:8000"}
+    created = client.post("/api/public-demo/threads", json={"student": "new"}, headers=headers)
+    assert created.status_code == 200
+    headers["Authorization"] = "Bearer " + created.json()["token"]
+    turn_id = str(uuid4())
+    assert (
+        client.post(
+            "/api/public-demo/threads/current/turns",
+            headers=headers,
+            json={"request_id": turn_id, "email_body": "Hello"},
+        ).status_code
+        == 200
+    )
+    view = client.post("/api/public-demo/threads/current", headers=headers, json={})
+    assert view.status_code == 200
+    assert view.json()["turns"][0]["email"] == "Hello"
+    evidence = client.post(
+        f"/api/public-demo/threads/current/turns/{turn_id}/evidence", headers=headers, json={}
+    )
+    assert evidence.status_code == 200

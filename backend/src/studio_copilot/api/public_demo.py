@@ -67,6 +67,7 @@ class TurnInput(BaseModel):
 class ReplyInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     body: str = Field(min_length=1, max_length=5000)
+    offer_confirmed: bool = False
 
 
 class ApprovalInput(BaseModel):
@@ -151,7 +152,9 @@ def thread_draft(request: Request, turn_id: UUID, body: DraftInput):
 
 @router.post("/threads/current/turns/{turn_id}/accept")
 def accept_reply(request: Request, turn_id: UUID, body: ReplyInput):
-    return service(request).accept_reply(token(request), str(turn_id), body.body)
+    return service(request).accept_reply(
+        token(request), str(turn_id), body.body, body.offer_confirmed
+    )
 
 
 @router.post("/threads/current/approve")

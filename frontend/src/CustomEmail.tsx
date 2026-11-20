@@ -49,6 +49,7 @@ export function CustomEmail() {
   );
   const [body, setBody] = useState("");
   const [reply, setReply] = useState("");
+  const [offerConfirmed, setOfferConfirmed] = useState(false);
   const [answers, setAnswers] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -117,14 +118,15 @@ export function CustomEmail() {
         headers: headers(current),
         body: JSON.stringify({ request_id: id, email_body: body }),
       });
+      await load(current);
+      setBody("");
+      requestId.current = null;
       await request(`/api/public-demo/threads/current/turns/${id}/evidence`, {
         method: "POST",
         headers: headers(current),
         body: "{}",
       });
       await load(current);
-      setBody("");
-      requestId.current = null;
     });
   }
   const current = thread?.turns.at(-1);
@@ -152,11 +154,15 @@ export function CustomEmail() {
         {
           method: "POST",
           headers: headers(token),
-          body: JSON.stringify({ body: reply }),
+          body: JSON.stringify({
+            body: reply,
+            offer_confirmed: offerConfirmed,
+          }),
         },
       );
       await load(token);
       setReply("");
+      setOfferConfirmed(false);
     });
   }
   async function approve() {
@@ -370,6 +376,17 @@ export function CustomEmail() {
                 value={reply}
                 onChange={(e) => setReply(e.target.value)}
               />
+              {thread?.state.booking_status === "offered" && (
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={offerConfirmed}
+                    onChange={(e) => setOfferConfirmed(e.target.checked)}
+                  />
+                  I confirm this reply offers the class shown above and asks
+                  whether the customer wants a trial.
+                </label>
+              )}
               <button
                 className="button primary"
                 disabled={busy || !reply.trim()}
