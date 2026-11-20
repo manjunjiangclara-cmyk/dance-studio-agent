@@ -35,13 +35,17 @@ test("custom email asks teacher before generating a single draft", async ({
   expect(calls.map((call) => call.stage)).toEqual(["runs", "evidence"]);
   await page.getByLabel("Trial fee").fill("$20");
   await page.getByRole("button", { name: "Generate draft" }).click();
-  await expect(page.getByLabel("Draft response")).toHaveValue(
-    "The trial is $20.",
-  );
+  await expect(
+    page.getByRole("textbox", { name: "Response", exact: true }),
+  ).toHaveValue("The trial is $20.");
   expect(calls[2].body).toEqual({ teacher_answers: ["$20"] });
-  await page.getByLabel("Draft response").fill("");
-  await page.getByLabel("Draft response").fill("Replacement");
-  await expect(page.getByLabel("Draft response")).toHaveValue("Replacement");
+  await page.getByRole("textbox", { name: "Response", exact: true }).fill("");
+  await page
+    .getByRole("textbox", { name: "Response", exact: true })
+    .fill("Replacement");
+  await expect(
+    page.getByRole("textbox", { name: "Response", exact: true }),
+  ).toHaveValue("Replacement");
 });
 
 test("recorded document asks before generating", async ({ page }) => {
