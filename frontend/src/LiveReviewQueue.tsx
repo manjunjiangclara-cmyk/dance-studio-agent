@@ -1,13 +1,9 @@
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { DraftEmailEditor } from "./DraftEmailEditor";
+import { SupportingEvidence } from "./SupportingEvidence";
 import { IntentBadges } from "./Classification";
-import {
-  tourBooking,
-  tourFixtures,
-  tourSource,
-  type TourScenario,
-} from "./tourData";
+import { tourBooking, tourFixtures, type TourScenario } from "./tourData";
 import { useLiveDemo } from "./useLiveDemo";
 
 type ReviewScenario = TourScenario | "noah" | "riley";
@@ -78,50 +74,6 @@ const formatReceived = (date: string) =>
     dateStyle: "medium",
     timeZone: "UTC",
   }).format(new Date(`${date}T00:00:00Z`));
-
-function evidenceInfo(entry: string) {
-  if (entry.startsWith("Alex's original email asks"))
-    return {
-      label: "Email context",
-      summary:
-        "Alex's latest email changes the preferred day from Thursday to Saturday.",
-      source: "email",
-    };
-  if (entry.startsWith("The fictional absence notice"))
-    return {
-      label: "Absence notice",
-      summary: "The absence notice arrived before the missed class began.",
-      source: "fact",
-    };
-  if (entry.startsWith("Alex has recorded Level 2 attendance"))
-    return {
-      label: "Attendance & policy",
-      summary:
-        "The example policy allows a Level 2 replacement when the notice is timely.",
-      source: "fact",
-    };
-  if (entry.startsWith("Saturday 13 February 2027, 6 pm"))
-    return {
-      label: "Class availability",
-      summary:
-        "The Saturday Level 2 class has one place available in this example.",
-      source: "fact",
-    };
-  if (entry.startsWith("Beginner clothing policy, revision 1:"))
-    return {
-      label: "Studio policy",
-      summary:
-        "Comfortable clothes and socks are suitable; ballet shoes are optional.",
-      source: "policy",
-    };
-  if (entry.startsWith("No trial fee is specified"))
-    return {
-      label: "Missing fee information",
-      summary: "The fictional policy does not specify the trial fee.",
-      source: "policy",
-    };
-  return { label: "Supporting information", summary: entry, source: "fact" };
-}
 
 export function LiveReviewQueue() {
   return (
@@ -547,43 +499,7 @@ export function LiveReviewDetail({ scenario }: { scenario: ReviewScenario }) {
           </div>
         )}
         {live.draft && live.evidence && (
-          <div className="live-draft-evidence">
-            <h3>Supporting evidence</h3>
-            <ul className="live-evidence-list">
-              {live.evidence.map((entry, i) => {
-                const info = evidenceInfo(entry);
-                return (
-                  <li className="live-evidence-card" key={`${i}-${entry}`}>
-                    <div className="live-evidence-card-heading">
-                      <span className="live-evidence-number" aria-hidden="true">
-                        {String(i + 1).padStart(2, "0")}
-                      </span>
-                      <strong>{info.label}</strong>
-                    </div>
-                    <p>{info.summary}</p>
-                    <details className="live-evidence-detail">
-                      <summary>View source</summary>
-                      <div className="live-evidence-original">
-                        <strong>Fictional demo input</strong>
-                        <p>{entry}</p>
-                        {info.source === "email" && (
-                          <a href="#conversation-heading">
-                            View original student emails ↑
-                          </a>
-                        )}
-                        {info.source === "policy" && (
-                          <>
-                            <strong>{tourSource.title} · Revision 1</strong>
-                            <p>{tourSource.text}</p>
-                          </>
-                        )}
-                      </div>
-                    </details>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+          <SupportingEvidence evidence={live.evidence} showConversationLink />
         )}
       </section>
     </>

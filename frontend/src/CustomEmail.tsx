@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ApiError, examples, request } from "./data";
 import { StudentMemorySections } from "./StudentMemorySections";
 import { DraftEmailEditor } from "./DraftEmailEditor";
+import { SupportingEvidence } from "./SupportingEvidence";
 import "./custom-email.css";
 
 // Preserve the original IDs for in-flight and retryable simulations.
@@ -18,6 +19,7 @@ interface Evidence {
   evidence: string[];
   route: "enquiry" | "makeup" | "teacher_handoff";
   missing_information: string[];
+  student_information?: string[];
   model: string;
 }
 interface Attempt {
@@ -43,7 +45,8 @@ export function CustomEmail() {
   const [answers, setAnswers] = useState<string[]>([]);
   const [answersLocked, setAnswersLocked] = useState(false);
   const attempt = useRef<Attempt | null>(null);
-  const pending = useRef(false);
+  const simulationPending = useRef(false);
+  const draftPending = useRef(false);
   const alive = useRef(true);
   const resultHeading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
@@ -54,6 +57,11 @@ export function CustomEmail() {
   }, []);
   function invalidate() {
     attempt.current = null;
+    if (draftPending.current) {
+      draftPending.current = false;
+      setBusy(false);
+      setStage("");
+    }
     setError("");
     setEvidence(null);
     setDraft("");
@@ -62,16 +70,20 @@ export function CustomEmail() {
     setAnswersLocked(false);
   }
   async function simulate() {
-    if (pending.current || !body.trim()) return;
-    pending.current = true;
+    if (simulationPending.current || !body.trim()) return;
+    const current = evidence
+      ? { student, email: body, requestId: crypto.randomUUID() }
+      : attempt.current || {
+          student,
+          email: body,
+          requestId: crypto.randomUUID(),
+        };
+    if (evidence) invalidate();
+    attempt.current = current;
+    simulationPending.current = true;
+    draftPending.current = false;
     setBusy(true);
     setError("");
-    const current = attempt.current || {
-      student,
-      email: body,
-      requestId: crypto.randomUUID(),
-    };
-    attempt.current = current;
     try {
       if (!current.token) {
         setStage("Starting simulation…");
@@ -85,7 +97,7 @@ export function CustomEmail() {
             request_id: current.requestId,
           }),
         });
-        if (!alive.current) return;
+        if (!alive.current || attempt.current !== current) return;
         current.token = run.token;
       }
       const headers = {
@@ -98,7 +110,7 @@ export function CustomEmail() {
           "/api/public-demo/evidence",
           { method: "POST", headers, body: "{}" },
         );
-        if (!alive.current) return;
+        if (!alive.current || attempt.current !== current) return;
       }
       setEvidence(current.evidence);
       setAnswers(current.evidence.missing_information.map(() => ""));
@@ -106,7 +118,7 @@ export function CustomEmail() {
         if (alive.current) resultHeading.current?.focus();
       });
     } catch (caught) {
-      if (alive.current)
+      if (alive.current && attempt.current === current)
         setError(
           caught instanceof ApiError && caught.status === 0
             ? "Connection interrupted. Retry to recover this simulation."
@@ -115,8 +127,8 @@ export function CustomEmail() {
               : "The email simulation could not complete.",
         );
     } finally {
-      pending.current = false;
-      if (alive.current) {
+      simulationPending.current = false;
+      if (alive.current && attempt.current === current) {
         setBusy(false);
         setStage("");
       }
@@ -127,12 +139,13 @@ export function CustomEmail() {
     if (
       !current?.token ||
       !current.evidence ||
-      pending.current ||
+      simulationPending.current ||
+      draftPending.current ||
       answers.some((a) => !a.trim()) ||
       answers.length !== current.evidence.missing_information.length
     )
       return;
-    pending.current = true;
+    draftPending.current = true;
     setBusy(true);
     setAnswersLocked(true);
     setError("");
@@ -150,21 +163,21 @@ export function CustomEmail() {
         throw new Error(
           "The live service returned an empty draft. Retry this step.",
         );
-      if (alive.current) {
+      if (alive.current && attempt.current === current) {
         current.draft = result.body;
         setDraft(result.body);
         setGenerated(true);
       }
     } catch (caught) {
-      if (alive.current)
+      if (alive.current && attempt.current === current)
         setError(
           caught instanceof Error
             ? caught.message
             : "The draft could not be generated.",
         );
     } finally {
-      pending.current = false;
-      if (alive.current) {
+      if (alive.current && attempt.current === current) {
+        draftPending.current = false;
         setBusy(false);
         setStage("");
       }
@@ -197,7 +210,7 @@ export function CustomEmail() {
             <select
               id="demo-student"
               value={student}
-              disabled={busy}
+              disabled={busy && !evidence}
               onChange={(event) => {
                 setStudent(event.target.value as Student);
                 invalidate();
@@ -217,7 +230,7 @@ export function CustomEmail() {
               maxLength={2000}
               required
               value={body}
-              disabled={busy}
+              disabled={busy && !evidence}
               placeholder="Write a fictional enquiry or makeup request…"
               onChange={(event) => {
                 setBody(event.target.value);
@@ -250,11 +263,11 @@ export function CustomEmail() {
             )}
             <button
               className="button primary"
-              disabled={busy || !body.trim() || Boolean(evidence)}
+              disabled={!body.trim() || (busy && !evidence)}
             >
-              {busy ? "Simulating email…" : "Simulate email"}
+              {busy && !evidence ? "Simulating email…" : "Simulate email"}
             </button>
-            {busy && <p role="status">{stage}</p>}
+            {busy && !evidence && <p role="status">{stage}</p>}
           </form>
         </section>
         <aside className="panel context-card profile-card profile-memory email-explainer">
@@ -283,6 +296,7 @@ export function CustomEmail() {
             disabled={!generated || busy}
             placeholder="Generate a draft to prepare a response."
             maxLength={5000}
+            showEditor={generated}
           />
           <p className="custom-route">
             {evidence.route === "makeup"
@@ -292,6 +306,22 @@ export function CustomEmail() {
                 : "Enquiry"}{" "}
             · {evidence.model}
           </p>
+          {Boolean(evidence.student_information?.length) && (
+            <section
+              className="student-clarification"
+              aria-labelledby="student-clarification-title"
+            >
+              <h3 id="student-clarification-title">
+                Information to ask the student
+              </h3>
+              <p>The draft will ask the student for these details.</p>
+              <ul>
+                {evidence.student_information?.map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
+              </ul>
+            </section>
+          )}
           {evidence.missing_information.length > 0 && (
             <section aria-label="Information needed from teacher">
               <h3>Information needed from teacher</h3>
@@ -350,21 +380,17 @@ export function CustomEmail() {
               Edit this draft locally. No email was sent or class booked.
             </p>
           )}
-          <details>
-            <summary>Supporting evidence</summary>
-            {evidence.evidence.length ? (
-              <ul>
-                {evidence.evidence.map((item, index) => (
-                  <li key={index}>{item}</li>
-                ))}
-              </ul>
-            ) : (
+          {evidence.evidence.length ? (
+            <SupportingEvidence evidence={evidence.evidence} />
+          ) : (
+            <div className="live-draft-evidence">
+              <h3>Supporting evidence</h3>
               <p>
                 No matching source was found; the response should ask for
                 details or confirmation.
               </p>
-            )}
-          </details>
+            </div>
+          )}
         </section>
       )}
     </>

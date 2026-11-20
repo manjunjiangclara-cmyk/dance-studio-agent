@@ -11,6 +11,7 @@ export function DraftEmailEditor({
   placeholder,
   description,
   maxLength,
+  showEditor = true,
 }: {
   headingId: string;
   headingRef?: Ref<HTMLHeadingElement>;
@@ -21,6 +22,7 @@ export function DraftEmailEditor({
   placeholder: string;
   description?: string;
   maxLength?: number;
+  showEditor?: boolean;
 }) {
   return (
     <>
@@ -37,18 +39,20 @@ export function DraftEmailEditor({
         </span>
       </div>
       {description && <p className="live-draft-description">{description}</p>}
-      <label className="editor-label live-draft-editor" htmlFor={inputId}>
-        Response
-        <textarea
-          id={inputId}
-          rows={10}
-          value={value}
-          placeholder={placeholder}
-          disabled={disabled}
-          maxLength={maxLength}
-          onChange={(event) => onChange(event.target.value)}
-        />
-      </label>
+      {showEditor && (
+        <label className="editor-label live-draft-editor" htmlFor={inputId}>
+          Response
+          <textarea
+            id={inputId}
+            rows={10}
+            value={value}
+            placeholder={placeholder}
+            disabled={disabled}
+            maxLength={maxLength}
+            onChange={(event) => onChange(event.target.value)}
+          />
+        </label>
+      )}
     </>
   );
 }

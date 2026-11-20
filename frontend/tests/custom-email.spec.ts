@@ -116,11 +116,16 @@ test("visitors write their own email against a fictional student without touchin
     .getByRole("textbox", { name: "Response", exact: true })
     .fill("My edited reply <script>plain text</script>");
   expect(api.calls).toHaveLength(3);
-  await page.getByText("Supporting evidence", { exact: true }).click();
   await expect(
-    page.getByText("Fictional clothing policy: socks are suitable.", {
-      exact: true,
-    }),
+    page.getByRole("heading", { name: "Supporting evidence" }),
+  ).toBeVisible();
+  await page.locator(".live-evidence-card").getByText("View source").click();
+  await expect(
+    page
+      .locator(".live-evidence-original")
+      .getByText("Fictional clothing policy: socks are suitable.", {
+        exact: true,
+      }),
   ).toBeVisible();
   await expect
     .poll(() =>
@@ -327,4 +332,143 @@ test("each example student can be selected and submitted with their own context"
       ),
     )
     .toBe(true);
+});
+
+test("student clarification does not require a teacher answer", async ({
+  page,
+}) => {
+  const calls: string[] = [];
+  await page.route("**/api/public-demo/**", async (route) => {
+    const stage = new URL(route.request().url()).pathname.split("/").at(-1)!;
+    calls.push(stage);
+    if (stage === "runs")
+      return route.fulfill({ json: { token: "test-token" } });
+    if (stage === "evidence")
+      return route.fulfill({
+        json: {
+          evidence: [],
+          route: "teacher_handoff",
+          missing_information: [],
+          student_information: ["Which class should be cancelled?"],
+          model: "test-model",
+        },
+      });
+    expect(route.request().postDataJSON()).toEqual({ teacher_answers: [] });
+    return route.fulfill({
+      json: { body: "Which class should I cancel?", model: "test-model" },
+    });
+  });
+  await page.goto("/demo/test-email");
+  await page.getByLabel("Email body").fill("Please cancel my class.");
+  await page.getByRole("button", { name: "Simulate email" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Information to ask the student" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Which class should be cancelled?"),
+  ).toBeVisible();
+  await expect(page.getByLabel("Which class should be cancelled?")).toHaveCount(
+    0,
+  );
+  await expect(
+    page.getByRole("heading", { name: "Information needed from teacher" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("textbox", { name: "Response", exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Generate draft" }).click();
+  await expect(
+    page.getByRole("textbox", { name: "Response", exact: true }),
+  ).toHaveValue("Which class should I cancel?");
+  expect(calls).toEqual(["runs", "evidence", "draft"]);
+});
+
+test("a new simulation supersedes an in-flight draft", async ({ page }) => {
+  let releaseDraft = () => {};
+  const draftGate = new Promise<void>((resolve) => {
+    releaseDraft = resolve;
+  });
+  let runCount = 0;
+  const emails: string[] = [];
+  await page.route("**/api/public-demo/**", async (route) => {
+    const stage = new URL(route.request().url()).pathname.split("/").at(-1);
+    if (stage === "runs") {
+      runCount += 1;
+      emails.push(route.request().postDataJSON().email_body);
+      return route.fulfill({ json: { token: `token-${runCount}` } });
+    }
+    if (stage === "evidence") {
+      return route.fulfill({
+        json: {
+          evidence: [],
+          route: "enquiry",
+          missing_information: [],
+          model: "test-model",
+        },
+      });
+    }
+    await draftGate;
+    return route.fulfill({ json: { body: "Old draft", model: "test-model" } });
+  });
+  await page.goto("/demo/test-email");
+  await page.getByLabel("Email body").fill("What should I wear?");
+  await page.getByRole("button", { name: "Simulate email" }).click();
+  await page.getByRole("button", { name: "Generate draft" }).click();
+  const form = page.getByRole("region", { name: "Simulate an incoming email" });
+  await expect(
+    form.getByRole("button", { name: "Simulate email" }),
+  ).toBeEnabled();
+  await expect(form.getByText("Generating draft…")).toHaveCount(0);
+  await expect(form.getByLabel("Sender context")).toBeEnabled();
+  await form.getByLabel("Email body").fill("Can I book a different class?");
+  await form.getByRole("button", { name: "Simulate email" }).click();
+  await expect.poll(() => runCount).toBe(2);
+  await expect(
+    page.getByRole("button", { name: "Generate draft" }),
+  ).toBeEnabled();
+  expect(emails).toEqual([
+    "What should I wear?",
+    "Can I book a different class?",
+  ]);
+  const oldResponse = page.waitForResponse((response) =>
+    response.url().endsWith("/api/public-demo/draft"),
+  );
+  releaseDraft();
+  await oldResponse;
+  await expect(page.getByText("Old draft")).toHaveCount(0);
+});
+
+test("makeup evidence identifies the studio guide and student context", async ({
+  page,
+}) => {
+  await page.route("**/api/public-demo/**", (route) => {
+    const stage = new URL(route.request().url()).pathname.split("/").at(-1);
+    if (stage === "runs")
+      return route.fulfill({ json: { token: "test-token" } });
+    return route.fulfill({
+      json: {
+        evidence: [
+          "# Absences and makeup classes\n\nTell the studio about an absence before class starts.",
+          "Maya Chen has a recorded Level 2 and an active enrolment. Do not infer attendance.",
+          "Maya previously wrote: I will miss Monday 8 February.",
+        ],
+        route: "makeup",
+        missing_information: [],
+        student_information: [],
+        model: "test-model",
+      },
+    });
+  });
+  await page.goto("/demo/test-email");
+  await page.getByLabel("Email body").fill("Can I do a makeup class?");
+  await page.getByRole("button", { name: "Simulate email" }).click();
+  const cards = page.locator(".live-evidence-card");
+  await expect(cards).toHaveCount(3);
+  await expect(cards.nth(0)).toContainText("Absences and makeup classes");
+  await expect(cards.nth(1)).toContainText("Student record");
+  await expect(cards.nth(2)).toContainText("Student conversation");
+  await cards.nth(2).getByText("View source").click();
+  await expect(cards.nth(2).locator(".live-evidence-original")).toContainText(
+    "Maya previously wrote: I will miss Monday 8 February.",
+  );
 });
