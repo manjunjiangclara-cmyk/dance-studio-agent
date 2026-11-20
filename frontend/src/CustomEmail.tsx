@@ -57,6 +57,11 @@ export function CustomEmail() {
   }, []);
   function invalidate() {
     attempt.current = null;
+    if (draftPending.current) {
+      draftPending.current = false;
+      setBusy(false);
+      setStage("");
+    }
     setError("");
     setEvidence(null);
     setDraft("");
@@ -205,7 +210,7 @@ export function CustomEmail() {
             <select
               id="demo-student"
               value={student}
-              disabled={busy}
+              disabled={busy && !evidence}
               onChange={(event) => {
                 setStudent(event.target.value as Student);
                 invalidate();
@@ -225,7 +230,7 @@ export function CustomEmail() {
               maxLength={2000}
               required
               value={body}
-              disabled={busy}
+              disabled={busy && !evidence}
               placeholder="Write a fictional enquiry or makeup request…"
               onChange={(event) => {
                 setBody(event.target.value);

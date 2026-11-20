@@ -389,10 +389,12 @@ test("a new simulation supersedes an in-flight draft", async ({ page }) => {
     releaseDraft = resolve;
   });
   let runCount = 0;
+  const emails: string[] = [];
   await page.route("**/api/public-demo/**", async (route) => {
     const stage = new URL(route.request().url()).pathname.split("/").at(-1);
     if (stage === "runs") {
       runCount += 1;
+      emails.push(route.request().postDataJSON().email_body);
       return route.fulfill({ json: { token: `token-${runCount}` } });
     }
     if (stage === "evidence") {
@@ -417,12 +419,22 @@ test("a new simulation supersedes an in-flight draft", async ({ page }) => {
     form.getByRole("button", { name: "Simulate email" }),
   ).toBeEnabled();
   await expect(form.getByText("Generating draft…")).toHaveCount(0);
+  await expect(form.getByLabel("Sender context")).toBeEnabled();
+  await form.getByLabel("Email body").fill("Can I book a different class?");
   await form.getByRole("button", { name: "Simulate email" }).click();
   await expect.poll(() => runCount).toBe(2);
   await expect(
     page.getByRole("button", { name: "Generate draft" }),
   ).toBeEnabled();
+  expect(emails).toEqual([
+    "What should I wear?",
+    "Can I book a different class?",
+  ]);
+  const oldResponse = page.waitForResponse((response) =>
+    response.url().endsWith("/api/public-demo/draft"),
+  );
   releaseDraft();
+  await oldResponse;
   await expect(page.getByText("Old draft")).toHaveCount(0);
 });
 
