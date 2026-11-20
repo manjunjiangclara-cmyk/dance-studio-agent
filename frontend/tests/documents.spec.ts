@@ -537,7 +537,8 @@ test("preview renders markup as text and inline edits create revisions", async (
 test("demo documents are illustrative and read only", async ({ page }) => {
   const calls: string[] = [];
   page.on("request", (request) => {
-    if (/\/(api|auth)\//.test(request.url())) calls.push(request.url());
+    if (/\/(api|auth)\//.test(request.url()))
+      calls.push(`${request.method()} ${new URL(request.url()).pathname}`);
   });
   await page.goto("/demo/knowledge/documents");
   await page.getByRole("button", { name: "Studio welcome" }).click();
@@ -545,7 +546,14 @@ test("demo documents are illustrative and read only", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: /Save document|Save and approve/ }),
   ).toHaveCount(0);
-  expect(calls).toEqual([]);
+  expect(calls.length).toBeGreaterThan(0);
+  expect(calls.every((call) => call === "GET /api/public-demo/documents")).toBe(
+    true,
+  );
+  await page.getByRole("button", { name: "Beginner clothing policy" }).click();
+  await expect(page.getByLabel("Document text")).toContainText(
+    "Wear comfortable clothes",
+  );
 });
 
 test("cancelled conflict reload retains replacement, accepted reload uses saved revision", async ({

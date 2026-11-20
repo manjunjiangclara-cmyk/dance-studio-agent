@@ -19,3 +19,73 @@
   width: 100%;
   min-width: 0;
 }
+
+.document-library-heading,
+.knowledge-panel-heading {
+  margin-bottom: 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.document-library-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+.document-library-heading h2,
+.knowledge-panel-heading h2 {
+  margin: 0 0 4px;
+  font-size: 24px;
+}
+.document-library-heading p,
+.knowledge-panel-heading p {
+  margin: 0;
+  color: #475569;
+  font-size: 14px;
+}
+.document-count {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1e40af;
+  font-size: 13px;
+  font-weight: 600;
+}
+.document-list {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  margin: 0 0 22px;
+  list-style: none;
+}
+.document-list li {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 16px 18px;
+  border: 1px solid #dbe3ed;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+.document-list li:hover {
+  border-color: #93b4df;
+  background: #f1f6fd;
+}
+.document-meta {
+  color: #64748b;
+  font-size: 13px;
+}
+@media (max-width: 480px) {
+  .document-library-heading {
+    flex-direction: column;
+  }
+}
+.document-list .inline-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font-weight: 650;
+}

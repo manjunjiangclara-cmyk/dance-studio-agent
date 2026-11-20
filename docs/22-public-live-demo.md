@@ -17,6 +17,8 @@ flowchart LR
     Review --> Confirmation[Simulated booking or response confirmation]
 ```
 
+The public Studio Knowledge document library reads the same fictional document catalog used by the live demo. It includes first-class, clothing, makeup, class and fee guidance. The library is read-only and is served by `/api/public-demo/documents`, including when live model calls are disabled. The walkthrough uses a fixed catalog rather than the owner document retrieval pipeline.
+
 ## Public review queue
 
 `/demo/reviews` presents four fictional enquiries in a teacher-facing email queue. Alex and Jules use the two guided scenarios; Noah and Riley use the custom-email pipeline with their fictional student context. The visitor opens an enquiry and chooses **Generate draft**; the interface starts a run, retrieves the selected fictional evidence, and generates a response. For the document enquiry, it pauses for the teacher to supply or defer the missing trial fee before drafting. For Noah and Riley, any missing information returned by the model is presented for teacher responses before drafting. The editable response, evidence and decisions are temporary, and leaving or refreshing discards them. Approval is simulated and never sends email or changes studio records. For the booking scenario, the confirmation card shows the fixed example session; changing the response text does not change that session.
