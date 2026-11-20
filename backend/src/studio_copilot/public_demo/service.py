@@ -69,6 +69,16 @@ class PublicDemo:
         finally:
             db.close()
 
+    @staticmethod
+    def _prune(db, now):
+        cutoff = now - 3 * 86400
+        db.execute(
+            "DELETE FROM turns WHERE thread_token IN (SELECT token FROM threads WHERE created < ?)",
+            (cutoff,),
+        )
+        db.execute("DELETE FROM threads WHERE created < ?", (cutoff,))
+        db.execute("DELETE FROM runs WHERE created < ?", (cutoff,))
+
     def create(self, scenario, request_id, *, student=None, email_body=None):
         if scenario == "custom":
             if (
@@ -87,7 +97,7 @@ class PublicDemo:
         now = self.clock()
         day = datetime.fromtimestamp(now, ZoneInfo("Australia/Melbourne")).date().isoformat()
         with self.db() as db:
-            db.execute("DELETE FROM runs WHERE created < ?", (now - 3 * 86400,))
+            self._prune(db, now)
             existing = db.execute(
                 "SELECT * FROM runs WHERE request_id = ?", (request_id,)
             ).fetchone()
@@ -124,13 +134,7 @@ class PublicDemo:
         day = datetime.fromtimestamp(now, ZoneInfo("Australia/Melbourne")).date().isoformat()
         token = secrets.token_urlsafe(32)
         with self.db() as db:
-            db.execute(
-                "DELETE FROM turns WHERE thread_token IN "
-                "(SELECT token FROM threads WHERE created < ?)",
-                (now - 3 * 86400,),
-            )
-            db.execute("DELETE FROM threads WHERE created < ?", (now - 3 * 86400,))
-            db.execute("DELETE FROM runs WHERE created < ?", (now - 3 * 86400,))
+            self._prune(db, now)
             db.execute(
                 "INSERT INTO threads VALUES (?,?,?,?,?)",
                 (token, student, now, day, json.dumps(initial_state())),

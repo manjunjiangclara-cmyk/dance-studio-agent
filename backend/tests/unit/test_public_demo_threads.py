@@ -254,7 +254,8 @@ def test_failed_draft_restores_bound_teacher_answers(tmp_path):
     assert error.value.status_code == 409
 
 
-def test_thread_creation_cleans_up_expired_runs(tmp_path):
+@pytest.mark.parametrize("admission", ["thread", "legacy"])
+def test_admission_cleans_up_expired_conversation_data(tmp_path, admission):
     now = 1_800_000_000
     service = PublicDemo(tmp_path / "demo.sqlite", factory=ThreadModel, clock=lambda: now)
     token = service.create_thread("new")["token"]
@@ -263,7 +264,10 @@ def test_thread_creation_cleans_up_expired_runs(tmp_path):
     with service.db() as db:
         db.execute("UPDATE threads SET created=? WHERE token=?", (now - 4 * 86400, token))
         db.execute("UPDATE runs SET created=? WHERE request_id=?", (now - 4 * 86400, turn))
-    service.create_thread("new")
+    if admission == "thread":
+        service.create_thread("new")
+    else:
+        service.create("booking", str(uuid4()))
     with service.db() as db:
         assert (
             db.execute("SELECT count(*) FROM runs WHERE request_id=?", (turn,)).fetchone()[0] == 0
