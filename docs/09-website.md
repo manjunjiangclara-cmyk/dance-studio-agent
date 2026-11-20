@@ -115,11 +115,11 @@ A teacher-facing draft may say “Thanks for letting me know. I’ve booked Thur
 
 Apply the additive migration with `uv run --env-file .env alembic upgrade head` before using the updated owner workspace. Existing drafts without a proposal remain response-only; request a revision or generate a new run to obtain a proposed booking.
 
-## Policy editor
+## Makeup validation settings
 
-Open **Studio knowledge → Rules** in the owner workspace to edit the policy version, absence-notice timing rule, explanation, and class-level order from easiest to hardest. Save writes the validated settings atomically to `STUDIO_POLICY_PATH` (default: `backend/policies/studio.yaml` when running from `backend/`). The server needs write access to that file and its directory; deployments should keep the resource on persistent storage. New AI runs load the saved policy; existing reviews retain their original snapshots. The explanation provides AI context, while the checkbox controls the supported absence timing check. The public demo displays a read-only fictional policy.
+The backend reads the absence-notice timing and class-level order from `STUDIO_POLICY_PATH` (default: `backend/policies/studio.yaml` when running from `backend/`). New AI runs retain a snapshot of these settings, and existing reviews keep their original snapshots. Manage reference material through **Studio knowledge → Documents** and enable documents before using them for answers. The former Rules links redirect to Documents.
 
-Authenticated `GET /api/v1/policy` returns the current policy and `PUT /api/v1/policy` saves all three fields. Browser saves require the owner session, same-origin request, and CSRF token.
+Authenticated `GET /api/v1/policy` and `PUT /api/v1/policy` remain available for compatibility. The explanation field in older configuration is excluded from new runs and removed when settings are saved. Browser writes require the owner session, same-origin request, and CSRF token.
 
 ## Database browser
 

@@ -332,6 +332,6 @@ def _execute_tool(db, student_id, source_message_id, policy, name, args, *, sess
         if notice
         else "Absence notification could not be established.",
         "makeup_eligibility": "unknown",
-        "explanation": policy["explanation"],
+        **({"explanation": policy["explanation"]} if "explanation" in policy else {}),
         "references": references,
     }

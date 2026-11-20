@@ -44,6 +44,8 @@
   font-size: 14px;
 }
 .document-count {
+  display: table;
+  margin-bottom: 16px;
   flex-shrink: 0;
   padding: 4px 10px;
   border-radius: 999px;

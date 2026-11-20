@@ -94,7 +94,7 @@ test("visitors write their own email against a fictional student without touchin
     .dblclick();
   await expect(
     page.getByRole("heading", {
-      name: "Review missing information",
+      name: "Draft email",
       exact: true,
     }),
   ).toBeVisible();
@@ -103,9 +103,9 @@ test("visitors write their own email against a fictional student without touchin
   await page
     .getByRole("button", { name: "Generate draft", exact: true })
     .click();
-  await expect(page.getByLabel("Draft response", { exact: true })).toHaveValue(
-    /I'll confirm/,
-  );
+  await expect(
+    page.getByRole("textbox", { name: "Response", exact: true }),
+  ).toHaveValue(/I'll confirm/);
   expect(api.calls.map((c) => c.stage)).toEqual(["runs", "evidence", "draft"]);
   expect(api.calls[0].body).toMatchObject({
     scenario: "custom",
@@ -113,7 +113,7 @@ test("visitors write their own email against a fictional student without touchin
     email_body: email,
   });
   await page
-    .getByLabel("Draft response", { exact: true })
+    .getByRole("textbox", { name: "Response", exact: true })
     .fill("My edited reply <script>plain text</script>");
   expect(api.calls).toHaveLength(3);
   await page.getByText("Supporting evidence", { exact: true }).click();
@@ -157,7 +157,7 @@ test("retry reuses the custom run and evidence; changed email creates a new requ
   await page.getByRole("button", { name: "Retry draft", exact: true }).click();
   await expect(
     page.getByRole("heading", {
-      name: "Review missing information",
+      name: "Draft email",
       exact: true,
     }),
   ).toBeVisible();
@@ -173,7 +173,7 @@ test("retry reuses the custom run and evidence; changed email creates a new requ
     .fill("Can I attend the Saturday class?");
   await expect(
     page.getByRole("heading", {
-      name: "Review missing information",
+      name: "Draft email",
       exact: true,
     }),
   ).toHaveCount(0);
@@ -182,7 +182,7 @@ test("retry reuses the custom run and evidence; changed email creates a new requ
     .click();
   await expect(
     page.getByRole("heading", {
-      name: "Review missing information",
+      name: "Draft email",
       exact: true,
     }),
   ).toBeVisible();
@@ -262,13 +262,13 @@ test("a new enquiry starts without a student history", async ({ page }) => {
     .getByRole("button", { name: "Simulate email", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Review missing information" }),
+    page.getByRole("heading", { name: "Draft email" }),
   ).toBeVisible();
   expect(api.calls[0].body.student).toBe("new");
   await page.getByLabel("Sender context").selectOption("alex");
-  await expect(
-    page.getByRole("heading", { name: "Review missing information" }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Draft email" })).toHaveCount(
+    0,
+  );
 });
 
 test("each example student can be selected and submitted with their own context", async ({
@@ -310,14 +310,14 @@ test("each example student can be selected and submitted with their own context"
       .getByRole("button", { name: "Simulate email", exact: true })
       .click();
     await expect(
-      page.getByRole("heading", { name: "Review missing information" }),
+      page.getByRole("heading", { name: "Draft email" }),
     ).toBeVisible();
     expect(
       api.calls.filter((call) => call.stage === "runs").at(-1)?.body.student,
     ).toBe(id);
     await selector.selectOption("new");
     await expect(
-      page.getByRole("heading", { name: "Review missing information" }),
+      page.getByRole("heading", { name: "Draft email" }),
     ).toHaveCount(0);
   }
   await expect

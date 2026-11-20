@@ -57,7 +57,6 @@ import {
   LiveReviewDetail,
   LiveReviewCases,
 } from "./LiveReviewQueue";
-import { PolicyPage } from "./PolicyPage";
 import { DocumentsPage } from "./DocumentsPage";
 import {
   DocumentAnswerEvidence,
@@ -389,9 +388,7 @@ export default function App() {
         ? "Student profile"
         : page === "knowledge" && id === "documents"
           ? "Documents"
-          : page === "knowledge" && id === "rules"
-            ? "Rules"
-            : undefined;
+          : undefined;
   async function logout() {
     try {
       await post("/auth/logout", identity.csrf_token || "");
@@ -599,56 +596,16 @@ export default function App() {
                   <Timetable />
                 ) : page === "database" ? (
                   <DatabaseBrowser />
-                ) : page === "policy" || page === "documents" ? (
-                  <Navigate
-                    to={`${base}/knowledge/${page === "policy" ? "rules" : "documents"}`}
-                    replace
+                ) : page === "policy" ||
+                  page === "documents" ||
+                  (page === "knowledge" && (!id || id === "rules")) ? (
+                  <Navigate to={`${base}/knowledge/documents`} replace />
+                ) : page === "knowledge" && id === "documents" ? (
+                  <DocumentsPage
+                    key={base}
+                    workspace={workspace}
+                    csrf={identity.csrf_token || ""}
                   />
-                ) : page === "knowledge" &&
-                  (!id || id === "rules" || id === "documents") ? (
-                  <>
-                    <div className="page-heading">
-                      <div>
-                        <div className="eyebrow">YOUR STUDIO · AI CONTEXT</div>
-                        <h1>Studio knowledge</h1>
-                        <p>
-                          Manage the rules and reference material for your
-                          studio.
-                        </p>
-                      </div>
-                    </div>
-                    <nav
-                      className="knowledge-nav"
-                      aria-label="Studio knowledge"
-                    >
-                      <NavLink
-                        to={`${base}/knowledge/rules`}
-                        className={id !== "documents" ? "active" : ""}
-                        aria-current={id !== "documents" ? "page" : undefined}
-                      >
-                        Rules
-                      </NavLink>
-                      <NavLink
-                        to={`${base}/knowledge/documents`}
-                        className={id === "documents" ? "active" : ""}
-                      >
-                        Documents
-                      </NavLink>
-                    </nav>
-                    {id === "documents" ? (
-                      <DocumentsPage
-                        key={base}
-                        workspace={workspace}
-                        csrf={identity.csrf_token || ""}
-                      />
-                    ) : (
-                      <PolicyPage
-                        key={base}
-                        workspace={workspace}
-                        csrf={identity.csrf_token || ""}
-                      />
-                    )}
-                  </>
                 ) : page === "test-email" ? (
                   <TestEmail />
                 ) : (
@@ -811,8 +768,8 @@ function Overview() {
                 <h2 id="dashboard-shortcuts-title">Studio resources</h2>
                 <BookOpen size={20} aria-hidden="true" />
               </div>
-              <Link to={`${base}/knowledge/rules`}>
-                <span>Studio rules</span>
+              <Link to={`${base}/knowledge/documents`}>
+                <span>Studio documents</span>
                 <ArrowUpRight size={16} />
               </Link>
               <Link to={`${base}/students`}>

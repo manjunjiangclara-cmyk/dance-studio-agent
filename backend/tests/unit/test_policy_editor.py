@@ -19,13 +19,13 @@ ORIGINAL = {
     "version": "1",
     "level_order": [],
     "absence_notice_before_start": True,
-    "explanation": "Notice must arrive before class.",
+    "explanation": "",
 }
 UPDATED = {
     "version": "2",
     "level_order": ["Beginner", "Intermediate", "Advanced"],
     "absence_notice_before_start": False,
-    "explanation": "Teacher reviews the request.\nNo automatic entitlement.",
+    "explanation": "",
 }
 
 
@@ -47,15 +47,15 @@ def test_roundtrip_matches_new_agent_policy_and_preserves_loaded_snapshot(resour
         assert response.status_code == 200
         assert response.json() == UPDATED
         assert client.get("/api/v1/policy").json() == UPDATED
-    assert load_policy(resource) == service._policy() == UPDATED
-    assert snapshot == ORIGINAL
+    assert load_policy(resource) == UPDATED
+    assert service._policy() == {k: v for k, v in UPDATED.items() if k != "explanation"}
+    assert snapshot == {k: v for k, v in ORIGINAL.items() if k != "explanation"}
 
 
 @pytest.mark.parametrize(
     "patch",
     [
         {"version": " "},
-        {"explanation": ""},
         {"version": "v" * 101},
         {"explanation": "x" * 10001},
         {"absence_notice_before_start": "false"},
@@ -136,3 +136,17 @@ def test_failed_replace_keeps_original_and_cleans_temporary(resource, monkeypatc
         assert "private filesystem" not in response.text
     assert resource.read_bytes() == before
     assert list(resource.parent.iterdir()) == [resource]
+
+
+def test_legacy_explanation_is_not_used_or_retained_on_save(resource):
+    resource.write_text(
+        'version: "legacy"\nabsence_notice_before_start: true\n'
+        "level_order: [Beginner]\nexplanation: Old policy text\n"
+    )
+    service = AgentService(None, None, policy_path=resource)
+    assert "explanation" not in service._policy()
+    legacy = load_policy(resource)
+    assert legacy["explanation"] == "Old policy text"
+    save_policy(Policy(**legacy), resource)
+    assert "Old policy text" not in resource.read_text()
+    assert load_policy(resource)["level_order"] == ["Beginner"]

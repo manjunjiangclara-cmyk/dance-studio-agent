@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useBlocker, useSearchParams } from "react-router-dom";
+import { Link, useBlocker, useSearchParams } from "react-router-dom";
 import { ApiError, request } from "./data";
 import "./documents.css";
 
@@ -203,7 +203,10 @@ export function DocumentsPage({
   useEffect(() => {
     const sequence = ++loadSequence.current;
     setBusy(false);
-    if (!linkedDocument) return;
+    if (!linkedDocument) {
+      close();
+      return;
+    }
     if (dirty) {
       setError(
         "Save or discard your document edits before opening this citation.",
@@ -484,6 +487,11 @@ export function DocumentsPage({
           </p>
         </div>
       </div>
+      {linkedDocument && (
+        <Link className="inline-link" to="/workspace/knowledge/documents">
+          Back to documents
+        </Link>
+      )}
       {!workspace && (
         <div className="notice">
           Read-only example. Sign in to manage your studio documents.
@@ -518,17 +526,11 @@ export function DocumentsPage({
       )}
       {!documents && !error && <p role="status">Loading documents…</p>}
       {documents && (
-        <section className="panel policy-form document-library">
-          <div className="document-library-heading">
-            <div>
-              <h2>Document library</h2>
-              <p>Reference material for answering student enquiries.</p>
-            </div>
-            <span className="document-count">
-              {documents.length}{" "}
-              {documents.length === 1 ? "document" : "documents"}
-            </span>
-          </div>
+        <div className="panel policy-form document-library">
+          <span className="document-count">
+            {documents.length}{" "}
+            {documents.length === 1 ? "document" : "documents"}
+          </span>
           {workspace && (
             <label>
               <input
@@ -592,7 +594,7 @@ export function DocumentsPage({
               />
             </label>
           )}
-        </section>
+        </div>
       )}
       {draft && (
         <form
@@ -897,7 +899,7 @@ export function DocumentsPage({
             aria-labelledby="document-leave-title"
           >
             <h2 id="document-leave-title">Leave without saving?</h2>
-            <p>Your document changes have not been saved.</p>
+            <p>Your changes have not been saved.</p>
             <div className="button-row">
               <button
                 className="button primary"

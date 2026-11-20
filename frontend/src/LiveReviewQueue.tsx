@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Sparkles } from "lucide-react";
+import { DraftEmailEditor } from "./DraftEmailEditor";
 import { IntentBadges } from "./Classification";
 import {
   tourBooking,
@@ -340,32 +340,19 @@ export function LiveReviewDetail({ scenario }: { scenario: ReviewScenario }) {
         </ol>
       </section>
       <section className="panel" aria-labelledby="draft-heading">
-        <div className="live-draft-heading">
-          <h2 id="draft-heading">Draft email</h2>
-          <span className="live-ai-badge">
-            <Sparkles size={14} aria-hidden="true" /> AI-assisted drafting
-          </span>
-        </div>
-        {!live.draft && (
-          <p className="live-draft-description">
-            Generate a response based on the email and available studio
-            information. Review it before approving.
-          </p>
-        )}
-        <label
-          className="editor-label live-draft-editor"
-          htmlFor="live-review-response"
-        >
-          Response
-          <textarea
-            id="live-review-response"
-            rows={10}
-            value={body}
-            placeholder="Write a response or generate a draft."
-            disabled={working || Boolean(live.busy) || approved}
-            onChange={(event) => setEdited(event.target.value)}
-          />
-        </label>
+        <DraftEmailEditor
+          headingId="draft-heading"
+          inputId="live-review-response"
+          value={body}
+          onChange={setEdited}
+          disabled={working || Boolean(live.busy) || approved}
+          placeholder="Write a response or generate a draft."
+          description={
+            !live.draft
+              ? "Generate a response based on the email and available studio information. Review it before approving."
+              : undefined
+          }
+        />
         {scenario === "document" && live.evidence && !live.draft && (
           <div className="tour-decision">
             <p>

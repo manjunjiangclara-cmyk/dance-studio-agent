@@ -128,7 +128,9 @@ def test_runner_stops_at_review_and_followup_supersedes_without_teacher_writes(
     assert result["passed"], result
     assert len(result["runs"]) == 2
     assert all(run["status"] == "awaiting_review" for run in result["runs"])
-    assert all(run["policy_snapshot"] == load_policy(POLICY) for run in result["runs"])
+    expected_policy = load_policy(POLICY)
+    expected_policy.pop("explanation")
+    assert all(run["policy_snapshot"] == expected_policy for run in result["runs"])
     assert result["runs"][0]["conversation_id"] == result["runs"][1]["conversation_id"]
     assert any(c["name"] == "earlier_run_superseded" and c["passed"] for c in result["checks"])
     assert (
