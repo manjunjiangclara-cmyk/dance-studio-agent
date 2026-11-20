@@ -295,8 +295,13 @@ export function CustomEmail() {
             · {evidence.model}
           </p>
           {Boolean(evidence.student_information?.length) && (
-            <section aria-label="Information to ask the student">
-              <h3>Information to ask the student</h3>
+            <section
+              className="student-clarification"
+              aria-labelledby="student-clarification-title"
+            >
+              <h3 id="student-clarification-title">
+                Information to ask the student
+              </h3>
               <p>The draft will ask the student for these details.</p>
               <ul>
                 {evidence.student_information?.map((item, index) => (

@@ -38,3 +38,38 @@
 .email-notice {
   margin: 16px 0;
 }
+
+.student-clarification {
+  margin: 20px 0;
+  padding: 18px 20px;
+  border: 1px solid #d5e3f2;
+  border-left: 3px solid #5285ae;
+  border-radius: 8px;
+  background: #f5f9fd;
+}
+.student-clarification h3 {
+  margin: 0;
+  color: #183b56;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.student-clarification p {
+  margin: 4px 0 12px;
+  color: #526779;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.student-clarification ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: #203b50;
+}
+.custom-email-result .student-clarification li {
+  margin: 0;
+  line-height: 1.5;
+}
+.custom-email-result .student-clarification li + li {
+  margin-top: 8px;
+}
