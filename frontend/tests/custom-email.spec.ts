@@ -103,9 +103,9 @@ test("visitors write their own email against a fictional student without touchin
   await page
     .getByRole("button", { name: "Generate draft", exact: true })
     .click();
-  await expect(page.getByLabel("Response", { exact: true })).toHaveValue(
-    /I'll confirm/,
-  );
+  await expect(
+    page.getByRole("textbox", { name: "Response", exact: true }),
+  ).toHaveValue(/I'll confirm/);
   expect(api.calls.map((c) => c.stage)).toEqual(["runs", "evidence", "draft"]);
   expect(api.calls[0].body).toMatchObject({
     scenario: "custom",
@@ -113,7 +113,7 @@ test("visitors write their own email against a fictional student without touchin
     email_body: email,
   });
   await page
-    .getByLabel("Response", { exact: true })
+    .getByRole("textbox", { name: "Response", exact: true })
     .fill("My edited reply <script>plain text</script>");
   expect(api.calls).toHaveLength(3);
   await page.getByText("Supporting evidence", { exact: true }).click();
