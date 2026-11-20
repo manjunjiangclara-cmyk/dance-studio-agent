@@ -247,7 +247,6 @@ export function CustomEmail() {
                 </button>
               </div>
             )}
-            <p className="muted">A run starts when you simulate an email.</p>
             <button
               className="button primary"
               disabled={busy || !body.trim() || Boolean(evidence)}
