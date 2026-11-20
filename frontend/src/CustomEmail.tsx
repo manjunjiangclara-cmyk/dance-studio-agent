@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ApiError, examples, request } from "./data";
 import { StudentMemorySections } from "./StudentMemorySections";
+import { DraftEmailEditor } from "./DraftEmailEditor";
 import "./custom-email.css";
 
 // Preserve the original IDs for in-flight and retryable simulations.
@@ -273,10 +274,16 @@ export function CustomEmail() {
           className="panel custom-email-result"
           aria-labelledby="custom-result-title"
         >
-          <div className="eyebrow">TEACHER REVIEW</div>
-          <h2 ref={resultHeading} tabIndex={-1} id="custom-result-title">
-            Review missing information
-          </h2>
+          <DraftEmailEditor
+            headingId="custom-result-title"
+            headingRef={resultHeading}
+            inputId="custom-response"
+            value={draft}
+            onChange={setDraft}
+            disabled={!generated || busy}
+            placeholder="Generate a draft to prepare a response."
+            maxLength={5000}
+          />
           <p className="custom-route">
             {evidence.route === "makeup"
               ? "Makeup request"
@@ -339,19 +346,9 @@ export function CustomEmail() {
             </div>
           )}
           {generated && (
-            <>
-              <label htmlFor="custom-response">Draft response</label>
-              <textarea
-                id="custom-response"
-                value={draft}
-                rows={9}
-                maxLength={5000}
-                onChange={(event) => setDraft(event.target.value)}
-              />
-              <p className="muted">
-                Edit this draft locally. No email was sent or class booked.
-              </p>
-            </>
+            <p className="muted">
+              Edit this draft locally. No email was sent or class booked.
+            </p>
           )}
           <details>
             <summary>Supporting evidence</summary>
