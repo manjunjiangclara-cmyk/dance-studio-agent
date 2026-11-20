@@ -45,7 +45,8 @@ export function CustomEmail() {
   const [answers, setAnswers] = useState<string[]>([]);
   const [answersLocked, setAnswersLocked] = useState(false);
   const attempt = useRef<Attempt | null>(null);
-  const pending = useRef(false);
+  const simulationPending = useRef(false);
+  const draftPending = useRef(false);
   const alive = useRef(true);
   const resultHeading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
@@ -64,16 +65,20 @@ export function CustomEmail() {
     setAnswersLocked(false);
   }
   async function simulate() {
-    if (pending.current || !body.trim()) return;
-    pending.current = true;
+    if (simulationPending.current || !body.trim()) return;
+    const current = evidence
+      ? { student, email: body, requestId: crypto.randomUUID() }
+      : attempt.current || {
+          student,
+          email: body,
+          requestId: crypto.randomUUID(),
+        };
+    if (evidence) invalidate();
+    attempt.current = current;
+    simulationPending.current = true;
+    draftPending.current = false;
     setBusy(true);
     setError("");
-    const current = attempt.current || {
-      student,
-      email: body,
-      requestId: crypto.randomUUID(),
-    };
-    attempt.current = current;
     try {
       if (!current.token) {
         setStage("Starting simulation…");
@@ -87,7 +92,7 @@ export function CustomEmail() {
             request_id: current.requestId,
           }),
         });
-        if (!alive.current) return;
+        if (!alive.current || attempt.current !== current) return;
         current.token = run.token;
       }
       const headers = {
@@ -100,7 +105,7 @@ export function CustomEmail() {
           "/api/public-demo/evidence",
           { method: "POST", headers, body: "{}" },
         );
-        if (!alive.current) return;
+        if (!alive.current || attempt.current !== current) return;
       }
       setEvidence(current.evidence);
       setAnswers(current.evidence.missing_information.map(() => ""));
@@ -108,7 +113,7 @@ export function CustomEmail() {
         if (alive.current) resultHeading.current?.focus();
       });
     } catch (caught) {
-      if (alive.current)
+      if (alive.current && attempt.current === current)
         setError(
           caught instanceof ApiError && caught.status === 0
             ? "Connection interrupted. Retry to recover this simulation."
@@ -117,8 +122,8 @@ export function CustomEmail() {
               : "The email simulation could not complete.",
         );
     } finally {
-      pending.current = false;
-      if (alive.current) {
+      simulationPending.current = false;
+      if (alive.current && attempt.current === current) {
         setBusy(false);
         setStage("");
       }
@@ -129,12 +134,13 @@ export function CustomEmail() {
     if (
       !current?.token ||
       !current.evidence ||
-      pending.current ||
+      simulationPending.current ||
+      draftPending.current ||
       answers.some((a) => !a.trim()) ||
       answers.length !== current.evidence.missing_information.length
     )
       return;
-    pending.current = true;
+    draftPending.current = true;
     setBusy(true);
     setAnswersLocked(true);
     setError("");
@@ -152,21 +158,21 @@ export function CustomEmail() {
         throw new Error(
           "The live service returned an empty draft. Retry this step.",
         );
-      if (alive.current) {
+      if (alive.current && attempt.current === current) {
         current.draft = result.body;
         setDraft(result.body);
         setGenerated(true);
       }
     } catch (caught) {
-      if (alive.current)
+      if (alive.current && attempt.current === current)
         setError(
           caught instanceof Error
             ? caught.message
             : "The draft could not be generated.",
         );
     } finally {
-      pending.current = false;
-      if (alive.current) {
+      if (alive.current && attempt.current === current) {
+        draftPending.current = false;
         setBusy(false);
         setStage("");
       }
@@ -252,11 +258,11 @@ export function CustomEmail() {
             )}
             <button
               className="button primary"
-              disabled={busy || !body.trim() || Boolean(evidence)}
+              disabled={!body.trim() || (busy && !evidence)}
             >
-              {busy ? "Simulating email…" : "Simulate email"}
+              {busy && !evidence ? "Simulating email…" : "Simulate email"}
             </button>
-            {busy && <p role="status">{stage}</p>}
+            {busy && !evidence && <p role="status">{stage}</p>}
           </form>
         </section>
         <aside className="panel context-card profile-card profile-memory email-explainer">

@@ -382,3 +382,46 @@ test("student clarification does not require a teacher answer", async ({
   ).toHaveValue("Which class should I cancel?");
   expect(calls).toEqual(["runs", "evidence", "draft"]);
 });
+
+test("a new simulation supersedes an in-flight draft", async ({ page }) => {
+  let releaseDraft = () => {};
+  const draftGate = new Promise<void>((resolve) => {
+    releaseDraft = resolve;
+  });
+  let runCount = 0;
+  await page.route("**/api/public-demo/**", async (route) => {
+    const stage = new URL(route.request().url()).pathname.split("/").at(-1);
+    if (stage === "runs") {
+      runCount += 1;
+      return route.fulfill({ json: { token: `token-${runCount}` } });
+    }
+    if (stage === "evidence") {
+      return route.fulfill({
+        json: {
+          evidence: [],
+          route: "enquiry",
+          missing_information: [],
+          model: "test-model",
+        },
+      });
+    }
+    await draftGate;
+    return route.fulfill({ json: { body: "Old draft", model: "test-model" } });
+  });
+  await page.goto("/demo/test-email");
+  await page.getByLabel("Email body").fill("What should I wear?");
+  await page.getByRole("button", { name: "Simulate email" }).click();
+  await page.getByRole("button", { name: "Generate draft" }).click();
+  const form = page.getByRole("region", { name: "Simulate an incoming email" });
+  await expect(
+    form.getByRole("button", { name: "Simulate email" }),
+  ).toBeEnabled();
+  await expect(form.getByText("Generating draft…")).toHaveCount(0);
+  await form.getByRole("button", { name: "Simulate email" }).click();
+  await expect.poll(() => runCount).toBe(2);
+  await expect(
+    page.getByRole("button", { name: "Generate draft" }),
+  ).toBeEnabled();
+  releaseDraft();
+  await expect(page.getByText("Old draft")).toHaveCount(0);
+});
