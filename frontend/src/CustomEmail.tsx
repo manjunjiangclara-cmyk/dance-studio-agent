@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ApiError, examples, request } from "./data";
 import { StudentMemorySections } from "./StudentMemorySections";
 import { DraftEmailEditor } from "./DraftEmailEditor";
+import { SupportingEvidence } from "./SupportingEvidence";
 import "./custom-email.css";
 
 // Preserve the original IDs for in-flight and retryable simulations.
@@ -368,21 +369,17 @@ export function CustomEmail() {
               Edit this draft locally. No email was sent or class booked.
             </p>
           )}
-          <details>
-            <summary>Supporting evidence</summary>
-            {evidence.evidence.length ? (
-              <ul>
-                {evidence.evidence.map((item, index) => (
-                  <li key={index}>{item}</li>
-                ))}
-              </ul>
-            ) : (
+          {evidence.evidence.length ? (
+            <SupportingEvidence evidence={evidence.evidence} />
+          ) : (
+            <div className="live-draft-evidence">
+              <h3>Supporting evidence</h3>
               <p>
                 No matching source was found; the response should ask for
                 details or confirmation.
               </p>
-            )}
-          </details>
+            </div>
+          )}
         </section>
       )}
     </>

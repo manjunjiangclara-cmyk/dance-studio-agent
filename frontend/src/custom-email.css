@@ -18,6 +18,9 @@
 .custom-email-result li {
   margin: 12px 0;
 }
+.custom-email-result .live-evidence-list > li {
+  margin: 0;
+}
 .custom-route {
   color: #475569;
 }

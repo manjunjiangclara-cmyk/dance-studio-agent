@@ -116,11 +116,16 @@ test("visitors write their own email against a fictional student without touchin
     .getByRole("textbox", { name: "Response", exact: true })
     .fill("My edited reply <script>plain text</script>");
   expect(api.calls).toHaveLength(3);
-  await page.getByText("Supporting evidence", { exact: true }).click();
   await expect(
-    page.getByText("Fictional clothing policy: socks are suitable.", {
-      exact: true,
-    }),
+    page.getByRole("heading", { name: "Supporting evidence" }),
+  ).toBeVisible();
+  await page.locator(".live-evidence-card").getByText("View source").click();
+  await expect(
+    page
+      .locator(".live-evidence-original")
+      .getByText("Fictional clothing policy: socks are suitable.", {
+        exact: true,
+      }),
   ).toBeVisible();
   await expect
     .poll(() =>
