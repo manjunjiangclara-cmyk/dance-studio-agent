@@ -51,12 +51,9 @@ import { confirmedSessions } from "./attendance";
 import { CustomEmail } from "./CustomEmail";
 import { StudentMemorySections } from "./StudentMemorySections";
 import { BookingProposal } from "./BookingProposal";
+import { tourFixtures } from "./tourData";
 import { GuidedTour } from "./GuidedTour";
-import {
-  LiveReviewQueue,
-  LiveReviewDetail,
-  LiveReviewCases,
-} from "./LiveReviewQueue";
+import { LiveReviewQueue, LiveReviewDetail } from "./LiveReviewQueue";
 import { DocumentsPage } from "./DocumentsPage";
 import {
   DocumentAnswerEvidence,
@@ -660,132 +657,107 @@ function Overview() {
       .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
       .slice(0, 2);
     return (
-      <>
-        <PageHeader
-          eyebrow="PUBLIC DEMO · FICTIONAL DATA"
-          title="AI support for every enquiry."
-        >
-          From a student’s email to a draft ready for your review.
-        </PageHeader>
-        <section className="ai-workflow" aria-labelledby="ai-workflow-title">
-          <div className="ai-workflow-heading">
-            <span className="ai-workflow-sparkle">
-              <Sparkles size={19} aria-hidden="true" />
-            </span>
-            <div>
-              <span className="eyebrow">YOUR AI COPILOT</span>
-              <h2 id="ai-workflow-title">From enquiry to response</h2>
-            </div>
+      <div className="public-overview">
+        <header className="studio-intro">
+          <div className="eyebrow">PUBLIC DEMO · FICTIONAL DATA</div>
+          <h1>A change of plans at the studio.</h1>
+          <p>
+            Student enquiry <span aria-hidden="true">→</span>{" "}
+            <strong>AI-assisted draft</strong> <span aria-hidden="true">→</span>{" "}
+            Teacher review
+          </p>
+        </header>
+        <section className="featured-enquiry" aria-labelledby="featured-title">
+          <div className="featured-copy">
+            <div className="eyebrow">MAKEUP REQUEST</div>
+            <h2 id="featured-title">{tourFixtures.booking.student}</h2>
+            <ol className="featured-thread">
+              {tourFixtures.booking.messages.map((message) => (
+                <li key={message.sender}>
+                  <blockquote>{message.body}</blockquote>
+                </li>
+              ))}
+            </ol>
+            <Link
+              className="button primary"
+              to={`${base}/reviews/live-booking`}
+            >
+              Review Alex’s request <ArrowRight size={17} aria-hidden="true" />
+            </Link>
           </div>
-          <ol className="ai-workflow-steps">
-            <li>
-              <span className="ai-step-icon">
-                <Mail size={18} aria-hidden="true" />
-              </span>
-              <div>
-                <strong>Student enquiry</strong>
-                <span>Read the conversation</span>
-              </div>
-            </li>
-            <li className="ai-step-highlight">
-              <span className="ai-step-icon">
-                <Sparkles size={18} aria-hidden="true" />
-              </span>
-              <div>
-                <strong>AI-assisted draft</strong>
-                <span>Uses example studio context</span>
-              </div>
-            </li>
-            <li>
-              <span className="ai-step-icon">
-                <ClipboardCheck size={18} aria-hidden="true" />
-              </span>
-              <div>
-                <strong>Teacher review</strong>
-                <span>You make the decision</span>
-              </div>
-            </li>
-          </ol>
+          <img
+            src={new URL("./studio-barre.webp", import.meta.url).href}
+            className="studio-photo"
+            alt=""
+          />
         </section>
-        <div className="overview-dashboard">
+        <div className="other-enquiries">
+          <Link to={`${base}/reviews/live-document`}>
+            Explore Jules Park’s first-class enquiry <ArrowRight size={16} />
+          </Link>
+          <Link to={`${base}/reviews`}>
+            View queue <ArrowRight size={16} />
+          </Link>
+        </div>
+        <aside className="studio-resources-grid" aria-label="Studio overview">
           <section
-            className="panel overview-enquiries"
-            aria-labelledby="overview-enquiries-title"
+            className="panel dashboard-timetable"
+            aria-labelledby="dashboard-timetable-title"
           >
             <div className="section-heading">
               <div>
-                <div className="eyebrow">FICTIONAL EXAMPLES</div>
-                <h2 id="overview-enquiries-title">Choose an enquiry</h2>
+                <div className="eyebrow">EXAMPLE SCHEDULE</div>
+                <h2 id="dashboard-timetable-title">Classes</h2>
               </div>
-              <Link className="inline-link" to={`${base}/reviews`}>
-                View queue <ArrowRight size={16} />
-              </Link>
+              <CalendarDays size={20} aria-hidden="true" />
             </div>
-            <LiveReviewCases dashboard />
-          </section>
-          <aside
-            className="overview-dashboard-side"
-            aria-label="Studio overview"
-          >
-            <section
-              className="panel dashboard-timetable"
-              aria-labelledby="dashboard-timetable-title"
-            >
-              <div className="section-heading">
-                <div>
-                  <div className="eyebrow">EXAMPLE SCHEDULE</div>
-                  <h2 id="dashboard-timetable-title">Classes</h2>
+            <p className="dashboard-snapshot">
+              Example snapshot · {dateLabel(examples.as_of)}
+            </p>
+            {exampleSessions.map((session) => {
+              const cls = examples.classes.find(
+                (item) => item.id === session.class_id,
+              );
+              const location = examples.locations.find(
+                (item) => item.id === cls?.location_id,
+              );
+              return (
+                <div className="dashboard-session" key={session.id}>
+                  <strong>{cls?.name ?? "Class"}</strong>
+                  <span>{timeLabel(session.starts_at)}</span>
+                  {location && <span>{location.name}</span>}
                 </div>
-                <CalendarDays size={20} aria-hidden="true" />
-              </div>
-              <p className="dashboard-snapshot">
-                Example snapshot · {dateLabel(examples.as_of)}
-              </p>
-              {exampleSessions.map((session) => {
-                const cls = examples.classes.find(
-                  (item) => item.id === session.class_id,
-                );
-                const location = examples.locations.find(
-                  (item) => item.id === cls?.location_id,
-                );
-                return (
-                  <div className="dashboard-session" key={session.id}>
-                    <strong>{cls?.name ?? "Class"}</strong>
-                    <span>{timeLabel(session.starts_at)}</span>
-                    {location && <span>{location.name}</span>}
-                  </div>
-                );
-              })}
-              <Link className="inline-link" to={`${base}/timetable`}>
-                View timetable <ArrowRight size={16} />
-              </Link>
-            </section>
-            <section
-              className="panel dashboard-shortcuts"
-              aria-labelledby="dashboard-shortcuts-title"
-            >
-              <div className="section-heading">
-                <h2 id="dashboard-shortcuts-title">Studio resources</h2>
-                <BookOpen size={20} aria-hidden="true" />
-              </div>
-              <Link to={`${base}/knowledge/documents`}>
-                <span>Studio documents</span>
-                <ArrowUpRight size={16} />
-              </Link>
-              <Link to={`${base}/students`}>
-                <span>Student records</span>
-                <ArrowUpRight size={16} />
-              </Link>
-            </section>
-          </aside>
-        </div>
+              );
+            })}
+            <Link className="inline-link" to={`${base}/timetable`}>
+              View timetable <ArrowRight size={16} />
+            </Link>
+          </section>
+          <section
+            className="panel dashboard-shortcuts"
+            aria-labelledby="dashboard-shortcuts-title"
+          >
+            <div className="section-heading">
+              <h2 id="dashboard-shortcuts-title">Studio resources</h2>
+              <BookOpen size={20} aria-hidden="true" />
+            </div>
+            <Link to={`${base}/knowledge/documents`}>
+              <span>Studio documents</span>
+              <ArrowUpRight size={16} />
+            </Link>
+            <Link to={`${base}/students`}>
+              <span>Student records</span>
+              <ArrowUpRight size={16} />
+            </Link>
+          </section>
+        </aside>
         <div className="example-footnote">
           <CircleHelp size={16} />
           <p>
             Fictional examples. Generate a response to review; no email is sent.
           </p>
         </div>
-      </>
+      </div>
     );
   }
   return (

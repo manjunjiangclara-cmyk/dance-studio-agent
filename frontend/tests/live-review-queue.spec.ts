@@ -169,7 +169,7 @@ test("a new case accepts empty evidence when no teacher input is needed", async 
 
 test("visitors generate and review a temporary live response", async ({
   page,
-}) => {
+}, testInfo) => {
   const calls: string[] = [];
   await page.route("**/api/public-demo/**", async (route) => {
     const stage = new URL(route.request().url()).pathname.split("/").at(-1)!;
@@ -227,11 +227,14 @@ test("visitors generate and review a temporary live response", async ({
   await expect(page.locator(".page-heading .intent-badge")).toHaveText(
     "Makeup",
   );
+  const draftPanel = page.getByRole("region", { name: "Draft email" });
   await expect(
-    page.getByText("Hosted demos share 20 live runs per day."),
+    draftPanel.getByText("Hosted demos share 20 live runs per day."),
   ).toBeVisible();
   await expect(
-    page.getByText("Drafts and results disappear when you leave or refresh."),
+    draftPanel.getByText(
+      "Drafts and results disappear when you leave or refresh.",
+    ),
   ).toBeVisible();
   const messages = page
     .getByRole("list", { name: "Student email conversation" })
@@ -255,6 +258,12 @@ test("visitors generate and review a temporary live response", async ({
   await expect(messages.nth(1)).toContainText(
     "Saturday 13 February would be better.",
   );
+  if (testInfo.project.name === "desktop") {
+    await expect(messages.nth(1)).toBeInViewport({ ratio: 1 });
+    await expect(
+      draftPanel.getByRole("button", { name: "Generate draft", exact: true }),
+    ).toBeInViewport({ ratio: 1 });
+  }
   expect(calls).toEqual([]);
   await expect(
     page.getByRole("heading", { name: "Draft email" }),

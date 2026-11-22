@@ -4292,14 +4292,6 @@ h3 {
   overflow-wrap: anywhere;
 }
 
-/* Fictional enquiries on the public overview. */
-.overview-enquiries .run-row {
-  padding: 24px 4px;
-}
-.overview-enquiries .avatar {
-  width: 44px;
-  height: 44px;
-}
 .run-person > .case-description {
   white-space: normal;
   overflow: visible;
@@ -4313,34 +4305,6 @@ h3 {
   font-weight: 400;
   overflow-wrap: anywhere;
   white-space: normal;
-}
-.run-person > .dashboard-case-category {
-  color: #475569;
-  font-size: 11px;
-  font-weight: 650;
-  letter-spacing: 0.08em;
-  margin: 0 0 5px;
-}
-.dashboard-case-action {
-  color: #075985;
-  font-size: 14px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-@media (max-width: 650px) {
-  .dashboard-case-action {
-    margin-left: 56px;
-  }
-}
-
-.overview-dashboard {
-  display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(260px, 1fr);
-  gap: 24px;
-  align-items: start;
-}
-.overview-dashboard-side {
-  min-width: 0;
 }
 .dashboard-timetable .section-heading,
 .dashboard-shortcuts .section-heading {
@@ -4382,24 +4346,6 @@ h3 {
   color: #075985;
   font-weight: 600;
 }
-@media (max-width: 1050px) {
-  .overview-dashboard {
-    grid-template-columns: 1fr;
-    gap: 0;
-  }
-  .overview-dashboard-side {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px;
-  }
-}
-@media (max-width: 650px) {
-  .overview-dashboard-side {
-    grid-template-columns: 1fr;
-    gap: 0;
-  }
-}
-
 /* Keep daily navigation prominent while separating setup and tools. */
 .sidebar {
   overflow-y: auto;
@@ -4471,96 +4417,6 @@ h3 {
   transform: none;
 }
 
-/* A compact visual explanation of the AI-assisted workflow. */
-.ai-workflow {
-  margin-bottom: 24px;
-  border: 1px solid #bad0ef;
-  border-radius: 10px;
-  background: linear-gradient(115deg, #eef5ff, #f4f2ff);
-  padding: 21px 24px;
-}
-.ai-workflow-heading {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 17px;
-}
-.ai-workflow-sparkle {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 11px;
-  color: white;
-  background: #514bb4;
-  flex-shrink: 0;
-}
-.ai-workflow-heading .eyebrow {
-  color: #514bb4;
-  font-size: 10px;
-}
-.ai-workflow-heading h2 {
-  font-size: 20px;
-  margin: 3px 0 0;
-}
-.ai-workflow-steps {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  gap: 10px;
-}
-.ai-workflow-steps li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  padding: 12px;
-  background: #ffffffc9;
-  border: 1px solid #d9e3f3;
-  border-radius: 8px;
-}
-.ai-workflow-steps .ai-step-highlight {
-  border-color: #b8b0ed;
-  background: #f8f6ff;
-}
-.ai-step-icon {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  height: 34px;
-  width: 34px;
-  border-radius: 9px;
-  color: #34568a;
-  background: #e8effa;
-}
-.ai-step-highlight .ai-step-icon {
-  color: #514bb4;
-  background: #e9e5ff;
-}
-.ai-workflow-steps strong,
-.ai-workflow-steps li div > span {
-  display: block;
-}
-.ai-workflow-steps strong {
-  color: #243248;
-  font-size: 14px;
-}
-.ai-workflow-steps li div > span {
-  color: #475569;
-  font-size: 12px;
-  margin-top: 3px;
-}
-@media (max-width: 650px) {
-  .ai-workflow {
-    padding: 18px;
-  }
-  .ai-workflow-steps {
-    grid-template-columns: 1fr;
-  }
-}
-
 .brand small {
   display: flex;
   align-items: center;
@@ -4627,4 +4483,145 @@ select:not([multiple]):not([size]):disabled {
   color: #64748b;
   background-color: #f1f5f9;
   cursor: not-allowed;
+}
+
+.main-column:has(.public-overview),
+.main-column:has(.live-review-columns) {
+  background: #faf8f4;
+}
+.studio-intro h1 {
+  font-size: clamp(40px, 4.2vw, 66px);
+  line-height: 1.07;
+  margin: 10px 0 12px;
+}
+.studio-intro p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: #455463;
+  font-size: 14px;
+  margin: 0 0 24px;
+}
+.studio-intro p strong {
+  color: #554692;
+}
+.featured-enquiry {
+  display: grid;
+  grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr);
+  border: 1px solid #dcd6cd;
+  background: #fffefa;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.featured-copy {
+  padding: clamp(24px, 3vw, 44px);
+}
+.featured-copy h2 {
+  font-size: clamp(30px, 3vw, 44px);
+  margin: 3px 0 18px;
+}
+.featured-thread {
+  list-style: none;
+  padding: 0 0 0 15px;
+  margin: 0 0 22px;
+  border-left: 2px solid #ccbca7;
+}
+.featured-thread blockquote {
+  margin: 0;
+  color: #465462;
+  line-height: 1.5;
+}
+.featured-thread li + li blockquote {
+  margin-top: 10px;
+  color: #192f40;
+  font-family: var(--serif);
+  font-size: clamp(23px, 2.2vw, 32px);
+  line-height: 1.17;
+}
+.featured-copy .button {
+  background: #1d3748;
+  color: white;
+}
+.featured-copy .button:hover {
+  background: #304e60;
+}
+.studio-photo {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: cover;
+  contain: size;
+}
+.other-enquiries {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 18px 0 32px;
+}
+.other-enquiries a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #28495c;
+}
+.other-enquiries a:hover {
+  text-decoration: underline;
+}
+.studio-resources-grid,
+.live-review-columns {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+.live-review-header {
+  margin-bottom: 20px;
+}
+.review-disclosure {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.live-review-columns .panel {
+  min-width: 0;
+  padding: clamp(18px, 2vw, 28px);
+}
+.live-review-columns .live-draft-editor textarea {
+  min-height: 100px;
+  height: 7rem;
+  resize: vertical;
+}
+.live-run-notes {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+@media (max-width: 900px) {
+  .live-review-columns {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 650px) {
+  .studio-resources-grid,
+  .featured-enquiry {
+    grid-template-columns: 1fr;
+  }
+  .studio-photo {
+    position: static;
+    width: 100%;
+    height: 92px;
+    object-position: center 58%;
+  }
+  .studio-intro p {
+    gap: 5px;
+    font-size: 12px;
+  }
 }

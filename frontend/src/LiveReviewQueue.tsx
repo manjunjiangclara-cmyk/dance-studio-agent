@@ -16,7 +16,6 @@ const cases: {
   subject: string;
   email: string;
   description: string;
-  category: string;
   intent: string;
   received: string;
   messageTimes: string[];
@@ -27,7 +26,6 @@ const cases: {
     subject: "Makeup for Monday 8 February",
     email: "alex@example.test",
     description: "Can't attend Monday and would prefer Saturday.",
-    category: "MAKEUP REQUEST",
     intent: "makeup",
     received: "2027-02-07",
     messageTimes: ["2027-02-07T10:00:00+11:00", "2027-02-07T10:05:00+11:00"],
@@ -38,7 +36,6 @@ const cases: {
     subject: "Questions about starting ballet",
     email: "jules@example.test",
     description: "Asks what to wear and how much a trial costs.",
-    category: "NEW STUDENT",
     intent: "new_student_enquiry",
     received: "2027-02-07",
     messageTimes: ["2027-02-07T10:00:00+11:00"],
@@ -51,7 +48,6 @@ const cases: {
     email: "noah@example.test",
     emailBody: "Could I arrange a makeup class?",
     description: "Asks about arranging a makeup class.",
-    category: "MAKEUP REQUEST",
     intent: "makeup",
     received: "2027-02-07",
     messageTimes: ["2027-02-07T10:00:00+11:00"],
@@ -64,7 +60,6 @@ const cases: {
     email: "riley@example.test",
     emailBody: "Could you help me choose a class?",
     description: "Asks for help choosing a class.",
-    category: "CLASS ENQUIRY",
     intent: "general_enquiry",
     received: "2027-02-07",
     messageTimes: ["2027-02-07T10:00:00+11:00"],
@@ -96,55 +91,33 @@ export function LiveReviewQueue() {
   );
 }
 
-export function LiveReviewCases({
-  dashboard = false,
-}: {
-  dashboard?: boolean;
-}) {
+function LiveReviewCases() {
   return (
     <div className="run-list">
-      {cases
-        .filter(
-          (item) =>
-            !dashboard ||
-            item.scenario === "booking" ||
-            item.scenario === "document",
-        )
-        .map((item) => (
-          <Link
-            className="run-row"
-            key={item.scenario}
-            to={`/demo/reviews/live-${item.scenario}`}
-          >
-            <span className="avatar">
-              {item.name
-                .split(" ")
-                .map((part) => part[0])
-                .join("")}
-            </span>
-            <div className="run-person">
-              {dashboard && (
-                <span className="dashboard-case-category">{item.category}</span>
-              )}
-              <strong>{dashboard ? item.name : item.subject}</strong>
-              <span className="case-description">{item.description}</span>
-              {!dashboard && (
-                <IntentBadges routing={{ intents: [item.intent] }} />
-              )}
-            </div>
-            {dashboard ? (
-              <span className="dashboard-case-action">
-                Explore example <span aria-hidden="true">→</span>
-              </span>
-            ) : (
-              <span className="run-meta live-case-date">
-                <time dateTime={item.received}>
-                  {formatReceived(item.received)}
-                </time>
-              </span>
-            )}
-          </Link>
-        ))}
+      {cases.map((item) => (
+        <Link
+          className="run-row"
+          key={item.scenario}
+          to={`/demo/reviews/live-${item.scenario}`}
+        >
+          <span className="avatar">
+            {item.name
+              .split(" ")
+              .map((part) => part[0])
+              .join("")}
+          </span>
+          <div className="run-person">
+            <strong>{item.subject}</strong>
+            <span className="case-description">{item.description}</span>
+            <IntentBadges routing={{ intents: [item.intent] }} />
+          </div>
+          <span className="run-meta live-case-date">
+            <time dateTime={item.received}>
+              {formatReceived(item.received)}
+            </time>
+          </span>
+        </Link>
+      ))}
     </div>
   );
 }
@@ -231,7 +204,7 @@ export function LiveReviewDetail({ scenario }: { scenario: ReviewScenario }) {
       <Link className="back-link" to="/demo/reviews">
         ← Review queue
       </Link>
-      <header className="page-heading">
+      <header className="page-heading live-review-header">
         <div>
           <div className="eyebrow">LIVE AI · FICTIONAL ENQUIRY</div>
           <h1>{item.subject}</h1>
@@ -242,238 +215,240 @@ export function LiveReviewDetail({ scenario }: { scenario: ReviewScenario }) {
               {formatReceived(item.received)}
             </time>
           </p>
-          <IntentBadges routing={{ intents: [item.intent] }} />
+          <div className="review-disclosure">
+            <IntentBadges routing={{ intents: [item.intent] }} />
+            <span>
+              Approval is simulated: no email is sent and no studio records are
+              changed.
+            </span>
+          </div>
         </div>
       </header>
-      <div className="notice">
-        <ul className="notice-list">
-          <li>Drafts and results disappear when you leave or refresh.</li>
-          <li>Hosted demos share 20 live runs per day.</li>
-          <li>
-            Approval is simulated: no email is sent and no studio records are
-            changed.
-          </li>
-        </ul>
-      </div>
-      <StudentEmailCard
-        name={item.name}
-        messages={messages.map((message, index) => ({
-          body: message.body,
-          dateTime: item.messageTimes[index],
-          time: formatTime(item.messageTimes[index]),
-        }))}
-      />
-      <section className="panel" aria-labelledby="draft-heading">
-        <DraftEmailEditor
-          headingId="draft-heading"
-          inputId="live-review-response"
-          value={body}
-          onChange={setEdited}
-          disabled={working || Boolean(live.busy) || approved}
-          placeholder="Write a response or generate a draft."
-          description={
-            !live.draft
-              ? "Generate a response based on the email and available studio information. Review it before approving."
-              : undefined
-          }
+      <div className="live-review-columns">
+        <StudentEmailCard
+          name={item.name}
+          messages={messages.map((message, index) => ({
+            body: message.body,
+            dateTime: item.messageTimes[index],
+            time: formatTime(item.messageTimes[index]),
+          }))}
         />
-        {scenario === "document" && live.evidence && !live.draft && (
-          <div className="tour-decision">
-            <p>
-              The fictional policy does not specify a trial fee. Choose how to
-              respond before generating.
-            </p>
-            <label>
-              <input
-                type="radio"
-                name="fee"
-                disabled={answersLocked}
-                checked={decision === "defer"}
-                onChange={() => setDecision("defer")}
-              />{" "}
-              Confirm the fee later
-            </label>
-            <label>
-              <input
-                type="radio"
-                name="fee"
-                disabled={answersLocked}
-                checked={decision === "answer"}
-                onChange={() => setDecision("answer")}
-              />{" "}
-              Provide a fee answer
-            </label>
-            {decision === "answer" && (
-              <label>
-                Trial fee answer
-                <input
-                  value={answer}
-                  disabled={answersLocked}
-                  onChange={(event) => setAnswer(event.target.value)}
-                  maxLength={2000}
-                />
-              </label>
-            )}
-            {answersLocked && live.error && (
-              <p className="muted">
-                Your decision is locked for this attempt so a retry uses the
-                same answer. To change it, leave and reopen this enquiry; a new
-                attempt uses another daily run.
-              </p>
-            )}
-          </div>
-        )}
-        {custom &&
-          live.evidence &&
-          live.missingInformation.length > 0 &&
-          !live.draft && (
+        <section className="panel" aria-labelledby="draft-heading">
+          <DraftEmailEditor
+            headingId="draft-heading"
+            inputId="live-review-response"
+            value={body}
+            onChange={setEdited}
+            disabled={working || Boolean(live.busy) || approved}
+            placeholder="Write a response or generate a draft."
+            description={
+              !live.draft
+                ? "Generate a response based on the email and available studio information. Review it before approving."
+                : undefined
+            }
+          />
+          {scenario === "document" && live.evidence && !live.draft && (
             <div className="tour-decision">
               <p>
-                Provide an answer for each item, or say you will confirm it
-                later.
+                The fictional policy does not specify a trial fee. Choose how to
+                respond before generating.
               </p>
-              {live.missingInformation.map((question, index) => (
-                <label key={index}>
-                  {question}
-                  <textarea
-                    value={teacherAnswers[index] || ""}
+              <label>
+                <input
+                  type="radio"
+                  name="fee"
+                  disabled={answersLocked}
+                  checked={decision === "defer"}
+                  onChange={() => setDecision("defer")}
+                />{" "}
+                Confirm the fee later
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="fee"
+                  disabled={answersLocked}
+                  checked={decision === "answer"}
+                  onChange={() => setDecision("answer")}
+                />{" "}
+                Provide a fee answer
+              </label>
+              {decision === "answer" && (
+                <label>
+                  Trial fee answer
+                  <input
+                    value={answer}
+                    disabled={answersLocked}
+                    onChange={(event) => setAnswer(event.target.value)}
                     maxLength={2000}
-                    disabled={answersLocked || working}
-                    onChange={(event) =>
-                      setTeacherAnswers((previous) =>
-                        previous.map((value, i) =>
-                          i === index ? event.target.value : value,
-                        ),
-                      )
-                    }
                   />
                 </label>
-              ))}
+              )}
               {answersLocked && live.error && (
                 <p className="muted">
-                  Answers are locked for this attempt so a retry uses the same
-                  responses.
+                  Your decision is locked for this attempt so a retry uses the
+                  same answer. To change it, leave and reopen this enquiry; a
+                  new attempt uses another daily run.
                 </p>
               )}
             </div>
           )}
-        {!live.draft && (
-          <button
-            className="button primary live-draft-generate"
-            disabled={
-              working ||
-              Boolean(live.busy) ||
-              (scenario === "document" &&
-                Boolean(live.evidence) &&
-                (!decision || (decision === "answer" && !answer.trim()))) ||
-              (custom &&
-                live.evidence !== null &&
-                (teacherAnswers.length !== live.missingInformation.length ||
-                  teacherAnswers.some((value) => !value.trim())))
-            }
-            onClick={() => void generate()}
-          >
-            {working || live.busy
-              ? "Generating draft…"
-              : live.evidence && scenario === "document"
-                ? "Generate draft with decision"
-                : "Generate draft"}
-          </button>
-        )}
-        {(working || live.busy) && (
-          <p role="status">
-            {live.busy === "evidence"
-              ? "Checking relevant studio information…"
-              : "Writing your draft…"}
-          </p>
-        )}
-        {live.draft && (
-          <>
-            <p className="muted">
-              {edited === null ? "AI-generated draft" : "AI draft edited"} ·{" "}
-              {live.model} · Review before approving
-            </p>
-            {scenario === "booking" && !approved && (
-              <p className="muted footnote">
-                Approving simulates a booking for{" "}
-                {tourBooking.session.className} on {tourBooking.session.date} at{" "}
-                {tourBooking.session.time}, {tourBooking.session.location}.
-                Editing the email does not change the selected class.
-              </p>
-            )}
-            <button
-              className="button primary"
-              disabled={!body.trim() || approved}
-              onClick={() => setApproved(true)}
-            >
-              {approved ? "Approved" : "Approve response"}
-            </button>
-            {approved && custom && (
-              <p className="muted">
-                Simulation complete. No email was sent and no studio records
-                were changed.
-              </p>
-            )}
-            {approved && scenario === "booking" && (
-              <>
-                <hr className="live-booking-divider" />
-                <section
-                  className="live-booking-card"
-                  aria-labelledby="live-booking-heading"
-                >
-                  <div className="live-booking-card-header">
-                    <div>
-                      <div className="eyebrow">MAKEUP CLASS</div>
-                      <h3 id="live-booking-heading">Booking confirmed</h3>
-                    </div>
-                    <span className="live-booking-badge">Simulation</span>
-                  </div>
-                  <p className="live-booking-class">
-                    {tourBooking.session.className}
+          {custom &&
+            live.evidence &&
+            live.missingInformation.length > 0 &&
+            !live.draft && (
+              <div className="tour-decision">
+                <p>
+                  Provide an answer for each item, or say you will confirm it
+                  later.
+                </p>
+                {live.missingInformation.map((question, index) => (
+                  <label key={index}>
+                    {question}
+                    <textarea
+                      value={teacherAnswers[index] || ""}
+                      maxLength={2000}
+                      disabled={answersLocked || working}
+                      onChange={(event) =>
+                        setTeacherAnswers((previous) =>
+                          previous.map((value, i) =>
+                            i === index ? event.target.value : value,
+                          ),
+                        )
+                      }
+                    />
+                  </label>
+                ))}
+                {answersLocked && live.error && (
+                  <p className="muted">
+                    Answers are locked for this attempt so a retry uses the same
+                    responses.
                   </p>
-                  <dl className="live-booking-facts">
-                    <div>
-                      <dt>Student</dt>
-                      <dd>{tourBooking.student.name}</dd>
-                    </div>
-                    <div>
-                      <dt>Date</dt>
-                      <dd>{tourBooking.session.date}</dd>
-                    </div>
-                    <div>
-                      <dt>Time</dt>
-                      <dd>{tourBooking.session.time}</dd>
-                    </div>
-                    <div>
-                      <dt>Location</dt>
-                      <dd>{tourBooking.session.location}</dd>
-                    </div>
-                  </dl>
-                  <p className="live-booking-note">
-                    Simulated booking only. No place was reserved and no email
-                    was sent.
-                  </p>
-                </section>
-              </>
+                )}
+              </div>
             )}
-          </>
-        )}
-        {live.error && (
-          <div className="notice error" role="alert">
-            <p>{live.error}</p>
+          {!live.draft && (
             <button
-              className="button secondary"
-              disabled={working || Boolean(live.busy)}
+              className="button primary live-draft-generate"
+              disabled={
+                working ||
+                Boolean(live.busy) ||
+                (scenario === "document" &&
+                  Boolean(live.evidence) &&
+                  (!decision || (decision === "answer" && !answer.trim()))) ||
+                (custom &&
+                  live.evidence !== null &&
+                  (teacherAnswers.length !== live.missingInformation.length ||
+                    teacherAnswers.some((value) => !value.trim())))
+              }
               onClick={() => void generate()}
             >
-              Retry
+              {working || live.busy
+                ? "Generating draft…"
+                : live.evidence && scenario === "document"
+                  ? "Generate draft with decision"
+                  : "Generate draft"}
             </button>
+          )}
+          <div className="live-run-notes">
+            <span>Hosted demos share 20 live runs per day.</span>{" "}
+            <span>Drafts and results disappear when you leave or refresh.</span>
           </div>
-        )}
-        {live.draft && live.evidence && (
-          <SupportingEvidence evidence={live.evidence} showConversationLink />
-        )}
-      </section>
+          {(working || live.busy) && (
+            <p role="status">
+              {live.busy === "evidence"
+                ? "Checking relevant studio information…"
+                : "Writing your draft…"}
+            </p>
+          )}
+          {live.draft && (
+            <>
+              <p className="muted">
+                {edited === null ? "AI-generated draft" : "AI draft edited"} ·{" "}
+                {live.model} · Review before approving
+              </p>
+              {scenario === "booking" && !approved && (
+                <p className="muted footnote">
+                  Approving simulates a booking for{" "}
+                  {tourBooking.session.className} on {tourBooking.session.date}{" "}
+                  at {tourBooking.session.time}, {tourBooking.session.location}.
+                  Editing the email does not change the selected class.
+                </p>
+              )}
+              <button
+                className="button primary"
+                disabled={!body.trim() || approved}
+                onClick={() => setApproved(true)}
+              >
+                {approved ? "Approved" : "Approve response"}
+              </button>
+              {approved && custom && (
+                <p className="muted">
+                  Simulation complete. No email was sent and no studio records
+                  were changed.
+                </p>
+              )}
+              {approved && scenario === "booking" && (
+                <>
+                  <hr className="live-booking-divider" />
+                  <section
+                    className="live-booking-card"
+                    aria-labelledby="live-booking-heading"
+                  >
+                    <div className="live-booking-card-header">
+                      <div>
+                        <div className="eyebrow">MAKEUP CLASS</div>
+                        <h3 id="live-booking-heading">Booking confirmed</h3>
+                      </div>
+                      <span className="live-booking-badge">Simulation</span>
+                    </div>
+                    <p className="live-booking-class">
+                      {tourBooking.session.className}
+                    </p>
+                    <dl className="live-booking-facts">
+                      <div>
+                        <dt>Student</dt>
+                        <dd>{tourBooking.student.name}</dd>
+                      </div>
+                      <div>
+                        <dt>Date</dt>
+                        <dd>{tourBooking.session.date}</dd>
+                      </div>
+                      <div>
+                        <dt>Time</dt>
+                        <dd>{tourBooking.session.time}</dd>
+                      </div>
+                      <div>
+                        <dt>Location</dt>
+                        <dd>{tourBooking.session.location}</dd>
+                      </div>
+                    </dl>
+                    <p className="live-booking-note">
+                      Simulated booking only. No place was reserved and no email
+                      was sent.
+                    </p>
+                  </section>
+                </>
+              )}
+            </>
+          )}
+          {live.error && (
+            <div className="notice error" role="alert">
+              <p>{live.error}</p>
+              <button
+                className="button secondary"
+                disabled={working || Boolean(live.busy)}
+                onClick={() => void generate()}
+              >
+                Retry
+              </button>
+            </div>
+          )}
+          {live.draft && live.evidence && (
+            <SupportingEvidence evidence={live.evidence} showConversationLink />
+          )}
+        </section>
+      </div>
     </>
   );
 }

@@ -30,34 +30,28 @@ test("breadcrumb follows the current page and links back from details", async ({
   await expect(page.getByText("Public walkthrough")).toHaveCount(0);
 });
 
-test("homepage previews and links to both fictional enquiries", async ({
+test("homepage features Alex’s follow-up and links to both fictional enquiries", async ({
   page,
-}) => {
+}, testInfo) => {
   await page.goto("/demo");
   await expect(
-    page.getByRole("heading", { name: "From enquiry to response" }),
+    page.getByText(
+      "I cannot attend Monday 8 February. Could I come Thursday instead?",
+    ),
   ).toBeVisible();
   await expect(
-    page.getByText("AI-assisted draft", { exact: true }),
+    page.getByText("Actually, Saturday 13 February would be better."),
   ).toBeVisible();
-  await expect(
-    page.getByText("You make the decision", { exact: true }),
-  ).toBeVisible();
-  await expect(page.locator(".ai-workflow-steps li strong")).toHaveText([
-    "Student enquiry",
-    "AI-assisted draft",
-    "Teacher review",
-  ]);
+  const alexRequest = page.getByRole("link", { name: /Review Alex’s request/ });
+  if (testInfo.project.name === "desktop") {
+    await expect(alexRequest).toBeInViewport({ ratio: 1 });
+  }
   await expect(page.getByText("Live enquiries", { exact: true })).toHaveCount(
     0,
   );
   await expect(page.getByText("Student profiles", { exact: true })).toHaveCount(
     0,
   );
-  await expect(
-    page.getByText("FICTIONAL EXAMPLES", { exact: true }),
-  ).toBeVisible();
-  await expect(page.getByText("Explore example")).toHaveCount(2);
   await expect(page.getByText("Example snapshot · 11 Feb 2027")).toBeVisible();
   await expect(
     page.getByRole("link", { name: "View timetable" }),
@@ -65,7 +59,7 @@ test("homepage previews and links to both fictional enquiries", async ({
   await expect(
     page.getByRole("link", { name: "Studio documents", exact: true }),
   ).toHaveAttribute("href", "/demo/knowledge/documents");
-  await page.getByRole("link", { name: /Alex Morgan/ }).click();
+  await alexRequest.click();
   await expect(page).toHaveURL(/\/demo\/reviews\/live-booking$/);
   await expect(
     page.getByRole("heading", { name: "Makeup for Monday 8 February" }),
@@ -74,7 +68,7 @@ test("homepage previews and links to both fictional enquiries", async ({
     page.getByText("Actually, Saturday 13 February would be better."),
   ).toBeVisible();
   await page.goto("/demo");
-  await page.getByRole("link", { name: /Jules Park/ }).click();
+  await page.getByRole("link", { name: /Jules/ }).click();
   await expect(page).toHaveURL(/\/demo\/reviews\/live-document$/);
   await expect(page.getByText(/I'm new to ballet/)).toBeVisible();
 });
@@ -89,9 +83,7 @@ test("public examples work without touching the workspace API", async ({
   });
   await page.goto("/");
   await expect(
-    page.getByRole("heading", {
-      name: "AI support for every enquiry.",
-    }),
+    page.getByRole("link", { name: /Review Alex’s request/ }),
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Explore the records", exact: true }),
@@ -102,17 +94,16 @@ test("public examples work without touching the workspace API", async ({
   await expect(
     page.getByRole("navigation", { name: "Engineering resources" }),
   ).toHaveCount(0);
-  await expect(
-    page.getByRole("heading", { name: "Choose an enquiry" }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "View queue", exact: true }),
-  ).toBeVisible();
   await page.screenshot({
     path: testInfo.outputPath("overview.png"),
     fullPage: true,
   });
-  await page.getByRole("link", { name: "View queue", exact: true }).click();
+  if (testInfo.project.name === "mobile")
+    await page.getByRole("button", { name: "Open menu" }).click();
+  await page
+    .getByRole("navigation", { name: "Main navigation" })
+    .getByRole("link", { name: "Review queue", exact: true })
+    .click();
   await expect(page).toHaveURL(/\/demo\/reviews$/);
   await expect(
     page.getByText(/Choose a fictional enquiry to see the email/),
