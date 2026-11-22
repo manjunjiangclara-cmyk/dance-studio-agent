@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { Mail } from "lucide-react";
+import { DraftEmailEditor } from "./DraftEmailEditor";
+import { StudentEmailCard } from "./StudentEmailCard";
 import { examples, request } from "./data";
 import { SupportingEvidence } from "./SupportingEvidence";
 import { StudentMemorySections } from "./StudentMemorySections";
@@ -15,6 +18,7 @@ type Turn = {
   request_id: string;
   email: string;
   reply: string | null;
+  offer_confirmed: boolean;
   evidence: Evidence | null;
   draft: { body: string } | null;
   draft_answers: string[] | null;
@@ -138,6 +142,14 @@ export function CustomEmail() {
   }
   const current = thread?.turns.at(-1);
   const active = current && !current.reply ? current : null;
+  const evidence = current?.evidence?.evidence ?? [];
+  const trialOption =
+    thread?.state.booking_status === "offered"
+      ? thread.state.recommended_class
+      : null;
+  const trialReady =
+    !active && thread?.state.booking_status === "awaiting_approval";
+  const trialApproved = thread?.state.booking_status === "approved_mock";
   async function generate() {
     if (!active || !token) return;
     await run(async () => {
@@ -147,7 +159,13 @@ export function CustomEmail() {
           {
             method: "POST",
             headers: headers(token),
-            body: JSON.stringify({ teacher_answers: answers }),
+            body: JSON.stringify({
+              teacher_answers: active.evidence!.missing_information.map(
+                (_, i) =>
+                  answers[i]?.trim() ||
+                  "I will confirm this information later.",
+              ),
+            }),
           },
         );
         await load(token);
@@ -195,6 +213,7 @@ export function CustomEmail() {
     setThread(null);
     setBody("");
     setReply("");
+    setOfferConfirmed(false);
     setError("");
     requestId.current = null;
   }
@@ -209,9 +228,15 @@ export function CustomEmail() {
           </p>
         </div>
       </header>
-      <div className="email-grid">
+      <div className="review-flow custom-email-flow">
         <section className="panel email-form">
-          <h2>Simulate an incoming email</h2>
+          <div className="section-heading compact">
+            <div>
+              <div className="eyebrow">EMAIL WALKTHROUGH</div>
+              <h2>Write a student email</h2>
+            </div>
+            <Mail size={17} aria-hidden="true" />
+          </div>
           <label htmlFor="demo-student">Sender context</label>
           <select
             id="demo-student"
@@ -227,6 +252,24 @@ export function CustomEmail() {
             ))}
           </select>
           <label htmlFor="demo-email-body">Email body</label>
+          {current?.reply && (
+            <>
+              {trialOption &&
+                (current.offer_confirmed ? (
+                  <p>
+                    To request this trial as the student, reply “Yes, please”.
+                  </p>
+                ) : (
+                  <p>
+                    To continue the trial, send another student email about the
+                    class and confirm the next offer before accepting the reply.
+                  </p>
+                ))}
+              {thread?.state.booking_status === "collecting_name" && (
+                <p>Reply with your name, for example “My name is Taylor”.</p>
+              )}
+            </>
+          )}
           <textarea
             id="demo-email-body"
             rows={8}
@@ -243,7 +286,7 @@ export function CustomEmail() {
           <div className="notice email-notice">
             <ul>
               <li>Use fictional content only.</li>
-              <li>Each email uses one of 20 daily live demo runs.</li>
+              <li>Hosted demos share 20 live runs per day.</li>
               <li>
                 Conversations expire after one hour or at the end of the
                 Melbourne day.
@@ -263,155 +306,220 @@ export function CustomEmail() {
             Start new conversation
           </button>
         </section>
-        <aside className="panel">
-          <h2>Enquiry state</h2>
-          {thread ? (
-            <dl>
-              <dt>Intents</dt>
-              <dd>{thread.state.intents.join(", ") || "Not identified"}</dd>
-              <dt>Experience</dt>
-              <dd>{thread.state.experience_level || "Not provided"}</dd>
-              <dt>Preferred day</dt>
-              <dd>{thread.state.preferred_day || "Not provided"}</dd>
-              <dt>Class option</dt>
-              <dd>
-                {thread.state.recommended_class?.description ||
-                  "Teacher confirmation needed"}
-              </dd>
-              <dt>Name</dt>
-              <dd>{thread.state.customer_name || "Not provided"}</dd>
-              <dt>Status</dt>
-              <dd>{thread.state.booking_status.replaceAll("_", " ")}</dd>
-              <dt>Next action</dt>
-              <dd>{thread.state.next_action.replaceAll("_", " ")}</dd>
-            </dl>
-          ) : (
-            <p>No conversation yet.</p>
-          )}
-          {thread?.state.booking_status === "awaiting_approval" && !active && (
-            <button
-              className="button secondary"
-              disabled={busy}
-              onClick={() => void approve()}
-            >
-              Approve mock request
-            </button>
-          )}
-          {thread?.state.booking_status === "approved_mock" && (
-            <p>Mock request approved. No real booking was made.</p>
-          )}
-          <h2>About this student</h2>
-          <StudentMemorySections
-            context={selectedStudent?.context ?? {}}
-            summary={selectedStudent?.ai_summary ?? null}
+        {current && thread && (
+          <StudentEmailCard
+            name={selectedStudent?.display_name ?? "New enquirer"}
+            messages={thread.turns.flatMap((turn) => [
+              { body: turn.email },
+              ...(turn.reply
+                ? [{ body: turn.reply, sender: "teacher" as const }]
+                : []),
+            ])}
           />
-        </aside>
-      </div>
-      {thread && (
-        <section className="panel custom-email-result">
-          <h2>Conversation</h2>
-          {thread.turns.map((t) => (
-            <article key={t.request_id}>
-              <h3>Customer email</h3>
-              <p style={{ whiteSpace: "pre-wrap" }}>{t.email}</p>
-              {t.reply && (
-                <>
-                  <h3>Accepted reply · simulated</h3>
-                  <p style={{ whiteSpace: "pre-wrap" }}>{t.reply}</p>
-                </>
-              )}
-            </article>
-          ))}
-        </section>
-      )}
-      {active && (
-        <section className="panel custom-email-result">
-          <h2>Draft email</h2>
-          {active.evidence ? (
-            <>
-              <p>
-                Information to ask the student:{" "}
-                {active.evidence.student_information?.join(", ") ||
-                  "None identified"}
-              </p>
-              {active.evidence.missing_information.map((item, i) => (
-                <div key={i}>
-                  <label htmlFor={`missing-${i}`}>{item}</label>
-                  <textarea
-                    id={`missing-${i}`}
-                    value={answers[i] || ""}
-                    disabled={busy || answersLocked || Boolean(active.draft)}
-                    onChange={(e) =>
-                      setAnswers((a) =>
-                        a.map((x, j) => (j === i ? e.target.value : x)),
-                      )
-                    }
-                  />
-                </div>
-              ))}
-              {!active.draft && (
+        )}
+        {active && (
+          <section
+            className="panel custom-email-result"
+            aria-labelledby="walkthrough-response-title"
+          >
+            <DraftEmailEditor
+              headingId="walkthrough-response-title"
+              inputId="reply"
+              value={reply}
+              onChange={(value) => {
+                setReply(value);
+                setOfferConfirmed(false);
+              }}
+              disabled={busy || !active.draft}
+              placeholder="Generate a draft to prepare a response."
+              description={
+                !active.draft
+                  ? "Generate a response based on the email and available studio information. Review it before accepting."
+                  : undefined
+              }
+              maxLength={5000}
+            />
+            {active.evidence ? (
+              <>
+                {Boolean(active.evidence.student_information?.length) && (
+                  <section
+                    className="walkthrough-information"
+                    aria-labelledby="student-information-title"
+                  >
+                    <h3 id="student-information-title">
+                      Information to ask the student
+                    </h3>
+                    <ul>
+                      {active.evidence.student_information?.map((item, i) => (
+                        <li key={i}>{item}</li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+                {active.evidence.missing_information.length > 0 && (
+                  <section
+                    className="walkthrough-information"
+                    aria-labelledby="teacher-information-title"
+                  >
+                    <h3 id="teacher-information-title">
+                      Information to confirm
+                    </h3>
+                    <p>
+                      Add what you know below. If left blank, the draft will say
+                      you’ll confirm it later.
+                    </p>
+                    {active.evidence.missing_information.map((item, i) => (
+                      <div className="walkthrough-information-field" key={i}>
+                        <label htmlFor={`missing-${i}`}>{item}</label>
+                        <textarea
+                          id={`missing-${i}`}
+                          rows={3}
+                          placeholder="Add details (optional)"
+                          value={answers[i] || ""}
+                          disabled={
+                            busy || answersLocked || Boolean(active.draft)
+                          }
+                          onChange={(e) =>
+                            setAnswers((a) =>
+                              a.map((x, j) => (j === i ? e.target.value : x)),
+                            )
+                          }
+                        />
+                      </div>
+                    ))}
+                  </section>
+                )}
+                {!active.draft && (
+                  <button
+                    className="button primary"
+                    disabled={busy}
+                    onClick={() => void generate()}
+                  >
+                    Generate draft
+                  </button>
+                )}
+              </>
+            ) : (
+              <button
+                className="button secondary"
+                disabled={busy}
+                onClick={() =>
+                  void run(async () => {
+                    await request(
+                      `/api/public-demo/threads/current/turns/${active.request_id}/evidence`,
+                      { method: "POST", headers: headers(token), body: "{}" },
+                    );
+                    await load(token);
+                  })
+                }
+              >
+                Retry evidence
+              </button>
+            )}
+            {active.draft && (
+              <>
+                {trialOption && (
+                  <section
+                    className="walkthrough-information"
+                    aria-labelledby="trial-option-title"
+                  >
+                    <h3 id="trial-option-title">Trial class option</h3>
+                    <p>{trialOption.description}</p>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={offerConfirmed}
+                        disabled={busy}
+                        onChange={(e) => setOfferConfirmed(e.target.checked)}
+                      />
+                      I’ve reviewed the student’s experience and confirm this
+                      reply invites them to request a trial in this class,
+                      subject to teacher confirmation of placement.
+                    </label>
+                    <p>
+                      Check this box before accepting the reply if you want the
+                      student to be able to request this trial in the next
+                      email.
+                    </p>
+                  </section>
+                )}
                 <button
                   className="button primary"
-                  disabled={busy || answers.some((a) => !a.trim())}
-                  onClick={() => void generate()}
+                  disabled={busy || !reply.trim()}
+                  onClick={() => void accept()}
                 >
-                  Generate draft
+                  Accept simulated reply
                 </button>
-              )}
-              {active.evidence.evidence.length > 0 && (
-                <SupportingEvidence evidence={active.evidence.evidence} />
-              )}
-            </>
-          ) : (
-            <button
-              className="button secondary"
-              disabled={busy}
-              onClick={() =>
-                void run(async () => {
-                  await request(
-                    `/api/public-demo/threads/current/turns/${active.request_id}/evidence`,
-                    { method: "POST", headers: headers(token), body: "{}" },
-                  );
-                  await load(token);
-                })
-              }
-            >
-              Retry evidence
-            </button>
-          )}
-          {active.draft && (
-            <>
-              <label htmlFor="reply">Response</label>
-              <textarea
-                id="reply"
-                rows={8}
-                maxLength={5000}
-                value={reply}
-                onChange={(e) => setReply(e.target.value)}
-              />
-              {thread?.state.booking_status === "offered" && (
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={offerConfirmed}
-                    onChange={(e) => setOfferConfirmed(e.target.checked)}
-                  />
-                  I confirm this reply offers the class shown above and asks
-                  whether the customer wants a trial.
-                </label>
-              )}
+                <p>No email was sent or class booked.</p>
+              </>
+            )}
+          </section>
+        )}
+        {current && evidence.length > 0 && (
+          <section
+            className="panel walkthrough-evidence"
+            aria-label="Supporting evidence"
+            key={current.request_id}
+          >
+            <SupportingEvidence evidence={evidence} showConversationLink />
+          </section>
+        )}
+        {(trialReady || trialApproved) && (
+          <section className="panel" aria-labelledby="walkthrough-trial-title">
+            <h2 id="walkthrough-trial-title">Trial request</h2>
+            {thread?.state.recommended_class && (
+              <p>{thread.state.recommended_class.description}</p>
+            )}
+            {trialReady ? (
               <button
-                className="button primary"
-                disabled={busy || !reply.trim()}
-                onClick={() => void accept()}
+                className="button secondary"
+                disabled={busy}
+                onClick={() => void approve()}
               >
-                Accept simulated reply
+                Approve mock request
               </button>
-              <p>No email was sent or class booked.</p>
-            </>
-          )}
-        </section>
-      )}
+            ) : (
+              <p role="status">
+                Mock request approved. No real booking was made.
+              </p>
+            )}
+          </section>
+        )}
+        <details className="panel review-support custom-email-support">
+          <summary>Enquiry state and student context</summary>
+          <div className="custom-email-context">
+            <h2>Enquiry state</h2>
+            {thread ? (
+              <dl>
+                <dt>Intents</dt>
+                <dd>{thread.state.intents.join(", ") || "Not identified"}</dd>
+                <dt>Experience</dt>
+                <dd>{thread.state.experience_level || "Not provided"}</dd>
+                <dt>Preferred day</dt>
+                <dd>{thread.state.preferred_day || "Not provided"}</dd>
+                <dt>Class option</dt>
+                <dd>
+                  {thread.state.recommended_class?.description ||
+                    "Teacher confirmation needed"}
+                </dd>
+                <dt>Name</dt>
+                <dd>{thread.state.customer_name || "Not provided"}</dd>
+                <dt>Status</dt>
+                <dd>{thread.state.booking_status.replaceAll("_", " ")}</dd>
+                <dt>Next action</dt>
+                <dd>{thread.state.next_action.replaceAll("_", " ")}</dd>
+              </dl>
+            ) : (
+              <p>No conversation yet.</p>
+            )}
+            <h2>About this student</h2>
+            <StudentMemorySections
+              context={selectedStudent?.context ?? {}}
+              summary={selectedStudent?.ai_summary ?? null}
+            />
+          </div>
+        </details>
+      </div>
     </>
   );
 }

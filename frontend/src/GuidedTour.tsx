@@ -180,7 +180,7 @@ function TourContent({ scenario }: { scenario: TourScenario }) {
         {liveMode ? (
           <ul className="notice-list">
             <li>Live AI uses fictional data.</li>
-            <li>Finding evidence starts one of 20 shared daily runs.</li>
+            <li>Hosted demos share 20 live runs per day.</li>
             <li>Results are unavailable after you leave or refresh.</li>
             <li>
               Booking is simulated: no email is sent and no studio records are

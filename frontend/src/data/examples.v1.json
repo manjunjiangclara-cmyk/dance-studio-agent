@@ -60,6 +60,26 @@
       "term_id": "a426e71d-144f-5191-af5a-6f5c18180bb4",
       "location_id": "a00ef043-20ab-5d87-8223-1130e62e2a17",
       "prerequisites": "For dancers with previous ballet experience; placement confirmed by the teacher."
+    },
+    {
+      "id": "65cde714-7747-40d1-8bad-d654de26a1f2",
+      "created_at": "2027-02-07T00:00:00Z",
+      "updated_at": "2027-02-07T00:00:00Z",
+      "name": "Adult Ballet · Level 1 · Saturday",
+      "level": "Level 1",
+      "term_id": "a426e71d-144f-5191-af5a-6f5c18180bb4",
+      "location_id": "a00ef043-20ab-5d87-8223-1130e62e2a17",
+      "prerequisites": "For adult beginners. Placement is confirmed by the teacher."
+    },
+    {
+      "id": "764c765a-0f34-4832-a6f8-33711be33c1e",
+      "created_at": "2027-02-07T00:00:00Z",
+      "updated_at": "2027-02-07T00:00:00Z",
+      "name": "Adult Ballet · Level 3 · Saturday",
+      "level": "Level 3",
+      "term_id": "a426e71d-144f-5191-af5a-6f5c18180bb4",
+      "location_id": "a00ef043-20ab-5d87-8223-1130e62e2a17",
+      "prerequisites": "For dancers with advanced ballet experience. Placement is confirmed by the teacher."
     }
   ],
   "class_sessions": [
@@ -98,6 +118,26 @@
         "60bbb539-91bc-5858-80f5-a1b6ae915aae",
         "833efaed-1e89-5f89-8b47-cb9cbcf3399c"
       ]
+    },
+    {
+      "id": "c3ab8737-7f9b-4dc5-be10-42c1ddb8d95d",
+      "created_at": "2027-02-07T00:00:00Z",
+      "updated_at": "2027-02-07T00:00:00Z",
+      "class_id": "65cde714-7747-40d1-8bad-d654de26a1f2",
+      "starts_at": "2027-02-13T16:00:00+11:00",
+      "ends_at": "2027-02-13T17:00:00+11:00",
+      "capacity": 12,
+      "students": []
+    },
+    {
+      "id": "8de15f20-a66d-4e8c-a5d1-6c6834996fed",
+      "created_at": "2027-02-07T00:00:00Z",
+      "updated_at": "2027-02-07T00:00:00Z",
+      "class_id": "764c765a-0f34-4832-a6f8-33711be33c1e",
+      "starts_at": "2027-02-13T19:30:00+11:00",
+      "ends_at": "2027-02-13T20:30:00+11:00",
+      "capacity": 12,
+      "students": []
     }
   ],
   "students": [

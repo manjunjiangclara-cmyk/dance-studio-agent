@@ -3,6 +3,7 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException
 
+from studio_copilot.public_demo import availability
 from studio_copilot.public_demo.service import PublicDemo
 from studio_copilot.public_demo.trial import initial_state, strip_quotes, update_state
 
@@ -42,8 +43,10 @@ def test_thread_history_isolation_and_retry(tmp_path):
     assert service.add_turn(a, first, message) == {"request_id": first}
     with pytest.raises(HTTPException):
         service.add_turn(b, first, message)
-    service.thread_execute(a, first, "evidence")
+    evidence = service.thread_execute(a, first, "evidence")
+    assert "10 places remaining" in evidence["evidence"][0]
     service.thread_execute(a, first, "draft")
+    assert ThreadModel.contexts[-1]["trial_spaces_remaining"] == 10
     service.accept_reply(a, first, "Edited reply")
     second = str(uuid4())
     service.add_turn(a, second, "Yes please\nOn Tuesday someone wrote:\n> old text")
@@ -58,7 +61,7 @@ def test_thread_history_isolation_and_retry(tmp_path):
 def test_workflow_requires_explicit_consent_and_appropriate_class():
     state = update_state(
         initial_state(),
-        {"intents": ["trial_enquiry"], "experience_level": "beginner", "preferred_day": "Saturday"},
+        {"intents": ["trial_enquiry"], "experience_level": "beginner", "preferred_day": "Monday"},
         "I am a beginner",
     )
     assert state["booking_status"] == "escalated"
@@ -84,9 +87,129 @@ def test_workflow_requires_explicit_consent_and_appropriate_class():
     assert requested["booking_status"] == "awaiting_approval"
 
 
+@pytest.mark.parametrize(("experience", "level"), [("beginner", 1), ("advanced", 3)])
+def test_saturday_trial_offer_matches_the_students_reported_level(experience, level):
+    offer = update_state(
+        initial_state(),
+        {
+            "intents": ["trial_enquiry"],
+            "experience_level": experience,
+            "preferred_day": "Saturday",
+        },
+        "Can I try the Saturday class?",
+    )
+    assert offer["booking_status"] == "offered"
+    assert f"Adult Ballet Level {level}," in offer["recommended_class"]["description"]
+    changed_level = "advanced" if level == 1 else "beginner"
+    changed = update_state(offer, {"experience_level": changed_level}, "Yes, please", True)
+    assert changed["recommended_class"] != offer["recommended_class"]
+    assert changed["booking_status"] == "offered"
+
+
 def test_quote_recognition_is_conservative():
     assert strip_quotes("Hello\nOn Tuesday Pat wrote:\n> old") == "Hello"
     assert strip_quotes("Hello\nMaybe you wrote this") == "Hello\nMaybe you wrote this"
+
+
+def test_explicit_trial_class_and_confirmation_do_not_depend_on_inferred_placement():
+    previous = update_state(
+        initial_state(),
+        {"intents": ["trial_enquiry"], "experience_level": "one year of training"},
+        "I have done one year of ballet. Can I book intermediate class?",
+    )
+    assert previous["booking_status"] == "collecting"
+    level_request = "Can you book level 1 for me instead"
+    confirmation = "Yes please help me book it"
+    offer = update_state(previous, {}, level_request)
+    assert offer["requested_trial_level"] == 1
+    assert offer["experience_level"] == "one year of training"
+    assert offer["preferred_day"] is None
+    assert offer["booking_status"] == "offered"
+    assert (
+        "Adult Ballet Level 1, Saturday 13 February 2027 at 4 pm"
+        in (offer["recommended_class"]["description"])
+    )
+    assert update_state(offer, {}, confirmation)["booking_status"] == "offered"
+    assert update_state(offer, {}, confirmation, True)["booking_status"] == "collecting_name"
+    named = {**offer, "customer_name": "Riley James"}
+    assert update_state(named, {}, confirmation, True)["booking_status"] == "awaiting_approval"
+    changed = update_state(named, {}, "Yes, please book Level 3 instead", True)
+    assert changed["requested_trial_level"] == 3
+    assert changed["booking_status"] == "offered"
+
+    legacy = update_state(previous, {}, confirmation, previous_email=level_request)
+    assert legacy["recommended_class"] == offer["recommended_class"]
+    assert legacy["booking_status"] == "offered"
+    different_day = update_state(previous, {"preferred_day": "Thursday"}, level_request)
+    assert different_day["booking_status"] == "escalated"
+
+
+def test_recorded_level_prevents_a_higher_trial_offer():
+    extracted = {
+        "intents": ["trial_enquiry"],
+        "experience_level": "advanced",
+        "preferred_day": "Saturday",
+    }
+    offered = update_state(initial_state(), extracted, "Can I try Level 3 on Saturday?")
+    assert offered["booking_status"] == "offered"
+    assert "Level 3" in offered["recommended_class"]["description"]
+    blocked = update_state(initial_state(), extracted, "Can I try Level 3?", recorded_level=2)
+    assert blocked["booking_status"] == "escalated"
+    assert blocked["recommended_class"] is None
+    pending = {**offered, "booking_status": "awaiting_approval"}
+    blocked_saved_offer = update_state(pending, {}, "Yes please", True, recorded_level=2)
+    assert blocked_saved_offer["booking_status"] == "escalated"
+    assert blocked_saved_offer["recommended_class"] is None
+
+
+@pytest.mark.parametrize("capacity", [1, 2])
+def test_trial_does_not_offer_a_session_with_no_places(monkeypatch, capacity):
+    session_id = next(iter(availability.TRIAL_SESSION_IDS.values()))
+    monkeypatch.setattr(
+        availability,
+        "_demo_sessions",
+        lambda: {session_id: {"capacity": capacity, "students": ["a", "b"]}},
+    )
+    state = update_state(
+        initial_state(),
+        {"intents": ["trial_enquiry"], "experience_level": "beginner", "preferred_day": "Saturday"},
+        "Can I try the Saturday class?",
+    )
+    assert state["booking_status"] == "class_full"
+    assert availability.trial_spaces(state["recommended_class"]) == 0
+
+
+def test_reported_training_duration_does_not_establish_a_trial_level():
+    previous = {
+        **initial_state(),
+        "intents": ["trial_enquiry"],
+        "experience_level": "One year of training",
+        "preferred_day": "Saturday",
+        "booking_status": "escalated",
+    }
+    offer = update_state(previous, {}, "Saturday works for me.")
+    assert offer["experience_level"] == "One year of training"
+    assert offer["booking_status"] == "escalated"
+    assert offer["recommended_class"] is None
+
+
+@pytest.mark.parametrize(
+    "experience, day",
+    [
+        ("Beginner with one year of training", "Saturday"),
+        ("One year ago", "Saturday"),
+        ("No training", "Saturday"),
+        ("One year of training", "Monday"),
+    ],
+)
+def test_reported_training_duration_does_not_offer_an_unmatched_class(experience, day):
+    state = update_state(
+        initial_state(),
+        {"intents": ["trial_enquiry"], "experience_level": experience, "preferred_day": day},
+        "Tell me about trials.",
+    )
+    assert state["booking_status"] == "escalated"
+    assert state["recommended_class"] is None
 
 
 def test_approval_is_revision_bound_and_idempotent(tmp_path):
@@ -125,6 +248,8 @@ def test_approval_is_revision_bound_and_idempotent(tmp_path):
     service.accept_reply(
         token, first, "Would you like a trial in Level 2 on Saturday 13 February 2027?", True
     )
+    assert service.thread_view(token)["turns"][0]["offer_confirmed"] is True
+    assert service.thread_view(token)["turns"][0]["offer_confirmed"] is True
     second = str(uuid4())
     service.add_turn(token, second, "Yes please")
     service.thread_execute(token, second, "evidence")
@@ -205,7 +330,9 @@ def test_thread_api_origin_and_round_trip(monkeypatch, tmp_path):
     monkeypatch.setenv("OPENAI_MODEL", "test")
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     monkeypatch.setenv("PUBLIC_BASE_URL", "http://localhost:8000")
-    monkeypatch.setattr(api, "PublicDemo", lambda path: PublicDemo(path, factory=ThreadModel))
+    monkeypatch.setattr(
+        api, "PublicDemo", lambda path, **options: PublicDemo(path, factory=ThreadModel, **options)
+    )
     client = TestClient(api.create_public_demo_app())
     assert client.post("/api/public-demo/threads", json={"student": "new"}).status_code == 403
     headers = {"Origin": "http://localhost:8000"}

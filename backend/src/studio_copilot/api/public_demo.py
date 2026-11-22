@@ -2,6 +2,7 @@
 
 import os
 from typing import Literal
+from urllib.parse import urlsplit
 from uuid import UUID
 
 from fastapi import APIRouter, FastAPI, HTTPException, Request
@@ -87,7 +88,8 @@ class Empty(BaseModel):
 def service(request: Request):
     if os.environ.get("STUDIO_PUBLIC_LIVE_DEMO") != "true":
         raise HTTPException(503, "Live demo is unavailable. Please try again later.")
-    if request.headers.get("origin") != request.app.state.owner_settings.base_url:
+    base_url = request.app.state.owner_settings.base_url
+    if request.headers.get("origin") != base_url:
         raise HTTPException(403, "Open the live demo from its configured website.")
     if not os.environ.get("OPENAI_MODEL") or not os.environ.get("OPENAI_API_KEY"):
         raise HTTPException(503, "Live demo is not configured. Please try again later.")
@@ -95,6 +97,8 @@ def service(request: Request):
     if not path:
         raise HTTPException(503, "Live demo allowance storage is not configured.")
     # Construction is idempotent and SQLite serializes initialization across workers.
+    if urlsplit(base_url).hostname in {"localhost", "127.0.0.1", "::1"}:
+        return PublicDemo(path, daily_run_limit=None)
     return PublicDemo(path)
 
 

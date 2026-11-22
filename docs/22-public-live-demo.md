@@ -46,7 +46,7 @@ STUDIO_PUBLIC_DEMO_DB=/persistent/private/public-demo.sqlite3
 
 The regular application includes the public router separately from staff endpoints; no application migrations or demo seeding are required. Keep API keys server-side. Owner routes and permissions are unchanged.
 
-For a local preview that must preserve a backend from another worktree, the same router can run alone without connecting to PostgreSQL:
+Local previews configured with a loopback `PUBLIC_BASE_URL` have no daily run cap. For a local preview that must preserve a backend from another worktree, the same router can run alone without connecting to PostgreSQL:
 
 ```sh
 # backend/, with the same environment and flags above

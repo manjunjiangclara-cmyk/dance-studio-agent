@@ -1,6 +1,12 @@
 import { tourSource } from "./tourData";
 
 function evidenceInfo(entry: string) {
+  if (entry.startsWith("Class availability: "))
+    return {
+      label: "Class availability",
+      summary: entry.slice("Class availability: ".length),
+      source: "fact",
+    };
   if (entry.startsWith("Alex's original email asks"))
     return {
       label: "Email context",
