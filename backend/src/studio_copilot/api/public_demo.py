@@ -53,6 +53,28 @@ class CreateRun(BaseModel):
         return self
 
 
+class CreateThread(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    student: str = Field(max_length=36)
+
+
+class TurnInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    request_id: UUID
+    email_body: str = Field(min_length=1, max_length=2000)
+
+
+class ReplyInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    body: str = Field(min_length=1, max_length=5000)
+    offer_confirmed: bool = False
+
+
+class ApprovalInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    revision: int = Field(ge=0)
+
+
 class DraftInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     teacher_answers: list[str] = Field(default_factory=list, max_length=9)
@@ -99,6 +121,45 @@ def documents():
         }
         for document in PUBLIC_DOCUMENTS
     ]
+
+
+@router.post("/threads")
+def create_thread(request: Request, body: CreateThread):
+    return service(request).create_thread(body.student)
+
+
+@router.post("/threads/current")
+def get_thread(request: Request, body: Empty):
+    return service(request).thread_view(token(request))
+
+
+@router.post("/threads/current/turns")
+def add_turn(request: Request, body: TurnInput):
+    return service(request).add_turn(token(request), str(body.request_id), body.email_body)
+
+
+@router.post("/threads/current/turns/{turn_id}/evidence")
+def thread_evidence(request: Request, turn_id: UUID, body: Empty):
+    return service(request).thread_execute(token(request), str(turn_id), "evidence")
+
+
+@router.post("/threads/current/turns/{turn_id}/draft")
+def thread_draft(request: Request, turn_id: UUID, body: DraftInput):
+    return service(request).thread_execute(
+        token(request), str(turn_id), "draft", teacher_answers=body.teacher_answers
+    )
+
+
+@router.post("/threads/current/turns/{turn_id}/accept")
+def accept_reply(request: Request, turn_id: UUID, body: ReplyInput):
+    return service(request).accept_reply(
+        token(request), str(turn_id), body.body, body.offer_confirmed
+    )
+
+
+@router.post("/threads/current/approve")
+def approve_mock(request: Request, body: ApprovalInput):
+    return service(request).approve_mock(token(request), body.revision)
 
 
 @router.post("/runs")

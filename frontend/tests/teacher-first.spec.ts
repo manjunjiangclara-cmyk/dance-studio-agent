@@ -3,26 +3,57 @@ import { test, expect } from "@playwright/test";
 test("custom email asks teacher before generating a single draft", async ({
   page,
 }) => {
-  const calls: { stage: string; body: any }[] = [];
+  const calls: string[] = [];
+  let draft: { body: string } | null = null;
+  let turnId = "";
+  let evidence: object | null = null;
   await page.route("**/api/public-demo/**", async (route) => {
-    const stage = new URL(route.request().url()).pathname.split("/").pop()!;
-    const body = route.request().postDataJSON();
-    calls.push({ stage, body });
-    await route.fulfill({
-      json:
-        stage === "runs"
-          ? { token: "test" }
-          : stage === "evidence"
-            ? {
-                evidence: [],
-                route: "enquiry",
-                missing_information: ["Trial fee"],
-                model: "test",
-              }
-            : {
-                body: `The trial is ${body.teacher_answers[0]}.`,
-                model: "test",
-              },
+    const req = route.request();
+    const stage = new URL(req.url()).pathname.split("/").pop()!;
+    calls.push(stage);
+    if (stage === "threads") return route.fulfill({ json: { token: "test" } });
+    if (stage === "turns") {
+      turnId = req.postDataJSON().request_id;
+      return route.fulfill({ json: { request_id: turnId } });
+    }
+    if (stage === "evidence") {
+      evidence = {
+        evidence: [],
+        route: "enquiry",
+        missing_information: ["Trial fee"],
+        model: "test",
+      };
+      return route.fulfill({ json: evidence });
+    }
+    if (stage === "draft") {
+      draft = {
+        body: `The trial is ${req.postDataJSON().teacher_answers[0]}.`,
+      };
+      return route.fulfill({ json: draft });
+    }
+    return route.fulfill({
+      json: {
+        student: "new",
+        state: {
+          intents: [],
+          experience_level: null,
+          preferred_day: null,
+          customer_name: null,
+          recommended_class: null,
+          booking_status: "not_started",
+          next_action: "answer",
+          revision: 0,
+        },
+        turns: [
+          {
+            request_id: turnId,
+            email: "What is the trial fee?",
+            reply: null,
+            evidence,
+            draft,
+          },
+        ],
+      },
     });
   });
   await page.goto("/demo/test-email");
@@ -32,14 +63,12 @@ test("custom email asks teacher before generating a single draft", async ({
   await expect(
     page.getByRole("button", { name: "Generate draft" }),
   ).toBeDisabled();
-  expect(calls.map((call) => call.stage)).toEqual(["runs", "evidence"]);
+  expect(calls).toEqual(["threads", "turns", "current", "evidence", "current"]);
   await page.getByLabel("Trial fee").fill("$20");
   await page.getByRole("button", { name: "Generate draft" }).click();
   await expect(
     page.getByRole("textbox", { name: "Response", exact: true }),
   ).toHaveValue("The trial is $20.");
-  expect(calls[2].body).toEqual({ teacher_answers: ["$20"] });
-  await page.getByRole("textbox", { name: "Response", exact: true }).fill("");
   await page
     .getByRole("textbox", { name: "Response", exact: true })
     .fill("Replacement");
