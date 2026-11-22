@@ -51,7 +51,7 @@ On subsequent launches, start Docker Desktop, run `docker compose up -d --wait d
 
 ## Test an email through one API call
 
-After agent setup and starting the server, open [Swagger](http://127.0.0.1:8000/docs), authorize with your admin token, and use **POST `/api/v1/incoming-emails`**. Supply only the sender and email content:
+After agent setup and starting the server, open [Swagger](http://127.0.0.1:8000/docs), authorize with your admin token, and use **POST `/api/v1/incoming-emails`**. For a standalone email, supply the sender and email content:
 
 ```json
 {
@@ -60,7 +60,7 @@ After agent setup and starting the server, open [Swagger](http://127.0.0.1:8000/
 }
 ```
 
-The server finds the student, selects their latest conversation (or creates one), records receipt time, saves the email and generates a draft. An unknown sender gets a minimal `New enquirer` profile with no level or enrolments, and their first email uses the same action-based routing as existing students. Later emails reuse their history.
+To group replies, send the same optional `thread_id` on every intake request. An optional `subject` labels the thread. The server reads the full student email history for that thread. Requests without a thread ID reuse the sender’s latest unthreaded conversation or create one. An unknown sender gets a minimal `New enquirer` profile with no level or enrolments, and their first email uses the same action-based routing as existing students. Later emails reuse their history.
 
 For a known student, send the same two fields with their registered email address, for example `alex@example.com`. Check `status` for `awaiting_review` and read `draft_details.body`, `interpretation` and `evidence`. HTTP 200 can also contain a `failed` run: inspect `error` and retry that run using `/api/v1/agent-runs/{id}/retry`. Review, edit or approve using the existing run review endpoint. Approval stores a response and, when a validated booking proposal is present, adds the student to that session. It does not send email.
 

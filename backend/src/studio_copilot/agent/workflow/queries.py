@@ -2,13 +2,20 @@
 
 import json
 import logging
+import re
 from uuid import UUID
 
 from pydantic import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from studio_copilot.agent.contracts import Model, ModelError, State, ToolCall
+from studio_copilot.agent.contracts import (
+    Model,
+    ModelContextLimitError,
+    ModelError,
+    State,
+    ToolCall,
+)
 from studio_copilot.agent.enquiry import context_evidence
 from studio_copilot.agent.makeup import gather_makeup
 from studio_copilot.agent.question_resolutions import resolution_evidence, resolved_question_context
@@ -17,6 +24,25 @@ from studio_copilot.agent.tools import ENQUIRY_TOOLS, TOOL_TYPES, execute_tool
 logger = logging.getLogger(__name__)
 MAX_ROUNDS = 4
 MAX_CALLS = 3
+
+
+def _is_booked_makeup_schedule_question(state: State) -> bool:
+    questions = state["interpretation"].get("questions", [])
+    if (
+        state.get("flow") != "enquiry"
+        or state.get("routing", {}).get("intents") != ["makeup"]
+        or len(questions) != 1
+        or len(state["context"].get("confirmed_bookings", [])) != 1
+        or state.get("feedback")
+        or state.get("question_resolutions")
+    ):
+        return False
+    question = questions[0].casefold()
+    return bool(
+        re.search(r"\b(?:when|date|day|time)\b", question)
+        and re.search(r"\b(?:book(?:ed)? me|my (?:makeup|booking))\b", question)
+        and not re.search(r"\b(?:fee|policy|deadline|rule|cancel|reschedule)\b", question)
+    )
 
 
 class QueryRunner:
@@ -39,6 +65,13 @@ class QueryRunner:
                     ],
                     "warnings": [warning],
                 }
+        if _is_booked_makeup_schedule_question(state):
+            return {
+                "evidence": [context_evidence(state["context"])],
+                "warnings": [],
+                "document_answers_enabled": False,
+            }
+
         from studio_copilot.documents.online import gather as gather_documents
 
         document_result = gather_documents(self.engine, state)
@@ -62,6 +95,8 @@ class QueryRunner:
             for round_number in range(1, MAX_ROUNDS + 1):
                 try:
                     turn = self.model.choose_tools(context, transcript)
+                except ModelContextLimitError:
+                    raise
                 except ModelError:
                     warnings.append(
                         "Information gathering stopped because the model was unavailable."

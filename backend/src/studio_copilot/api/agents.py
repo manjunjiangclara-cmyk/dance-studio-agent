@@ -122,4 +122,6 @@ def retry_run(run_id: UUID, agent: Agent):
 @router.post("/incoming-emails", response_model=s.AgentRunRead)
 def receive_email(body: s.IncomingEmail, agent: Agent):
     """Receive an email, resolve its sender and conversation, and generate a reviewable draft."""
-    return agent.receive_email(str(body.sender), body.body)
+    return agent.receive_email(
+        str(body.sender), body.body, thread_id=body.thread_id, subject=body.subject
+    )

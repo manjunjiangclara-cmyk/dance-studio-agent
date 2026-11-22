@@ -1,6 +1,6 @@
 # Email workflow evaluations
 
-Thirty-two synthetic scenarios exercise email intake through the real FastAPI app,
+Thirty-five synthetic scenarios exercise email intake through the real FastAPI app,
 LangGraph workflow, read-only tools, PostgreSQL persistence/checkpoints, and teacher
 review. The runner uses the existing OpenAI adapter and configured `OPENAI_MODEL`.
 It does not access a mailbox, send email, or exercise browser UI.
@@ -113,7 +113,8 @@ Automated checks cover:
 - Absence timing where required, without inventing a makeup-eligibility policy.
 - Preserved incoming email text and no roster/enrolment/attendance/approved-response
   changes during drafting, including attempted instruction injection.
-- Corrected follow-ups superseding earlier drafts and blocking stale approval.
+- Multi-email thread follow-ups retaining the original absence notice, superseding
+  earlier drafts, and blocking stale approval.
 - Committed student-stated memory before drafting and after each incoming email,
   with the current source email, request summary, and extracted lasting preferences.
 - Teacher-reviewed memory after approval, linked to the final stored teacher response

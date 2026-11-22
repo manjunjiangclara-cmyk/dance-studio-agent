@@ -120,7 +120,7 @@ class Scenario(BaseModel):
         "normal", "no_sessions", "no_enrolments", "late_notice", "full", "past_absence"
     ] = "normal"
     setup: ScenarioSetup
-    emails: list[EmailStep] = Field(min_length=1, max_length=3)
+    emails: list[EmailStep] = Field(min_length=1, max_length=5)
     review: Literal[
         "none",
         "approve",

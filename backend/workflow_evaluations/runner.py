@@ -457,6 +457,8 @@ def run_scenario(engine, scenario: Scenario, model) -> dict:
                     else fixture["known_sender"],
                     "body": step.body.format_map(fixture["dates"]),
                 }
+                if len(scenario.emails) > 1:
+                    payload["thread_id"] = "workflow-eval:" + fixture["known_sender"]
                 result["inputs"].append(payload)
                 response = client.post("/api/v1/incoming-emails", json=payload)
                 check(f"email_{index + 1}:http", response.status_code, 200)
@@ -476,6 +478,12 @@ def run_scenario(engine, scenario: Scenario, model) -> dict:
                     {**c, "name": f"email_{index + 1}:" + c["name"]}
                     for c in grade_run(run, step.expect, fixture)
                 )
+                if step.expect.absence_verified is True and index > 0:
+                    check(
+                        f"email_{index + 1}:original_notice",
+                        run["interpretation"].get("absence_message_id"),
+                        fixture["source_message_ids"][0],
+                    )
                 check(f"email_{index + 1}:no_business_changes", database_snapshot(engine), before)
                 with Session(engine) as db:
                     source = db.get(Message, UUID(run["source_message_id"]))

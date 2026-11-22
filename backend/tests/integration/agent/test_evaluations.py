@@ -5,19 +5,22 @@ import re
 from uuid import NAMESPACE_URL, uuid5
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
-from studio_copilot.agent.contracts import Draft, MakeupInterpretation, ToolTurn
+from studio_copilot.agent.contracts import Draft, MakeupInterpretation, Routing, ToolTurn
 from studio_copilot.agent.makeup import overlapping_session
 from studio_copilot.agent.persistence.checkpoints import postgres_checkpointer
 from studio_copilot.agent.persistence.locking import student_lock
+from studio_copilot.agent.service import AgentService
+from studio_copilot.api.app import create_app
 from studio_copilot.persistence.models import ClassSession, Student
 from workflow_evaluations.cases import load_scenarios
 from workflow_evaluations.fixtures import isolated_database, seed_studio
-from workflow_evaluations.runner import grade_run, run_scenario
+from workflow_evaluations.runner import database_snapshot, grade_run, run_scenario
 
-from .helpers import FakeModel, turn
+from .helpers import FakeModel, review, turn
 
 pytestmark = pytest.mark.integration
 
@@ -89,6 +92,8 @@ class EmailScenarioModel(FakeModel):
     [
         "makeup_approval",
         "followup_correction",
+        "makeup_corrections_3_emails",
+        "makeup_corrections_5_emails",
         "teacher_revision",
         "makeup_rejection",
         "persistent_review",
@@ -112,6 +117,103 @@ def test_email_evaluation_harness_runs_complete_lifecycle(db_engine, case_id):
     for index in range(1, len(case.emails) + 1):
         assert f"email_{index}:memory_before_draft" in stages
         assert f"email_{index}:memory_after_intake" in stages
+
+
+@pytest.mark.parametrize(
+    "intervening_body",
+    [
+        "I can attend my Monday class after all. {saturday_date} is unrelated.",
+        "I meant I will miss Saturday {saturday_date}, rather than my Monday class.",
+        "Could you forget the makeup for now? {saturday_date} is about something else.",
+        "Actually, Monday {absence_date} works after all.",
+    ],
+)
+def test_later_correction_cannot_reuse_notice_after_conflicting_email(db_engine, intervening_body):
+    with postgres_checkpointer(db_engine) as saver:
+        saver.setup()
+    case = next(item for item in load_scenarios() if item.id == "makeup_corrections_3_emails")
+    case.emails[1].body = intervening_body
+    case.emails[1].expect.fields.pop("preferred_date", None)
+    for step in case.emails[1:]:
+        step.expect.proposal = "none"
+        step.expect.absence_verified = False
+        step.expect.required_tools = []
+    case.review = "none"
+
+    # This fake keeps claiming the original absence in spite of the retraction.
+    result = run_scenario(db_engine, case, EmailScenarioModel())
+    assert result["passed"], [check for check in result["checks"] if not check["passed"]]
+    for run in result["runs"][1:]:
+        assert run["interpretation"]["absence_message_id"] == result["runs"][0]["source_message_id"]
+        assert run["draft_details"]["booking_session_id"] is None
+
+
+def test_change_after_approval_cannot_add_a_second_booking(db_engine, tmp_path, monkeypatch):
+    with postgres_checkpointer(db_engine) as saver:
+        saver.setup()
+    fixture = seed_studio(db_engine, "normal")
+    policy = tmp_path / "eval-policy.yaml"
+    policy.write_text(
+        "version: test\nabsence_notice_before_start: true\n"
+        "level_order: [Level 1, Level 2, Level 3]\n"
+    )
+    model = EmailScenarioModel()
+    service = AgentService(db_engine, model, policy_path=policy)
+    with TestClient(
+        create_app(db_engine, admin_token="test", agent_service=service),
+        headers={"Authorization": "Bearer test"},
+    ) as client:
+
+        def send(body):
+            response = client.post(
+                "/api/v1/incoming-emails",
+                json={
+                    "from": fixture["known_sender"],
+                    "body": body.format_map(fixture["dates"]),
+                    "thread_id": fixture["known_sender"],
+                },
+            )
+            assert response.status_code == 200, response.text
+            return response.json()
+
+        first = send(
+            "I will miss my Monday class on {absence_date}. "
+            "Could I make it up on Thursday {thursday_date} at 6 pm?"
+        )
+        assert first["draft_details"]["booking_session_id"] == fixture["sessions"]["thursday"]
+        approved = review(client, first, "approve")
+        assert approved.status_code == 200, approved.text
+        before = database_snapshot(db_engine)
+
+        change = send("Actually, Saturday {saturday_date} instead, please.")
+        assert change["status"] == "awaiting_review"
+        assert change["draft_details"]["booking_session_id"] is None
+        assert "already booked" in change["draft_details"]["body"]
+        [booking] = model.routing_contexts[-1]["confirmed_bookings"]
+        assert booking["session_id"] == fixture["sessions"]["thursday"]
+        assert booking["approved_response_id"] == approved.json()["approved_response_id"]
+        assert "T18:00:00" in booking["starts_at"]
+        assert review(client, change, "approve").status_code == 200
+        assert database_snapshot(db_engine)["rosters"] == before["rosters"]
+
+        def unexpected_document_lookup(*args, **kwargs):
+            raise AssertionError(
+                "A question about a recorded booking must use current roster evidence"
+            )
+
+        monkeypatch.setattr("studio_copilot.documents.online.gather", unexpected_document_lookup)
+        model.routing = Routing(
+            intents=["makeup"],
+            action="information_only",
+            request_summary="Asks about the existing makeup time.",
+            needs_clarification=False,
+            reason="Read-only question about a booking.",
+        )
+        info = send("Which day and time did you book me for?")
+        assert info["status"] == "awaiting_review"
+        [evidence] = info["evidence"]
+        assert evidence["result"]["confirmed_bookings"] == [booking]
+        assert "session:" + booking["session_id"] in evidence["result"]["references"]
 
 
 def test_evaluation_records_two_committed_memory_updates(db_engine):

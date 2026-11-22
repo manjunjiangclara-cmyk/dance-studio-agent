@@ -88,10 +88,10 @@ def test_followup_supersedes_draft_and_memory_uses_history(rig, scenario):
     profile = client.get(f"/api/v1/students/{scenario['student']}").json()
     assert "Saturday" in profile["ai_summary"] and "Thursday" not in profile["ai_summary"]
     assert profile["context"]["_agent_memory"]["preferences"] == {}
-    assert {m["kind"] for m in model.contexts[-1]["history"]} == {
+    assert [message["kind"] for message in model.contexts[-1]["history"]] == [
         "student_email",
-        "assistant_draft",
-    }
+        "student_email",
+    ]
 
 
 def test_memory_is_loaded_across_conversations(rig, scenario, db_engine):

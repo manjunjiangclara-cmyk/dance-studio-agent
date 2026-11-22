@@ -6,13 +6,16 @@ This diagram shows the user-facing workflow, including teacher review actions ou
 
 ```mermaid
 flowchart TD
-    A[Load student, email history, memory and policy] --> R[Identify intents and requested business action]
+    T[Group incoming email by supplied thread ID] --> A[Load full thread history, student memory and policy]
+    A --> R[Identify intents and requested business action]
     R -->|Makeup booking and related absence| B[Makeup-specific interpretation]
     R -->|Information only| X[Enquiry questions, information requests and original context]
     R -->|Other or unclear action| X
     B --> C[Save student-stated memory]
     X --> C
     C --> D[Verify makeup evidence or gather read-only enquiry facts]
+    D -->|Existing makeup schedule question| D2[Read the currently booked session from the roster]
+    D2 --> E
     D -->|Enabled documents| D1[Retrieve with original context; rerank each target question]
     D1 --> E[Draft response from evidence and teacher decisions]
     D -->|Other paths| E
@@ -21,12 +24,14 @@ flowchart TD
     K1 --> F[Pause for teacher review]
     K -->|Other enquiry| F
     E -->|Makeup draft| F
-    F -->|Feedback, teacher answer, or Confirm later| V[Retain decisions; reinterpret the request]
+    F -->|Feedback, teacher answer, or Confirm later| V[Reload thread and reinterpret with teacher decisions]
     V --> D
     F -->|Approve after required teacher decisions| G[Store response; recheck and book only a valid makeup proposal]
     G --> H[Reconcile and save teacher-reviewed memory]
     H --> J[Approved response saved; no email sent]
     F -.->|Reject outside graph| I[Close run and remove graph checkpoints]
+    R -.->|Model context limit| M[Flag the thread for manual review]
+    E -.->|Model context limit| M
 ```
 
 For `needs_student`, the draft asks the student for clarification; no separate teacher answer is required for that question. For `needs_teacher`, the teacher supplies an answer or explicitly chooses **Confirm later**, then updates the draft before approval. Each supplied answer returns to drafting with its original question. Draft validation checks the answer checklist and evidence references before teacher review. Confirming later does not create a reminder or send a follow-up. A later student email starts a new run using the conversation history.
@@ -45,9 +50,9 @@ New and existing senders use the same router. Intake still creates a minimal pro
 
 `MakeupInterpretation` contains booking-specific dates and preferences. `EnquiryInterpretation` extends the shared summary/memory fields with individual questions and requested actions; both enquiry and handoff use it. Each draft records `answers` with the exact question, `answered`/`needs_student`/`needs_teacher` status, proposed response and evidence references. Missing, duplicate or unsupported answers become teacher tasks; unsupported factual claims trigger a conservative draft rebuild. Citation validation checks identifiers, not semantic correctness, so teacher review remains required.
 
-For information-only routes, explanation and comparison requests extracted as actions join the question checklist even when other questions exist. If extraction yields no question, the original request becomes the question. Retrieval uses the original request to disambiguate split subquestions; the bounded reranker receives only the target question, which generation answers. A deterministic live-status handoff may retain a complete, cited general process rule; personal record status remains a teacher task.
+For information-only routes, explanation and comparison requests extracted as actions join the question checklist even when other questions exist. If extraction yields no question, the original request becomes the question. Retrieval uses the original request to disambiguate split subquestions; the bounded reranker receives only the target question, which generation answers. A follow-up about a confirmed makeup schedule can use current roster evidence. Other live-status enquiries can retain a complete, cited general process rule while leaving the personal outcome for teacher review.
 
-Enquiry tool dispatch allows only timetable, session and location lookups. Already-loaded student records and non-draft conversation messages are retained as context evidence so personal facts can be cited; student statements do not establish studio policy or completed actions. Revision feedback is retained with the draft evidence across successive reviews; the latest correction supersedes conflicting earlier feedback. Information-only makeup results cannot establish eligibility or reserve a place. Human handoff may gather bounded read-only facts but cannot execute actions. Only makeup approval can book a validated replacement. Revisions refresh enquiry interpretation and evidence; teacher-supplied facts may use the `teacher_feedback` reference when feedback exists. Old graph nodes and missing metadata remain compatible with pending reviews.
+Enquiry tool dispatch allows only timetable, session and location lookups. Student emails, teacher-approved replies and confirmed roster entries can be cited as context evidence; student statements do not establish studio policy or completed actions. Revision feedback is retained with the draft evidence across successive reviews; the latest correction supersedes conflicting earlier feedback. Information-only makeup results cannot establish eligibility or reserve a place. Human handoff may gather bounded read-only facts but cannot execute actions. Only makeup approval can book a validated replacement. Revisions refresh enquiry interpretation and evidence; teacher-supplied facts may use the `teacher_feedback` reference when feedback exists. Old graph nodes and missing metadata remain compatible with pending reviews.
 
 ## Memory and review
 
@@ -74,9 +79,11 @@ Application records use Alembic; LangGraph manages its checkpoint tables through
 A student-scoped PostgreSQL advisory lock serializes processing and message insertion. Conflicting requests receive 409 and may be retried; the API does not wait indefinitely for that lock. This local synchronous runtime intentionally has no worker queue. See [agent API and walkthrough](08-agent-api.md).
 
 
-Context loading selects only the latest three messages in the current conversation in SQL,
-then presents them chronologically. The source email and student memory remain explicit inputs;
-older emails remain stored without being sent wholesale to the model.
+Intake uses the supplied thread ID to keep the sender's separate email threads apart. A run loads
+all student emails in that conversation through its source email in chronological order. It loads
+teacher replies separately with unconfirmed delivery status. Internal drafts and staff notes stay
+out of the transcript. When the model cannot fit the full thread, the run is flagged for manual
+review.
 
 Before every OpenAI request, a local pseudonymization layer replaces the known student's name,
 name components, email and ID with placeholders. It also masks email addresses in nested memory,
@@ -89,4 +96,4 @@ encrypted reasoning tokens remain unchanged for replay; their readable summaries
 
 The dated roster identifies who is assigned, not who actually attended. Staff record attendance separately; unknown attendance for a completed missed session requires review. The model identifies the claimed absence and any specifically named replacement class; code verifies the matched session, enrolment, notice provenance, and attendance. When the configured policy requires notice before the session, late notice is escalated to the teacher without a booking proposal. Candidates are filtered by configured level order, the student's highest recorded attended level, membership, overlap, capacity, and any explicitly extracted class name. Named-class extraction remains a model interpretation, so teachers must review the evidence and draft.
 
-A proposed booking is rechecked in the approval transaction, including attendance, level, roster, overlap, capacity, and session details. Availability is not reserved before approval. A question asking for options does not itself create a proposal.
+An original absence notice can support multiple clear makeup date changes. Conflicting or unfamiliar intervening replies require staff review. A proposed booking is rechecked in the approval transaction, including attendance, level, roster, overlap, capacity, session details, and whether that absence already has a confirmed makeup in the thread. Availability is not reserved before approval. A question asking for options does not itself create a proposal.

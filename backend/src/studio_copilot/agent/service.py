@@ -11,9 +11,9 @@ from sqlalchemy.orm import Session
 from yaml import YAMLError
 
 from studio_copilot.administration.service import AdministrationError, conflict, invalid, require
-from studio_copilot.agent.contracts import Review
+from studio_copilot.agent.contracts import ModelContextLimitError, Review
 from studio_copilot.agent.persistence.checkpoints import postgres_checkpointer
-from studio_copilot.agent.persistence.locking import student_lock
+from studio_copilot.agent.persistence.locking import guard_email_thread, student_lock
 from studio_copilot.agent.persistence.store import WorkflowStore
 from studio_copilot.agent.policy import load_policy
 from studio_copilot.agent.question_resolutions import (
@@ -113,7 +113,9 @@ class AgentService:
         db.flush()
         return run
 
-    def receive_email(self, sender: str, body: str):
+    def receive_email(
+        self, sender: str, body: str, *, thread_id: str | None = None, subject: str | None = None
+    ):
         """Persist an incoming email and run its workflow under one student lock."""
         sender = sender.strip().lower()
         policy = self._policy()
@@ -129,19 +131,34 @@ class AgentService:
             student_id = student_id or uuid4()
             with student_lock(self.engine, student_id):
                 with Session(self.engine) as db, db.begin():
+                    if thread_id is not None:
+                        guard_email_thread(db, thread_id)
+                        conversation = db.scalar(
+                            select(Conversation).where(Conversation.thread_id == thread_id)
+                        )
+                        if conversation is not None and conversation.student_id != student_id:
+                            conflict("This email thread belongs to a different sender.")
+                    else:
+                        conversation = db.scalar(
+                            select(Conversation)
+                            .where(
+                                Conversation.student_id == student_id,
+                                Conversation.thread_id.is_(None),
+                            )
+                            .order_by(Conversation.created_at.desc(), Conversation.id.desc())
+                            .limit(1)
+                        )
                     if new_sender:
                         db.add(Student(id=student_id, display_name="New enquirer", email=sender))
                         db.flush()
-                    conversation = db.scalar(
-                        select(Conversation)
-                        .where(Conversation.student_id == student_id)
-                        .order_by(Conversation.created_at.desc(), Conversation.id.desc())
-                        .limit(1)
-                    )
                     if conversation is None:
-                        conversation = Conversation(student_id=student_id)
+                        conversation = Conversation(
+                            student_id=student_id, subject=subject, thread_id=thread_id
+                        )
                         db.add(conversation)
                         db.flush()
+                    elif conversation.subject is None and subject is not None:
+                        conversation.subject = subject
                     source = Message(
                         conversation_id=conversation.id,
                         kind="student_email",
@@ -290,6 +307,17 @@ class AgentService:
         except AdministrationError:
             trace.fail()
             raise
+        except ModelContextLimitError:
+            trace.fail()
+            with Session(self.engine) as db, db.begin():
+                run = require(db, AgentRun, run_id, lock=True)
+                run.status = "failed"
+                run.error = (
+                    "The full email thread exceeds the model's context limit. "
+                    "Review this thread manually."
+                    if run.approved_response_id is None
+                    else "Approval was saved. The model could not update the conversation memory."
+                )
         except (QuestionLimitError, RevisionExtractionError) as error:
             trace.fail()
             with Session(self.engine) as db, db.begin():

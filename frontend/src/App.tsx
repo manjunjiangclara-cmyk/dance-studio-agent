@@ -3036,6 +3036,8 @@ function DatabaseCell({ value }: { value: unknown }) {
 function TestEmail() {
   const { workspace, base, identity } = useSite();
   const navigate = useNavigate();
+  const [threadId, setThreadId] = useState("");
+  const [subject, setSubject] = useState("");
   const [sender, setSender] = useState(""),
     [body, setBody] = useState(""),
     [busy, setBusy] = useState(false),
@@ -3049,7 +3051,12 @@ function TestEmail() {
       const run = await post<Run>(
         "/api/v1/incoming-emails",
         identity.csrf_token || "",
-        { from: sender, body },
+        {
+          from: sender,
+          body,
+          ...(threadId.trim() && { thread_id: threadId.trim() }),
+          ...(subject.trim() && { subject: subject.trim() }),
+        },
       );
       navigate(`${base}/reviews/${run.id}`);
     } catch (err) {
@@ -3096,6 +3103,28 @@ function TestEmail() {
                   placeholder="new.enquirer@example.test"
                   disabled={busy}
                 />
+              </label>
+              <label>
+                Subject (optional)
+                <input
+                  maxLength={500}
+                  value={subject}
+                  onChange={(event) => setSubject(event.target.value)}
+                  disabled={busy}
+                />
+              </label>
+              <label>
+                Thread ID (optional)
+                <input
+                  maxLength={255}
+                  value={threadId}
+                  onChange={(event) => setThreadId(event.target.value)}
+                  aria-describedby="email-thread-hint"
+                  disabled={busy}
+                />
+                <small id="email-thread-hint">
+                  Reuse the same ID when submitting a reply.
+                </small>
               </label>
               <label>
                 Email body

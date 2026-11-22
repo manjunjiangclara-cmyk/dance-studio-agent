@@ -28,15 +28,19 @@ Use authenticated `POST /api/v1/incoming-emails` to submit an email and generate
 ```json
 {
   "from": "new.enquirer@example.com",
+  "thread_id": "example:ballet-enquiry-1",
+  "subject": "First ballet class",
   "body": "I have never done ballet. Which class would suit me?"
 }
 ```
 
-A known sender is matched case-insensitively and their latest conversation is reused (ordered by creation time, then ID). If none exists, a conversation is created. For a known-student example, use `alex@example.com` with the same `from` and `body` fields. An unknown sender gets a minimal profile named `New enquirer`, with unknown level and no enrolments, plus a conversation. Every submission, including first contact, uses action-based routing and the stored history. The intake marker is retained for recovery without forcing a workflow. Staff can update the placeholder profile through existing student APIs.
+A known sender is matched case-insensitively. Reuse the same optional `thread_id` for every reply in an email thread. The ID is unique across senders in this application. Use a source prefix if IDs come from multiple systems. A matching ID owned by a different sender returns 409. The optional `subject` labels the conversation. With no thread ID, intake reuses the sender's latest unthreaded conversation or creates one. Existing conversations keep their unthreaded status.
 
-The server sets receipt time and returns the existing agent-run response synchronously: inspect `status`, `draft_details.body`, `interpretation`, `evidence` and `error`. The response includes IDs needed for review or recovery; callers supply none. A successful draft is `awaiting_review`; a processing failure returns a retained `failed` run that can be retried through `/agent-runs/{id}/retry` without inserting another email. Approval still requires an explicit review request.
+An unknown sender gets a minimal profile named `New enquirer`, with unknown level and no enrolments. Staff can update the profile through the existing student APIs. The model receives the full student email history for the conversation and a separate list of teacher-approved replies with unconfirmed delivery. A thread that exceeds the model's context limit is flagged for manual review.
 
-Missing model configuration or invalid policy returns 503 before intake writes. A busy student returns 409 without saving the submission. Validation requires a valid `from` address and nonblank `body`; other input fields are rejected. Each POST represents a new received email; repeated bodies are not deduplicated.
+The server sets receipt time and returns the existing agent-run response synchronously: inspect `status`, `draft_details.body`, `interpretation`, `evidence` and `error`. The response includes the app-generated IDs needed for review or recovery. A successful draft is `awaiting_review`; a processing failure returns a retained `failed` run that can be retried through `/agent-runs/{id}/retry` without inserting another email. Approval still requires an explicit review request.
+
+Missing model configuration or invalid policy returns 503 before intake writes. A busy student returns 409 without saving the submission. Validation requires a valid `from` address and nonblank `body`. If supplied, `thread_id` and `subject` must be nonblank and at most 255 and 500 characters respectively. Each POST represents a new received email; repeated bodies are not deduplicated.
 
 Existing future-dated conversation emails also produce 409 without saving the submission, preserving the latest-email rule. Use a fresh fictional address or a student without future-dated history for current-time intake testing. The intake endpoint does not connect an inbox, enrol students, reserve places or send responses. A later teacher approval can book an explicitly proposed eligible session.
 
@@ -46,7 +50,7 @@ Routes have prefix `/api/v1` and require the admin bearer token, or an authorize
 
 | Route | Request and result |
 | --- | --- |
-| POST `/incoming-emails` | `{"from":"someone@example.com","body":"Email content"}`. Resolves sender/history, saves the email, and runs the agent. |
+| POST `/incoming-emails` | `{"from":"someone@example.com","body":"Email content"}`. Accepts optional `thread_id` and `subject`, resolves the conversation, saves the email, and runs the agent. |
 | POST `/conversations/{id}/agent-runs` | `{"source_message_id":"UUID"}`. Source must be the latest student email in that conversation. Runs synchronously to review or failure; repeat starts return the existing run. |
 | GET `/agent-runs/{id}` | Returns status, revision, interpretation, evidence, policy snapshot, draft details, linked message IDs, and a safe error if processing failed. |
 | POST `/agent-runs/{id}/review` | `{"action":"approve","expected_revision":1,"body":"Final teacher response"}`. Body is optional; defaults to the current draft. Rechecks and books any validated proposal, stores a teacher response, then updates memory. |

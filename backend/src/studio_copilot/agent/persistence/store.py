@@ -7,7 +7,7 @@ from datetime import datetime
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import select
+from sqlalchemy import select, tuple_
 from sqlalchemy.orm import Session
 
 from studio_copilot.administration.service import conflict, require
@@ -25,10 +25,6 @@ from studio_copilot.persistence.models import (
     Student,
 )
 
-HISTORY_LIMIT = 3
-
-HISTORY_LIMIT = 3
-
 
 def _active_run(db, run_id):
     run = require(db, AgentRun, UUID(run_id), lock=True)
@@ -43,6 +39,22 @@ def _message_data(message):
         "kind": message.kind,
         "body": message.body,
         "occurred_at": message.occurred_at.isoformat(),
+    }
+
+
+def _confirmed_booking(db: Session, student_id: UUID, proposal: str | None) -> dict | None:
+    if not proposal:
+        return None
+    session = db.get(ClassSession, UUID(proposal))
+    if session is None or student_id not in session.students:
+        return None
+    location = session.regular_class.location
+    return {
+        "session_id": str(session.id),
+        "class_name": session.regular_class.name,
+        "starts_at": session.starts_at.astimezone(ZoneInfo(location.timezone)).isoformat(),
+        "location_name": location.name,
+        "status": "confirmed",
     }
 
 
@@ -123,18 +135,62 @@ class WorkflowStore:
             source = require(db, Message, run.source_message_id)
             conversation = require(db, Conversation, run.conversation_id)
             student = require(db, Student, conversation.student_id)
-            # Preserve message kinds, including the distinction between drafts and responses.
-            recent = list(
-                db.scalars(
-                    select(Message)
-                    .where(Message.conversation_id == conversation.id)
-                    .order_by(
-                        Message.occurred_at.desc(), Message.created_at.desc(), Message.id.desc()
-                    )
-                    .limit(HISTORY_LIMIT)
+            order = (Message.occurred_at, Message.created_at, Message.id)
+            messages = db.scalars(
+                select(Message)
+                .where(
+                    Message.conversation_id == conversation.id,
+                    tuple_(*order) <= (source.occurred_at, source.created_at, source.id),
+                    Message.kind.in_(("student_email", "teacher_response")),
                 )
+                .order_by(*order)
             )
-            history = [_message_data(message) for message in reversed(recent)]
+            history, approved_replies = [], []
+            for message in messages:
+                if message.kind == "student_email":
+                    history.append(_message_data(message))
+                else:
+                    approved_replies.append({**_message_data(message), "delivery": "unconfirmed"})
+
+            confirmed_bookings = []
+            if approved_replies:
+                approvals = db.scalars(
+                    select(AgentRun).where(
+                        AgentRun.conversation_id == conversation.id,
+                        AgentRun.approved_response_id.in_(
+                            UUID(reply["id"]) for reply in approved_replies
+                        ),
+                        AgentRun.draft_details["booking_session_id"].astext.is_not(None),
+                    )
+                )
+                for approval in approvals:
+                    booking = _confirmed_booking(
+                        db, student.id, approval.draft_details["booking_session_id"]
+                    )
+                    if booking:
+                        confirmed_bookings.append(
+                            {**booking, "approved_response_id": str(approval.approved_response_id)}
+                        )
+
+            context, summary = student.context, student.ai_summary
+            if conversation.thread_id is not None:
+                memory = context.get("_agent_memory", {})
+                thread_id = str(conversation.id)
+                scoped_memory = {
+                    "preferences": memory.get("preferences", {}),
+                    "requests": {
+                        key: entry
+                        for key, entry in memory.get("requests", {}).items()
+                        if key == thread_id
+                    },
+                    "approved_responses": {
+                        key: entry
+                        for key, entry in memory.get("approved_responses", {}).items()
+                        if entry.get("conversation_id") == thread_id
+                    },
+                }
+                context = {**context, "_agent_memory": scoped_memory}
+                summary = _memory_summary(scoped_memory)
             return {
                 "source": _message_data(source),
                 "conversation_id": str(conversation.id),
@@ -143,12 +199,13 @@ class WorkflowStore:
                     "name": student.display_name,
                     "email": student.email,
                     "highest_level": student.highest_level,
-                    "context": student.context,
-                    "ai_summary": student.ai_summary,
+                    "context": context,
+                    "ai_summary": summary,
                 },
                 "enrolments": enrolments(student),
                 "history": history,
-                "history_limit": HISTORY_LIMIT,
+                "approved_replies": approved_replies,
+                "confirmed_bookings": confirmed_bookings,
                 "policy": run.policy_snapshot,
                 "intake": run.interpretation.get("intake", {}),
             }
@@ -306,19 +363,12 @@ class WorkflowStore:
     def approved_booking(self, run_id: str) -> dict | None:
         with Session(self.engine) as db:
             run = require(db, AgentRun, UUID(run_id))
-            proposal = run.draft_details.get("booking_session_id")
-            if not run.approved_response_id or not proposal:
+            if not run.approved_response_id:
                 return None
-            session = require(db, ClassSession, UUID(proposal))
             conversation = require(db, Conversation, run.conversation_id)
-            if conversation.student_id not in session.students:
-                return None
-            return {
-                "session_id": str(session.id),
-                "class_name": session.regular_class.name,
-                "starts_at": session.starts_at.isoformat(),
-                "status": "confirmed",
-            }
+            return _confirmed_booking(
+                db, conversation.student_id, run.draft_details.get("booking_session_id")
+            )
 
     def approved_response(self, run_id: str) -> str:
         with Session(self.engine) as db:

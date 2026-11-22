@@ -1791,5 +1791,296 @@
       "thursday_level": "Level 2",
       "saturday_level": "Level 2"
     }
+  },
+  {
+    "id": "makeup_corrections_3_emails",
+    "description": "Carry the original absence notice through 3 emails.",
+    "emails": [
+      {
+        "body": "I will miss my Monday class on {absence_date}. Could I make it up on Thursday {thursday_date} at 6 pm?",
+        "expect": {
+          "flow": "makeup",
+          "intents": [
+            "makeup",
+            "absence"
+          ],
+          "fields": {
+            "absence_date": "{absence_date}",
+            "preferred_date": "{thursday_date}"
+          },
+          "proposal": "thursday",
+          "required_tools": [
+            "search_sessions"
+          ],
+          "absence_verified": true
+        }
+      },
+      {
+        "body": "Actually, Saturday {saturday_date} instead, please.",
+        "expect": {
+          "flow": "makeup",
+          "intents": [
+            "makeup"
+          ],
+          "fields": {
+            "absence_date": "{absence_date}",
+            "preferred_date": "{saturday_date}"
+          },
+          "proposal": "saturday",
+          "required_tools": [
+            "search_sessions"
+          ],
+          "absence_verified": true
+        }
+      },
+      {
+        "body": "Actually, Thursday {thursday_date} works after all. Could I switch back to that one?",
+        "expect": {
+          "flow": "makeup",
+          "intents": [
+            "makeup"
+          ],
+          "fields": {
+            "absence_date": "{absence_date}",
+            "preferred_date": "{thursday_date}"
+          },
+          "proposal": "thursday",
+          "required_tools": [
+            "search_sessions"
+          ],
+          "absence_verified": true
+        }
+      }
+    ],
+    "review": "approve",
+    "rubric": [
+      "The final reply confirms Thursday and retains the original Monday absence."
+    ],
+    "setup": {
+      "student": {
+        "highest_level": "Level 2"
+      },
+      "enrolments": [
+        {
+          "class_key": "monday_level_2",
+          "status": "active"
+        }
+      ],
+      "session_rosters": {
+        "absence": [
+          "student"
+        ],
+        "thursday": [],
+        "saturday": []
+      },
+      "level_order": [
+        "Level 1",
+        "Level 2",
+        "Level 3"
+      ],
+      "attended_level": "Level 2",
+      "absence_attendance": "unknown",
+      "thursday_level": "Level 2",
+      "saturday_level": "Level 2"
+    }
+  },
+  {
+    "id": "makeup_corrections_5_emails",
+    "description": "Carry the original absence notice through 5 emails.",
+    "emails": [
+      {
+        "body": "I will miss my Monday class on {absence_date}. Could I make it up on Thursday {thursday_date} at 6 pm?",
+        "expect": {
+          "flow": "makeup",
+          "intents": [
+            "makeup",
+            "absence"
+          ],
+          "fields": {
+            "absence_date": "{absence_date}",
+            "preferred_date": "{thursday_date}"
+          },
+          "proposal": "thursday",
+          "required_tools": [
+            "search_sessions"
+          ],
+          "absence_verified": true
+        }
+      },
+      {
+        "body": "Actually, Saturday {saturday_date} instead, please.",
+        "expect": {
+          "flow": "makeup",
+          "intents": [
+            "makeup"
+          ],
+          "fields": {
+            "absence_date": "{absence_date}",
+            "preferred_date": "{saturday_date}"
+          },
+          "proposal": "saturday",
+          "required_tools": [
+            "search_sessions"
+          ],
+          "absence_verified": true
+        }
+      },
+      {
+        "body": "Actually, Thursday {thursday_date} works after all. Could I switch back to that one?",
+        "expect": {
+          "flow": "makeup",
+          "intents": [
+            "makeup"
+          ],
+          "fields": {
+            "absence_date": "{absence_date}",
+            "preferred_date": "{thursday_date}"
+          },
+          "proposal": "thursday",
+          "required_tools": [
+            "search_sessions"
+          ],
+          "absence_verified": true
+        }
+      },
+      {
+        "body": "Actually, Saturday {saturday_date} instead, please.",
+        "expect": {
+          "flow": "makeup",
+          "intents": [
+            "makeup"
+          ],
+          "fields": {
+            "absence_date": "{absence_date}",
+            "preferred_date": "{saturday_date}"
+          },
+          "proposal": "saturday",
+          "required_tools": [
+            "search_sessions"
+          ],
+          "absence_verified": true
+        }
+      },
+      {
+        "body": "Actually, Thursday {thursday_date} works after all. Could I switch back to that one?",
+        "expect": {
+          "flow": "makeup",
+          "intents": [
+            "makeup"
+          ],
+          "fields": {
+            "absence_date": "{absence_date}",
+            "preferred_date": "{thursday_date}"
+          },
+          "proposal": "thursday",
+          "required_tools": [
+            "search_sessions"
+          ],
+          "absence_verified": true
+        }
+      }
+    ],
+    "review": "approve",
+    "rubric": [
+      "The final reply confirms Thursday and retains the original Monday absence."
+    ],
+    "setup": {
+      "student": {
+        "highest_level": "Level 2"
+      },
+      "enrolments": [
+        {
+          "class_key": "monday_level_2",
+          "status": "active"
+        }
+      ],
+      "session_rosters": {
+        "absence": [
+          "student"
+        ],
+        "thursday": [],
+        "saturday": []
+      },
+      "level_order": [
+        "Level 1",
+        "Level 2",
+        "Level 3"
+      ],
+      "attended_level": "Level 2",
+      "absence_attendance": "unknown",
+      "thursday_level": "Level 2",
+      "saturday_level": "Level 2"
+    }
+  },
+  {
+    "id": "withdraw_makeup_before_approval",
+    "description": "Explicitly withdraw the requested booking while keeping the absence notice.",
+    "emails": [
+      {
+        "body": "I will miss my Monday class on {absence_date}. Could I make it up on Thursday {thursday_date} at 6 pm?",
+        "expect": {
+          "flow": "makeup",
+          "intents": [
+            "makeup",
+            "absence"
+          ],
+          "fields": {
+            "absence_date": "{absence_date}",
+            "preferred_date": "{thursday_date}"
+          },
+          "proposal": "thursday",
+          "required_tools": [
+            "search_sessions"
+          ],
+          "absence_verified": true
+        }
+      },
+      {
+        "body": "I still won't be in on Monday {absence_date}, but please disregard my makeup request. I don't want to book any replacement.",
+        "expect": {
+          "flow": "enquiry",
+          "intents": [
+            "absence"
+          ],
+          "proposal": "none",
+          "contradictory_text": [
+            "earlier confirmation",
+            "only a draft",
+            "internal draft"
+          ]
+        }
+      }
+    ],
+    "review": "none",
+    "rubric": [
+      "Acknowledge the Monday absence; do not promise or offer a replacement booking."
+    ],
+    "setup": {
+      "student": {
+        "highest_level": "Level 2"
+      },
+      "enrolments": [
+        {
+          "class_key": "monday_level_2",
+          "status": "active"
+        }
+      ],
+      "session_rosters": {
+        "absence": [
+          "student"
+        ],
+        "thursday": [],
+        "saturday": []
+      },
+      "level_order": [
+        "Level 1",
+        "Level 2",
+        "Level 3"
+      ],
+      "attended_level": "Level 2",
+      "absence_attendance": "unknown",
+      "thursday_level": "Level 2",
+      "saturday_level": "Level 2"
+    }
   }
 ]

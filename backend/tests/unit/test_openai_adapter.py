@@ -6,7 +6,7 @@ import httpx
 import pytest
 from openai import OpenAI
 
-from studio_copilot.agent.contracts import ModelError
+from studio_copilot.agent.contracts import ModelContextLimitError, ModelError
 from studio_copilot.agent.openai_model import OpenAIModel
 from studio_copilot.agent.tools import tool_definitions
 
@@ -36,6 +36,21 @@ def adapter(handler):
         http_client=httpx.Client(transport=httpx.MockTransport(handler)),
     )
     return OpenAIModel(client=client, model="test-model")
+
+
+def test_context_length_error_preserves_manual_review_signal():
+    def handler(request):
+        return httpx.Response(
+            400,
+            json={"error": {"message": "Provider details", "code": "context_length_exceeded"}},
+        )
+
+    model = adapter(handler)
+    try:
+        with pytest.raises(ModelContextLimitError, match="exceeded its context limit"):
+            model.route({"source": {"body": "Please see the earlier email."}})
+    finally:
+        model.client.close()
 
 
 def test_sdk_parses_typed_interpretation_and_keeps_state_local():

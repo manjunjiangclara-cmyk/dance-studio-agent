@@ -1,7 +1,7 @@
 """Serialize student runs and incoming messages without row locks over LLM calls."""
 
 from contextlib import contextmanager
-from uuid import UUID
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from sqlalchemy import text
 
@@ -13,8 +13,21 @@ def lock_key(student_id: UUID) -> int:
 
 
 def guard_message(db, student_id: UUID):
-    if not db.scalar(text("SELECT pg_try_advisory_xact_lock(:key)"), {"key": lock_key(student_id)}):
-        conflict("An agent is processing this student. Retry after the run completes.")
+    _guard_transaction(
+        db, student_id, "An agent is processing this student. Retry after the run completes."
+    )
+
+
+def guard_email_thread(db, thread_id: str):
+    key = uuid5(NAMESPACE_URL, "studio-copilot/email-thread/" + thread_id)
+    _guard_transaction(
+        db, key, "This email thread is being updated. Retry after the run completes."
+    )
+
+
+def _guard_transaction(db, identifier: UUID, message: str):
+    if not db.scalar(text("SELECT pg_try_advisory_xact_lock(:key)"), {"key": lock_key(identifier)}):
+        conflict(message)
 
 
 @contextmanager
