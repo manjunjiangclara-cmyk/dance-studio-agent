@@ -47,7 +47,7 @@
       "name": "conversations",
       "label": "Email threads",
       "page": "students",
-      "fields": ["student_id", "subject"]
+      "fields": ["student_id", "subject", "thread_id"]
     },
     {
       "name": "messages",
