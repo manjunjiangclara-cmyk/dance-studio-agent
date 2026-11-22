@@ -156,7 +156,7 @@ def client(monkeypatch, demo):
     monkeypatch.setenv("PUBLIC_BASE_URL", "http://localhost:8010")
     monkeypatch.setenv("OPENAI_API_KEY", "fake-key")
     monkeypatch.setenv("OPENAI_MODEL", "fake-model")
-    monkeypatch.setattr(api, "PublicDemo", lambda _path: demo)
+    monkeypatch.setattr(api, "PublicDemo", lambda _path, **_options: demo)
     with TestClient(api.create_public_demo_app(), headers={"Origin": "http://localhost:8010"}) as c:
         yield c
 
@@ -528,6 +528,45 @@ def test_raising_limit_preserves_ten_existing_legacy_runs(tmp_path):
         assert db.execute("SELECT count(*) FROM runs").fetchone()[0] == 20
 
 
+@pytest.mark.parametrize(
+    ("base_url", "status"),
+    [
+        ("http://127.0.0.1:8010", 200),
+        ("http://localhost:8010", 200),
+        ("https://localhost.example.test", 429),
+    ],
+)
+def test_daily_cap_only_applies_to_hosted_demo(monkeypatch, tmp_path, base_url, status):
+    path = tmp_path / "live-demo.sqlite"
+    monkeypatch.setenv("STUDIO_PUBLIC_LIVE_DEMO", "true")
+    monkeypatch.setenv("STUDIO_PUBLIC_DEMO_DB", str(path))
+    monkeypatch.setenv("PUBLIC_BASE_URL", base_url)
+    monkeypatch.setenv("OPENAI_API_KEY", "fake-key")
+    monkeypatch.setenv("OPENAI_MODEL", "fake-model")
+    ledger = PublicDemo(path)
+    for _ in range(20):
+        create(ledger)
+
+    with TestClient(api.create_public_demo_app(), headers={"Origin": base_url}) as client:
+        assert (
+            client.post(
+                "/api/public-demo/runs",
+                json={"scenario": "booking", "request_id": str(uuid4())},
+            ).status_code
+            == status
+        )
+        thread = client.post("/api/public-demo/threads", json={"student": "new"})
+        assert thread.status_code == 200
+        assert (
+            client.post(
+                "/api/public-demo/threads/current/turns",
+                headers={"Authorization": f"Bearer {thread.json()['token']}"},
+                json={"request_id": str(uuid4()), "email_body": "Do you have a beginner class?"},
+            ).status_code
+            == status
+        )
+
+
 def test_custom_fee_question_requires_teacher_even_if_model_omits_missing_item():
     from studio_copilot.public_demo.model import CustomSelection
 
@@ -763,6 +802,62 @@ def test_custom_draft_receives_student_clarification():
 
 
 @pytest.mark.parametrize(
+    "booking_status, expected_instruction",
+    [
+        ("offered", "Ask directly whether the student"),
+        ("collecting_name", "Ask for their name without repeating the invitation"),
+        ("awaiting_approval", "The student already said yes, so do not ask again"),
+    ],
+)
+def test_trial_draft_only_gets_instructions_for_current_step(booking_status, expected_instruction):
+    model, calls = model_with(
+        SimpleNamespace(status="completed", output_parsed=GeneratedDraft(body="Trial response."))
+    )
+    model.call(
+        "custom",
+        "draft",
+        [],
+        context={
+            "student": "new",
+            "email_body": "I would like a trial.",
+            "thread_history": [],
+            "workflow_state": {"booking_status": booking_status},
+        },
+    )
+    instructions = calls[0]["instructions"]
+    assert expected_instruction in instructions
+    assert ("Ask directly whether the student" in instructions) == (booking_status == "offered")
+
+
+def test_confirmed_trial_reply_reports_teacher_approval_as_next_step():
+    model, calls = model_with(
+        SimpleNamespace(
+            status="completed",
+            output_parsed=GeneratedDraft(body="I’ll check the level again."),
+        )
+    )
+    draft = model.call(
+        "custom",
+        "draft",
+        [],
+        context={
+            "student": "2eca4988-037e-54f9-9668-59ee06b2888b",
+            "email_body": "Yes please help me book it",
+            "workflow_state": {
+                "booking_status": "awaiting_approval",
+                "customer_name": "Riley James",
+                "recommended_class": {"description": "Adult Ballet Level 1, Saturday at 4 pm"},
+            },
+            "trial_spaces_remaining": 12,
+        },
+    )["body"]
+    assert "Hi Riley," in draft
+    assert "12 open places" in draft
+    assert "ready for teacher approval" in draft
+    assert not calls
+
+
+@pytest.mark.parametrize(
     "email",
     [
         "Hi can i do a makeup class for Monday 8 February.",
@@ -787,7 +882,11 @@ def test_makeup_evidence_backstop_uses_only_selected_student_catalog(email):
     )
     result = model.call("custom", "evidence", [], context={"student": student, "email_body": email})
     catalog = CUSTOM_CATALOG[student]
-    assert result["evidence"] == [catalog["makeup_guide"], catalog["student"], catalog["history"]]
+    assert [item for item in result["evidence"] if not item.startswith("Class availability:")] == [
+        catalog["makeup_guide"],
+        catalog["student"],
+        catalog["history"],
+    ]
     assert all("Alex" not in item for item in result["evidence"])
 
 
@@ -852,3 +951,220 @@ def test_makeup_route_adds_relevant_sources_without_explicit_keyword():
         context={"student": "new", "email_body": "Can I attend Saturday instead?"},
     )
     assert CUSTOM_CATALOG["new"]["makeup_guide"] in result["evidence"]
+
+
+@pytest.mark.parametrize(
+    ("email", "has_makeup_context"),
+    [
+        ("Okay. Let's do Saturday level 2 instead", True),
+        ("Please cancel my Saturday enrolment", False),
+    ],
+)
+def test_makeup_class_followup_uses_public_roster_even_on_handoff(email, has_makeup_context):
+    from studio_copilot.public_demo.fixtures import CUSTOM_CATALOG
+    from studio_copilot.public_demo.model import ThreadSelection
+
+    model, _ = model_with(
+        SimpleNamespace(
+            status="completed",
+            output_parsed=ThreadSelection(
+                route="teacher_handoff",
+                ids=[],
+                missing_information=[],
+                intents=[],
+                experience_level=None,
+                preferred_day=None,
+                customer_name=None,
+            ),
+        )
+    )
+    context = {
+        "student": "alex",
+        "email_body": email,
+        "thread_history": [
+            {"email": "Can I make up my class in Level 3?", "reply": "Level 3 is too advanced."}
+        ],
+    }
+    result = model.call("custom", "evidence", [], context=context)
+    facts = result["evidence"]
+    catalog = CUSTOM_CATALOG["alex"]
+    assert (catalog["makeup_guide"] in facts) == has_makeup_context
+    assert any(entry.startswith("Class availability:") for entry in facts) == has_makeup_context
+    if has_makeup_context:
+        assert catalog["student"] in facts
+        assert "Adult Ballet Level 2, Saturday 13 February 2027 at 6 pm" in facts[0]
+        assert "10 places remaining" in facts[0]
+        draft_model, calls = model_with(
+            SimpleNamespace(
+                status="completed", output_parsed=GeneratedDraft(body="Trial response.")
+            )
+        )
+        draft_model.call("custom", "draft", facts, context=context)
+        assert json.loads(calls[0]["input"])["facts"][0] == facts[0]
+        assert "when the student's recorded attendance level is known" in calls[0]["instructions"]
+
+
+def test_above_level_booking_request_uses_the_student_record_without_an_offer():
+    model, calls = model_with(
+        SimpleNamespace(status="completed", output_parsed=GeneratedDraft(body="Book Level 3."))
+    )
+    context = {
+        "student": "alex",
+        "email_body": "Can you help me book Saturaday Level 3 class",
+        "thread_history": [],
+    }
+    result = model.call("custom", "draft", [], context=context)
+    assert "highest recorded level is Level 2" in result["body"]
+    assert "teacher’s placement assessment" in result["body"]
+    assert "Book Level 3" not in result["body"]
+    assert not calls
+
+    context["email_body"] = "What time is Saturday Level 3?"
+    model.call("custom", "draft", [], context=context)
+    assert "may describe a higher-level session" in calls[0]["instructions"]
+    assert (
+        "Adult Ballet Level 3, Saturday 13 February 2027"
+        in json.loads(calls[0]["input"])["facts"][0]
+    )
+
+    from studio_copilot.public_demo.fixtures import CUSTOM_CATALOG
+
+    context["email_body"] = "Can you help me book Level 3 and what should I wear?"
+    clothing = CUSTOM_CATALOG["alex"]["clothing"]
+    mixed_model, mixed_calls = model_with(
+        SimpleNamespace(
+            status="completed",
+            output_parsed=GeneratedDraft(body="Placement needs review. The clothing guide says…"),
+        )
+    )
+    mixed = mixed_model.call("custom", "draft", [clothing], context=context)
+    assert "clothing guide" in mixed["body"]
+    assert clothing in json.loads(mixed_calls[0]["input"])["facts"]
+    assert not mixed["body"].startswith("Hi Alex,\n\nYour highest recorded level")
+
+
+def test_maya_makeup_followup_reports_existing_booking_without_a_new_request():
+    model, calls = model_with(
+        SimpleNamespace(status="completed", output_parsed=GeneratedDraft(body="Let me check."))
+    )
+    context = {
+        "student": "833efaed-1e89-5f89-8b47-cb9cbcf3399c",
+        "email_body": "Okay. Help me to book level 2 instead",
+        "thread_history": [
+            {"email": "help. me book Saturaday level 3", "reply": "Level 3 needs assessment."}
+        ],
+    }
+    draft = model.call("custom", "draft", [], context=context)["body"]
+    assert "already booked for Adult Ballet Level 2" in draft
+    assert "Saturday 13 February 2027 at 6 pm" in draft
+    assert "credit" not in draft
+    assert not calls
+
+    context["email_body"] = "Could you book Thursday Level 2 instead?"
+    model.call("custom", "draft", [], context=context)
+    assert "treat a different requested session as already booked" in calls[-1]["instructions"]
+    context["email_body"] = "Please cancel my Level 2 booking."
+    model.call("custom", "draft", [], context=context)
+    assert "An existing makeup booking is verified" not in calls[-1]["instructions"]
+
+
+def test_additional_makeup_request_is_not_mistaken_for_an_existing_booking():
+    model, calls = model_with(
+        SimpleNamespace(
+            status="completed", output_parsed=GeneratedDraft(body="Which session did you mean?")
+        )
+    )
+    context = {
+        "student": "833efaed-1e89-5f89-8b47-cb9cbcf3399c",
+        "email_body": "Can I book another Level 2 makeup?",
+        "thread_history": [],
+    }
+    result = model.call("custom", "draft", [], context=context)
+    assert result["body"] == "Which session did you mean?"
+    assert "An existing makeup booking is verified" not in calls[0]["instructions"]
+    assert "already booked for" not in calls[0]["instructions"]
+
+
+def test_alex_booking_followup_checks_the_session_from_the_accepted_reply():
+    from studio_copilot.public_demo.model import ThreadSelection
+
+    accepted = "Saturday 13 February at 6 pm is an option for Adult Ballet Level 2."
+    context = {
+        "student": "alex",
+        "email_body": "Okay. Help me book it",
+        "thread_history": [{"email": "Can I book level 2?", "reply": accepted}],
+    }
+    model, _ = model_with(
+        SimpleNamespace(
+            status="completed",
+            output_parsed=ThreadSelection(
+                route="teacher_handoff",
+                ids=["class_information"],
+                missing_information=[],
+                intents=[],
+                experience_level=None,
+                preferred_day=None,
+                customer_name=None,
+            ),
+        )
+    )
+    evidence = model.call("custom", "evidence", [], context=context)["evidence"]
+    assert "13 February 2027 at 6 pm" in evidence[0]
+    assert "10 places open" in evidence[0]
+    assert "awaits teacher approval" in evidence[0]
+    draft, calls = model_with(
+        SimpleNamespace(status="completed", output_parsed=GeneratedDraft(body="Teacher draft."))
+    )
+    body = draft.call("custom", "draft", evidence, context=context)["body"]
+    assert "10 places open" in body
+    assert "already awaiting teacher approval" in body
+    assert not calls
+
+    context["thread_history"][0]["reply"] = accepted + " Level 2 on 11 February is also an option."
+    ambiguous = model.call("custom", "evidence", [], context=context)["evidence"]
+    assert all("awaits teacher approval" not in item for item in ambiguous)
+    context["thread_history"][0]["reply"] = accepted
+    context["student"] = "new"
+    other_student = model.call("custom", "evidence", [], context=context)["evidence"]
+    assert all("awaits teacher approval" not in item for item in other_student)
+
+
+def test_fresh_level_two_request_reads_alexs_pending_makeup():
+    from studio_copilot.public_demo.model import ThreadSelection
+
+    model, _ = model_with(
+        SimpleNamespace(
+            status="completed",
+            output_parsed=ThreadSelection(
+                route="makeup",
+                ids=["makeup_guide"],
+                missing_information=[],
+                intents=[],
+                experience_level=None,
+                preferred_day=None,
+                customer_name=None,
+            ),
+        )
+    )
+    context = {
+        "student": "alex",
+        "email_body": "Can I book level 2",
+        "thread_history": [],
+    }
+    evidence = model.call("custom", "evidence", [], context=context)["evidence"]
+    assert "10 places open" in evidence[0]
+    assert "awaits teacher approval" in evidence[0]
+    assert "Use the session roster" in evidence[1]
+    draft, calls = model_with(
+        SimpleNamespace(status="completed", output_parsed=GeneratedDraft(body="Teacher draft."))
+    )
+    body = draft.call("custom", "draft", evidence, context=context)["body"]
+    assert "Saturday 13 February 2027 at 6 pm" in body
+    assert "already awaiting teacher approval" in body
+    assert "credit" not in body
+    assert not calls
+
+    for email in ("Can I book Level 2 on Thursday?", "Can I book a Level 2 trial?"):
+        context["email_body"] = email
+        other_request = model.call("custom", "evidence", [], context=context)["evidence"]
+        assert all("awaits teacher approval" not in item for item in other_request)

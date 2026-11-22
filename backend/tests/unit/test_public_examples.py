@@ -1,7 +1,7 @@
 """Published fixtures must stay fictional, linked, and aligned with the schema."""
 
 import json
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -9,6 +9,9 @@ from sqlalchemy import create_engine
 
 from studio_copilot.api.app import create_app
 from studio_copilot.persistence.models import Base
+from studio_copilot.public_demo import availability
+from studio_copilot.public_demo.availability import recorded_makeup_booking, trial_spaces
+from studio_copilot.public_demo.fixtures import SATURDAY_TRIAL_CLASSES
 
 ROOT = Path(__file__).resolve().parents[3]
 DATA = ROOT / "frontend" / "src" / "data"
@@ -76,6 +79,52 @@ def test_fixtures_have_consistent_links_and_only_published_fictional_identities(
     )
     assert any(run["interpretation"].get("missing_details") for run in data["agent_runs"])
     assert any(run["interpretation"].get("flow") == "teacher_handoff" for run in data["agent_runs"])
+
+
+def test_trial_classes_match_the_public_database_and_timetable():
+    data = json.loads((DATA / "examples.v1.json").read_text())
+    classes = {row["id"]: row for row in data["classes"]}
+    locations = {row["id"]: row for row in data["locations"]}
+    actual = {}
+    for session in data["class_sessions"]:
+        starts_at = datetime.fromisoformat(session["starts_at"])
+        if starts_at.date() == date(2027, 2, 13):
+            cls = classes[session["class_id"]]
+            level = int(cls["level"].removeprefix("Level "))
+            location = locations[cls["location_id"]]["name"].replace(" · ", " ")
+            time = starts_at.strftime("%I:%M %p").lstrip("0").replace(":00", "").lower()
+            actual[level] = (
+                f"Adult Ballet Level {level}, Saturday 13 February 2027 at {time}, {location}"
+            )
+    assert actual == SATURDAY_TRIAL_CLASSES
+    assert {
+        level: trial_spaces({"description": description}) for level, description in actual.items()
+    } == {1: 12, 2: 10, 3: 12}
+
+
+def test_makeup_booking_requires_approval_and_student_on_roster(monkeypatch):
+    data = json.loads((DATA / "examples.v1.json").read_text())
+    monkeypatch.setattr(availability, "_demo_records", lambda: data)
+    maya = next(student for student in data["students"] if student["email"] == "maya@example.test")
+    student_id = maya["id"]
+    maya_booking = recorded_makeup_booking(student_id, 2)
+    assert "Saturday 13 February 2027 at 6 pm" in maya_booking["description"]
+    assert maya_booking["makeup_status"] == "approved"
+    assert recorded_makeup_booking("alex", 2)["makeup_status"] == "awaiting_review"
+    assert recorded_makeup_booking(student_id, 3) is None
+    run = next(
+        run
+        for run in data["agent_runs"]
+        if run["draft_details"].get("booking_session_id") and run["approved_response_id"]
+    )
+    session_id = run["draft_details"]["booking_session_id"]
+    session = next(session for session in data["class_sessions"] if session["id"] == session_id)
+    approved_response = run["approved_response_id"]
+    run["approved_response_id"] = None
+    assert recorded_makeup_booking(student_id, 2) is None
+    run["approved_response_id"] = approved_response
+    session["students"].remove(student_id)
+    assert recorded_makeup_booking(student_id, 2) is None
 
 
 def test_static_website_serves_no_backend_or_workspace_records(monkeypatch, tmp_path):

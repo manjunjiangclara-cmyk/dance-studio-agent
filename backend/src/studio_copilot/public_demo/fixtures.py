@@ -4,6 +4,11 @@ CLOTHING = (
     "Wear comfortable clothes you can move in, such as leggings and a fitted T-shirt. "
     "Socks are suitable for your first class; ballet shoes are optional."
 )
+SATURDAY_TRIAL_CLASSES = {
+    1: "Adult Ballet Level 1, Saturday 13 February 2027 at 4 pm, Merri Ballet Brunswick",
+    2: "Adult Ballet Level 2, Saturday 13 February 2027 at 6 pm, Merri Ballet Brunswick",
+    3: "Adult Ballet Level 3, Saturday 13 February 2027 at 7:30 pm, Merri Ballet Brunswick",
+}
 PUBLIC_DOCUMENTS = [
     {
         "id": "beginner-clothing",
@@ -44,10 +49,11 @@ PUBLIC_DOCUMENTS = [
             "# Absences and makeup classes\n\n"
             "Tell the studio about an absence before the class starts. A suggested makeup "
             "class must not be harder than the student's recorded attendance level.\n\n"
-            "Availability and any other makeup entitlement or credit rules need confirmation "
-            "from the teacher. A suggested class is not a reservation.\n"
+            "Use the session roster to check available places and the student's makeup record "
+            "to check approval status. A suggested class or a request awaiting approval does "
+            "not reserve a place. Refer any unresolved credit or entitlement to the teacher.\n"
         ),
-        "revision": 1,
+        "revision": 2,
     },
     {
         "id": "class-information",
@@ -55,13 +61,14 @@ PUBLIC_DOCUMENTS = [
         "filename": "adult-class-information.md",
         "content": (
             "# Adult class information\n\n"
-            "The fictional timetable includes Adult Ballet Level 2 at Merri Ballet Brunswick "
-            "on Saturday 13 February 2027 at 6 pm. Ask the teacher whether this level is "
-            "appropriate before treating it as a beginner placement.\n\n"
+            "Fictional Saturday trial options:\n"
+            + "\n".join(f"- {description}" for description in SATURDAY_TRIAL_CLASSES.values())
+            + "\n\nLevel 1 is for beginners, Level 2 is intermediate, and Level 3 is advanced. "
+            "The teacher confirms placement.\n\n"
             "Class availability can change. A place is confirmed only after the teacher "
             "has reviewed and completed the booking.\n"
         ),
-        "revision": 1,
+        "revision": 2,
     },
     {
         "id": "trials-and-fees",

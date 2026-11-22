@@ -228,7 +228,7 @@ test("visitors generate and review a temporary live response", async ({
     "Makeup",
   );
   await expect(
-    page.getByText("Starting a draft uses one of 20 shared daily runs."),
+    page.getByText("Hosted demos share 20 live runs per day."),
   ).toBeVisible();
   await expect(
     page.getByText("Drafts and results disappear when you leave or refresh."),

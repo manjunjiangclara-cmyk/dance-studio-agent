@@ -16,6 +16,11 @@ from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
 
+from studio_copilot.public_demo.availability import (
+    above_recorded_level,
+    recorded_class_level,
+    trial_spaces,
+)
 from studio_copilot.public_demo.fixtures import CUSTOM_STUDENTS
 from studio_copilot.public_demo.model import DemoModel
 from studio_copilot.public_demo.trial import initial_state, strip_quotes, update_state
@@ -24,8 +29,11 @@ DAILY_RUN_LIMIT = 20
 
 
 class PublicDemo:
-    def __init__(self, path, *, factory=DemoModel, clock=time.time):
+    def __init__(
+        self, path, *, factory=DemoModel, clock=time.time, daily_run_limit=DAILY_RUN_LIMIT
+    ):
         self.path, self.factory, self.clock = str(path), factory, clock
+        self.daily_run_limit = daily_run_limit
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         with self.db() as db:
             db.execute("""CREATE TABLE IF NOT EXISTS runs (
@@ -111,14 +119,7 @@ class PublicDemo:
                 ):
                     raise HTTPException(410, "This demo run expired. Restart the demo.")
                 return {"token": existing["token"], "scenario": scenario}
-            if (
-                db.execute("SELECT count(*) FROM runs WHERE day = ?", (day,)).fetchone()[0]
-                >= DAILY_RUN_LIMIT
-            ):
-                raise HTTPException(
-                    429,
-                    f"Today's {DAILY_RUN_LIMIT} live demo runs are used. Please return tomorrow.",
-                )
+            self._check_daily_limit(db, day)
             token = secrets.token_urlsafe(32)
             db.execute(
                 "INSERT INTO runs (request_id, token, scenario, day, created, student, email_body) "
@@ -127,17 +128,29 @@ class PublicDemo:
             )
         return {"token": token, "scenario": scenario}
 
+    def _check_daily_limit(self, db, day):
+        limit = self.daily_run_limit
+        if limit is not None and (
+            db.execute("SELECT count(*) FROM runs WHERE day = ?", (day,)).fetchone()[0] >= limit
+        ):
+            raise HTTPException(
+                429, f"Today's {limit} live demo runs are used. Please return tomorrow."
+            )
+
     def create_thread(self, student):
         if student not in CUSTOM_STUDENTS:
             raise HTTPException(422, "Select a fictional student.")
         now = self.clock()
         day = datetime.fromtimestamp(now, ZoneInfo("Australia/Melbourne")).date().isoformat()
         token = secrets.token_urlsafe(32)
+        state = initial_state()
+        if student != "new":
+            state["customer_name"] = CUSTOM_STUDENTS[student]["name"]
         with self.db() as db:
             self._prune(db, now)
             db.execute(
                 "INSERT INTO threads VALUES (?,?,?,?,?)",
-                (token, student, now, day, json.dumps(initial_state())),
+                (token, student, now, day, json.dumps(state)),
             )
         return {"token": token}
 
@@ -155,7 +168,7 @@ class PublicDemo:
         with self.db() as db:
             thread = self._thread(db, token)
             rows = db.execute(
-                """SELECT t.request_id, t.original_body, t.accepted_reply,
+                """SELECT t.request_id, t.original_body, t.accepted_reply, t.offer_confirmed,
                 r.evidence, r.draft, r.draft_answers FROM turns t
                 JOIN runs r ON r.request_id=t.request_id
                 WHERE t.thread_token=? ORDER BY r.rowid""",
@@ -169,6 +182,7 @@ class PublicDemo:
                         "request_id": r["request_id"],
                         "email": r["original_body"],
                         "reply": r["accepted_reply"],
+                        "offer_confirmed": bool(r["offer_confirmed"]),
                         "evidence": json.loads(r["evidence"]) if r["evidence"] else None,
                         "draft": json.loads(r["draft"]) if r["draft"] else None,
                         "draft_answers": json.loads(r["draft_answers"])
@@ -208,14 +222,7 @@ class PublicDemo:
                 >= 10
             ):
                 raise HTTPException(429, "This conversation has reached its ten-email limit.")
-            if (
-                db.execute("SELECT count(*) FROM runs WHERE day=?", (thread["day"],)).fetchone()[0]
-                >= DAILY_RUN_LIMIT
-            ):
-                raise HTTPException(
-                    429,
-                    f"Today's {DAILY_RUN_LIMIT} live demo runs are used. Please return tomorrow.",
-                )
+            self._check_daily_limit(db, thread["day"])
             run_token = secrets.token_urlsafe(32)
             db.execute(
                 "INSERT INTO runs (request_id, token, scenario, day, created, student, email_body) "
@@ -262,8 +269,17 @@ class PublicDemo:
                 ):
                     raise HTTPException(409, "This reply has already been accepted.")
                 return {"accepted": True}
-            if offer_confirmed and json.loads(thread["state"])["booking_status"] != "offered":
-                raise HTTPException(409, "There is no class offer to confirm.")
+            if offer_confirmed:
+                state = json.loads(thread["state"])
+                if state["booking_status"] != "offered":
+                    raise HTTPException(409, "There is no class offer to confirm.")
+                if state["recommended_class"] and above_recorded_level(
+                    state["recommended_class"]["description"],
+                    recorded_class_level(thread["student"]),
+                ):
+                    raise HTTPException(
+                        409, "The trial class requires a teacher’s placement review."
+                    )
             db.execute(
                 "UPDATE turns SET accepted_reply=?, offer_confirmed=? WHERE request_id=?",
                 (reply, int(offer_confirmed), request_id),
@@ -280,6 +296,12 @@ class PublicDemo:
                 return {"state": state}
             if state["booking_status"] != "awaiting_approval":
                 raise HTTPException(409, "No trial request is ready for approval.")
+            if state["recommended_class"] and above_recorded_level(
+                state["recommended_class"]["description"], recorded_class_level(row["student"])
+            ):
+                raise HTTPException(409, "The trial class requires a teacher’s placement review.")
+            if trial_spaces(state["recommended_class"]) == 0:
+                raise HTTPException(409, "The selected trial session has no places available.")
             if db.execute(
                 "SELECT 1 FROM turns WHERE thread_token=? AND accepted_reply IS NULL", (token,)
             ).fetchone():
@@ -365,6 +387,10 @@ class PublicDemo:
                     ],
                     "workflow_state": json.loads(thread_info["state"]),
                 }
+                if stage == "draft":
+                    thread_context["trial_spaces_remaining"] = trial_spaces(
+                        thread_context["workflow_state"].get("recommended_class")
+                    )
             scenario = row["scenario"]
             evidence_result = json.loads(row["evidence"]) if row["evidence"] else {}
             evidence = evidence_result.get("evidence", [])
@@ -407,7 +433,18 @@ class PublicDemo:
                     result.get("workflow_extraction", {}),
                     row["email_body"],
                     bool(history[-1]["offer_confirmed"]) if history else False,
+                    recorded_level=recorded_class_level(row["student"]),
+                    previous_email=history[-1]["email_body"] if history else "",
                 )
+                spaces = trial_spaces(state["recommended_class"])
+                if spaces is not None:
+                    place = "place" if spaces == 1 else "places"
+                    description = state["recommended_class"]["description"]
+                    result["evidence"] = [
+                        f"Class availability: {description}. "
+                        f"The fictional Database shows {spaces} {place} remaining.",
+                        *result["evidence"],
+                    ]
                 patterns = {
                     "experience_level": r"experience|level",
                     "preferred_day": r"day|availability",
@@ -418,7 +455,11 @@ class PublicDemo:
                     item
                     for item in information
                     if not any(
-                        state.get(field) and re.search(pattern, item, re.I)
+                        (
+                            state.get(field)
+                            or (field == "preferred_day" and state["recommended_class"])
+                        )
+                        and re.search(pattern, item, re.I)
                         for field, pattern in patterns.items()
                     )
                 ]

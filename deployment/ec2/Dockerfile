@@ -18,6 +18,7 @@ WORKDIR /app/backend
 COPY backend/pyproject.toml backend/uv.lock ./
 RUN uv sync --frozen --no-dev --group rerank --no-install-project
 COPY backend/src/ ./src/
+COPY frontend/src/data/examples.v1.json ./src/studio_copilot/public_demo/demo_records.json
 COPY backend/migrations/ ./migrations/
 COPY backend/alembic.ini ./
 COPY backend/policies/ /app/default-policy/

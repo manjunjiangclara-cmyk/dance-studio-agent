@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("custom email asks teacher before generating a single draft", async ({
+test("custom email accepts teacher information when generating a draft", async ({
   page,
 }) => {
   const calls: string[] = [];
@@ -62,7 +62,7 @@ test("custom email asks teacher before generating a single draft", async ({
   await expect(page.getByLabel("Trial fee")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Generate draft" }),
-  ).toBeDisabled();
+  ).toBeEnabled();
   expect(calls).toEqual(["threads", "turns", "current", "evidence", "current"]);
   await page.getByLabel("Trial fee").fill("$20");
   await page.getByRole("button", { name: "Generate draft" }).click();

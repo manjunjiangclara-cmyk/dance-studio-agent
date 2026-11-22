@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { DraftEmailEditor } from "./DraftEmailEditor";
+import { StudentEmailCard } from "./StudentEmailCard";
 import { SupportingEvidence } from "./SupportingEvidence";
 import { IntentBadges } from "./Classification";
 import { tourBooking, tourFixtures, type TourScenario } from "./tourData";
@@ -247,50 +248,21 @@ export function LiveReviewDetail({ scenario }: { scenario: ReviewScenario }) {
       <div className="notice">
         <ul className="notice-list">
           <li>Drafts and results disappear when you leave or refresh.</li>
-          <li>Starting a draft uses one of 20 shared daily runs.</li>
+          <li>Hosted demos share 20 live runs per day.</li>
           <li>
             Approval is simulated: no email is sent and no studio records are
             changed.
           </li>
         </ul>
       </div>
-      <section className="panel" aria-labelledby="conversation-heading">
-        <div className="live-conversation-heading">
-          <div>
-            <h2 id="conversation-heading">Student email</h2>
-            <p>Conversation in the order received</p>
-          </div>
-          <span>
-            {messages.length} {messages.length === 1 ? "message" : "messages"}
-          </span>
-        </div>
-        <ol
-          className="live-conversation"
-          aria-label="Student email conversation"
-        >
-          {messages.map((message, index) => (
-            <li
-              className="live-conversation-message"
-              key={`${message.sender}-${index}`}
-            >
-              <span className="live-conversation-avatar" aria-hidden="true">
-                {item.name
-                  .split(" ")
-                  .map((part) => part[0])
-                  .join("")}
-              </span>
-              <div className="live-conversation-content">
-                <div className="live-conversation-sender">
-                  <time dateTime={item.messageTimes[index]}>
-                    {formatTime(item.messageTimes[index])}
-                  </time>
-                </div>
-                <div className="live-conversation-bubble">{message.body}</div>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </section>
+      <StudentEmailCard
+        name={item.name}
+        messages={messages.map((message, index) => ({
+          body: message.body,
+          dateTime: item.messageTimes[index],
+          time: formatTime(item.messageTimes[index]),
+        }))}
+      />
       <section className="panel" aria-labelledby="draft-heading">
         <DraftEmailEditor
           headingId="draft-heading"

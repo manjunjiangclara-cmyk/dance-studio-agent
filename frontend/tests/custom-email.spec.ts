@@ -20,7 +20,12 @@ async function sandbox(
       intents: ["trial_enquiry", "faq"],
       experience_level: "intermediate",
       preferred_day: "Saturday",
-      recommended_class: null,
+      recommended_class: options.offer
+        ? {
+            description:
+              "Adult Ballet Level 2, Saturday 13 February 2027 at 6 pm",
+          }
+        : null,
       booking_status: options.offer ? "offered" : "collecting",
       missing_information: [],
       next_action: "ask_customer",
@@ -30,6 +35,7 @@ async function sandbox(
       request_id: string;
       email: string;
       reply: string | null;
+      offer_confirmed: boolean;
       evidence: object | null;
       draft: object | null;
       draft_answers: string[] | null;
@@ -62,6 +68,7 @@ async function sandbox(
           request_id: body.request_id,
           email: body.email_body,
           reply: null,
+          offer_confirmed: false,
           evidence: null,
           draft: null,
           draft_answers: null,
@@ -76,7 +83,11 @@ async function sandbox(
           json: { detail: "Temporary failure" },
         });
       turn.evidence = {
-        evidence: ["Socks are suitable."],
+        evidence: [
+          thread.turns.length === 1
+            ? "Socks are suitable."
+            : "Saturday classes are available.",
+        ],
         route: "enquiry",
         missing_information: options.failDraft ? ["Trial fee"] : [],
         student_information: ["Preferred day"],
@@ -94,6 +105,7 @@ async function sandbox(
     if (path.endsWith("/accept")) {
       accepted.push(req.postDataJSON());
       turn.reply = req.postDataJSON().body;
+      turn.offer_confirmed = req.postDataJSON().offer_confirmed;
       return route.fulfill({ json: { accepted: true } });
     }
     return route.fulfill({ status: 404 });
@@ -111,13 +123,26 @@ test("walkthrough retains accepted replies in chronological order and restores o
     .fill("I am interested in ballet. What should I wear?");
   await page.getByRole("button", { name: "Simulate email" }).click();
   await expect(
-    page.getByText("Information to ask the student: Preferred day"),
+    page.getByRole("heading", { name: "Information to ask the student" }),
   ).toBeVisible();
+  const evidence = page.getByRole("region", { name: "Supporting evidence" });
+  await expect(evidence.getByText("Socks are suitable.").first()).toBeVisible();
+  const source = evidence.getByText("View source", { exact: true });
+  await source.click();
+  await expect(evidence.getByText("Fictional demo input")).toBeVisible();
   await page.getByRole("button", { name: "Generate draft" }).click();
   await page.getByLabel("Response").fill("Edited answer: socks are suitable.");
   await page.getByRole("button", { name: "Accept simulated reply" }).click();
+  await expect(page.getByLabel("Response")).toHaveCount(0);
+  await page.reload();
+  await expect(evidence.getByText("Socks are suitable.").first()).toBeVisible();
+  await source.click();
   await page.getByLabel("Email body").fill("Saturday works for me.");
   await page.getByRole("button", { name: "Simulate email" }).click();
+  await expect(
+    evidence.getByText("Saturday classes are available.").first(),
+  ).toBeVisible();
+  await expect(evidence.getByText("Fictional demo input")).toBeHidden();
   await expect(
     page.getByText("Edited answer: socks are suitable."),
   ).toBeVisible();
@@ -170,10 +195,14 @@ test("reviewer explicitly confirms an offered class in the accepted reply", asyn
   await page
     .getByLabel("Response")
     .fill("Would you like a trial of Level 2 on Saturday 13 February 2027?");
-  await page.getByLabel(/I confirm this reply offers/).check();
+  await expect(
+    page.getByRole("region", { name: "Trial class option" }),
+  ).toContainText("Adult Ballet Level 2, Saturday 13 February 2027 at 6 pm");
+  await page.getByLabel(/I’ve reviewed the student’s experience/).check();
   await page.getByRole("button", { name: "Accept simulated reply" }).click();
   await expect.poll(() => api.accepted.length).toBe(1);
   expect(api.accepted[0].offer_confirmed).toBe(true);
+  await expect(page.getByText(/reply “Yes, please”/)).toBeVisible();
 });
 
 test("failed draft restores locked teacher answers after refresh", async ({
@@ -188,6 +217,27 @@ test("failed draft restores locked teacher answers after refresh", async ({
   await expect(page.getByRole("alert")).toContainText("Draft failed");
   await page.reload();
   await expect(page.getByLabel("Trial fee")).toHaveValue("I will confirm.");
+  await expect(page.getByLabel("Trial fee")).toBeDisabled();
+  await page.getByRole("button", { name: "Generate draft" }).click();
+  await expect(page.getByLabel("Response")).toBeVisible();
+});
+
+test("a draft can be generated without filling in missing studio information", async ({
+  page,
+}) => {
+  await sandbox(page, { failDraft: true });
+  await page.goto("/demo/test-email");
+  await page.getByLabel("Email body").fill("What does a trial cost?");
+  await page.getByRole("button", { name: "Simulate email" }).click();
+  await expect(
+    page.getByRole("button", { name: "Generate draft" }),
+  ).toBeEnabled();
+  await page.getByRole("button", { name: "Generate draft" }).click();
+  await expect(page.getByRole("alert")).toContainText("Draft failed");
+  await page.reload();
+  await expect(page.getByLabel("Trial fee")).toHaveValue(
+    "I will confirm this information later.",
+  );
   await expect(page.getByLabel("Trial fee")).toBeDisabled();
   await page.getByRole("button", { name: "Generate draft" }).click();
   await expect(page.getByLabel("Response")).toBeVisible();
