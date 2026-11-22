@@ -1027,6 +1027,21 @@ def test_above_level_booking_request_uses_the_student_record_without_an_offer():
         in json.loads(calls[0]["input"])["facts"][0]
     )
 
+    from studio_copilot.public_demo.fixtures import CUSTOM_CATALOG
+
+    context["email_body"] = "Can you help me book Level 3 and what should I wear?"
+    clothing = CUSTOM_CATALOG["alex"]["clothing"]
+    mixed_model, mixed_calls = model_with(
+        SimpleNamespace(
+            status="completed",
+            output_parsed=GeneratedDraft(body="Placement needs review. The clothing guide says…"),
+        )
+    )
+    mixed = mixed_model.call("custom", "draft", [clothing], context=context)
+    assert "clothing guide" in mixed["body"]
+    assert clothing in json.loads(mixed_calls[0]["input"])["facts"]
+    assert not mixed["body"].startswith("Hi Alex,\n\nYour highest recorded level")
+
 
 def test_maya_makeup_followup_reports_existing_booking_without_a_new_request():
     model, calls = model_with(
@@ -1051,6 +1066,23 @@ def test_maya_makeup_followup_reports_existing_booking_without_a_new_request():
     context["email_body"] = "Please cancel my Level 2 booking."
     model.call("custom", "draft", [], context=context)
     assert "An existing makeup booking is verified" not in calls[-1]["instructions"]
+
+
+def test_additional_makeup_request_is_not_mistaken_for_an_existing_booking():
+    model, calls = model_with(
+        SimpleNamespace(
+            status="completed", output_parsed=GeneratedDraft(body="Which session did you mean?")
+        )
+    )
+    context = {
+        "student": "833efaed-1e89-5f89-8b47-cb9cbcf3399c",
+        "email_body": "Can I book another Level 2 makeup?",
+        "thread_history": [],
+    }
+    result = model.call("custom", "draft", [], context=context)
+    assert result["body"] == "Which session did you mean?"
+    assert "An existing makeup booking is verified" not in calls[0]["instructions"]
+    assert "already booked for" not in calls[0]["instructions"]
 
 
 def test_alex_booking_followup_checks_the_session_from_the_accepted_reply():

@@ -52,6 +52,9 @@ SIMPLE_BOOKING = re.compile(
     re.IGNORECASE,
 )
 BOOKING_CHANGE = re.compile(r"\b(?:cancel\w*|reschedul\w*|mov\w*|chang\w*|switch\w*)\b", re.I)
+ADDITIONAL_MAKEUP_REQUEST = re.compile(
+    r"\b(?:another|additional|extra)\b.{0,40}\bmake[\s-]?up\b", re.I
+)
 EXPLICIT_SCHEDULE = re.compile(
     r"\d|\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|"
     r"today|tomorrow|next|morning|afternoon|evening|am|pm|brunswick|carlton)\b",
@@ -190,12 +193,23 @@ class DemoModel:
         booking_request = bool(BOOKING_ACTION.search(email) and not BOOKING_CHANGE.search(email))
         requested_levels = set(CLASS_LEVEL.findall(email))
         implicit_schedule = not EXPLICIT_SCHEDULE.search(CLASS_LEVEL.sub("", email))
+        independent_faq_evidence = any(
+            item in evidence
+            for item in (
+                catalog["clothing"],
+                catalog["missing_fee"],
+                catalog["first_class"],
+                catalog["trials_and_fees"],
+                catalog["welcome"],
+            )
+        )
         matching_makeup = None
         if (
             len(requested_levels) == 1
             and CLASS_REQUEST.search(email)
             and not BOOKING_CHANGE.search(email)
-            and not re.search(r"\b(?:trial|enrol\w*|new makeup|another makeup)\b", email, re.I)
+            and not re.search(r"\b(?:trial|enrol\w*|new makeup)\b", email, re.I)
+            and not ADDITIONAL_MAKEUP_REQUEST.search(email)
         ):
             (requested_level,) = requested_levels
             matching_makeup = recorded_makeup_booking(context["student"], int(requested_level))
@@ -251,7 +265,12 @@ class DemoModel:
             if existing_makeup
             else None
         )
-        if stage == "draft" and existing_makeup and implicit_schedule:
+        if (
+            stage == "draft"
+            and existing_makeup
+            and implicit_schedule
+            and not independent_faq_evidence
+        ):
             first_name = student["name"].split()[0]
             return {
                 "body": (
@@ -262,7 +281,7 @@ class DemoModel:
                 ),
                 "model": self.model,
             }
-        if stage == "draft" and higher_level_request:
+        if stage == "draft" and higher_level_request and not independent_faq_evidence:
             first_name = student["name"].split()[0]
             placement = (
                 "A makeup class needs to be at or below your recorded attendance level."
