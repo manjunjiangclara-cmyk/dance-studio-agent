@@ -254,10 +254,18 @@ def test_change_after_approval_cannot_add_a_second_booking(db_engine, tmp_path, 
         [evidence] = info["evidence"]
         assert evidence["result"]["confirmed_bookings"] == [booking]
         assert "session:" + booking["session_id"] in evidence["result"]["references"]
+        revised = review(client, info, "revise", feedback="Keep the reply brief.")
+        assert revised.status_code == 200, revised.text
+        revision = revised.json()
+        assert any(
+            item["tool"] == "teacher_feedback"
+            and item["result"]["references"] == ["teacher_feedback"]
+            for item in revision["evidence"]
+        )
         with Session(db_engine) as db, db.begin():
             session = db.get(ClassSession, UUID(booking["session_id"]))
             session.students.remove(UUID(fixture["student_id"]))
-        stale_reply = review(client, info, "approve")
+        stale_reply = review(client, revision, "approve")
         assert stale_reply.status_code == 409
         assert "Regenerate the schedule reply" in stale_reply.json()["error"]["message"]
 

@@ -23,6 +23,7 @@ from studio_copilot.persistence.models import (
     Location,
     Message,
     Student,
+    StudioClass,
 )
 
 
@@ -47,13 +48,18 @@ def _confirmed_booking(
 ) -> dict | None:
     if not proposal:
         return None
-    session = db.get(ClassSession, UUID(proposal), with_for_update=lock)
+    session_id = UUID(proposal)
+    session = db.get(ClassSession, session_id)
+    if session is not None and lock:
+        require(db, StudioClass, session.class_id, lock=True)
+        session = db.get(ClassSession, session_id, populate_existing=True, with_for_update=True)
     if session is None or student_id not in session.students:
         return None
-    location = session.regular_class.location
+    group = session.regular_class
+    location = require(db, Location, group.location_id, lock=True) if lock else group.location
     return {
         "session_id": str(session.id),
-        "class_name": session.regular_class.name,
+        "class_name": group.name,
         "starts_at": session.starts_at.astimezone(ZoneInfo(location.timezone)).isoformat(),
         "location_name": location.name,
         "status": "confirmed",

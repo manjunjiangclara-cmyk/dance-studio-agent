@@ -26,6 +26,15 @@ MAX_ROUNDS = 4
 MAX_CALLS = 3
 
 
+def _feedback_evidence(feedback: str) -> dict:
+    return {
+        "tool": "teacher_feedback",
+        "arguments": {},
+        "finding": "Teacher feedback for this revision.",
+        "result": {"text": feedback, "references": ["teacher_feedback"]},
+    }
+
+
 def _is_booked_makeup_schedule_question(state: State) -> bool:
     questions = state["interpretation"].get("questions", [])
     if (
@@ -39,8 +48,12 @@ def _is_booked_makeup_schedule_question(state: State) -> bool:
     question = questions[0].casefold()
     return bool(
         re.search(r"\b(?:when|date|day|time)\b", question)
-        and re.search(r"\b(?:book(?:ed)? (?:for )?me|my (?:makeup|booking))\b", question)
-        and not re.search(r"\b(?:fee|policy|deadline|rule|cancel|reschedule)\b", question)
+        and re.search(
+            r"\b(?:booked (?:for )?me|did you book (?:for )?me|"
+            r"my (?:makeup )?booking|my booked makeup)\b",
+            question,
+        )
+        and not re.search(r"\b(?:fee|policy|deadline|rule|cancel|reschedule|another)\b", question)
     )
 
 
@@ -65,10 +78,13 @@ class QueryRunner:
                     "warnings": [warning],
                 }
         if _is_booked_makeup_schedule_question(state):
-            evidence = context_evidence(state["context"])
-            evidence["arguments"]["booked_schedule"] = True
+            context_snapshot = context_evidence(state["context"])
+            context_snapshot["arguments"]["booked_schedule"] = True
+            evidence = [context_snapshot]
+            if feedback := state.get("feedback", "").strip():
+                evidence.append(_feedback_evidence(feedback))
             return {
-                "evidence": [evidence],
+                "evidence": evidence,
                 "warnings": [],
                 "document_answers_enabled": False,
             }
@@ -155,17 +171,7 @@ class QueryRunner:
         if state.get("question_resolutions"):
             evidence.append(resolution_evidence(state["question_resolutions"]))
         if context["teacher_feedback"].strip():
-            evidence.append(
-                {
-                    "tool": "teacher_feedback",
-                    "arguments": {},
-                    "finding": "Teacher feedback for this revision.",
-                    "result": {
-                        "text": context["teacher_feedback"],
-                        "references": ["teacher_feedback"],
-                    },
-                }
-            )
+            evidence.append(_feedback_evidence(context["teacher_feedback"]))
         return {"evidence": evidence, "warnings": warnings, "document_answers_enabled": False}
 
     @staticmethod
