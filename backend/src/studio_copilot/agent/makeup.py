@@ -125,11 +125,13 @@ def _makeup_date_change(body: str, absence_date: date) -> re.Match[str] | None:
     return None
 
 
-def _matches_date_change(match: re.Match[str], target: date | None) -> bool:
-    return (
-        target is not None
-        and target.strftime("%A").casefold() == match["weekday"].casefold()
-        and (match["date"] is None or target.isoformat() == match["date"])
+def _matches_date_change(
+    match: re.Match[str], target: date | None, weekday: str | None = None
+) -> bool:
+    if target is None:
+        return match["date"] is None and (weekday or "").casefold() == match["weekday"].casefold()
+    return target.strftime("%A").casefold() == match["weekday"].casefold() and (
+        match["date"] is None or target.isoformat() == match["date"]
     )
 
 
@@ -387,7 +389,8 @@ def gather_makeup(engine, state: dict) -> dict:
         change = (
             _makeup_date_change(source.body, absence_date) if absence_date is not None else None
         )
-        date_conflict = change is not None and not _matches_date_change(change, preferred)
+        weekday = parsed.get("preferred_weekday")
+        date_conflict = change is not None and not _matches_date_change(change, preferred, weekday)
         if date_conflict:
             warnings.append("The interpreted makeup date differs from the latest email.")
         requested_class = parsed.get("preferred_class_name")
@@ -434,7 +437,6 @@ def gather_makeup(engine, state: dict) -> dict:
                     location_id = options[0]["id"]
                 else:
                     warnings.append("Confirm which studio location you prefer.")
-            weekday = parsed.get("preferred_weekday")
             weekdays = [
                 "monday",
                 "tuesday",

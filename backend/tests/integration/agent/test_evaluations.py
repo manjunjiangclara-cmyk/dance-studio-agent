@@ -148,6 +148,38 @@ def test_later_correction_cannot_reuse_notice_after_conflicting_email(db_engine,
         assert run["draft_details"]["booking_session_id"] is None
 
 
+def test_weekday_only_correction_searches_without_booking(db_engine):
+    with postgres_checkpointer(db_engine) as saver:
+        saver.setup()
+    case = next(item for item in load_scenarios() if item.id == "followup_correction")
+    case.emails[1].body = "Actually, Saturday instead."
+    case.emails[1].expect = case.emails[1].expect.model_copy(
+        update={
+            "proposal": "none",
+            "fields": {
+                "absence_date": "{absence_date}",
+                "preferred_date": None,
+                "preferred_weekday": "Saturday",
+            },
+            "option_contains": ["saturday"],
+            "option_excludes": ["thursday"],
+        }
+    )
+    case.review = "none"
+
+    class WeekdayModel(EmailScenarioModel):
+        def interpret_makeup(self, context):
+            if len(context["history"]) == 1:
+                return super().interpret_makeup(context)
+            result = super().interpret_makeup({**context, "source": context["history"][0]})
+            result.preferred_date = None
+            result.preferred_weekday = "Saturday"
+            return result
+
+    result = run_scenario(db_engine, case, WeekdayModel())
+    assert result["passed"], [check for check in result["checks"] if not check["passed"]]
+
+
 def test_model_cannot_book_stale_makeup_date_after_correction(db_engine):
     with postgres_checkpointer(db_engine) as saver:
         saver.setup()
