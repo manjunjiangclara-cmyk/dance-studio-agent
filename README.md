@@ -135,6 +135,8 @@ uv run --env-file .env.example pytest tests/integration/agent
 
 Integration tests require `TEST_DATABASE_URL` with a database name ending in `_test`. Each test creates and removes its own temporary schema there. Without that variable, PostgreSQL tests are explicitly skipped. The schema check verifies that a fresh installation matches the models. Fake-model tests do not establish live model understanding or booking reliability.
 
+Alembic upgrades the consolidated initial schema through the independent-session roster and attendance migrations. The roster migration snapshots historical participants and has no automatic downgrade because that would lose data. LangGraph checkpoint setup remains separate.
+
 ### Multi-turn email evaluations
 
 The workflow suite covers consecutive makeup corrections, withdrawal of an
@@ -156,8 +158,6 @@ Live runs call the configured model and incur usage costs. The JSON report
 includes structured checks and draft text for manual review. See the
 [workflow evaluation guide](backend/workflow_evaluations/README.md) for the
 scenario format and test database requirements.
-
-Alembic upgrades the consolidated initial schema through the independent-session roster and attendance migrations. The roster migration snapshots historical participants and has no automatic downgrade because that would lose data. LangGraph checkpoint setup remains separate.
 
 ## Design documents
 

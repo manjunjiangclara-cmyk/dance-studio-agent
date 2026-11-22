@@ -15,7 +15,7 @@ from studio_copilot.agent.persistence.checkpoints import postgres_checkpointer
 from studio_copilot.agent.persistence.locking import student_lock
 from studio_copilot.agent.service import AgentService
 from studio_copilot.api.app import create_app
-from studio_copilot.persistence.models import ClassSession, Student
+from studio_copilot.persistence.models import ClassSession, Conversation, Student
 from workflow_evaluations.cases import load_scenarios
 from workflow_evaluations.fixtures import isolated_database, seed_studio
 from workflow_evaluations.runner import database_snapshot, grade_run, run_scenario
@@ -158,6 +158,31 @@ def test_evaluation_grades_multi_turn_transitions(db_engine, case_id):
         "interleaved_threads_keep_context": "email_3:other_run_preserved",
         "reschedule_after_approval": "previous_approval_replay_no_business_changes",
     }[case_id] in {check["name"] for check in result["checks"]}
+
+
+def test_evaluation_detects_memory_change_when_previous_approval_is_replayed(
+    db_engine, monkeypatch
+):
+    with postgres_checkpointer(db_engine) as saver:
+        saver.setup()
+    case = next(item for item in load_scenarios() if item.id == "reschedule_after_approval")
+    review_run = AgentService.review
+
+    def overwrite_summary_on_replay(service, run_id, decision):
+        replay = service.get(run_id).status == "approved"
+        run = review_run(service, run_id, decision)
+        if replay:
+            with Session(service.engine) as db, db.begin():
+                conversation = db.get(Conversation, run.conversation_id)
+                db.get(Student, conversation.student_id).ai_summary = "Stale summary from replay"
+        return run
+
+    monkeypatch.setattr(AgentService, "review", overwrite_summary_on_replay)
+    result = run_scenario(db_engine, case, TransitionModel())
+    assert not result["passed"]
+    assert {check["name"] for check in result["checks"] if not check["passed"]} == {
+        "previous_approval_replay_preserves_summary",
+    }
 
 
 @pytest.mark.parametrize(

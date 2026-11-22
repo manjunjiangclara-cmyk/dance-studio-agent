@@ -551,12 +551,9 @@ def run_scenario(engine, scenario: Scenario, model) -> dict:
                         run["conversation_id"] != other["conversation_id"],
                         True,
                     )
-                    other_now = client.get("/api/v1/agent-runs/" + other["id"]).json()
-                    check(
-                        f"email_{index + 1}:{key}_run_preserved",
-                        other_now["status"],
-                        other["status"],
-                    )
+                    other_now = client.get("/api/v1/agent-runs/" + other["id"])
+                    check(f"email_{index + 1}:{key}_run_http", other_now.status_code, 200)
+                    check(f"email_{index + 1}:{key}_run_preserved", other_now.json(), other)
                 if previous:
                     check("same_conversation", run["conversation_id"], previous["conversation_id"])
                     old = client.get("/api/v1/agent-runs/" + previous["id"]).json()
@@ -567,8 +564,23 @@ def run_scenario(engine, scenario: Scenario, model) -> dict:
                             old.get("approved_response_id"),
                             previous["approved_response_id"],
                         )
+                        memory_before = observer.snapshot(
+                            "before_previous_approval_replay", run["conversation_id"]
+                        )
                         replay = _review(client, previous, "approve")
                         check("previous_approval_replay_http", replay.status_code, 200)
+                        memory_after = observer.snapshot(
+                            "after_previous_approval_replay", run["conversation_id"]
+                        )
+                        for field in ("context", "summary"):
+                            check(
+                                f"previous_approval_replay_preserves_{field}",
+                                memory_after[field],
+                                memory_before[field],
+                            )
+                        current = client.get("/api/v1/agent-runs/" + run["id"])
+                        check("current_run_after_replay_http", current.status_code, 200)
+                        check("previous_approval_replay_preserves_current_run", current.json(), run)
                         check(
                             "previous_approval_reuses_response",
                             replay.json().get("approved_response_id"),
