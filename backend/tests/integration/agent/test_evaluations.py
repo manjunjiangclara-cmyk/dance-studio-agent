@@ -119,6 +119,47 @@ def test_email_evaluation_harness_runs_complete_lifecycle(db_engine, case_id):
         assert f"email_{index}:memory_after_intake" in stages
 
 
+class TransitionModel(EmailScenarioModel):
+    def route(self, context):
+        body = context["source"]["body"]
+        if body.startswith(("What should I wear", "I can attend")):
+            return Routing(
+                intents=["general_enquiry" if body.startswith("What") else "absence"],
+                action="information_only",
+                request_summary=body,
+                needs_clarification=False,
+                reason="Synthetic information-only message.",
+            )
+        return super().route(context)
+
+    def choose_tools(self, context, transcript):
+        if context["flow"] != "makeup":
+            return ToolTurn(calls=[], output=[])
+        return super().choose_tools(context, transcript)
+
+
+@pytest.mark.parametrize(
+    "case_id",
+    [
+        "withdraw_absence_after_correction",
+        "interleaved_threads_keep_context",
+        "reschedule_after_approval",
+    ],
+)
+def test_evaluation_grades_multi_turn_transitions(db_engine, case_id):
+    with postgres_checkpointer(db_engine) as saver:
+        saver.setup()
+    case = next(item for item in load_scenarios() if item.id == case_id)
+    result = run_scenario(db_engine, case, TransitionModel())
+    assert result["passed"], [check for check in result["checks"] if not check["passed"]]
+    assert len(result["runs"]) == len(case.emails)
+    assert {
+        "withdraw_absence_after_correction": "stale_email_cannot_approve",
+        "interleaved_threads_keep_context": "email_3:other_run_preserved",
+        "reschedule_after_approval": "previous_approval_replay_no_business_changes",
+    }[case_id] in {check["name"] for check in result["checks"]}
+
+
 @pytest.mark.parametrize(
     "intervening_body",
     [

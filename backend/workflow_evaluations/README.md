@@ -1,6 +1,6 @@
 # Email workflow evaluations
 
-Thirty-five synthetic scenarios exercise email intake through the real FastAPI app,
+Thirty-eight synthetic scenarios exercise email intake through the real FastAPI app,
 LangGraph workflow, read-only tools, PostgreSQL persistence/checkpoints, and teacher
 review. The runner uses the existing OpenAI adapter and configured `OPENAI_MODEL`.
 It does not access a mailbox, send email, or exercise browser UI.
@@ -49,6 +49,16 @@ application clock. Resolved dates and the reference timestamp are saved in the r
 These initial cases do not evaluate ambiguous relative-date phrases.
 
 ## Scenarios and scoring
+
+`emails[].thread` names the email thread within a scenario. The default is `main`.
+Different names use the same sender and subject with different thread IDs. The
+runner checks model-visible message IDs and conversation-memory keys, and checks
+that intake on one thread preserves pending runs on the other. Set
+`emails[].approve_after` on a non-final email to test replies after a real teacher
+approval. Each intake and review is checked against its immediately preceding
+database state. The top-level `review` still applies to the final email.
+`expect.existing_makeup` checks the previously booked session and its evidence
+reference. Omit `flow` or `intents` when the outcome can be valid under multiple routes.
 
 Edit `scenarios.json` to add inputs, fixtures, expected fields, and review actions.
 `{absence_date}`, `{thursday_date}`, and `{saturday_date}` expand to fixture dates.

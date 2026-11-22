@@ -14,8 +14,8 @@ DATASET = Path(__file__).with_name("scenarios.json")
 class Expectation(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    flow: Literal["makeup", "enquiry", "teacher_handoff"]
-    intents: list[Intent] = Field(min_length=1)
+    flow: Literal["makeup", "enquiry", "teacher_handoff"] | None = None
+    intents: list[Intent] = Field(default_factory=list)
     fields: dict[
         Literal["absence_date", "preferred_date", "preferred_weekday", "preferred_class_name"],
         str | None,
@@ -37,6 +37,7 @@ class Expectation(BaseModel):
     required_any_text: list[str] = []
     forbid_specific_amounts: bool = False
     absence_verified: bool | None = None
+    existing_makeup: Literal["thursday", "saturday"] | None = None
     attendance_status: Literal["attended", "absent", "unknown"] | None = None
     option_contains: list[Literal["thursday", "saturday"]] = []
     option_excludes: list[Literal["thursday", "saturday"]] = []
@@ -99,6 +100,8 @@ class EmailStep(BaseModel):
     body: str = Field(min_length=1)
     expect: Expectation
     received_before_absence: bool = False
+    thread: str = Field(default="main", pattern=r"^[a-z][a-z0-9_-]{0,31}$")
+    approve_after: bool = False
 
 
 class ChecklistAnswer(BaseModel):
@@ -140,6 +143,8 @@ class Scenario(BaseModel):
     def validate_checklist_review(self):
         if (self.review == "answer_checklist") != (self.checklist_answer is not None):
             raise ValueError("answer_checklist requires checklist_answer, and vice versa")
+        if self.emails[-1].approve_after:
+            raise ValueError("Use the scenario review for the final email")
         return self
 
 

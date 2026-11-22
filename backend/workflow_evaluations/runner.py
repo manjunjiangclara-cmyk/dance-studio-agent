@@ -27,7 +27,7 @@ from studio_copilot.persistence.models import (
     Student,
 )
 
-from .cases import Scenario
+from .cases import EmailStep, Scenario
 from .fixtures import CANARY, seed_studio
 
 
@@ -164,6 +164,23 @@ class MemoryObserver:
     def __getattr__(self, name):
         return getattr(self.model, name)
 
+    def route(self, context):
+        memory = context["student"]["context"].get("_agent_memory", {})
+        self.result["routing_contexts"].append(
+            {
+                "source_id": context["source"]["id"],
+                "history_ids": [message["id"] for message in context["history"]],
+                "memory_threads": sorted(
+                    set(memory.get("requests", {}))
+                    | {
+                        item["conversation_id"]
+                        for item in memory.get("approved_responses", {}).values()
+                    }
+                ),
+            }
+        )
+        return self.model.route(context)
+
     def snapshot(self, stage, conversation_id):
         # A separate session proves visibility outside the transaction doing the write.
         with Session(self.engine) as db:
@@ -248,7 +265,8 @@ def grade_run(run: dict, expectation, fixture: dict) -> list[dict]:
 
     check("awaiting_review", run.get("status"), "awaiting_review")
     interpretation = run.get("interpretation", {})
-    check("flow", interpretation.get("flow"), expectation.flow)
+    if expectation.flow is not None:
+        check("flow", interpretation.get("flow"), expectation.flow)
     routing = interpretation.get("routing", {})
     check(
         "required_intents", sorted(set(expectation.intents) - set(routing.get("intents", []))), []
@@ -276,6 +294,12 @@ def grade_run(run: dict, expectation, fixture: dict) -> list[dict]:
     if expectation.absence_verified is not None:
         check("absence_verification_recorded", bool(verifications), True)
         check("absence_verified", verification.get("verified"), expectation.absence_verified)
+    if expectation.existing_makeup is not None:
+        booked = fixture["sessions"][expectation.existing_makeup]
+        check("existing_makeup", verification.get("existing_makeup_session_id"), booked)
+        check(
+            "existing_makeup_ref", f"session:{booked}" in verification.get("references", []), True
+        )
     if expectation.attendance_status is not None:
         check(
             "attendance_status",
@@ -416,6 +440,7 @@ def run_scenario(engine, scenario: Scenario, model) -> dict:
         "runs": [],
         "reviews": [],
         "memory_snapshots": [],
+        "routing_contexts": [],
         "checklist_model_drafts": [],
         "rubric": scenario.rubric,
         "human_review": "pending",
@@ -443,14 +468,17 @@ def run_scenario(engine, scenario: Scenario, model) -> dict:
         fixture["source_message_ids"] = []
         fixture["policy_path"] = str(policy_file)
         result["fixture"] = fixture
-        before = database_snapshot(engine)
         observer = MemoryObserver(engine, model, result)
         service = AgentService(engine, observer, policy_path=policy_file)
         app = create_app(engine, admin_token="synthetic-eval-token", agent_service=service)
         with TestClient(app, headers={"Authorization": "Bearer synthetic-eval-token"}) as client:
             run = None
+            threads = {}
+            first_sources = {}
+            all_sources = {}
             for index, step in enumerate(scenario.emails):
-                previous = run
+                before = database_snapshot(engine)
+                previous = threads.get(step.thread)
                 payload = {
                     "from": fixture["new_sender"]
                     if scenario.sender == "new"
@@ -458,7 +486,8 @@ def run_scenario(engine, scenario: Scenario, model) -> dict:
                     "body": step.body.format_map(fixture["dates"]),
                 }
                 if len(scenario.emails) > 1:
-                    payload["thread_id"] = "workflow-eval:" + fixture["known_sender"]
+                    payload["thread_id"] = f"workflow-eval:{fixture['known_sender']}:{step.thread}"
+                    payload["subject"] = "Synthetic studio question"
                 result["inputs"].append(payload)
                 response = client.post("/api/v1/incoming-emails", json=payload)
                 check(f"email_{index + 1}:http", response.status_code, 200)
@@ -467,6 +496,8 @@ def run_scenario(engine, scenario: Scenario, model) -> dict:
                 run = response.json()
                 fixture["source_message_ids"].append(run["source_message_id"])
                 result["runs"].append(run)
+                first_sources.setdefault(step.thread, run["source_message_id"])
+                all_sources.setdefault(step.thread, []).append(run["source_message_id"])
                 if run["status"] == "awaiting_review":
                     observer.inspect(
                         f"email_{index + 1}:memory_after_intake",
@@ -478,11 +509,28 @@ def run_scenario(engine, scenario: Scenario, model) -> dict:
                     {**c, "name": f"email_{index + 1}:" + c["name"]}
                     for c in grade_run(run, step.expect, fixture)
                 )
-                if step.expect.absence_verified is True and index > 0:
+                if step.expect.absence_verified is True and previous:
                     check(
                         f"email_{index + 1}:original_notice",
                         run["interpretation"].get("absence_message_id"),
-                        fixture["source_message_ids"][0],
+                        first_sources[step.thread],
+                    )
+                if payload.get("thread_id"):
+                    context = result["routing_contexts"][-1] if result["routing_contexts"] else {}
+                    check(
+                        f"email_{index + 1}:model_source",
+                        context.get("source_id"),
+                        run["source_message_id"],
+                    )
+                    check(
+                        f"email_{index + 1}:model_same_thread_history",
+                        context.get("history_ids"),
+                        all_sources[step.thread],
+                    )
+                    check(
+                        f"email_{index + 1}:model_no_other_thread_memory",
+                        sorted(set(context.get("memory_threads", [])) - {run["conversation_id"]}),
+                        [],
                     )
                 check(f"email_{index + 1}:no_business_changes", database_snapshot(engine), before)
                 with Session(engine) as db:
@@ -495,21 +543,84 @@ def run_scenario(engine, scenario: Scenario, model) -> dict:
                         source = db.get(Message, UUID(run["source_message_id"]))
                         missed = db.get(ClassSession, UUID(fixture["sessions"]["absence"]))
                         source.occurred_at = missed.starts_at - timedelta(days=1)
+                for key, other in threads.items():
+                    if key == step.thread:
+                        continue
+                    check(
+                        f"email_{index + 1}:{key}_is_distinct",
+                        run["conversation_id"] != other["conversation_id"],
+                        True,
+                    )
+                    other_now = client.get("/api/v1/agent-runs/" + other["id"]).json()
+                    check(
+                        f"email_{index + 1}:{key}_run_preserved",
+                        other_now["status"],
+                        other["status"],
+                    )
                 if previous:
                     check("same_conversation", run["conversation_id"], previous["conversation_id"])
                     old = client.get("/api/v1/agent-runs/" + previous["id"]).json()
-                    check("earlier_draft_superseded", old["status"], "superseded")
-                    stale = _review(client, previous, "approve")
-                    check("stale_email_cannot_approve", stale.status_code, 409)
+                    if previous["status"] == "approved":
+                        check("previous_approval_preserved", old["status"], "approved")
+                        check(
+                            "previous_response_preserved",
+                            old.get("approved_response_id"),
+                            previous["approved_response_id"],
+                        )
+                        replay = _review(client, previous, "approve")
+                        check("previous_approval_replay_http", replay.status_code, 200)
+                        check(
+                            "previous_approval_reuses_response",
+                            replay.json().get("approved_response_id"),
+                            previous["approved_response_id"],
+                        )
+                        check(
+                            "previous_approval_replay_no_business_changes",
+                            database_snapshot(engine),
+                            before,
+                        )
+                    else:
+                        check("earlier_draft_superseded", old["status"], "superseded")
+                        stale = _review(client, previous, "approve")
+                        check("stale_email_cannot_approve", stale.status_code, 409)
+                        check(
+                            "stale_approval_no_business_changes", database_snapshot(engine), before
+                        )
                 if run["status"] != "awaiting_review":
                     break
+                if step.approve_after:
+                    _exercise_review(
+                        client,
+                        engine,
+                        observer,
+                        scenario,
+                        step,
+                        fixture,
+                        run,
+                        before,
+                        result,
+                        check,
+                    )
+                    run = client.get("/api/v1/agent-runs/" + run["id"]).json()
+                    if run["status"] != "approved":
+                        break
+                threads[step.thread] = run
             if (
                 run
                 and run["status"] == "awaiting_review"
                 and len(result["runs"]) == len(scenario.emails)
             ):
                 _exercise_review(
-                    client, engine, observer, scenario, fixture, run, before, result, check
+                    client,
+                    engine,
+                    observer,
+                    scenario,
+                    scenario.emails[-1],
+                    fixture,
+                    run,
+                    before,
+                    result,
+                    check,
                 )
         result["database_after"] = database_snapshot(engine)
         with Session(engine) as db:
@@ -563,8 +674,10 @@ def _review(client, run, action, **kwargs):
     )
 
 
-def _exercise_review(client, engine, model, scenario, fixture, run, before, result, check):
-    action = scenario.review
+def _exercise_review(
+    client, engine, model, scenario, step: EmailStep, fixture, run, before, result, check
+):
+    action = "approve" if step.approve_after else scenario.review
     if action == "none":
         return
     memory_before_review = model.snapshot("before_teacher_review", run["conversation_id"])
@@ -617,7 +730,7 @@ def _exercise_review(client, engine, model, scenario, fixture, run, before, resu
             "answer": spec.answer,
         }
         kwargs["question_resolutions"] = [choice]
-    if decision == "approve" and scenario.review_body is not None:
+    if decision == "approve" and not step.approve_after and scenario.review_body is not None:
         kwargs["body"] = scenario.review_body.format_map(fixture["dates"])
     response = _review(client, run, decision, **kwargs)
     result["reviews"].append({"http": response.status_code, "result": response.json()})
@@ -643,7 +756,7 @@ def _exercise_review(client, engine, model, scenario, fixture, run, before, resu
         )
         check("review_does_not_book_or_save_response", after, before)
         if action in {"revise", "answer_checklist"}:
-            revised_expectation = scenario.emails[-1].expect.model_copy(
+            revised_expectation = step.expect.model_copy(
                 update={"proposal": "none", "required_tools": []}
             )
             result["checks"].extend(
@@ -717,12 +830,12 @@ def _exercise_review(client, engine, model, scenario, fixture, run, before, resu
                     True,
                 )
         return
-    check("one_approved_response", len(after["responses"]), 1)
-    check(
-        "approved_body_matches_teacher_response",
-        list(after["responses"].values()),
-        [kwargs.get("body", run["draft_details"]["body"])],
-    )
+    expected_responses = {
+        **before["responses"],
+        updated["approved_response_id"]: kwargs.get("body", run["draft_details"]["body"]),
+    }
+    check("one_approved_response", len(after["responses"]), len(before["responses"]) + 1)
+    check("approved_body_matches_teacher_response", after["responses"], expected_responses)
     reconciled = model.reconciled.get(updated["approved_response_id"])
     check("approval_reconciliation_observed", reconciled is not None, True)
     approved_memory = model.inspect(
@@ -733,7 +846,7 @@ def _exercise_review(client, engine, model, scenario, fixture, run, before, resu
         approved=True,
     )
     expected_rosters = {key: list(value) for key, value in before["rosters"].items()}
-    expected_proposal = fixture["sessions"].get(scenario.emails[-1].expect.proposal)
+    expected_proposal = fixture["sessions"].get(step.expect.proposal)
     with Session(engine) as db:
         student_id = str(db.get(Conversation, UUID(run["conversation_id"])).student_id)
         student = db.get(Student, UUID(student_id))

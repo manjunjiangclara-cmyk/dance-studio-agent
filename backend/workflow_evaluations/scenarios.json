@@ -2082,5 +2082,258 @@
       "thursday_level": "Level 2",
       "saturday_level": "Level 2"
     }
+  },
+  {
+    "id": "withdraw_absence_after_correction",
+    "description": "A student withdraws the original absence after changing the replacement date.",
+    "emails": [
+      {
+        "body": "I will miss my Monday class on {absence_date}. Could I make it up on Thursday {thursday_date} at 6 pm?",
+        "expect": {
+          "flow": "makeup",
+          "intents": [
+            "makeup",
+            "absence"
+          ],
+          "fields": {
+            "absence_date": "{absence_date}",
+            "preferred_date": "{thursday_date}"
+          },
+          "proposal": "thursday",
+          "required_tools": [
+            "search_sessions"
+          ],
+          "absence_verified": true
+        }
+      },
+      {
+        "body": "Actually, Saturday {saturday_date} instead, please.",
+        "expect": {
+          "flow": "makeup",
+          "intents": [
+            "makeup"
+          ],
+          "fields": {
+            "absence_date": "{absence_date}",
+            "preferred_date": "{saturday_date}"
+          },
+          "proposal": "saturday",
+          "required_tools": [
+            "search_sessions"
+          ],
+          "absence_verified": true
+        }
+      },
+      {
+        "body": "I can attend my Monday class on {absence_date} after all. Please disregard my absence notice and my makeup request.",
+        "expect": {
+          "proposal": "none",
+          "contradictory_text": [
+            "your makeup is confirmed",
+            "i've booked",
+            "you are booked",
+            "you're booked"
+          ]
+        }
+      }
+    ],
+    "review": "none",
+    "rubric": [
+      "Acknowledge the student can attend the original class. Do not imply a makeup was booked or cancelled."
+    ],
+    "setup": {
+      "student": {
+        "highest_level": "Level 2"
+      },
+      "enrolments": [
+        {
+          "class_key": "monday_level_2",
+          "status": "active"
+        }
+      ],
+      "session_rosters": {
+        "absence": [
+          "student"
+        ],
+        "thursday": [],
+        "saturday": []
+      },
+      "level_order": [
+        "Level 1",
+        "Level 2",
+        "Level 3"
+      ],
+      "attended_level": "Level 2",
+      "absence_attendance": "unknown",
+      "thursday_level": "Level 2",
+      "saturday_level": "Level 2"
+    }
+  },
+  {
+    "id": "interleaved_threads_keep_context",
+    "description": "The same student starts a separate same-subject thread before changing their makeup date.",
+    "emails": [
+      {
+        "body": "I will miss my Monday class on {absence_date}. Could I make it up on Thursday {thursday_date} at 6 pm?",
+        "expect": {
+          "flow": "makeup",
+          "intents": [
+            "makeup",
+            "absence"
+          ],
+          "fields": {
+            "absence_date": "{absence_date}",
+            "preferred_date": "{thursday_date}"
+          },
+          "proposal": "thursday",
+          "required_tools": [
+            "search_sessions"
+          ],
+          "absence_verified": true
+        }
+      },
+      {
+        "thread": "other",
+        "body": "What should I wear to ballet? My note for this question is labelled Violet Juniper.",
+        "expect": {
+          "flow": "enquiry",
+          "intents": [
+            "general_enquiry"
+          ],
+          "proposal": "none"
+        }
+      },
+      {
+        "body": "Actually, Saturday {saturday_date} instead, please.",
+        "expect": {
+          "flow": "makeup",
+          "intents": [
+            "makeup"
+          ],
+          "fields": {
+            "absence_date": "{absence_date}",
+            "preferred_date": "{saturday_date}"
+          },
+          "proposal": "saturday",
+          "required_tools": [
+            "search_sessions"
+          ],
+          "absence_verified": true,
+          "contradictory_text": [
+            "violet juniper"
+          ]
+        }
+      }
+    ],
+    "review": "approve",
+    "rubric": [
+      "Keep the clothing question and its unique label out of the makeup reply. The final makeup reply confirms Saturday."
+    ],
+    "setup": {
+      "student": {
+        "highest_level": "Level 2"
+      },
+      "enrolments": [
+        {
+          "class_key": "monday_level_2",
+          "status": "active"
+        }
+      ],
+      "session_rosters": {
+        "absence": [
+          "student"
+        ],
+        "thursday": [],
+        "saturday": []
+      },
+      "level_order": [
+        "Level 1",
+        "Level 2",
+        "Level 3"
+      ],
+      "attended_level": "Level 2",
+      "absence_attendance": "unknown",
+      "thursday_level": "Level 2",
+      "saturday_level": "Level 2"
+    }
+  },
+  {
+    "id": "reschedule_after_approval",
+    "description": "A request to move an approved makeup preserves the existing booking and requires a teacher to handle the change.",
+    "emails": [
+      {
+        "body": "I will miss my Monday class on {absence_date}. Could I make it up on Thursday {thursday_date} at 6 pm?",
+        "expect": {
+          "flow": "makeup",
+          "intents": [
+            "makeup",
+            "absence"
+          ],
+          "fields": {
+            "absence_date": "{absence_date}",
+            "preferred_date": "{thursday_date}"
+          },
+          "proposal": "thursday",
+          "required_tools": [
+            "search_sessions"
+          ],
+          "absence_verified": true
+        },
+        "approve_after": true
+      },
+      {
+        "body": "Actually, Saturday {saturday_date} instead, please.",
+        "expect": {
+          "flow": "makeup",
+          "intents": [
+            "makeup"
+          ],
+          "fields": {
+            "absence_date": "{absence_date}",
+            "preferred_date": "{saturday_date}"
+          },
+          "proposal": "none",
+          "required_tools": [],
+          "absence_verified": false,
+          "existing_makeup": "thursday",
+          "contradictory_text": [
+            "your makeup is confirmed for saturday",
+            "you're booked for saturday",
+            "i've booked saturday"
+          ]
+        }
+      }
+    ],
+    "review": "none",
+    "rubric": [
+      "Acknowledge the current Thursday booking and the request to change it to Saturday. Avoid making a new booking or claiming the Thursday booking was cancelled."
+    ],
+    "setup": {
+      "student": {
+        "highest_level": "Level 2"
+      },
+      "enrolments": [
+        {
+          "class_key": "monday_level_2",
+          "status": "active"
+        }
+      ],
+      "session_rosters": {
+        "absence": [
+          "student"
+        ],
+        "thursday": [],
+        "saturday": []
+      },
+      "level_order": [
+        "Level 1",
+        "Level 2",
+        "Level 3"
+      ],
+      "attended_level": "Level 2",
+      "absence_attendance": "unknown",
+      "thursday_level": "Level 2",
+      "saturday_level": "Level 2"
+    }
   }
 ]
