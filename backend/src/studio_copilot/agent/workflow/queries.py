@@ -33,14 +33,13 @@ def _is_booked_makeup_schedule_question(state: State) -> bool:
         or state.get("routing", {}).get("intents") != ["makeup"]
         or len(questions) != 1
         or len(state["context"].get("confirmed_bookings", [])) != 1
-        or state.get("feedback")
         or state.get("question_resolutions")
     ):
         return False
     question = questions[0].casefold()
     return bool(
         re.search(r"\b(?:when|date|day|time)\b", question)
-        and re.search(r"\b(?:book(?:ed)? me|my (?:makeup|booking))\b", question)
+        and re.search(r"\b(?:book(?:ed)? (?:for )?me|my (?:makeup|booking))\b", question)
         and not re.search(r"\b(?:fee|policy|deadline|rule|cancel|reschedule)\b", question)
     )
 
@@ -66,8 +65,10 @@ class QueryRunner:
                     "warnings": [warning],
                 }
         if _is_booked_makeup_schedule_question(state):
+            evidence = context_evidence(state["context"])
+            evidence["arguments"]["booked_schedule"] = True
             return {
-                "evidence": [context_evidence(state["context"])],
+                "evidence": [evidence],
                 "warnings": [],
                 "document_answers_enabled": False,
             }

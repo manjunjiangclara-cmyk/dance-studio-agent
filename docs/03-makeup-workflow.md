@@ -81,7 +81,8 @@ A student-scoped PostgreSQL advisory lock serializes processing and message inse
 
 Intake uses the supplied thread ID to keep the sender's separate email threads apart. A run loads
 all student emails in that conversation through its source email in chronological order. It loads
-teacher replies separately with unconfirmed delivery status. Internal drafts and staff notes stay
+teacher replies separately with unconfirmed delivery status. Staff-entered final replies are also
+included. Internal drafts and staff notes stay
 out of the transcript. When the model cannot fit the full thread, the run is flagged for manual
 review.
 
@@ -96,4 +97,4 @@ encrypted reasoning tokens remain unchanged for replay; their readable summaries
 
 The dated roster identifies who is assigned, not who actually attended. Staff record attendance separately; unknown attendance for a completed missed session requires review. The model identifies the claimed absence and any specifically named replacement class; code verifies the matched session, enrolment, notice provenance, and attendance. When the configured policy requires notice before the session, late notice is escalated to the teacher without a booking proposal. Candidates are filtered by configured level order, the student's highest recorded attended level, membership, overlap, capacity, and any explicitly extracted class name. Named-class extraction remains a model interpretation, so teachers must review the evidence and draft.
 
-An original absence notice can support multiple clear makeup date changes. Conflicting or unfamiliar intervening replies require staff review. A proposed booking is rechecked in the approval transaction, including attendance, level, roster, overlap, capacity, session details, and whether that absence already has a confirmed makeup in the thread. Availability is not reserved before approval. A question asking for options does not itself create a proposal.
+An original absence notice can support multiple clear makeup date changes. Conflicting or unfamiliar intervening replies require staff review. A proposed booking is rechecked in the approval transaction, including attendance, level, roster, overlap, capacity, session details, and whether that student already has a confirmed makeup for the missed session. Availability is not reserved before approval. A question asking for options does not itself create a proposal.

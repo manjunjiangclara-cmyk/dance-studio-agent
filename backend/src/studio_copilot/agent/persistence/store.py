@@ -42,10 +42,12 @@ def _message_data(message):
     }
 
 
-def _confirmed_booking(db: Session, student_id: UUID, proposal: str | None) -> dict | None:
+def _confirmed_booking(
+    db: Session, student_id: UUID, proposal: str | None, *, lock: bool = False
+) -> dict | None:
     if not proposal:
         return None
-    session = db.get(ClassSession, UUID(proposal))
+    session = db.get(ClassSession, UUID(proposal), with_for_update=lock)
     if session is None or student_id not in session.students:
         return None
     location = session.regular_class.location
@@ -173,21 +175,42 @@ class WorkflowStore:
                         )
 
             context, summary = student.context, student.ai_summary
+            memory = context.get("_agent_memory", {})
             if conversation.thread_id is not None:
-                memory = context.get("_agent_memory", {})
-                thread_id = str(conversation.id)
+                visible_conversations = {str(conversation.id)}
+            elif memory:
+                # Legacy conversations can share legacy summaries. Threaded requests
+                # remain scoped even when the next email uses legacy intake.
+                visible_conversations = {
+                    str(identifier)
+                    for identifier in db.scalars(
+                        select(Conversation.id).where(
+                            Conversation.student_id == student.id,
+                            Conversation.thread_id.is_(None),
+                        )
+                    )
+                }
+            else:
+                visible_conversations = set()
+            requests = memory.get("requests", {})
+            responses = memory.get("approved_responses", {})
+            scoped_requests = {
+                key: entry for key, entry in requests.items() if key in visible_conversations
+            }
+            scoped_responses = {
+                key: entry
+                for key, entry in responses.items()
+                if entry.get("conversation_id") in visible_conversations
+            }
+            if (
+                conversation.thread_id is not None
+                or scoped_requests != requests
+                or scoped_responses != responses
+            ):
                 scoped_memory = {
                     "preferences": memory.get("preferences", {}),
-                    "requests": {
-                        key: entry
-                        for key, entry in memory.get("requests", {}).items()
-                        if key == thread_id
-                    },
-                    "approved_responses": {
-                        key: entry
-                        for key, entry in memory.get("approved_responses", {}).items()
-                        if entry.get("conversation_id") == thread_id
-                    },
+                    "requests": scoped_requests,
+                    "approved_responses": scoped_responses,
                 }
                 context = {**context, "_agent_memory": scoped_memory}
                 summary = _memory_summary(scoped_memory)
@@ -290,6 +313,23 @@ class WorkflowStore:
                         "Document sources changed or were disabled. "
                         "Regenerate the draft before approval."
                     )
+                for evidence in run.evidence:
+                    if evidence.get("tool") != "student_context" or not evidence.get(
+                        "arguments", {}
+                    ).get("booked_schedule"):
+                        continue
+                    conversation = require(db, Conversation, run.conversation_id)
+                    for booking in evidence["result"]["confirmed_bookings"]:
+                        snapshot = {
+                            key: value
+                            for key, value in booking.items()
+                            if key != "approved_response_id"
+                        }
+                        current = _confirmed_booking(
+                            db, conversation.student_id, booking["session_id"], lock=True
+                        )
+                        if current != snapshot:
+                            conflict("The confirmed makeup changed. Regenerate the schedule reply.")
                 require_resolved_questions(run)
                 proposal = run.draft_details.get("booking_session_id")
                 if proposal:

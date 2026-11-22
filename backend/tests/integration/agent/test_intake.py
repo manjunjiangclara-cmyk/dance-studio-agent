@@ -112,6 +112,9 @@ def test_email_thread_isolates_history_and_keeps_original_message(
     assert counts(db_engine) == before
     legacy = submit(client)
     assert legacy.json()["conversation_id"] == str(scenario["conversation"])
+    assert first["conversation_id"] not in str(model.routing_contexts[-1])
+    assert other["conversation_id"] not in str(model.routing_contexts[-1])
+    assert "Teacher-approved response." not in str(model.routing_contexts[-1])
     with Session(db_engine) as db:
         original_thread = db.get(Conversation, UUID(first["conversation_id"]))
         assert original_thread.subject == "Same subject"

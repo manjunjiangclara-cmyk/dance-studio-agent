@@ -2,7 +2,7 @@
 
 import os
 import re
-from uuid import NAMESPACE_URL, uuid5
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 import pytest
 from fastapi.testclient import TestClient
@@ -148,6 +148,35 @@ def test_later_correction_cannot_reuse_notice_after_conflicting_email(db_engine,
         assert run["draft_details"]["booking_session_id"] is None
 
 
+def test_model_cannot_book_stale_makeup_date_after_correction(db_engine):
+    with postgres_checkpointer(db_engine) as saver:
+        saver.setup()
+    case = next(item for item in load_scenarios() if item.id == "followup_correction")
+    case.emails[1].expect = case.emails[1].expect.model_copy(
+        update={
+            "proposal": "none",
+            "required_tools": [],
+            "fields": {"absence_date": "{absence_date}", "preferred_date": "{thursday_date}"},
+        }
+    )
+    case.review = "none"
+
+    class StaleDateModel(EmailScenarioModel):
+        def interpret_makeup(self, context):
+            result = super().interpret_makeup(context)
+            if len(context["history"]) == 2:
+                first_email = context["history"][0]["body"]
+                result.preferred_date = re.findall(r"\d{4}-\d{2}-\d{2}", first_email)[-1]
+                result.preferred_weekday = "Thursday"
+            return result
+
+    result = run_scenario(db_engine, case, StaleDateModel())
+    assert result["passed"], [check for check in result["checks"] if not check["passed"]]
+    assert "differs from the latest email" in " ".join(
+        result["runs"][-1]["draft_details"]["warnings"]
+    )
+
+
 def test_change_after_approval_cannot_add_a_second_booking(db_engine, tmp_path, monkeypatch):
     with postgres_checkpointer(db_engine) as saver:
         saver.setup()
@@ -164,13 +193,13 @@ def test_change_after_approval_cannot_add_a_second_booking(db_engine, tmp_path, 
         headers={"Authorization": "Bearer test"},
     ) as client:
 
-        def send(body):
+        def send(body, *, thread_id=fixture["known_sender"]):
             response = client.post(
                 "/api/v1/incoming-emails",
                 json={
                     "from": fixture["known_sender"],
                     "body": body.format_map(fixture["dates"]),
-                    "thread_id": fixture["known_sender"],
+                    "thread_id": thread_id,
                 },
             )
             assert response.status_code == 200, response.text
@@ -196,6 +225,17 @@ def test_change_after_approval_cannot_add_a_second_booking(db_engine, tmp_path, 
         assert review(client, change, "approve").status_code == 200
         assert database_snapshot(db_engine)["rosters"] == before["rosters"]
 
+        separate = send(
+            "I will miss my Monday class on {absence_date}. "
+            "Could I make it up on Saturday {saturday_date}?",
+            thread_id="new-thread:" + fixture["known_sender"],
+        )
+        assert separate["conversation_id"] != first["conversation_id"]
+        assert separate["draft_details"]["booking_session_id"] is None
+        assert "already booked" in separate["draft_details"]["body"]
+        assert review(client, separate, "approve").status_code == 200
+        assert database_snapshot(db_engine)["rosters"] == before["rosters"]
+
         def unexpected_document_lookup(*args, **kwargs):
             raise AssertionError(
                 "A question about a recorded booking must use current roster evidence"
@@ -209,11 +249,17 @@ def test_change_after_approval_cannot_add_a_second_booking(db_engine, tmp_path, 
             needs_clarification=False,
             reason="Read-only question about a booking.",
         )
-        info = send("Which day and time did you book me for?")
+        info = send("What time is the makeup class you booked for me?")
         assert info["status"] == "awaiting_review"
         [evidence] = info["evidence"]
         assert evidence["result"]["confirmed_bookings"] == [booking]
         assert "session:" + booking["session_id"] in evidence["result"]["references"]
+        with Session(db_engine) as db, db.begin():
+            session = db.get(ClassSession, UUID(booking["session_id"]))
+            session.students.remove(UUID(fixture["student_id"]))
+        stale_reply = review(client, info, "approve")
+        assert stale_reply.status_code == 409
+        assert "Regenerate the schedule reply" in stale_reply.json()["error"]["message"]
 
 
 def test_evaluation_records_two_committed_memory_updates(db_engine):
