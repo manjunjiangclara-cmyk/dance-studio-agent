@@ -382,6 +382,7 @@ class Conversation(Record, Base):
         ForeignKey("students.id", ondelete="RESTRICT"), index=True
     )
     subject: Mapped[str | None] = mapped_column(String(500))
+    thread_id: Mapped[str | None] = mapped_column(String(255), unique=True)
 
     student: Mapped[Student] = relationship(back_populates="conversations")
     messages: Mapped[list[Message]] = relationship(

@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from studio_copilot.agent.contracts import Routing
+from studio_copilot.agent.contracts import ModelContextLimitError, Routing
 from studio_copilot.agent.persistence.locking import student_lock
 from studio_copilot.api.app import create_app
 from studio_copilot.persistence.models import AgentRun, Conversation, Message, Student
@@ -60,6 +60,82 @@ def test_known_sender_creates_reviewable_run(rig, scenario, current_history, db_
     approved = review(client, run, "approve", body="Teacher reviewed this email.")
     assert approved.status_code == 200, approved.text
     assert approved.json()["status"] == "approved"
+
+
+def test_email_thread_isolates_history_and_keeps_original_message(
+    rig, scenario, current_history, db_engine
+):
+    client, model, _, _ = rig
+
+    def send(thread_id, body):
+        response = client.post(
+            "/api/v1/incoming-emails",
+            json={
+                "from": "alex@example.com",
+                "body": body,
+                "thread_id": thread_id,
+                "subject": "Same subject",
+            },
+        )
+        assert response.status_code == 200, response.text
+        return response.json()
+
+    first = send("thread-a", "Original message in this thread.")
+    other = send("thread-b", "Thread B private marker.")
+    assert first["conversation_id"] != other["conversation_id"]
+    assert client.get(f"/api/v1/agent-runs/{first['id']}").json()["status"] == "awaiting_review"
+
+    reply = review(client, first, "approve", body="Teacher-approved response.")
+    assert reply.status_code == 200, reply.text
+    followup = send("thread-a", "Follow up.")
+    last = send("thread-a", "Third email.")
+    context = model.routing_contexts[-1]
+    assert last["conversation_id"] == followup["conversation_id"] == first["conversation_id"]
+    assert [item["id"] for item in context["history"]] == [
+        first["source_message_id"],
+        followup["source_message_id"],
+        last["source_message_id"],
+    ]
+    assert len(context["approved_replies"]) == 1
+    approved = context["approved_replies"][0]
+    assert approved["delivery"] == "unconfirmed"
+    assert approved["body"] == "Teacher-approved response."
+    assert other["conversation_id"] not in str(context)
+    assert client.get(f"/api/v1/agent-runs/{other['id']}").json()["status"] == "awaiting_review"
+
+    before = counts(db_engine)
+    collision = client.post(
+        "/api/v1/incoming-emails",
+        json={"from": "unknown@example.com", "body": "Unrelated", "thread_id": "thread-a"},
+    )
+    assert collision.status_code == 409
+    assert counts(db_engine) == before
+    legacy = submit(client)
+    assert legacy.json()["conversation_id"] == str(scenario["conversation"])
+    assert first["conversation_id"] not in str(model.routing_contexts[-1])
+    assert other["conversation_id"] not in str(model.routing_contexts[-1])
+    assert "Teacher-approved response." not in str(model.routing_contexts[-1])
+    with Session(db_engine) as db:
+        original_thread = db.get(Conversation, UUID(first["conversation_id"]))
+        assert original_thread.subject == "Same subject"
+
+
+def test_context_limit_requires_manual_review(rig, monkeypatch):
+    client, model, _, _ = rig
+
+    def overflow(context):
+        raise ModelContextLimitError("provider details")
+
+    monkeypatch.setattr(model, "route", overflow)
+    response = submit(client, sender="long-thread@example.com")
+    assert response.status_code == 200
+    run = response.json()
+    assert run["status"] == "failed"
+    assert "Review this thread manually" in run["error"]
+    assert "provider details" not in run["error"]
+    assert run["draft_details"].get("booking_session_id") is None
+    assert review(client, run, "approve", expected_revision=1).status_code == 409
+    assert review(client, run, "reject").json()["status"] == "closed"
 
 
 def test_known_student_without_conversation_gets_one(rig, db_engine):

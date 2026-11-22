@@ -14,6 +14,7 @@ from studio_copilot.agent.contracts import (
     EnquiryInterpretation,
     MakeupInterpretation,
     Model,
+    ModelContextLimitError,
     ModelError,
     Review,
     Routing,
@@ -346,6 +347,8 @@ class WorkflowNodes:
     def route(self, state: State) -> dict:
         try:
             routing = self.model.route(state["context"])
+        except ModelContextLimitError:
+            raise
         except ModelError:
             routing = Routing(
                 intents=["unknown"],
@@ -386,6 +389,8 @@ class WorkflowNodes:
                     "teacher_feedback": feedback,
                 }
             )
+        except ModelContextLimitError:
+            raise
         except (ModelError, ValidationError) as error:
             if state.get("interpretation"):
                 raise RevisionExtractionError(
@@ -453,6 +458,8 @@ class WorkflowNodes:
             document_mode = draft is not None
             if draft is None:
                 draft = self.model.draft(context)
+        except ModelContextLimitError:
+            raise
         except ModelError:
             draft = _fallback_draft(state)
             document_mode = False
@@ -648,6 +655,8 @@ class WorkflowNodes:
                         "An unapproved follow-up promise was removed from the draft."
                     )
                 draft.review_concerns = list(dict.fromkeys(draft.review_concerns))
+            except ModelContextLimitError:
+                raise
             except (ModelError, ValueError, TypeError, AttributeError):
                 draft.rationale += (
                     " Email composition or its support check failed; "
@@ -684,7 +693,13 @@ class WorkflowNodes:
                 + "\n\nLatest teacher feedback (supersedes conflicting earlier feedback):\n"
                 + feedback
             )
-        update = {"attempt": state["attempt"] + 1, "feedback": feedback}
+        context = {
+            **self.store.load_context(state["run_id"]),
+            "routing": state["routing"],
+            "flow": state["flow"],
+        }
+        state = {**state, "context": context}
+        update = {"attempt": state["attempt"] + 1, "feedback": feedback, "context": context}
         if state.get("flow") == "makeup":
             # Refresh extracted preferences/provenance before the fixed checks. This also
             # lets a legacy checkpoint acquire the newly required absence references.
@@ -716,9 +731,14 @@ class WorkflowNodes:
 
     def remember_approval(self, state: State) -> dict:
         body = self.store.approved_response(state["run_id"])
+        context = {
+            key: value
+            for key, value in state["context"].items()
+            if key not in {"history", "approved_replies", "confirmed_bookings"}
+        }
         memory = self.model.reconcile(
             {
-                **state["context"],
+                **context,
                 "interpretation": state["interpretation"],
                 "teacher_response": {
                     "id": state["response_id"],

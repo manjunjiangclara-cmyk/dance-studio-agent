@@ -11,14 +11,19 @@ def context_evidence(context: dict) -> dict:
     enrolments = context.get("enrolments", [])
     references.extend("enrolment:" + str(item["id"]) for item in enrolments)
     messages = {}
-    for message in [*context.get("history", []), context.get("source", {})]:
+    for message in [
+        *context.get("history", []),
+        *context.get("approved_replies", []),
+        context.get("source", {}),
+    ]:
         if message.get("id") and message.get("kind") in {
             "student_email",
-            "staff_note",
             "teacher_response",
         }:
             messages[message["id"]] = message
     references.extend("message:" + str(key) for key in messages)
+    bookings = context.get("confirmed_bookings", [])
+    references.extend("session:" + item["session_id"] for item in bookings)
     return {
         "tool": "student_context",
         "arguments": {},
@@ -27,6 +32,7 @@ def context_evidence(context: dict) -> dict:
             "student": {"id": student.get("id"), "highest_level": student.get("highest_level")},
             "enrolments": enrolments,
             "messages": list(messages.values()),
+            "confirmed_bookings": bookings,
             "references": references,
         },
     }

@@ -235,35 +235,40 @@
       "created_at": "2027-02-07T00:00:00Z",
       "updated_at": "2027-02-07T00:00:00Z",
       "student_id": "3861ca04-d9bd-5994-af78-b1540c29f791",
-      "subject": "Makeup for Monday 8 February"
+      "subject": "Makeup for Monday 8 February",
+      "thread_id": null
     },
     {
       "id": "e9e6c1f4-55f2-5477-a400-0079aca9b31f",
       "created_at": "2027-02-07T00:00:00Z",
       "updated_at": "2027-02-07T00:00:00Z",
       "student_id": "833efaed-1e89-5f89-8b47-cb9cbcf3399c",
-      "subject": "Saturday makeup class"
+      "subject": "Saturday makeup class",
+      "thread_id": null
     },
     {
       "id": "ab3e0ec9-4472-5ad2-80da-f99dae8fd7e4",
       "created_at": "2027-02-07T00:00:00Z",
       "updated_at": "2027-02-07T00:00:00Z",
       "student_id": "60bbb539-91bc-5858-80f5-a1b6ae915aae",
-      "subject": "Makeup options for next week"
+      "subject": "Makeup options for next week",
+      "thread_id": null
     },
     {
       "id": "f6574588-1747-5532-99aa-9adedffd94ad",
       "created_at": "2027-02-07T00:00:00Z",
       "updated_at": "2027-02-07T00:00:00Z",
       "student_id": "153dbe65-4865-5343-93a0-f9fa60a4f6e2",
-      "subject": "Questions about starting ballet"
+      "subject": "Questions about starting ballet",
+      "thread_id": null
     },
     {
       "id": "761d3067-777c-5844-8163-9ac42301741d",
       "created_at": "2027-02-07T00:00:00Z",
       "updated_at": "2027-02-07T00:00:00Z",
       "student_id": "2eca4988-037e-54f9-9668-59ee06b2888b",
-      "subject": "Help choosing a ballet class"
+      "subject": "Help choosing a ballet class",
+      "thread_id": null
     }
   ],
   "messages": [

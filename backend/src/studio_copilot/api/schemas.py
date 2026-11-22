@@ -261,6 +261,14 @@ class AgentRunRead(Record):
 class IncomingEmail(Input):
     sender: EmailStr = Field(alias="from")
     body: Body
+    thread_id: (
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)]
+        | None
+    ) = None
+    subject: (
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
+        | None
+    ) = None
 
 
 class AgentRunSummary(Record):

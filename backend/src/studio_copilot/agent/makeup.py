@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from studio_copilot.administration.service import conflict, require
 from studio_copilot.agent.tools import execute_tool
 from studio_copilot.persistence.models import (
+    AgentRun,
     ClassSession,
     Conversation,
     Enrolment,
@@ -98,37 +99,84 @@ def _explicit_absence_notice(message: Message, day: date) -> bool:
     )
 
 
+_MAKEUP_DATE_CHANGE = re.compile(
+    r"\s*(?:actually,?\s+)?(?P<weekday>monday|tuesday|wednesday|thursday|friday|saturday|sunday)"
+    r"(?:\s+(?P<date>\d{4}-\d{2}-\d{2}))?\s+"
+    r"(?:instead(?:,?\s+please)?[.!]?|works after all[.!]\s+could I switch back to that one\?)"
+    r"\s*",
+    re.IGNORECASE,
+)
+
+
+def _makeup_date_change(body: str, absence_date: date) -> re.Match[str] | None:
+    match = _MAKEUP_DATE_CHANGE.fullmatch(body)
+    if not match:
+        return None
+    weekday = match["weekday"].casefold()
+    if match["date"] is None:
+        return match if weekday != absence_date.strftime("%A").casefold() else None
+    target = _date(match["date"])
+    if (
+        target is not None
+        and target != absence_date
+        and weekday == target.strftime("%A").casefold()
+    ):
+        return match
+    return None
+
+
+def _matches_date_change(
+    match: re.Match[str], target: date | None, weekday: str | None = None
+) -> bool:
+    if target is None:
+        return match["date"] is None and (weekday or "").casefold() == match["weekday"].casefold()
+    return target.strftime("%A").casefold() == match["weekday"].casefold() and (
+        match["date"] is None or target.isoformat() == match["date"]
+    )
+
+
 def _notice_context_unambiguous(db: Session, notice: Message, source: Message, day: date) -> bool:
     if not _explicit_absence_notice(notice, day):
         return False
     if notice.id != source.id and notice.created_at >= source.created_at:
         return False
-    intervening = db.scalar(
-        select(Message.id)
-        .where(
+
+    # Carry forward the original evidence only across unambiguous date changes or
+    # explicit confirmations of the same absence. Apply the same check at approval.
+    followups = db.scalars(
+        select(Message).where(
             Message.conversation_id == notice.conversation_id,
             Message.kind == "student_email",
             Message.created_at >= notice.created_at,
             Message.id != notice.id,
-            Message.id != source.id,
         )
-        .limit(1)
     )
-    if intervening:
-        return False
-    if notice.id == source.id:
-        return True
-    if _explicit_absence_notice(source, day):
-        return True
-    return (
-        re.fullmatch(
-            r"\s*(?:actually,?\s+)?(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)"
-            r"(?:\s+\d{4}-\d{2}-\d{2})?\s+instead(?:,?\s+please)?[.!]?\s*",
-            source.body,
-            flags=re.IGNORECASE,
+    return all(
+        message.created_at <= source.created_at
+        and (_makeup_date_change(message.body, day) or _explicit_absence_notice(message, day))
+        for message in followups
+    )
+
+
+def _existing_makeup(db: Session, student_id: UUID, missed_id: UUID) -> ClassSession | None:
+    approved = db.scalars(
+        select(AgentRun)
+        .join(Conversation)
+        .where(
+            Conversation.student_id == student_id,
+            AgentRun.approved_response_id.is_not(None),
+            AgentRun.draft_details["booking_session_id"].astext.is_not(None),
         )
-        is not None
     )
+    for run in approved:
+        if evidence_result(run.evidence, "verify_makeup_request").get("absence_session_id") != str(
+            missed_id
+        ):
+            continue
+        booked = db.get(ClassSession, UUID(run.draft_details["booking_session_id"]))
+        if booked is not None and student_id in booked.students:
+            return booked
+    return None
 
 
 def _snapshot(session: ClassSession) -> dict:
@@ -298,6 +346,13 @@ def gather_makeup(engine, state: dict) -> dict:
                 if not verification["notice_acceptable"]:
                     warnings.append("The absence notice was late; teacher review is needed.")
         if missed is not None:
+            booked = _existing_makeup(db, student_id, missed.id)
+            if booked is not None:
+                verification["existing_makeup_session_id"] = str(booked.id)
+                verification["references"].append("session:" + str(booked.id))
+                issues.append(
+                    "A makeup is already booked for this absence. Staff must review changes."
+                )
             status = attendance_status(db, student_id, missed.id)
             verification["attendance_status"] = status
             if status == "attended":
@@ -331,6 +386,13 @@ def gather_makeup(engine, state: dict) -> dict:
         # Timetable facts can still help a clarification; this never grants a booking.
         tool("get_timetable", {})
         preferred = _date(parsed.get("preferred_date"))
+        change = (
+            _makeup_date_change(source.body, absence_date) if absence_date is not None else None
+        )
+        weekday = parsed.get("preferred_weekday")
+        date_conflict = change is not None and not _matches_date_change(change, preferred, weekday)
+        if date_conflict:
+            warnings.append("The interpreted makeup date differs from the latest email.")
         requested_class = parsed.get("preferred_class_name")
         requested_time_text = parsed.get("preferred_time")
         requested_time = _local_time(requested_time_text)
@@ -341,6 +403,7 @@ def gather_makeup(engine, state: dict) -> dict:
             "requested_class_name": requested_class,
             "requested_time": requested_time_text,
             "invalid_requested_time": bool(requested_time_text and requested_time is None),
+            "request_date_conflict": date_conflict,
         }
         max_level = attended_level(db, student_id, context["policy"], datetime.now(UTC))
         level_order = context["policy"].get("level_order", [])
@@ -358,6 +421,7 @@ def gather_makeup(engine, state: dict) -> dict:
             and verification["notice_acceptable"]
             and max_level is not None
             and not validation_time_invalid
+            and not date_conflict
         ):
             location_id = None
             preference = parsed.get("location_preference")
@@ -373,7 +437,6 @@ def gather_makeup(engine, state: dict) -> dict:
                     location_id = options[0]["id"]
                 else:
                     warnings.append("Confirm which studio location you prefer.")
-            weekday = parsed.get("preferred_weekday")
             weekdays = [
                 "monday",
                 "tuesday",
@@ -472,6 +535,11 @@ def clarification_body(evidence: list[dict]) -> str:
     verified = evidence_result(evidence, "verify_makeup_request").get("verified")
     excluded = evidence_result(evidence, "validate_makeup_candidates").get("excluded", [])
     verification = evidence_result(evidence, "verify_makeup_request")
+    if verification.get("existing_makeup_session_id"):
+        return (
+            "Our records show a makeup is already booked for that absence. "
+            "We can review your request to change it."
+        )
     if verification.get("attendance_status") == "attended":
         return (
             "Our attendance record shows you attended that session. "
@@ -496,6 +564,8 @@ def clarification_body(evidence: list[dict]) -> str:
     validation = evidence_result(evidence, "validate_makeup_candidates")
     if validation.get("search_incomplete") and not validation.get("valid_session_ids"):
         return "We need to review more sessions before we can confirm the available options."
+    if validation.get("request_date_conflict"):
+        return "Could you confirm the date you would like for your makeup?"
     if validation.get("invalid_requested_time"):
         return "Could you confirm the requested makeup start time?"
     if validation.get("max_attended_level") is None:
@@ -584,6 +654,8 @@ def revalidate_makeup(db: Session, run, target_id: UUID) -> None:
     # Match enrolment edit lock order; then acquire all class locks in stable UUID order.
     conversation = require(db, Conversation, run.conversation_id)
     require(db, Student, conversation.student_id, lock=True)
+    if _existing_makeup(db, conversation.student_id, missed_id) is not None:
+        conflict("A makeup is already booked for this absence. Review the change manually.")
     enrolment = require(db, Enrolment, enrolment_id, lock=True)
     missed = require(db, ClassSession, missed_id)
     target = require(db, ClassSession, target_id)
@@ -615,6 +687,12 @@ def revalidate_makeup(db: Session, run, target_id: UUID) -> None:
         conflict(
             "The missed-session or absence records changed. Request a new draft before booking."
         )
+
+    change = _makeup_date_change(source.body, day)
+    if change is not None and not _matches_date_change(
+        change, target.starts_at.astimezone(ZoneInfo(target.regular_class.location.timezone)).date()
+    ):
+        conflict("The proposed date differs from the latest student email.")
 
     if (
         run.policy_snapshot.get("absence_notice_before_start")

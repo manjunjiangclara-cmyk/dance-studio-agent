@@ -51,7 +51,7 @@ On subsequent launches, start Docker Desktop, run `docker compose up -d --wait d
 
 ## Test an email through one API call
 
-After agent setup and starting the server, open [Swagger](http://127.0.0.1:8000/docs), authorize with your admin token, and use **POST `/api/v1/incoming-emails`**. Supply only the sender and email content:
+After agent setup and starting the server, open [Swagger](http://127.0.0.1:8000/docs), authorize with your admin token, and use **POST `/api/v1/incoming-emails`**. For a standalone email, supply the sender and email content:
 
 ```json
 {
@@ -60,7 +60,7 @@ After agent setup and starting the server, open [Swagger](http://127.0.0.1:8000/
 }
 ```
 
-The server finds the student, selects their latest conversation (or creates one), records receipt time, saves the email and generates a draft. An unknown sender gets a minimal `New enquirer` profile with no level or enrolments, and their first email uses the same action-based routing as existing students. Later emails reuse their history.
+To group replies, send the same optional `thread_id` on every intake request. An optional `subject` labels the thread. The server reads the full student email history for that thread. Requests without a thread ID reuse the sender’s latest unthreaded conversation or create one. An unknown sender gets a minimal `New enquirer` profile with no level or enrolments, and their first email uses the same action-based routing as existing students. Later emails reuse their history.
 
 For a known student, send the same two fields with their registered email address, for example `alex@example.com`. Check `status` for `awaiting_review` and read `draft_details.body`, `interpretation` and `evidence`. HTTP 200 can also contain a `failed` run: inspect `error` and retry that run using `/api/v1/agent-runs/{id}/retry`. Review, edit or approve using the existing run review endpoint. Approval stores a response and, when a validated booking proposal is present, adds the student to that session. It does not send email.
 
@@ -136,6 +136,28 @@ uv run --env-file .env.example pytest tests/integration/agent
 Integration tests require `TEST_DATABASE_URL` with a database name ending in `_test`. Each test creates and removes its own temporary schema there. Without that variable, PostgreSQL tests are explicitly skipped. The schema check verifies that a fresh installation matches the models. Fake-model tests do not establish live model understanding or booking reliability.
 
 Alembic upgrades the consolidated initial schema through the independent-session roster and attendance migrations. The roster migration snapshots historical participants and has no automatic downgrade because that would lose data. LangGraph checkpoint setup remains separate.
+
+### Multi-turn email evaluations
+
+The workflow suite covers consecutive makeup corrections, withdrawal of an
+absence after a correction, interleaved threads from the same sender, and a date
+change after teacher approval. It checks which messages reach the model,
+whether stale drafts can be approved, and what changes in the booking records.
+
+Run the three transition cases from `backend/` using synthetic fixtures in the
+configured PostgreSQL test database:
+
+```sh
+uv run --env-file .env python -m workflow_evaluations.evaluate --live \
+  --case withdraw_absence_after_correction \
+  --case interleaved_threads_keep_context \
+  --case reschedule_after_approval
+```
+
+Live runs call the configured model and incur usage costs. The JSON report
+includes structured checks and draft text for manual review. See the
+[workflow evaluation guide](backend/workflow_evaluations/README.md) for the
+scenario format and test database requirements.
 
 ## Design documents
 

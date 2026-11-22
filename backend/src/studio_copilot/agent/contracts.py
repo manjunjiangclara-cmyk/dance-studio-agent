@@ -154,7 +154,7 @@ class ToolTurn(StrictModel):
 
 class Review(StrictModel):
     action: Literal["approve", "revise", "reject"]
-    expected_revision: int = Field(ge=1)
+    expected_revision: int = Field(ge=0)
     regenerate: bool = False
     body: str | None = Field(default=None, min_length=1, max_length=20_000)
     feedback: str | None = Field(default=None, min_length=1, max_length=4000)
@@ -162,6 +162,8 @@ class Review(StrictModel):
 
     @model_validator(mode="after")
     def revision_resolutions(self):
+        if self.expected_revision == 0 and self.action != "reject":
+            raise ValueError("A draft is required to approve or revise a review.")
         if self.regenerate and self.action != "revise":
             raise ValueError("Only a draft revision can regenerate a response.")
         if self.question_resolutions and self.action != "revise":
@@ -174,6 +176,10 @@ class Review(StrictModel):
 
 class ModelError(Exception):
     """Safe model boundary failure; provider details must not reach the API."""
+
+
+class ModelContextLimitError(ModelError):
+    """The complete input exceeds the configured model's capacity."""
 
 
 class Model(Protocol):
