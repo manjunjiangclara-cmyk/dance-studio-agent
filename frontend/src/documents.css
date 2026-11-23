@@ -49,8 +49,8 @@
   flex-shrink: 0;
   padding: 4px 10px;
   border-radius: 999px;
-  background: #eff6ff;
-  color: #1e40af;
+  background: #f0f5ed;
+  color: #355b3e;
   font-size: 13px;
   font-weight: 600;
 }
@@ -72,8 +72,8 @@
   background: #f8fafc;
 }
 .document-list li:hover {
-  border-color: #93b4df;
-  background: #f1f6fd;
+  border-color: #a9c4a4;
+  background: #f1f6ef;
 }
 .document-meta {
   color: #64748b;

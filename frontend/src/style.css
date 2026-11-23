@@ -7,7 +7,7 @@
   font-synthesis: none;
   font-size: 16px;
   line-height: 1.6;
-  --green: #075985;
+  --green: #395f45;
   --ink: #172b3a;
   --muted: #475569;
   --line: #cbd5e1;
@@ -781,8 +781,8 @@ code,
   flex: 0 0 32px;
   height: 32px;
   border-radius: 50%;
-  background: #dceaf4;
-  color: #174e70;
+  background: #e7f0e3;
+  color: #355b3e;
   font-size: 11px;
   font-weight: 700;
 }
@@ -798,9 +798,9 @@ code,
 }
 .live-conversation-bubble {
   padding: 13px 16px;
-  border: 1px solid #d6e4ee;
+  border: 1px solid #d3e2ce;
   border-radius: 16px 16px 16px 4px;
-  background: #edf5fa;
+  background: #f1f6ef;
   color: #1e3346;
   line-height: 1.55;
   overflow-wrap: anywhere;
@@ -847,7 +847,7 @@ code,
 }
 .status-running,
 .status-finalizing {
-  background: #eaf0f6;
+  background: #edf3ea;
   color: #475569;
 }
 .principles {
@@ -1104,7 +1104,7 @@ label > textarea {
   color: #475569;
 }
 .classification-panel {
-  border-left: 4px solid #2563eb;
+  border-left: 4px solid #507a57;
   margin-bottom: 24px;
 }
 .classification-overview {
@@ -1145,11 +1145,11 @@ label > textarea {
 }
 .intent-badge {
   display: inline-block;
-  border: 1px solid #c7d7ed;
+  border: 1px solid #cadbc4;
   border-radius: 5px;
   padding: 3px 8px;
-  background: #eef5ff;
-  color: #234b7d;
+  background: #eef5eb;
+  color: #355b3e;
   font-size: 12px;
   line-height: 1.5;
 }
@@ -1782,8 +1782,8 @@ dd {
 }
 .database-table-choice:hover,
 .database-table-choice.selected {
-  background: #e0f2fe;
-  color: #075985;
+  background: #e8f1e5;
+  color: #395f45;
 }
 .database-count {
   font-size: 13px;
@@ -1873,7 +1873,7 @@ dd {
 }
 .database-json summary {
   cursor: pointer;
-  color: #075985;
+  color: #395f45;
 }
 .database-json .json {
   margin-top: 8px;
@@ -2622,8 +2622,8 @@ dd {
 
 /* Readable text, distinct surfaces, and semantic colours across all viewports. */
 .hero {
-  background: #e8f1fc;
-  border-color: #b6cde7;
+  background: #edf4e9;
+  border-color: #c4d7be;
 }
 .hero h2 {
   font-weight: 400;
@@ -2636,15 +2636,15 @@ dd {
 }
 .hero-visual .floating-note {
   background: #ffffff;
-  border-color: #b8c9dc;
+  border-color: #c9d9c3;
 }
 .visual-icon {
-  background: #e8f1fc;
-  color: #075985;
-  border-color: #b6cde7;
+  background: #edf4e9;
+  color: #395f45;
+  border-color: #c4d7be;
 }
 .orbit {
-  border-color: #b6cde7;
+  border-color: #c4d7be;
 }
 .sidebar-note,
 .email-explainer {
@@ -2653,15 +2653,15 @@ dd {
 }
 .nav-item:hover,
 .session-row:hover {
-  background: #eef2f6;
+  background: #f0f4ec;
 }
 .nav-item.active {
-  background: #dbeafe;
-  color: #1e40af;
+  background: #e2eddf;
+  color: #355b3e;
 }
 .nav-count {
-  background: #bfdbfe;
-  color: #1e3a8a;
+  background: #cbdcc5;
+  color: #294d33;
 }
 .brand-light,
 .sidebar-label,
@@ -2672,12 +2672,12 @@ dd {
   color: #ffffff;
 }
 .mode-badge {
-  background: #e0f2fe;
-  color: #075985;
-  border-color: #7dd3fc;
+  background: #e8f1e5;
+  color: #395f45;
+  border-color: #abc6a8;
 }
 .mode-badge > span {
-  background: #0369a1;
+  background: #507a57;
 }
 .owner-badge {
   background: #ede9fe;
@@ -2710,9 +2710,9 @@ dd {
 }
 .status-running,
 .status-finalizing {
-  background: #dbeafe;
-  color: #1e40af;
-  border-color: #93c5fd;
+  background: #f2eee5;
+  color: #685337;
+  border-color: #d6c5a7;
 }
 .status-superseded {
   background: #ede9fe;
@@ -2725,8 +2725,8 @@ dd {
   border-color: #94a3b8;
 }
 .avatar {
-  background: #e0f2fe;
-  color: #075985;
+  background: #e8f1e5;
+  color: #395f45;
   font-weight: 600;
 }
 .run-row:nth-child(2n) .avatar {
@@ -2742,23 +2742,23 @@ dd {
   border-color: #cbd5e1;
 }
 .message-assistant_draft {
-  background: #eff6ff;
-  border-color: #bfdbfe;
+  background: #f0f5ed;
+  border-color: #cbdcc5;
 }
 .message-teacher_response {
   background: #f0fdf4;
   border-color: #86efac;
 }
 .source-message {
-  border-left-color: #2563eb;
+  border-left-color: #507a57;
 }
 .source-tag {
-  color: #1e40af;
+  color: #355b3e;
   font-weight: 650;
 }
 .demo-notice {
-  background: #e0f2fe;
-  color: #075985;
+  background: #e8f1e5;
+  color: #395f45;
 }
 .notice {
   background: #fffbeb;
@@ -2784,11 +2784,11 @@ dd {
 }
 .button.secondary {
   background: #fff;
-  color: #075985;
+  color: #395f45;
   border-color: #94a3b8;
 }
 .button.primary:hover {
-  background: #0c4a6e;
+  background: #274b38;
 }
 .inline-link,
 .back-link,
@@ -2796,10 +2796,10 @@ dd {
 .schema-field > a,
 .enrolment a,
 .relationship-list a {
-  color: #075985;
+  color: #395f45;
 }
 .run-row:hover .run-person strong {
-  color: #075985;
+  color: #395f45;
 }
 input,
 textarea,
@@ -2815,7 +2815,7 @@ textarea::placeholder {
   opacity: 1;
 }
 .search-field:focus-within {
-  outline: 2px solid #2563eb;
+  outline: 2px solid #507a57;
   outline-offset: 2px;
 }
 button:focus-visible,
@@ -2824,7 +2824,7 @@ summary:focus-visible,
 input:focus,
 textarea:focus,
 select:focus {
-  outline-color: #2563eb;
+  outline-color: #507a57;
 }
 .json {
   background: #f1f5f9;
@@ -3014,7 +3014,7 @@ h3 {
   border-radius: 999px;
   padding: 3px 10px;
   margin-top: 8px;
-  background: #dbeafe;
+  background: #e2eddf;
 }
 
 .enrolment-history {
@@ -3314,8 +3314,8 @@ h3 {
   background: #f1f5f9;
 }
 .knowledge-nav a.active {
-  background: #dbeafe;
-  color: #1e40af;
+  background: #e2eddf;
+  color: #355b3e;
 }
 .knowledge-nav + .page-heading {
   margin-bottom: 18px;
@@ -3568,8 +3568,8 @@ h3 {
   color: #526344;
 }
 .class-tags .class-tag-day {
-  background: #e8f0fa;
-  color: #315b88;
+  background: #e8f1e5;
+  color: #456b4c;
 }
 .class-tags .class-tag-location {
   background: #f8ecdf;
@@ -3715,7 +3715,7 @@ h3 {
 .live-evidence-detail summary {
   cursor: pointer;
   font-weight: 600;
-  color: #075985;
+  color: #395f45;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -3736,7 +3736,7 @@ h3 {
 .live-evidence-original a {
   display: inline-block;
   margin-top: 10px;
-  color: #075985;
+  color: #395f45;
   text-decoration: underline;
 }
 @media (max-width: 650px) {
@@ -3859,7 +3859,7 @@ h3 {
 .profile-enrolments .enrolment-history > summary,
 .profile-memory details > summary {
   cursor: pointer;
-  color: #075985;
+  color: #395f45;
   font-size: 14px;
   font-weight: 600;
 }
@@ -4014,8 +4014,8 @@ h3 {
   flex: 0 0 38px;
   height: 38px;
   border-radius: 8px;
-  color: #266080;
-  background: #eaf3f8;
+  color: #456b4c;
+  background: #edf4e9;
 }
 .profile-session-detail {
   min-width: 0;
@@ -4077,7 +4077,7 @@ h3 {
   border-color: #8da7b6;
 }
 .student-card:focus-visible {
-  outline: 2px solid #2563eb;
+  outline: 2px solid #507a57;
   outline-offset: 3px;
 }
 .student-card-content {
@@ -4137,7 +4137,7 @@ h3 {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: #075985;
+  color: #395f45;
   font-weight: 600;
 }
 @media (max-width: 700px) {
@@ -4212,8 +4212,8 @@ h3 {
   display: inline-block;
   padding: 4px 8px;
   border-radius: 5px;
-  background: #e8f0fa;
-  color: #315b88;
+  background: #e8f1e5;
+  color: #456b4c;
 }
 .profile-memory-facts dd {
   margin-top: 7px;
@@ -4282,7 +4282,7 @@ h3 {
 }
 .profile-full-summary > summary {
   font-size: 13px;
-  color: #075985;
+  color: #395f45;
   cursor: pointer;
 }
 .profile-memory .profile-full-summary p {
@@ -4322,7 +4322,7 @@ h3 {
   margin: 0 0 5px;
 }
 .dashboard-case-action {
-  color: #075985;
+  color: #395f45;
   font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
@@ -4379,7 +4379,7 @@ h3 {
   gap: 12px;
   padding: 13px 0;
   border-top: 1px solid #e2e8f0;
-  color: #075985;
+  color: #395f45;
   font-weight: 600;
 }
 @media (max-width: 1050px) {
@@ -4447,7 +4447,7 @@ h3 {
   }
 }
 .nav-item.active > svg {
-  color: #1d4ed8;
+  color: #3f6848;
   stroke-width: 2.3;
 }
 .brand small {
@@ -4474,9 +4474,9 @@ h3 {
 /* A compact visual explanation of the AI-assisted workflow. */
 .ai-workflow {
   margin-bottom: 24px;
-  border: 1px solid #bad0ef;
+  border: 1px solid #c4d7be;
   border-radius: 10px;
-  background: linear-gradient(115deg, #eef5ff, #f4f2ff);
+  background: linear-gradient(115deg, #eef5eb, #f4f2ff);
   padding: 21px 24px;
 }
 .ai-workflow-heading {
@@ -4518,7 +4518,7 @@ h3 {
   min-width: 0;
   padding: 12px;
   background: #ffffffc9;
-  border: 1px solid #d9e3f3;
+  border: 1px solid #d9e6d4;
   border-radius: 8px;
 }
 .ai-workflow-steps .ai-step-highlight {
@@ -4532,8 +4532,8 @@ h3 {
   height: 34px;
   width: 34px;
   border-radius: 9px;
-  color: #34568a;
-  background: #e8effa;
+  color: #486c4e;
+  background: #e7f0e3;
 }
 .ai-step-highlight .ai-step-icon {
   color: #514bb4;
@@ -4620,7 +4620,7 @@ select:not([multiple]):not([size]):hover:not(:disabled) {
   background-color: #fff;
 }
 select:not([multiple]):not([size]):focus-visible {
-  outline: 2px solid #2563eb;
+  outline: 2px solid #507a57;
   outline-offset: 2px;
 }
 select:not([multiple]):not([size]):disabled {
