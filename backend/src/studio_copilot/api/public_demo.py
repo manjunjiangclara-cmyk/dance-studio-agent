@@ -56,7 +56,8 @@ class ApprovalInput(BaseModel):
 
 class DraftInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    teacher_answers: list[str] = Field(default_factory=list, max_length=9)
+    revision: int | None = Field(default=None, ge=1)
+    teacher_answers: list[str] = Field(default_factory=list, max_length=20)
 
 
 class Empty(BaseModel):
@@ -130,6 +131,13 @@ def evidence(request: Request, body: Empty):
 @router.post("/draft")
 def draft(request: Request, body: DraftInput):
     return service(request).execute(token(request), "draft", teacher_answers=body.teacher_answers)
+
+
+@router.post("/revise")
+def revise(request: Request, body: DraftInput):
+    return service(request).execute(
+        token(request), "revise", teacher_answers=body.teacher_answers, revision=body.revision
+    )
 
 
 @router.post("/approve")

@@ -511,7 +511,7 @@ class WorkflowNodes:
 
     def draft(self, state: State) -> dict:
         review_updates = {}
-        if self.evidence_review is not None:
+        if self.evidence_review is not None and not state.get("question_resolutions"):
             questions = self.evidence_review(state)
             answers = interrupt({"stage": "evidence", "questions": questions})
             resolutions = [QuestionResolution.model_validate(item) for item in answers]

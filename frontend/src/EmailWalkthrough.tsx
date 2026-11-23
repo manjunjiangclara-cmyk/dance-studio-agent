@@ -24,7 +24,7 @@ type Session = {
   active?: WalkthroughRun;
   answers?: string[];
   answersWereSubmitted?: boolean;
-  editedReply?: string;
+  editedReply?: string | null;
 };
 
 const storageKey = "public-walkthrough-langgraph";
@@ -207,8 +207,8 @@ function WalkthroughReview({
   answers?: string[];
   answersWereSubmitted?: boolean;
   onBusy: (busy: boolean) => void;
-  savedEdit?: string;
-  onEdit: (body: string) => void;
+  savedEdit?: string | null;
+  onEdit: (body: string | null) => void;
   onAnswers: NonNullable<ComponentProps<typeof DemoResponse>["onAnswers"]>;
   onApproved: NonNullable<ComponentProps<typeof DemoResponse>["onApproved"]>;
 }) {

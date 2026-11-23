@@ -164,6 +164,11 @@ def eligible_trial(records, context):
 def trial_draft(records, state):
     if state.get("flow") == "makeup" or state.get("question_resolutions"):
         return None
+    if any(
+        item.get("tool") == "document_answer" and item.get("result", {}).get("status") == "answered"
+        for item in state.get("evidence", [])
+    ):
+        return None
     context = state["context"]
     if not (session := eligible_trial(records, context)):
         return None

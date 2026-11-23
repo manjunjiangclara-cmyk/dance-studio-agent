@@ -16,6 +16,7 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.types import Command
 
 from studio_copilot.administration.service import AdministrationError
+from studio_copilot.agent.contracts import Review
 from studio_copilot.agent.makeup import evidence_result, validated_candidate_ids
 from studio_copilot.agent.openai_model import OpenAIModel
 from studio_copilot.agent.question_resolutions import require_resolved_questions
@@ -29,6 +30,7 @@ DAILY_RUN_LIMIT = 20
 EXPIRES_IN = 3600
 LEASE_SECONDS = 300
 MAX_ATTEMPTS = 2
+MAX_REVISION_ATTEMPTS = 20
 
 
 def evidence_questions(state):
@@ -143,9 +145,18 @@ class PublicDemo:
                 lease TEXT, busy_until REAL NOT NULL DEFAULT 0,
                 evidence_attempts INTEGER NOT NULL DEFAULT 0,
                 draft_attempts INTEGER NOT NULL DEFAULT 0,
+                revision_attempts INTEGER NOT NULL DEFAULT 0,
                 teacher_answers TEXT, draft TEXT, interpretation TEXT, evidence TEXT,
-                revision INTEGER, decision TEXT, approval TEXT
+                revision_answers TEXT, revision INTEGER, decision TEXT, approval TEXT
             )""")
+
+            columns = {row[1] for row in db.execute("PRAGMA table_info(graph_runs)")}
+            if "revision_attempts" not in columns:
+                db.execute(
+                    "ALTER TABLE graph_runs ADD COLUMN revision_attempts INTEGER NOT NULL DEFAULT 0"
+                )
+            if "revision_answers" not in columns:
+                db.execute("ALTER TABLE graph_runs ADD COLUMN revision_answers TEXT")
 
             db.execute("""CREATE TABLE IF NOT EXISTS walkthrough_inputs (
                 request_id TEXT PRIMARY KEY, student TEXT NOT NULL, email_body TEXT NOT NULL,
@@ -353,7 +364,7 @@ class PublicDemo:
                 )
 
     def execute(self, token, stage, *, teacher_answers=(), revision=None, body=None):
-        if stage not in {"evidence", "draft", "approve"}:
+        if stage not in {"evidence", "draft", "revise", "approve"}:
             raise ValueError("Invalid demo stage")
         with self._lease(token) as row:
             model = self.factory()
@@ -437,15 +448,72 @@ class PublicDemo:
             elif snapshot.next and not interrupts and not state.get("decision"):
                 graph.invoke(None, config)
                 state = graph.get_state(config).values
-            return {
-                "body": state["draft"]["body"],
-                "revision": state["attempt"],
-                "booking_proposed": bool(state["draft"].get("booking_session_id")),
-                "review_requirements": review_requirements(
-                    state.get("flow"), state["interpretation"], state["evidence"], state["draft"]
-                ),
-                "model": self.model_name,
+            return self._draft_response(state)
+        if stage == "revise":
+            if not state.get("draft") or not any(
+                "revision" in value and "draft" in value for value in interrupts
+            ):
+                raise HTTPException(409, "There is no draft awaiting teacher answers.")
+            questions = draft_teacher_questions(state)
+            answer_history = json.loads(row["revision_answers"] or "{}")
+            if isinstance(answer_history, list):
+                answer_history = {}
+            submitted = list(teacher_answers)
+            resolved_ids = {
+                str(item["question_id"])
+                for item in [
+                    *(state.get("question_resolutions") or []),
+                    *(state["draft"].get("question_resolutions") or []),
+                ]
             }
+            if revision is None:
+                raise HTTPException(422, "Include the draft revision with the teacher answers.")
+            if revision != state["attempt"]:
+                previous_revision = answer_history.get(str(revision))
+                if (
+                    previous_revision is not None
+                    and previous_revision.get("answers") == submitted
+                    and set(previous_revision.get("question_ids", [])) <= resolved_ids
+                ):
+                    return self._draft_response(state)
+                raise HTTPException(409, "These teacher answers belong to an older draft revision.")
+            if not questions:
+                raise HTTPException(409, "This draft has no unresolved teacher questions.")
+            question_ids = [item["id"] for item in questions]
+            revision_key = str(revision)
+            saved_revision = answer_history.get(revision_key)
+            if saved_revision is not None and (
+                saved_revision.get("answers") != submitted
+                or saved_revision.get("question_ids") != question_ids
+            ):
+                raise HTTPException(409, "Retry with the original teacher answers.")
+            resolutions = self._resolutions(questions, teacher_answers)
+            if saved_revision is None:
+                if row["revision_attempts"] >= MAX_REVISION_ATTEMPTS:
+                    raise HTTPException(429, "This step has reached its retry limit.")
+                answer_history[revision_key] = {
+                    "answers": submitted,
+                    "question_ids": question_ids,
+                }
+                with self.db() as db:
+                    db.execute(
+                        "UPDATE graph_runs SET revision_attempts = revision_attempts + 1, "
+                        "revision_answers = ? WHERE request_id = ?",
+                        (json.dumps(answer_history), row["request_id"]),
+                    )
+            answered_ids = {
+                str(item["question_id"])
+                for item in state["draft"].get("question_resolutions") or []
+            }
+            if any(item["id"] not in answered_ids for item in questions):
+                review = Review(
+                    action="revise",
+                    expected_revision=state["attempt"],
+                    question_resolutions=resolutions,
+                )
+                graph.invoke(Command(resume=review.model_dump(mode="json")), config)
+                state = graph.get_state(config).values
+            return self._draft_response(state)
         if not state.get("draft") or revision != state.get("attempt"):
             raise HTTPException(409, "Approval must match the current draft revision.")
         approved_body = body if body is not None else state["draft"]["body"]
@@ -484,6 +552,18 @@ class PublicDemo:
             "model": self.model_name,
         }
 
+    def _draft_response(self, state):
+        return {
+            "body": state["draft"]["body"],
+            "revision": state["attempt"],
+            "booking_proposed": bool(state["draft"].get("booking_session_id")),
+            "missing_information": [item["label"] for item in draft_teacher_questions(state)],
+            "review_requirements": review_requirements(
+                state.get("flow"), state["interpretation"], state["evidence"], state["draft"]
+            ),
+            "model": self.model_name,
+        }
+
     def _attempt(self, row, stage, *, teacher_answers=None):
         field = f"{stage}_attempts"
         if row[field] >= MAX_ATTEMPTS:
@@ -514,6 +594,35 @@ class PublicDemo:
         ]
 
 
+def draft_teacher_questions(state):
+    """Return unresolved teacher decisions from the shared graph's draft checklist."""
+    draft = state.get("draft") or {}
+    required = set(draft.get("required_question_ids") or [])
+    required.update(
+        str(answer["question_id"])
+        for answer in draft.get("answers", [])
+        if answer.get("status") == "needs_teacher" and answer.get("question_id")
+    )
+    resolved = {str(item["question_id"]) for item in draft.get("question_resolutions") or []}
+    labels = {
+        str(answer["question_id"]): answer["question"]
+        for answer in draft.get("answers", [])
+        if answer.get("question_id")
+    }
+    labels.update(
+        {
+            str(question_id): question
+            for question, question_id in state.get("interpretation", {})
+            .get("question_ids", {})
+            .items()
+        }
+    )
+    return [
+        {"id": question_id, "label": labels.get(question_id, "Teacher information")}
+        for question_id in sorted(required - resolved)
+    ]
+
+
 class DemoStore:
     """Shared graph persistence interface, scoped to one fictional run."""
 
@@ -541,7 +650,13 @@ class DemoStore:
             )
 
     def save_revision_interpretation(self, run_id, interpretation):
-        raise RuntimeError("Start a new demo run for a revision.")
+        prior = json.loads(self.row["interpretation"] or "{}")
+        data = {**interpretation.model_dump(mode="json"), "flow": prior.get("flow", "enquiry")}
+        with self.demo.db() as db:
+            db.execute(
+                "UPDATE graph_runs SET interpretation = ? WHERE request_id = ?",
+                (json.dumps(data), run_id),
+            )
 
     def save_draft(self, run_id, attempt, draft, evidence, warnings):
         with self.demo.db() as db:

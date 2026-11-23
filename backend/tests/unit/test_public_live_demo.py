@@ -24,6 +24,7 @@ from studio_copilot.agent.contracts import (
 from studio_copilot.agent.makeup import validated_candidate_ids
 from studio_copilot.api import public_demo as api
 from studio_copilot.api.app import create_app
+from studio_copilot.api.public_demo import DraftInput
 from studio_copilot.public_demo.records import CASES, FictionalRecords, example_records
 from studio_copilot.public_demo.service import PublicDemo
 from tests.integration.agent.helpers import FakeModel, turn
@@ -214,6 +215,81 @@ def test_document_resume_requires_original_teacher_answers(demo):
     )
     assert approval["booking_simulated"] is False
     assert approval["body"].startswith("Reviewed:")
+
+
+def test_post_draft_teacher_question_can_be_answered_and_regenerated(demo):
+    ledger, model = demo
+    model.routing = Routing(
+        intents=["general_enquiry"],
+        action="information_only",
+        request_summary="Questions about a Thursday booking.",
+        needs_clarification=False,
+        reason="The student asks about a personal record.",
+    )
+    first_question = "Is my Thursday booking confirmed?"
+    followup_question = "Was my trial payment received?"
+    same_answer = "The teacher confirms this is recorded."
+    interpretations = 0
+
+    def interpret(context):
+        nonlocal interpretations
+        interpretations += 1
+        return EnquiryInterpretation(
+            request_summary="Questions about a Thursday booking.",
+            questions=[first_question]
+            if interpretations == 1
+            else [first_question, followup_question],
+            missing_details=[],
+            enduring_preferences=[],
+        )
+
+    model.interpret_enquiry = interpret
+    token = ledger.create_walkthrough(str(uuid4()), "new", first_question)["token"]
+    evidence = ledger.execute(token, "evidence")
+    assert evidence["missing_information"] == []
+    assert evidence["review_requirements"] == []
+
+    draft = ledger.execute(token, "draft")
+    assert draft["missing_information"] == [first_question]
+    assert draft["review_requirements"] == ["teacher_input"]
+    assert "can't confirm" in draft["body"].lower()
+
+    first_revision = ledger.execute(
+        token,
+        "revise",
+        revision=draft["revision"],
+        teacher_answers=[same_answer],
+    )
+    assert first_revision["missing_information"] == [followup_question]
+    assert first_revision["review_requirements"] == ["teacher_input"]
+    assert first_revision["revision"] == draft["revision"] + 1
+
+    revised = ledger.execute(
+        token,
+        "revise",
+        revision=first_revision["revision"],
+        teacher_answers=[same_answer],
+    )
+    assert revised["missing_information"] == []
+    assert revised["review_requirements"] == []
+    assert revised["body"].count(same_answer) == 2
+    assert revised["revision"] == first_revision["revision"] + 1
+    assert (
+        ledger.execute(
+            token, "revise", revision=first_revision["revision"], teacher_answers=[same_answer]
+        )
+        == revised
+    )
+
+    approval = ledger.execute(token, "approve", revision=revised["revision"])
+    assert approval["status"] == "approved_mock"
+
+
+def test_teacher_answer_api_accepts_the_shared_question_limit():
+    accepted = DraftInput(teacher_answers=[f"Answer {index}" for index in range(20)])
+    assert len(accepted.teacher_answers) == 20
+    with pytest.raises(ValueError):
+        DraftInput(teacher_answers=[f"Answer {index}" for index in range(21)])
 
 
 def test_public_document_deferral_stays_a_deferral_after_approval(demo):
@@ -669,6 +745,35 @@ def test_public_trial_books_automatically_and_replays_saved_confirmation(demo):
         run["token"],
     )
     assert "automatic_approval" not in ledger.execute(duplicate["token"], "evidence")
+
+
+def test_trial_with_an_additional_answered_question_stays_on_review_path(demo):
+    ledger, model = demo
+    _trial_model(model)
+    model.routing = Routing(
+        intents=["enrolment"],
+        action="other_action",
+        request_summary="Book an available trial.",
+        needs_clarification=False,
+        reason="The student requests a trial.",
+    )
+    model.interpret_enquiry = lambda context: EnquiryInterpretation(
+        request_summary="Book an available trial and answer a clothing question.",
+        questions=["What should I wear?"],
+        requested_actions=["Book the Level 1 trial on Saturday at 4 pm in Brunswick."],
+        missing_details=[],
+        enduring_preferences=[],
+    )
+    run = ledger.create_walkthrough(
+        str(uuid4()),
+        "new",
+        "Please book me into the Level 1 trial on Saturday 13 February at 4 pm in Brunswick. "
+        "What should I wear?",
+    )
+    result = ledger.execute(run["token"], "evidence")
+    assert "automatic_approval" not in result
+    assert any("socks" in item.lower() for item in result["evidence"])
+    assert result["review_requirements"] == ["teacher_review"]
 
 
 def test_short_acceptance_books_only_a_verified_previous_trial_offer(demo):

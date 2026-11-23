@@ -468,6 +468,74 @@ test("document enquiry requires a teacher decision", async ({ page }) => {
   ).toHaveCount(0);
 });
 
+test("teacher questions discovered in the draft can be answered and regenerated", async ({
+  page,
+}) => {
+  const calls: string[] = [];
+  await mockStages(page, async (route) => {
+    const stage = new URL(route.request().url()).pathname.split("/").at(-1)!;
+    calls.push(stage);
+    if (stage === "runs") return route.fulfill({ json: { token: "token" } });
+    if (stage === "evidence")
+      return route.fulfill({
+        json: {
+          evidence: ["Clothing is covered by the studio guide."],
+          model: "test",
+        },
+      });
+    if (stage === "draft")
+      return route.fulfill({
+        json: {
+          ...draftResponse("Clothing guidance. I cannot confirm the booking."),
+          review_requirements: ["teacher_input"],
+          missing_information: ["Is my Thursday booking confirmed?"],
+        },
+      });
+    if (stage === "revise") {
+      expect(route.request().postDataJSON()).toEqual({
+        teacher_answers: ["Yes, it is confirmed."],
+        revision: 1,
+      });
+      return route.fulfill({
+        json: {
+          body: "Clothing guidance. Yes, it is confirmed.",
+          revision: 2,
+          booking_proposed: false,
+          review_requirements: [],
+          missing_information: [],
+          model: "test",
+        },
+      });
+    }
+    expect(route.request().postDataJSON().revision).toBe(2);
+    return route.fulfill({
+      json: approveResponse("Clothing guidance. Yes, it is confirmed."),
+    });
+  });
+
+  await page.goto("/demo/reviews/live-riley");
+  await page
+    .getByRole("button", { name: "Generate draft", exact: true })
+    .click();
+  await expect(
+    page.getByRole("textbox", {
+      name: "Is my Thursday booking confirmed? answer",
+    }),
+  ).toBeVisible();
+  await page
+    .getByRole("textbox", { name: "Is my Thursday booking confirmed? answer" })
+    .fill("Yes, it is confirmed.");
+  await page.getByRole("button", { name: "Update draft" }).click();
+  await expect(page.getByRole("textbox", { name: "Response" })).toHaveValue(
+    "Clothing guidance. Yes, it is confirmed.",
+  );
+  await expect(
+    page.getByRole("button", { name: "Approve response" }),
+  ).toBeEnabled();
+  await page.getByRole("button", { name: "Approve response" }).click();
+  expect(calls).toEqual(["runs", "evidence", "draft", "revise", "approve"]);
+});
+
 test("student links keep their filtered predefined records", async ({
   page,
 }) => {

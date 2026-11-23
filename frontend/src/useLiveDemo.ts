@@ -16,7 +16,7 @@ interface DemoSession {
   capacity: number;
   students: DemoStudent[];
 }
-type Stage = "evidence" | "draft" | "approve";
+type Stage = "evidence" | "draft" | "revise" | "approve";
 type DemoMessage = { id: string; body: string; occurred_at: string };
 type Approval = {
   status: "approved_mock";
@@ -93,13 +93,14 @@ export function useLiveDemo(input: PublicDemoScenario | WalkthroughRun) {
   }
 
   async function execute(
-    stage: "evidence" | "draft",
+    stage: Exclude<Stage, "approve">,
     teacherAnswers: string[] = [],
   ) {
     if (
       pending.current ||
       (stage === "evidence" && evidence) ||
-      (stage === "draft" && draft)
+      (stage === "draft" && draft) ||
+      (stage === "revise" && !draft)
     )
       return;
     pending.current = true;
@@ -145,7 +146,12 @@ export function useLiveDemo(input: PublicDemoScenario | WalkthroughRun) {
           Authorization: `Bearer ${runToken.current}`,
         },
         body: JSON.stringify(
-          stage === "draft" ? { teacher_answers: teacherAnswers } : {},
+          stage === "draft" || stage === "revise"
+            ? {
+                teacher_answers: teacherAnswers,
+                ...(stage === "revise" ? { revision } : {}),
+              }
+            : {},
         ),
       });
       if (!mounted.current) return;
@@ -154,10 +160,15 @@ export function useLiveDemo(input: PublicDemoScenario | WalkthroughRun) {
         setMissingInformation(result.missing_information || []);
         if (result.automatic_approval)
           setAutomaticApproval(result.automatic_approval);
-      } else if (stage === "draft" && result.body?.trim() && result.revision) {
+      } else if (
+        (stage === "draft" || stage === "revise") &&
+        result.body?.trim() &&
+        result.revision
+      ) {
         setDraft(result.body);
         setRevision(result.revision);
         setBookingProposed(Boolean(result.booking_proposed));
+        setMissingInformation(result.missing_information || []);
       } else {
         throw new Error(
           "The live service returned an empty result. Retry this step.",

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DraftEmailEditor } from "./DraftEmailEditor";
 import { SupportingEvidence } from "./SupportingEvidence";
 import { DemoQuestionAnswers } from "./DemoQuestionAnswers";
@@ -20,8 +20,8 @@ export function DemoResponse({
   savedAnswers?: string[];
   answersWereSubmitted?: boolean;
   onAnswers?: (answers: string[], submitted: boolean) => void;
-  savedEdit?: string;
-  onEdit?: (body: string) => void;
+  savedEdit?: string | null;
+  onEdit?: (body: string | null) => void;
   onApproved?: (
     approval: NonNullable<ReturnType<typeof useLiveDemo>["approval"]>,
     token: string,
@@ -39,6 +39,10 @@ export function DemoResponse({
   const questionsAnswered = live.missingInformation.every((_, index) =>
     teacherAnswers[index]?.trim(),
   );
+  useEffect(() => {
+    if (live.draft && live.missingInformation.length)
+      setTeacherAnswers(Array(live.missingInformation.length).fill(""));
+  }, [live.draft]);
   async function generate() {
     if (generating.current) return;
     if (
@@ -79,6 +83,14 @@ export function DemoResponse({
     const result = await live.approve(body);
     if (result) onApproved?.(result, live.runToken.current);
   }
+  async function applyTeacherAnswers() {
+    if (!questionsAnswered) return;
+    const result = await live.execute("revise", teacherAnswers);
+    if (result) {
+      setEdited(null);
+      onEdit?.(null);
+    }
+  }
   return (
     <section className="panel" aria-labelledby="draft-heading">
       <DraftEmailEditor
@@ -108,7 +120,7 @@ export function DemoResponse({
       {!approved && (
         <ReviewRequirementBadges requirements={live.reviewRequirements} />
       )}
-      {live.evidence && !live.draft && (
+      {live.evidence && (!live.draft || needsTeacherInput) && (
         <DemoQuestionAnswers
           questions={live.missingInformation}
           answers={teacherAnswers}
@@ -119,7 +131,7 @@ export function DemoResponse({
             setTeacherAnswers(answers);
             onAnswers?.(answers, false);
           }}
-          disabled={answersLocked || working}
+          disabled={(!live.draft && answersLocked) || working}
         />
       )}
       {!live.draft && (
@@ -165,10 +177,21 @@ export function DemoResponse({
             </p>
           )}
           {needsTeacherInput && (
-            <p className="muted">
-              Resolve the remaining teacher questions before approving this
-              draft.
-            </p>
+            <>
+              <p className="muted">
+                Answer these teacher questions to update the draft before
+                approving it.
+              </p>
+              <button
+                className="button primary"
+                disabled={!questionsAnswered || working || Boolean(live.busy)}
+                onClick={() => void applyTeacherAnswers()}
+              >
+                {working || live.busy === "revise"
+                  ? "Updating draft…"
+                  : "Update draft"}
+              </button>
+            </>
           )}
           <button
             className="button primary"

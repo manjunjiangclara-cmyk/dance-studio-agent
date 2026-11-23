@@ -12,18 +12,19 @@ flowchart LR
     Gather --> Draft[Draft]
     Draft --> Review[Review exact draft revision]
     Review --> Approve[Approve or resume verified demo trial]
+    Review -->|Resolve teacher questions and regenerate| Gather
     Approve --> Commit[Owner writes reviewed response and eligible booking]
     Approve --> Simulate[Demo records simulated approval]
 ```
 
-At the entry to the shared draft node, the demo pauses so visitors can see the evidence and choose how to respond to any missing studio facts. The owner workflow keeps its existing review and revision behavior. Makeup verification checks the enrolled absence, the original notice, attended level, current session roster, conflicting sessions and existing bookings. The public example records use a fixed reference date. A verified makeup must resolve to one exact session before the graph can produce a booking proposal.
+At the entry to the shared draft node, the demo pauses so visitors can see the evidence and answer any unresolved questions. If drafting identifies another fact that needs a teacher decision, the demo asks for that answer and resumes the shared graph's revision path. Makeup verification checks the enrolled absence, the original notice, attended level, current session roster, conflicting sessions and existing bookings. The public example records use a fixed reference date. A verified makeup must resolve to one exact session before the graph can produce a booking proposal.
 
 ## Public API
 
 - `GET /api/public-demo/cases/{scenario}` returns the public email messages for one of `booking`, `document`, `noah` or `riley`.
 - `POST /api/public-demo/runs` accepts a case ID and a UUID request ID. It returns an opaque bearer token scoped to the run.
 - `POST /api/public-demo/walkthrough/runs` accepts a UUID request ID, a fictional student ID or `new`, and up to 2,000 characters of fictional email text. An optional prior run token links an approved reply to the next email from the same sender. Each email uses the shared run allowance.
-- `POST /api/public-demo/evidence` runs the graph to the draft pause. For a verified automatic trial in Email Walkthrough, it also resumes the shared review and approval steps and returns an `automatic_approval`. `POST /api/public-demo/draft` resumes it with the ordered teacher answers or explicit deferrals and returns the draft revision.
+- `POST /api/public-demo/evidence` runs the graph to the draft pause. For a verified automatic trial in Email Walkthrough with no additional questions to answer, it also resumes the shared review and approval steps and returns an `automatic_approval`. `POST /api/public-demo/draft` resumes it with up to 20 ordered teacher answers or explicit deferrals and returns the draft revision. `POST /api/public-demo/revise` applies answers to teacher questions surfaced during drafting and returns the updated draft revision.
 - `POST /api/public-demo/approve` requires the reviewed revision. A proposed booking must keep its verified confirmation wording. The result can include a before-and-after roster preview built from fictional data. The underlying roster is read-only.
 
 The live POST endpoints require the exact configured website origin. Runs expire after one hour or at the end of the Melbourne day. Hosted demos share a 20-run daily cap. Loopback previews are unlimited. Retries keep the same run identity and teacher decisions. The SQLite ledger holds both stage state and LangGraph checkpoints and removes expired records. It must be private and shared by workers running the demo. The owner database and Postgres checkpointer are unchanged.
