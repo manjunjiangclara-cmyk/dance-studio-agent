@@ -1,508 +1,647 @@
-"""Persistent admission and bounded stage execution in a separate SQLite ledger.
-
-A shared local file serializes all processes of the demo service. No application database
-or LangGraph checkpoints are accessed. Multi-host replicas require a single demo service.
-"""
+"""Drive the shared workflow with a private SQLite ledger and fictional records."""
 
 import json
-import re
 import secrets
 import sqlite3
 import time
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
+from uuid import UUID, uuid5
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
+from langgraph.checkpoint.sqlite import SqliteSaver
+from langgraph.types import Command
 
-from studio_copilot.public_demo.availability import (
-    above_recorded_level,
-    recorded_class_level,
-    trial_spaces,
-)
-from studio_copilot.public_demo.fixtures import CUSTOM_STUDENTS
-from studio_copilot.public_demo.model import DemoModel
-from studio_copilot.public_demo.trial import initial_state, strip_quotes, update_state
+from studio_copilot.administration.service import AdministrationError
+from studio_copilot.agent.makeup import evidence_result, validated_candidate_ids
+from studio_copilot.agent.openai_model import OpenAIModel
+from studio_copilot.agent.question_resolutions import require_resolved_questions
+from studio_copilot.agent.review_requirements import review_requirements
+from studio_copilot.agent.workflow.graph import Workflow
+from studio_copilot.public_demo.fixtures import PUBLIC_DOCUMENTS
+from studio_copilot.public_demo.records import CASES, FictionalRecords
+from studio_copilot.public_demo.trial_booking import TRIAL, latest_text, previous_offer, trial_draft
 
 DAILY_RUN_LIMIT = 20
+EXPIRES_IN = 3600
+LEASE_SECONDS = 300
+MAX_ATTEMPTS = 2
+
+
+def evidence_questions(state):
+    missing = []
+    for item in state.get("evidence", []):
+        if item["tool"] != "document_answer":
+            continue
+        result = item["result"]
+        if result.get("status") != "answered":
+            missing.append(
+                {
+                    "id": result["question_id"],
+                    "label": "Trial fee"
+                    if result.get("missing_information")
+                    else result["question"],
+                }
+            )
+    return missing
+
+
+def supporting_evidence(state):
+    evidence = []
+    excluded = {
+        item["session_id"]: item["reason"]
+        for item in evidence_result(state["evidence"], "validate_makeup_candidates").get(
+            "excluded", []
+        )
+    }
+    for item in state["evidence"]:
+        result = item.get("result", {})
+        if item["tool"] == "verify_makeup_request":
+            missed = result.get("missed_session")
+            if missed and result.get("notice_acceptable"):
+                evidence.append(
+                    f"Absence notice: The notice for {missed['class_name']} was received "
+                    "before the class started."
+                )
+            evidence.extend(result.get("issues", []))
+            existing = result.get("existing_makeup")
+            if existing:
+                evidence.append(
+                    f"Existing makeup booking: {existing['class_name']} at "
+                    f"{existing['starts_at']}. Confirmed on the student's roster."
+                )
+        elif item["tool"] == "validate_makeup_candidates":
+            if level := result.get("max_attended_level"):
+                evidence.append(f"Student record: The highest attended class level is {level}.")
+        elif item["tool"] == "search_sessions":
+            for row in result.get("items", []):
+                local = datetime.fromisoformat(row["starts_at"])
+                count = row.get("remaining_places")
+                if count is None:
+                    continue
+                status = (
+                    " The student's makeup request is awaiting teacher approval."
+                    if row.get("makeup_status") == "awaiting_review"
+                    else ""
+                )
+                if excluded.get(row["id"]) == "above_attended_level":
+                    status += " This class is above the student's recorded attendance level."
+                elif excluded.get(row["id"]) in {
+                    "requested_class_mismatch",
+                    "requested_time_mismatch",
+                }:
+                    status += " This class does not match the requested session."
+                evidence.append(
+                    f"Class availability: {row['class_name']}, {local:%A %d %B %Y at %I:%M %p}, "
+                    f"{row.get('location_name', 'the studio')}. "
+                    f"{count} {'place' if count == 1 else 'places'} open.{status}"
+                )
+        elif item["tool"] == "document_answer":
+            for claim in result.get("claims", []):
+                if "public-document:beginner-clothing" in claim.get("references", []):
+                    evidence.append(
+                        "Beginner clothing policy, revision 1: " + PUBLIC_DOCUMENTS[0]["content"]
+                    )
+                else:
+                    evidence.append(claim["text"])
+        elif item["tool"] == "get_timetable" and state["flow"] != "makeup":
+            evidence.extend(
+                f"Timetable: {row['name']} at {row['location']['name']}."
+                for row in result.get("items", [])
+            )
+    evidence.extend(
+        f"{item['label']}: Teacher information is needed." for item in evidence_questions(state)
+    )
+    if not evidence:
+        evidence.extend(state.get("warnings", []))
+    return list(dict.fromkeys(evidence))
 
 
 class PublicDemo:
     def __init__(
-        self, path, *, factory=DemoModel, clock=time.time, daily_run_limit=DAILY_RUN_LIMIT
+        self,
+        path,
+        *,
+        factory=OpenAIModel,
+        clock=time.time,
+        daily_run_limit=DAILY_RUN_LIMIT,
+        records=None,
     ):
-        self.path, self.factory, self.clock = str(path), factory, clock
+        self.path = str(path)
+        self.factory = factory
+        self.clock = clock
         self.daily_run_limit = daily_run_limit
+        self.records = records if records is not None else FictionalRecords()
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         with self.db() as db:
-            db.execute("""CREATE TABLE IF NOT EXISTS runs (
-                request_id TEXT PRIMARY KEY, token TEXT UNIQUE NOT NULL,
+            db.execute("""CREATE TABLE IF NOT EXISTS graph_runs (
+                request_id TEXT PRIMARY KEY, token TEXT NOT NULL UNIQUE,
                 scenario TEXT NOT NULL, day TEXT NOT NULL, created REAL NOT NULL,
-                evidence TEXT, draft TEXT, evidence_attempts INTEGER NOT NULL DEFAULT 0,
-                draft_attempts INTEGER NOT NULL DEFAULT 0, busy_until REAL NOT NULL DEFAULT 0,
-                lease TEXT
+                lease TEXT, busy_until REAL NOT NULL DEFAULT 0,
+                evidence_attempts INTEGER NOT NULL DEFAULT 0,
+                draft_attempts INTEGER NOT NULL DEFAULT 0,
+                teacher_answers TEXT, draft TEXT, interpretation TEXT, evidence TEXT,
+                revision INTEGER, decision TEXT, approval TEXT
             )""")
-            columns = {row["name"] for row in db.execute("PRAGMA table_info(runs)")}
-            for column in ("student", "email_body", "draft_answers"):
-                if column not in columns:
-                    db.execute(f"ALTER TABLE runs ADD COLUMN {column} TEXT")
-            db.execute("""CREATE TABLE IF NOT EXISTS threads (
-                token TEXT PRIMARY KEY, student TEXT NOT NULL, created REAL NOT NULL,
-                day TEXT NOT NULL, state TEXT NOT NULL
+
+            db.execute("""CREATE TABLE IF NOT EXISTS walkthrough_inputs (
+                request_id TEXT PRIMARY KEY, student TEXT NOT NULL, email_body TEXT NOT NULL,
+                previous_run TEXT UNIQUE, context TEXT NOT NULL,
+                FOREIGN KEY(request_id) REFERENCES graph_runs(request_id)
             )""")
-            db.execute("""CREATE TABLE IF NOT EXISTS turns (
-                request_id TEXT PRIMARY KEY REFERENCES runs(request_id),
-                thread_token TEXT NOT NULL REFERENCES threads(token),
-                original_body TEXT NOT NULL, accepted_reply TEXT
-            )""")
-            turn_columns = {row["name"] for row in db.execute("PRAGMA table_info(turns)")}
-            if "offer_confirmed" not in turn_columns:
-                db.execute(
-                    "ALTER TABLE turns ADD COLUMN offer_confirmed INTEGER NOT NULL DEFAULT 0"
-                )
-        Path(path).chmod(0o600)
 
     @contextmanager
     def db(self):
-        db = sqlite3.connect(self.path, timeout=5)
-        db.row_factory = sqlite3.Row
-        try:
-            db.execute("BEGIN IMMEDIATE")
-            yield db
-            db.commit()
-        except BaseException:
-            db.rollback()
-            raise
-        finally:
-            db.close()
+        with closing(sqlite3.connect(self.path, timeout=5)) as db:
+            db.row_factory = sqlite3.Row
+            with db:
+                yield db
 
-    @staticmethod
-    def _prune(db, now):
-        cutoff = now - 3 * 86400
-        db.execute(
-            "DELETE FROM turns WHERE thread_token IN (SELECT token FROM threads WHERE created < ?)",
-            (cutoff,),
+    @contextmanager
+    def checkpoints(self):
+        with SqliteSaver.from_conn_string(self.path) as saver:
+            yield saver
+
+    @property
+    def model_name(self):
+        import os
+
+        return os.environ.get("OPENAI_MODEL") or "shared workflow"
+
+    def _day(self, now):
+        return datetime.fromtimestamp(now, ZoneInfo("Australia/Melbourne")).date().isoformat()
+
+    def _prune(self, db, now):
+        # Both current and pre-migration data expire without migrating saved conversations.
+        expired = [
+            row["request_id"]
+            for row in db.execute(
+                "SELECT request_id FROM graph_runs "
+                "WHERE (created < ? OR day != ?) AND busy_until <= ?",
+                (now - EXPIRES_IN, self._day(now), now),
+            )
+        ]
+        tables = {row["name"] for row in db.execute("SELECT name FROM sqlite_master")}
+        for table in ("checkpoints", "writes"):
+            if table in tables:
+                db.executemany(f"DELETE FROM {table} WHERE thread_id = ?", [(x,) for x in expired])
+        db.executemany(
+            "DELETE FROM walkthrough_inputs WHERE request_id = ?", [(x,) for x in expired]
         )
-        db.execute("DELETE FROM threads WHERE created < ?", (cutoff,))
-        db.execute("DELETE FROM runs WHERE created < ?", (cutoff,))
+        db.executemany(
+            "UPDATE graph_runs SET teacher_answers = NULL, draft = NULL, interpretation = NULL, "
+            "evidence = NULL, decision = NULL, approval = NULL WHERE request_id = ?",
+            [(x,) for x in expired],
+        )
+        db.execute(
+            "DELETE FROM graph_runs WHERE created < ? AND busy_until <= ?", (now - 4 * 86400, now)
+        )
+        if "turns" in tables and "threads" in tables:
+            cutoff = now - 4 * 86400
+            db.execute(
+                "DELETE FROM turns WHERE thread_token IN "
+                "(SELECT token FROM threads WHERE created < ?)",
+                (cutoff,),
+            )
+            db.execute("DELETE FROM threads WHERE created < ?", (cutoff,))
+        if "runs" in tables:
+            db.execute("DELETE FROM runs WHERE created < ?", (now - 4 * 86400,))
 
-    def create(self, scenario, request_id, *, student=None, email_body=None):
-        if scenario == "custom":
-            if (
-                student not in CUSTOM_STUDENTS
-                or not isinstance(email_body, str)
-                or not email_body.strip()
-                or len(email_body) > 2000
-            ):
-                raise HTTPException(
-                    422, "Select a fictional student and write up to 2,000 characters."
-                )
-        elif (
-            scenario not in {"booking", "document"} or student is not None or email_body is not None
-        ):
-            raise HTTPException(422, "Unsupported demo input.")
+    def create(self, scenario, request_id):
+        if scenario not in CASES:
+            raise HTTPException(422, "Choose a fictional example.")
+        return self._create(scenario, request_id)
+
+    def create_walkthrough(self, request_id, student, email_body, previous_token=None):
+        if student != "new" and student not in self.records.students:
+            raise HTTPException(422, "Choose a fictional student.")
+        return self._create("walkthrough", request_id, student, email_body, previous_token)
+
+    def _create(self, scenario, request_id, student=None, email_body=None, previous_token=None):
         now = self.clock()
-        day = datetime.fromtimestamp(now, ZoneInfo("Australia/Melbourne")).date().isoformat()
+        day = self._day(now)
         with self.db() as db:
+            db.execute("BEGIN IMMEDIATE")
             self._prune(db, now)
-            existing = db.execute(
-                "SELECT * FROM runs WHERE request_id = ?", (request_id,)
+            previous = None
+            if previous_token is not None:
+                previous = db.execute(
+                    "SELECT runs.*, inputs.student, inputs.context FROM graph_runs AS runs "
+                    "JOIN walkthrough_inputs AS inputs USING (request_id) WHERE runs.token = ?",
+                    (previous_token,),
+                ).fetchone()
+                if previous is None:
+                    raise HTTPException(410, "This walkthrough conversation is no longer active.")
+                self._require_current(previous)
+                if previous["student"] != student or not previous["approval"]:
+                    raise HTTPException(
+                        409, "Continue with the same sender after approving the reply."
+                    )
+            previous_id = previous["request_id"] if previous is not None else None
+            row = db.execute(
+                "SELECT * FROM graph_runs WHERE request_id = ?", (request_id,)
             ).fetchone()
-            if existing:
-                if existing["student"] != student or existing["email_body"] != email_body:
-                    raise HTTPException(409, "This request already belongs to a different email.")
-                if (
-                    existing["scenario"] != scenario
-                    or now - existing["created"] > 3600
-                    or existing["day"] != day
-                ):
-                    raise HTTPException(410, "This demo run expired. Restart the demo.")
-                return {"token": existing["token"], "scenario": scenario}
-            self._check_daily_limit(db, day)
+            if row:
+                self._require_current(row)
+                if row["scenario"] != scenario:
+                    raise HTTPException(409, "This run already uses a different example.")
+                if scenario == "walkthrough":
+                    saved = db.execute(
+                        "SELECT student, email_body, previous_run FROM walkthrough_inputs "
+                        "WHERE request_id = ?",
+                        (request_id,),
+                    ).fetchone()
+                    if tuple(saved) != (student, email_body, previous_id):
+                        raise HTTPException(409, "This run already uses a different email.")
+                return {"token": row["token"], "scenario": scenario}
+            if (
+                previous is not None
+                and db.execute(
+                    "SELECT 1 FROM walkthrough_inputs WHERE previous_run = ?", (previous_id,)
+                ).fetchone()
+            ):
+                raise HTTPException(409, "This conversation already has a follow-up.")
+            if self.daily_run_limit is not None:
+                count = db.execute(
+                    "SELECT count(*) FROM graph_runs WHERE day = ?", (day,)
+                ).fetchone()[0]
+                if db.execute("SELECT 1 FROM sqlite_master WHERE name = 'runs'").fetchone():
+                    count += db.execute(
+                        "SELECT count(*) FROM runs WHERE day = ?", (day,)
+                    ).fetchone()[0]
+                if count >= self.daily_run_limit:
+                    raise HTTPException(
+                        429, f"Today's {self.daily_run_limit} live demo runs are used."
+                    )
             token = secrets.token_urlsafe(32)
             db.execute(
-                "INSERT INTO runs (request_id, token, scenario, day, created, student, email_body) "
-                "VALUES (?,?,?,?,?,?,?)",
-                (request_id, token, scenario, day, now, student, email_body),
+                "INSERT INTO graph_runs (request_id, token, scenario, day, created) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (
+                    request_id,
+                    token,
+                    scenario,
+                    day,
+                    previous["created"] if previous is not None else now,
+                ),
             )
+            if scenario == "walkthrough":
+                prior = json.loads(previous["context"]) if previous is not None else None
+                approval = json.loads(previous["approval"]) if previous is not None else {}
+                reply = approval.get("body")
+                prior_evidence = json.loads(previous["evidence"]) if previous is not None else ()
+                offer = (
+                    previous_offer(self.records, prior, reply, prior_evidence) if prior else None
+                )
+                context = self.records.walkthrough_context(
+                    student,
+                    request_id,
+                    email_body,
+                    prior=prior,
+                    reply=reply,
+                    prior_evidence=prior_evidence,
+                )
+                context["previous_trial_offer"] = offer
+                context["trial_interest"] = bool(
+                    context.get("trial_interest") or TRIAL.search(latest_text(email_body))
+                )
+                if approval.get("booking_kind") == "trial":
+                    context.setdefault("simulated_trials", []).append(
+                        approval["booking"]["session"]["id"]
+                    )
+                db.execute(
+                    "INSERT INTO walkthrough_inputs (request_id, student, email_body, "
+                    "previous_run, context) VALUES (?, ?, ?, ?, ?)",
+                    (request_id, student, email_body, previous_id, json.dumps(context)),
+                )
         return {"token": token, "scenario": scenario}
 
-    def _check_daily_limit(self, db, day):
-        limit = self.daily_run_limit
-        if limit is not None and (
-            db.execute("SELECT count(*) FROM runs WHERE day = ?", (day,)).fetchone()[0] >= limit
-        ):
-            raise HTTPException(
-                429, f"Today's {limit} live demo runs are used. Please return tomorrow."
-            )
-
-    def create_thread(self, student):
-        if student not in CUSTOM_STUDENTS:
-            raise HTTPException(422, "Select a fictional student.")
+    def _require_current(self, row):
         now = self.clock()
-        day = datetime.fromtimestamp(now, ZoneInfo("Australia/Melbourne")).date().isoformat()
-        token = secrets.token_urlsafe(32)
-        state = initial_state()
-        if student != "new":
-            state["customer_name"] = CUSTOM_STUDENTS[student]["name"]
-        with self.db() as db:
-            self._prune(db, now)
-            db.execute(
-                "INSERT INTO threads VALUES (?,?,?,?,?)",
-                (token, student, now, day, json.dumps(state)),
-            )
-        return {"token": token}
+        if now - row["created"] >= EXPIRES_IN or self._day(now) != row["day"]:
+            raise HTTPException(410, "This demo run expired. Refresh to start again.")
 
-    def _thread(self, db, token):
-        row = db.execute("SELECT * FROM threads WHERE token = ?", (token,)).fetchone()
-        if not row:
-            raise HTTPException(404, "Conversation not found.")
-        now = self.clock()
-        day = datetime.fromtimestamp(now, ZoneInfo("Australia/Melbourne")).date().isoformat()
-        if now - row["created"] > 3600 or row["day"] != day:
-            raise HTTPException(410, "This conversation expired. Start a new one.")
-        return row
-
-    def thread_view(self, token):
-        with self.db() as db:
-            thread = self._thread(db, token)
-            rows = db.execute(
-                """SELECT t.request_id, t.original_body, t.accepted_reply, t.offer_confirmed,
-                r.evidence, r.draft, r.draft_answers FROM turns t
-                JOIN runs r ON r.request_id=t.request_id
-                WHERE t.thread_token=? ORDER BY r.rowid""",
-                (token,),
-            ).fetchall()
-            return {
-                "student": thread["student"],
-                "state": json.loads(thread["state"]),
-                "turns": [
-                    {
-                        "request_id": r["request_id"],
-                        "email": r["original_body"],
-                        "reply": r["accepted_reply"],
-                        "offer_confirmed": bool(r["offer_confirmed"]),
-                        "evidence": json.loads(r["evidence"]) if r["evidence"] else None,
-                        "draft": json.loads(r["draft"]) if r["draft"] else None,
-                        "draft_answers": json.loads(r["draft_answers"])
-                        if r["draft_answers"] is not None
-                        else None,
-                    }
-                    for r in rows
-                ],
-            }
-
-    def add_turn(self, token, request_id, body):
-        clean = strip_quotes(body)
-        if not clean or len(body) > 2000:
-            raise HTTPException(422, "Write up to 2,000 characters of new email text.")
-        now = self.clock()
-        with self.db() as db:
-            thread = self._thread(db, token)
-            existing = db.execute(
-                "SELECT * FROM turns WHERE request_id=?", (request_id,)
-            ).fetchone()
-            if existing:
-                if existing["thread_token"] != token or existing["original_body"] != body:
-                    raise HTTPException(409, "This request belongs to another email.")
-                return {"request_id": request_id}
-            if db.execute("SELECT 1 FROM runs WHERE request_id=?", (request_id,)).fetchone():
-                raise HTTPException(409, "This request belongs to another run.")
-            pending = db.execute(
-                "SELECT count(*) FROM turns WHERE thread_token=? AND accepted_reply IS NULL",
-                (token,),
-            ).fetchone()[0]
-            if pending:
-                raise HTTPException(409, "Accept the previous reply before adding another email.")
-            if (
-                db.execute("SELECT count(*) FROM turns WHERE thread_token=?", (token,)).fetchone()[
-                    0
-                ]
-                >= 10
-            ):
-                raise HTTPException(429, "This conversation has reached its ten-email limit.")
-            self._check_daily_limit(db, thread["day"])
-            run_token = secrets.token_urlsafe(32)
-            db.execute(
-                "INSERT INTO runs (request_id, token, scenario, day, created, student, email_body) "
-                "VALUES (?,?,?,?,?,?,?)",
-                (request_id, run_token, "custom", thread["day"], now, thread["student"], clean),
-            )
-            db.execute(
-                "INSERT INTO turns (request_id, thread_token, original_body) VALUES (?,?,?)",
-                (request_id, token, body),
-            )
-        return {"request_id": request_id}
-
-    def thread_execute(self, token, request_id, stage, *, teacher_answers=None):
-        with self.db() as db:
-            self._thread(db, token)
-            row = db.execute(
-                "SELECT r.token FROM turns t JOIN runs r ON r.request_id=t.request_id "
-                "WHERE t.thread_token=? AND t.request_id=?",
-                (token, request_id),
-            ).fetchone()
-            if not row:
-                raise HTTPException(404, "Email not found.")
-            run_token = row["token"]
-        return self.execute(run_token, stage, teacher_answers=teacher_answers)
-
-    def accept_reply(self, token, request_id, reply, offer_confirmed=False):
-        if not reply.strip() or len(reply) > 5000:
-            raise HTTPException(422, "A reply of up to 5,000 characters is required.")
-        with self.db() as db:
-            thread = self._thread(db, token)
-            row = db.execute(
-                "SELECT t.accepted_reply, t.offer_confirmed, r.draft FROM turns t JOIN runs r "
-                "ON r.request_id=t.request_id WHERE t.thread_token=? AND t.request_id=?",
-                (token, request_id),
-            ).fetchone()
-            if not row:
-                raise HTTPException(404, "Email not found.")
-            if not row["draft"]:
-                raise HTTPException(409, "Generate a draft first.")
-            if row["accepted_reply"] is not None:
-                if (
-                    row["accepted_reply"] != reply
-                    or bool(row["offer_confirmed"]) != offer_confirmed
-                ):
-                    raise HTTPException(409, "This reply has already been accepted.")
-                return {"accepted": True}
-            if offer_confirmed:
-                state = json.loads(thread["state"])
-                if state["booking_status"] != "offered":
-                    raise HTTPException(409, "There is no class offer to confirm.")
-                if state["recommended_class"] and above_recorded_level(
-                    state["recommended_class"]["description"],
-                    recorded_class_level(thread["student"]),
-                ):
-                    raise HTTPException(
-                        409, "The trial class requires a teacher’s placement review."
-                    )
-            db.execute(
-                "UPDATE turns SET accepted_reply=?, offer_confirmed=? WHERE request_id=?",
-                (reply, int(offer_confirmed), request_id),
-            )
-        return {"accepted": True}
-
-    def approve_mock(self, token, revision):
-        with self.db() as db:
-            row = self._thread(db, token)
-            state = json.loads(row["state"])
-            if state["revision"] != revision:
-                raise HTTPException(409, "The proposal has changed; review it again.")
-            if state["booking_status"] == "approved_mock":
-                return {"state": state}
-            if state["booking_status"] != "awaiting_approval":
-                raise HTTPException(409, "No trial request is ready for approval.")
-            if state["recommended_class"] and above_recorded_level(
-                state["recommended_class"]["description"], recorded_class_level(row["student"])
-            ):
-                raise HTTPException(409, "The trial class requires a teacher’s placement review.")
-            if trial_spaces(state["recommended_class"]) == 0:
-                raise HTTPException(409, "The selected trial session has no places available.")
-            if db.execute(
-                "SELECT 1 FROM turns WHERE thread_token=? AND accepted_reply IS NULL", (token,)
-            ).fetchone():
-                raise HTTPException(409, "Accept the draft before approving the request.")
-            state.update(booking_status="approved_mock", next_action="complete")
-            db.execute("UPDATE threads SET state=? WHERE token=?", (json.dumps(state), token))
-            return {"state": state}
-
-    def execute(self, token, stage, *, teacher_answers=None):
+    @contextmanager
+    def _lease(self, token):
         now = self.clock()
         lease = secrets.token_hex(16)
-        # stage is a server-owned literal from separate endpoint functions, never user SQL.
-        if stage not in {"evidence", "draft"}:
-            raise ValueError("Unknown stage")
         with self.db() as db:
-            row = db.execute("SELECT * FROM runs WHERE token = ?", (token,)).fetchone()
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("SELECT * FROM graph_runs WHERE token = ?", (token,)).fetchone()
             if row is None:
-                raise HTTPException(404, "Demo run not found.")
-            day = datetime.fromtimestamp(now, ZoneInfo("Australia/Melbourne")).date().isoformat()
-            if now - row["created"] > 3600 or row["day"] != day:
-                raise HTTPException(410, "This demo run expired. Restart the demo.")
-            if stage == "draft" and not row["evidence"]:
-                raise HTTPException(409, "Find supporting evidence before generating a draft.")
-            answers = teacher_answers or []
-            if stage == "draft":
-                missing = (
-                    ["Trial fee"]
-                    if row["scenario"] == "document"
-                    else json.loads(row["evidence"]).get("missing_information", [])
-                    if row["scenario"] == "custom" and row["evidence"]
-                    else []
-                )
-                if len(answers) != len(missing) or any(
-                    not isinstance(answer, str) or not answer.strip() or len(answer) > 2000
-                    for answer in answers
-                ):
-                    raise HTTPException(
-                        422, "Provide a response for each missing item before generating."
-                    )
-                answers = [answer.strip() for answer in answers]
-                encoded_answers = json.dumps(answers, ensure_ascii=False)
-                if row["draft_answers"] is not None and row["draft_answers"] != encoded_answers:
-                    raise HTTPException(
-                        409,
-                        "This draft attempt already has different teacher responses. "
-                        "Start a new run.",
-                    )
-            if row[stage]:
-                return json.loads(row[stage])
-            if row["busy_until"] > now:
-                raise HTTPException(409, "This demo is processing. Wait before retrying.")
-            if row[f"{stage}_attempts"] >= 2:
                 raise HTTPException(
-                    429, "This step's two attempts are used. Please try another example later."
+                    410, "This demo run is no longer active. Refresh to start again."
                 )
+            self._require_current(row)
+            if row["busy_until"] > now:
+                raise HTTPException(409, "This run is still processing. Retry shortly.")
             db.execute(
-                f"UPDATE runs SET {stage}_attempts = {stage}_attempts + 1, "
-                "busy_until = ?, lease = ? WHERE token = ?",
-                (now + 60, lease, token),
+                "UPDATE graph_runs SET lease = ?, busy_until = ? WHERE token = ?",
+                (lease, now + LEASE_SECONDS, token),
             )
-            if stage == "draft":
-                db.execute(
-                    "UPDATE runs SET draft_answers = ? WHERE token = ?", (encoded_answers, token)
-                )
-            thread_info = db.execute(
-                """SELECT t.thread_token, th.state FROM turns t
-                JOIN threads th ON th.token=t.thread_token WHERE t.request_id=?""",
-                (row["request_id"],),
-            ).fetchone()
-            thread_context = {}
-            if thread_info:
-                self._thread(db, thread_info["thread_token"])
-                history = db.execute(
-                    """SELECT r.email_body, t.accepted_reply, t.offer_confirmed FROM turns t
-                    JOIN runs r ON r.request_id=t.request_id WHERE t.thread_token=?
-                    AND t.accepted_reply IS NOT NULL
-                    ORDER BY r.rowid""",
-                    (thread_info["thread_token"],),
-                ).fetchall()
-                thread_context = {
-                    "thread_history": [
-                        {"email": h["email_body"], "reply": h["accepted_reply"]} for h in history
-                    ],
-                    "workflow_state": json.loads(thread_info["state"]),
-                }
-                if stage == "draft":
-                    thread_context["trial_spaces_remaining"] = trial_spaces(
-                        thread_context["workflow_state"].get("recommended_class")
-                    )
-            scenario = row["scenario"]
-            evidence_result = json.loads(row["evidence"]) if row["evidence"] else {}
-            evidence = evidence_result.get("evidence", [])
-        model = None
         try:
-            model = self.factory()
-            if scenario == "custom":
-                result = model.call(
-                    scenario,
-                    stage,
-                    evidence,
-                    context={
-                        "student": row["student"],
-                        "email_body": row["email_body"],
-                        **thread_context,
-                        **(
-                            {"student_information": evidence_result["student_information"]}
-                            if stage == "draft" and evidence_result.get("student_information")
-                            else {}
-                        ),
-                        **(
-                            {"teacher_answers": list(zip(missing, answers))}
-                            if stage == "draft" and missing
-                            else {}
-                        ),
-                    },
-                )
-            elif scenario == "document" and stage == "draft":
-                result = model.call(
-                    scenario,
-                    stage,
-                    evidence,
-                    context={"teacher_answers": list(zip(missing, answers))},
-                )
-            else:
-                result = model.call(scenario, stage, evidence)
-            if thread_info and stage == "evidence":
-                state = update_state(
-                    json.loads(thread_info["state"]),
-                    result.get("workflow_extraction", {}),
-                    row["email_body"],
-                    bool(history[-1]["offer_confirmed"]) if history else False,
-                    recorded_level=recorded_class_level(row["student"]),
-                    previous_email=history[-1]["email_body"] if history else "",
-                )
-                spaces = trial_spaces(state["recommended_class"])
-                if spaces is not None:
-                    place = "place" if spaces == 1 else "places"
-                    description = state["recommended_class"]["description"]
-                    result["evidence"] = [
-                        f"Class availability: {description}. "
-                        f"The fictional Database shows {spaces} {place} remaining.",
-                        *result["evidence"],
-                    ]
-                patterns = {
-                    "experience_level": r"experience|level",
-                    "preferred_day": r"day|availability",
-                    "customer_name": r"name",
-                }
-                information = result.get("student_information", [])
-                information = [
-                    item
-                    for item in information
-                    if not any(
-                        (
-                            state.get(field)
-                            or (field == "preferred_day" and state["recommended_class"])
-                        )
-                        and re.search(pattern, item, re.I)
-                        for field, pattern in patterns.items()
-                    )
-                ]
-                labels = {
-                    "experience_level": "Dance experience",
-                    "preferred_day": "Preferred day",
-                    "customer_name": "Customer name",
-                }
-                for field in state["missing_information"]:
-                    if not any(re.search(patterns[field], item, re.I) for item in information):
-                        information.append(labels[field])
-                result["student_information"] = information
-            with self.db() as db:
-                saved = db.execute(
-                    f"UPDATE runs SET {stage} = ?, busy_until = 0, lease = NULL "
-                    "WHERE token = ? AND lease = ?",
-                    (json.dumps(result), token, lease),
-                )
-                if saved.rowcount == 1 and thread_info and stage == "evidence":
-                    db.execute(
-                        "UPDATE threads SET state=? WHERE token=?",
-                        (json.dumps(state), thread_info["thread_token"]),
-                    )
-                if saved.rowcount != 1:
-                    raise HTTPException(
-                        409, "This attempt was superseded. Retry to load its result."
-                    )
-            return result
-        except HTTPException:
-            raise
-        except Exception as error:
-            # Attempts are never refunded, including timeouts, refusals and invalid output.
+            yield row
+        finally:
             with self.db() as db:
                 db.execute(
-                    "UPDATE runs SET busy_until = 0, lease = NULL WHERE token = ? AND lease = ?",
+                    "UPDATE graph_runs SET lease = NULL, busy_until = 0 "
+                    "WHERE token = ? AND lease = ?",
                     (token, lease),
                 )
-            raise HTTPException(
-                502, "The live AI step could not complete. You can retry once."
-            ) from error
-        finally:
-            if model is not None:
-                try:
-                    model.close()
-                except Exception:
-                    pass
+
+    def execute(self, token, stage, *, teacher_answers=(), revision=None, body=None):
+        if stage not in {"evidence", "draft", "approve"}:
+            raise ValueError("Invalid demo stage")
+        with self._lease(token) as row:
+            model = self.factory()
+            store = DemoStore(self, row)
+            config = {"configurable": {"thread_id": row["request_id"]}, "recursion_limit": 30}
+            try:
+                with self.checkpoints() as saver:
+                    graph = Workflow(
+                        None,
+                        model,
+                        store=store,
+                        records=self.records,
+                        evidence_review=evidence_questions,
+                        draft_override=lambda state: trial_draft(self.records, state),
+                    ).compile(saver)
+                    return self._drive(graph, config, row, stage, teacher_answers, revision, body)
+            except AdministrationError as error:
+                raise HTTPException(error.status, error.message) from error
+            except HTTPException:
+                raise
+            except Exception as error:
+                # The durable checkpoint is retained for a stage retry after a model failure.
+                raise HTTPException(
+                    502, "The demo could not finish this step. Please retry."
+                ) from error
+            finally:
+                client = getattr(model, "client", None)
+                if client is not None:
+                    client.close()
+
+    def _drive(self, graph, config, row, stage, teacher_answers, revision, body):
+        snapshot = graph.get_state(config)
+        state = snapshot.values
+        interrupts = [interrupt.value for task in snapshot.tasks for interrupt in task.interrupts]
+        at_evidence = any(value.get("stage") == "evidence" for value in interrupts)
+        if stage == "evidence":
+            if (
+                row["approval"]
+                and (saved := json.loads(row["approval"])).get("booking_kind") == "trial"
+            ):
+                return self._automatic_trial_result(saved)
+            if not at_evidence and not state.get("draft"):
+                self._attempt(row, "evidence")
+                graph.invoke(None if state else {"run_id": row["request_id"]}, config)
+                state = graph.get_state(config).values
+            questions = evidence_questions(state)
+            if not questions and (proposal := trial_draft(self.records, state)) is not None:
+                if not state.get("draft"):
+                    self._drive(graph, config, row, "draft", (), None, None)
+                    state = graph.get_state(config).values
+                if proposal.references == state["draft"].get("references"):
+                    trial_approval = self._drive(
+                        graph, config, row, "approve", (), state["attempt"], proposal.body
+                    )
+                    return self._automatic_trial_result(trial_approval)
+            return {
+                "evidence": supporting_evidence(state),
+                "missing_information": [item["label"] for item in questions],
+                "review_requirements": review_requirements(
+                    state.get("flow"),
+                    state.get("interpretation", {}),
+                    state.get("evidence", []),
+                    state.get("draft"),
+                    missing_teacher_information=bool(questions and not state.get("draft")),
+                ),
+                "model": self.model_name,
+            }
+        if stage == "draft":
+            if not state or "evidence" not in state:
+                raise HTTPException(409, "Find supporting evidence before generating a draft.")
+            if row["teacher_answers"] is not None and json.loads(row["teacher_answers"]) != list(
+                teacher_answers
+            ):
+                raise HTTPException(409, "Retry with the original teacher answers.")
+            if not state.get("draft"):
+                any_questions = evidence_questions(state)
+                resolutions = self._resolutions(any_questions, teacher_answers)
+                self._attempt(row, "draft", teacher_answers=teacher_answers)
+                graph.invoke(Command(resume=resolutions) if at_evidence else None, config)
+                state = graph.get_state(config).values
+            elif snapshot.next and not interrupts and not state.get("decision"):
+                graph.invoke(None, config)
+                state = graph.get_state(config).values
+            return {
+                "body": state["draft"]["body"],
+                "revision": state["attempt"],
+                "booking_proposed": bool(state["draft"].get("booking_session_id")),
+                "review_requirements": review_requirements(
+                    state.get("flow"), state["interpretation"], state["evidence"], state["draft"]
+                ),
+                "model": self.model_name,
+            }
+        if not state.get("draft") or revision != state.get("attempt"):
+            raise HTTPException(409, "Approval must match the current draft revision.")
+        approved_body = body if body is not None else state["draft"]["body"]
+        decision = {"action": "approve", "expected_revision": revision, "body": approved_body}
+        if row["decision"] and json.loads(row["decision"]) != decision:
+            raise HTTPException(409, "An approval for this draft is already in progress.")
+        if row["approval"]:
+            return json.loads(row["approval"])
+        DemoStore(self, row).check_approval(state, approved_body)
+        with self.db() as db:
+            db.execute(
+                "UPDATE graph_runs SET decision = ? WHERE request_id = ?",
+                (json.dumps(decision), row["request_id"]),
+            )
+        if not interrupts and not state.get("decision"):
+            graph.invoke(None, config)
+            snapshot = graph.get_state(config)
+            interrupts = [value for task in snapshot.tasks for value in task.interrupts]
+        graph.invoke(Command(resume=decision) if interrupts else None, config)
+        with self.db() as db:
+            saved = db.execute(
+                "SELECT approval FROM graph_runs WHERE request_id = ?", (row["request_id"],)
+            ).fetchone()[0]
+        return json.loads(saved)
+
+    def _automatic_trial_result(self, approval):
+        session = approval["booking"]["session"]
+        description = (
+            f"{session['className']}, {session['date']} at {session['time']}, {session['location']}"
+        )
+        return {
+            "evidence": [f"Verified trial: {description}."],
+            "missing_information": [],
+            "review_requirements": [],
+            "automatic_approval": approval,
+            "model": self.model_name,
+        }
+
+    def _attempt(self, row, stage, *, teacher_answers=None):
+        field = f"{stage}_attempts"
+        if row[field] >= MAX_ATTEMPTS:
+            raise HTTPException(429, "This step has reached its retry limit.")
+        with self.db() as db:
+            db.execute(
+                f"UPDATE graph_runs SET {field} = {field} + 1, "
+                "teacher_answers = COALESCE(teacher_answers, ?) WHERE request_id = ?",
+                (
+                    json.dumps(teacher_answers) if teacher_answers is not None else None,
+                    row["request_id"],
+                ),
+            )
+
+    @staticmethod
+    def _resolutions(questions, answers):
+        if len(answers) != len(questions) or any(not a.strip() or len(a) > 2000 for a in answers):
+            raise HTTPException(422, "Enter one answer or deferral for each question.")
+        return [
+            {
+                "question_id": question["id"],
+                "decision": "defer"
+                if answer == "I will confirm this information later."
+                else "answer",
+                "answer": None if answer == "I will confirm this information later." else answer,
+            }
+            for question, answer in zip(questions, answers, strict=True)
+        ]
+
+
+class DemoStore:
+    """Shared graph persistence interface, scoped to one fictional run."""
+
+    def __init__(self, demo, row):
+        self.demo, self.row = demo, row
+
+    def load_context(self, run_id):
+        if self.row["scenario"] != "walkthrough":
+            return self.demo.records.context(self.row["scenario"])
+        with self.demo.db() as db:
+            result = db.execute(
+                "SELECT context FROM walkthrough_inputs WHERE request_id = ?", (run_id,)
+            ).fetchone()
+        return json.loads(result["context"])
+
+    def save_routing(self, run_id, routing, flow):
+        pass
+
+    def remember_student(self, run_id, interpretation, routing, flow):
+        data = {**interpretation.model_dump(mode="json"), "flow": flow}
+        with self.demo.db() as db:
+            db.execute(
+                "UPDATE graph_runs SET interpretation = ? WHERE request_id = ?",
+                (json.dumps(data), run_id),
+            )
+
+    def save_revision_interpretation(self, run_id, interpretation):
+        raise RuntimeError("Start a new demo run for a revision.")
+
+    def save_draft(self, run_id, attempt, draft, evidence, warnings):
+        with self.demo.db() as db:
+            db.execute(
+                "UPDATE graph_runs SET revision = ?, draft = ?, evidence = ? WHERE request_id = ?",
+                (attempt, json.dumps(draft), json.dumps(evidence), run_id),
+            )
+
+    def check_approval(self, state, body):
+        draft = state["draft"]
+        require_resolved_questions(
+            SimpleNamespace(
+                interpretation={**state["interpretation"], "flow": state["flow"]},
+                draft_details=draft,
+                evidence=state["evidence"],
+            )
+        )
+        references = draft.get("references") or []
+        if any(ref.startswith("public-trial:") for ref in references):
+            trial = trial_draft(self.demo.records, state)
+            if trial is None or trial.references != references or body != trial.body:
+                raise HTTPException(409, "The verified trial session or confirmation changed.")
+            return trial.references[0].removeprefix("public-trial:")
+        proposal = draft.get("booking_session_id")
+        if not proposal:
+            return
+        if body != draft["body"]:
+            raise HTTPException(409, "The proposed booking wording must match the reviewed draft.")
+        if UUID(proposal) not in validated_candidate_ids(state["evidence"]):
+            raise HTTPException(409, "The proposed booking has no verified session.")
+        refreshed = self.demo.records.makeup(state)
+        if UUID(proposal) not in validated_candidate_ids(refreshed["evidence"]):
+            raise HTTPException(409, "The fictional session is no longer eligible.")
+
+    def approve(self, run_id, body):
+        response_id = str(uuid5(UUID(run_id), "demo-teacher-response"))
+        with self.demo.db() as db:
+            row = db.execute("SELECT * FROM graph_runs WHERE request_id = ?", (run_id,)).fetchone()
+            draft = json.loads(row["draft"])
+            interpretation = json.loads(row["interpretation"])
+            state = {
+                "run_id": run_id,
+                "draft": draft,
+                "evidence": json.loads(row["evidence"]),
+                "interpretation": interpretation,
+                "flow": interpretation["flow"],
+                "context": self.load_context(run_id),
+            }
+            if row["approval"] is None:
+                trial_id = self.check_approval(state, body)
+                proposal = draft.get("booking_session_id")
+                approval = {
+                    "status": "approved_mock",
+                    "revision": row["revision"],
+                    "body": body,
+                    "booking_simulated": bool(trial_id or proposal),
+                }
+                if trial_id or proposal:
+                    approval["booking_kind"] = "trial" if trial_id else "makeup"
+                    approval["booking"] = self._booking(
+                        trial_id or proposal, state["context"]["student"]
+                    )
+                db.execute(
+                    "UPDATE graph_runs SET approval = ? WHERE request_id = ?",
+                    (json.dumps(approval), run_id),
+                )
+        return response_id
+
+    def _booking(self, session_id, student):
+        records = self.demo.records
+        session = records.session(session_id)
+        local = session.starts_at.astimezone(ZoneInfo(session.regular_class.location.timezone))
+        return {
+            "student": {"id": student["id"], "name": student["name"]},
+            "session": {
+                "id": session_id,
+                "className": session.regular_class.name,
+                "date": f"{local:%A} {local.day} {local:%B %Y}",
+                "time": local.strftime("%I:%M %p").lstrip("0").replace(":00", "").lower(),
+                "location": session.regular_class.location.name,
+                "capacity": session.capacity,
+                "students": [
+                    {"id": row["id"], "name": row["display_name"]}
+                    for row in records.students.values()
+                    if UUID(row["id"]) in session.students
+                ],
+            },
+        }
+
+    def approved_response(self, run_id):
+        with self.demo.db() as db:
+            return json.loads(
+                db.execute(
+                    "SELECT approval FROM graph_runs WHERE request_id = ?", (run_id,)
+                ).fetchone()[0]
+            )["body"]
+
+    def approved_booking(self, run_id):
+        # A simulated approval is never a confirmed booking in student memory.
+        return None
+
+    def remember_approval(self, run_id, memory):
+        pass

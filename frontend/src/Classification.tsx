@@ -1,4 +1,4 @@
-import type { RunStatus } from "./types";
+import type { ReviewRequirement, RunStatus } from "./types";
 
 const labels: Record<string, string> = {
   makeup: "Makeup",
@@ -40,6 +40,36 @@ export function IntentBadges({
     </div>
   );
 }
+const requirementLabels: Record<ReviewRequirement, string> = {
+  student_information: "Needs student information",
+  teacher_input: "Needs teacher input",
+  teacher_review: "Needs teacher review",
+};
+
+export function ReviewRequirementBadges({
+  requirements,
+}: {
+  requirements?: ReviewRequirement[];
+}) {
+  if (!requirements?.length) return null;
+  return (
+    <div
+      className="intent-badges"
+      role="status"
+      aria-label="Review requirements"
+    >
+      {requirements.map((requirement) => (
+        <span
+          className={`intent-badge review-requirement ${requirement}`}
+          key={requirement}
+        >
+          {requirementLabels[requirement]}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function ClassificationPanel({
   interpretation,
   status,

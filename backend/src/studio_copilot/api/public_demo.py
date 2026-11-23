@@ -1,4 +1,4 @@
-"""Anonymous fixed-input demo API, separate from the authenticated staff API."""
+"""Anonymous fictional demo API, separate from the authenticated staff API."""
 
 import os
 from typing import Literal
@@ -7,9 +7,10 @@ from uuid import UUID
 
 from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.routing import APIRoute
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field
 
-from studio_copilot.public_demo.fixtures import CUSTOM_STUDENTS, PUBLIC_DOCUMENTS
+from studio_copilot.public_demo.fixtures import PUBLIC_DOCUMENTS
+from studio_copilot.public_demo.records import FictionalRecords
 from studio_copilot.public_demo.service import PublicDemo
 
 
@@ -35,45 +36,22 @@ router = APIRouter(prefix="/api/public-demo", tags=["Public demo"], route_class=
 
 class CreateRun(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    scenario: Literal["booking", "document", "custom"]
+    scenario: Literal["booking", "document", "noah", "riley"]
     request_id: UUID
-    student: str | None = Field(default=None, max_length=36)
-    email_body: str | None = Field(default=None, max_length=2000)
-
-    @model_validator(mode="after")
-    def validate_custom_email(self):
-        if self.scenario == "custom":
-            if (
-                self.student not in CUSTOM_STUDENTS
-                or not self.email_body
-                or not self.email_body.strip()
-            ):
-                raise ValueError("Select a fictional student and write an email.")
-        elif self.student is not None or self.email_body is not None:
-            raise ValueError("Guided scenarios use fixed inputs.")
-        return self
 
 
-class CreateThread(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    student: str = Field(max_length=36)
-
-
-class TurnInput(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+class WalkthroughRun(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     request_id: UUID
+    student: UUID | Literal["new"]
     email_body: str = Field(min_length=1, max_length=2000)
-
-
-class ReplyInput(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    body: str = Field(min_length=1, max_length=5000)
-    offer_confirmed: bool = False
+    previous_token: str | None = Field(default=None, max_length=100)
 
 
 class ApprovalInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    revision: int = Field(ge=0)
+    revision: int = Field(ge=1)
+    body: str | None = Field(default=None, min_length=1, max_length=20_000)
 
 
 class DraftInput(BaseModel):
@@ -127,49 +105,20 @@ def documents():
     ]
 
 
-@router.post("/threads")
-def create_thread(request: Request, body: CreateThread):
-    return service(request).create_thread(body.student)
-
-
-@router.post("/threads/current")
-def get_thread(request: Request, body: Empty):
-    return service(request).thread_view(token(request))
-
-
-@router.post("/threads/current/turns")
-def add_turn(request: Request, body: TurnInput):
-    return service(request).add_turn(token(request), str(body.request_id), body.email_body)
-
-
-@router.post("/threads/current/turns/{turn_id}/evidence")
-def thread_evidence(request: Request, turn_id: UUID, body: Empty):
-    return service(request).thread_execute(token(request), str(turn_id), "evidence")
-
-
-@router.post("/threads/current/turns/{turn_id}/draft")
-def thread_draft(request: Request, turn_id: UUID, body: DraftInput):
-    return service(request).thread_execute(
-        token(request), str(turn_id), "draft", teacher_answers=body.teacher_answers
-    )
-
-
-@router.post("/threads/current/turns/{turn_id}/accept")
-def accept_reply(request: Request, turn_id: UUID, body: ReplyInput):
-    return service(request).accept_reply(
-        token(request), str(turn_id), body.body, body.offer_confirmed
-    )
-
-
-@router.post("/threads/current/approve")
-def approve_mock(request: Request, body: ApprovalInput):
-    return service(request).approve_mock(token(request), body.revision)
+@router.get("/cases/{scenario}")
+def example_case(scenario: Literal["booking", "document", "noah", "riley"]):
+    return {"messages": FictionalRecords().context(scenario)["history"]}
 
 
 @router.post("/runs")
 def create(request: Request, body: CreateRun):
-    return service(request).create(
-        body.scenario, str(body.request_id), student=body.student, email_body=body.email_body
+    return service(request).create(body.scenario, str(body.request_id))
+
+
+@router.post("/walkthrough/runs")
+def create_walkthrough_run(request: Request, body: WalkthroughRun):
+    return service(request).create_walkthrough(
+        str(body.request_id), str(body.student), body.email_body, body.previous_token
     )
 
 
@@ -181,6 +130,13 @@ def evidence(request: Request, body: Empty):
 @router.post("/draft")
 def draft(request: Request, body: DraftInput):
     return service(request).execute(token(request), "draft", teacher_answers=body.teacher_answers)
+
+
+@router.post("/approve")
+def approve(request: Request, body: ApprovalInput):
+    return service(request).execute(
+        token(request), "approve", revision=body.revision, body=body.body
+    )
 
 
 def create_public_demo_app():

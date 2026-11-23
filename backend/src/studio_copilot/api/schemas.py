@@ -12,9 +12,12 @@ from pydantic import (
     EmailStr,
     Field,
     StringConstraints,
+    computed_field,
     field_validator,
     model_validator,
 )
+
+from studio_copilot.agent.review_requirements import ReviewRequirement, review_requirements
 
 Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
 Label = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
@@ -256,6 +259,15 @@ class AgentRunRead(Record):
     draft_details: dict[str, Any]
     policy_snapshot: dict[str, Any]
     error: str | None
+
+    @computed_field
+    @property
+    def review_requirements(self) -> list[ReviewRequirement]:
+        if self.status != "awaiting_review":
+            return []
+        return review_requirements(
+            self.interpretation.get("flow"), self.interpretation, self.evidence, self.draft_details
+        )
 
 
 class IncomingEmail(Input):

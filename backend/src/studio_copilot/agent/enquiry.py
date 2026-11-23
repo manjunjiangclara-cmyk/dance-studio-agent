@@ -190,9 +190,11 @@ def safe_body(
         answer.status == "needs_teacher" and answer.question_id not in deferred
         for answer in answers
     ):
-        parts.append("I can't confirm the remaining details yet. I'll check and get back to you.")
-    elif actions or not answers:
-        parts.append("I'll review your enquiry and get back to you.")
+        parts.append("I can't confirm the remaining details yet.")
+    elif actions:
+        parts.append("I can't confirm the requested change yet.")
+    elif not answers:
+        parts.append("I can't confirm the details yet.")
     body = "\n\n".join(parts)
     if resolutions and len(body) > 20_000:
         raise ModelError("The combined reply exceeds the response limit; use shorter answers.")

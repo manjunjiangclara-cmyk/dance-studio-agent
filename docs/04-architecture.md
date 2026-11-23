@@ -2,15 +2,20 @@
 
 ## Runtime
 
-One Python codebase uses FastAPI, PostgreSQL, SQLAlchemy, Alembic, LangGraph, and the OpenAI Python SDK. The staff API handles ordinary administration; the graph handles teacher-reviewed enquiries, makeup requests, and handoffs. The React website serves a public fictional walkthrough and a Google-authenticated owner review workspace from the same FastAPI origin. Public pages read versioned fixtures; owner pages use the authenticated API. There is no worker queue, real inbox, or email delivery.
+One Python codebase uses FastAPI, PostgreSQL, SQLAlchemy, Alembic, LangGraph, and the OpenAI Python SDK. The staff API handles ordinary administration; the graph handles teacher-reviewed enquiries, makeup requests, and handoffs. The React website serves a public Review Queue, an Email Walkthrough, and a Google-authenticated owner workspace from the same FastAPI origin. Both use the same graph. Public runs read the fictional records published in Database and Timetable and store checkpoints and simulated approvals in a separate SQLite ledger. Owner runs use the authenticated API and PostgreSQL. There is no worker queue, real inbox, or email delivery.
 
 ```mermaid
 flowchart LR
     S[Synthetic messages and staff review] --> A[FastAPI staff API]
     A --> G[LangGraph workflow]
+    U[Public Review Queue] --> D[Public demo API]
+    W[Public Email Walkthrough] --> D
+    D --> G
+    D --> L[(Demo SQLite ledger)]
     G --> M[OpenAI Responses API adapter]
     G --> Q[Read-only backend query tools]
     Q --> DB[(PostgreSQL)]
+    Q --> F[Fictional demo records]
     G --> DB
     P[Editable policy YAML] --> G
 ```

@@ -36,7 +36,6 @@ import {
   LockKeyhole,
   LogOut,
   Mail,
-  MailSearch,
   Menu,
   RefreshCw,
   Search,
@@ -48,10 +47,9 @@ import {
 } from "lucide-react";
 import { all, ApiError, examples, get, post, request } from "./data";
 import { confirmedSessions } from "./attendance";
-import { CustomEmail } from "./CustomEmail";
 import { StudentMemorySections } from "./StudentMemorySections";
 import { BookingProposal } from "./BookingProposal";
-import { GuidedTour } from "./GuidedTour";
+import { EmailWalkthrough } from "./EmailWalkthrough";
 import {
   LiveReviewQueue,
   LiveReviewDetail,
@@ -63,7 +61,11 @@ import {
   documentCitations,
   documentCitationUrl,
 } from "./DocumentAnswerEvidence";
-import { ClassificationPanel, IntentBadges } from "./Classification";
+import {
+  ClassificationPanel,
+  IntentBadges,
+  ReviewRequirementBadges,
+} from "./Classification";
 import { EnquiryPanel, missingTeacherDecisions } from "./EnquiryPanel";
 import type { QuestionResolution } from "./types";
 import type {
@@ -372,15 +374,12 @@ export default function App() {
     ["timetable", "Timetable", CalendarDays],
     ["database", "Database", Database],
     ["knowledge", "Studio knowledge", BookOpen],
-    [
-      "test-email",
-      workspace ? "Test email" : "Email walkthrough",
-      workspace ? FlaskConical : MailSearch,
-    ],
+    workspace
+      ? (["test-email", "Test email", FlaskConical] as const)
+      : (["test-email", "Email walkthrough", Mail] as const),
   ] as const;
   const pageLabel =
-    navigation.find(([path]) => path === page)?.[1] ||
-    (page === "tour" ? "Guided demo" : "Overview");
+    navigation.find(([path]) => path === page)?.[1] || "Overview";
   const detailLabel =
     id && page === "reviews"
       ? "Conversation review"
@@ -558,7 +557,7 @@ export default function App() {
                 {page === "overview" ? (
                   <Overview />
                 ) : page === "tour" && !workspace ? (
-                  <GuidedTour />
+                  <Navigate to="/demo/reviews" replace />
                 ) : page === "reviews" ? (
                   !workspace &&
                   [
@@ -607,7 +606,11 @@ export default function App() {
                     csrf={identity.csrf_token || ""}
                   />
                 ) : page === "test-email" ? (
-                  <TestEmail />
+                  workspace ? (
+                    <TestEmail />
+                  ) : (
+                    <EmailWalkthrough />
+                  )
                 ) : (
                   <Empty>
                     This page does not exist. Use the navigation to explore the
@@ -622,15 +625,11 @@ export default function App() {
             <span>
               {workspace
                 ? "Owner review workspace"
-                : page === "test-email"
-                  ? "Fictional data · Live AI"
-                  : (page === "tour" &&
-                        new URLSearchParams(location.search).get("mode") !==
-                          "recorded") ||
-                      (page === "reviews" &&
-                        ((!id && !location.search) || id?.startsWith("live-")))
-                    ? "Fictional data · Live AI · Simulated booking"
-                    : "Fictional data · Predefined examples"}
+                : page === "test-email" ||
+                    (page === "reviews" &&
+                      ((!id && !location.search) || id?.startsWith("live-")))
+                  ? "Fictional data · Live AI · Simulated booking"
+                  : "Fictional data · Predefined examples"}
               <span className="footer-dot">·</span>Australia / Melbourne
             </span>
           </footer>
@@ -1565,6 +1564,9 @@ function ReviewDetail({ id }: { id: string }) {
             </div>
             <FileText size={18} />
           </div>
+          {canReview && (
+            <ReviewRequirementBadges requirements={run.review_requirements} />
+          )}
           {canReview && !!run.draft_details.review_concerns?.length && (
             <section
               className="review-concerns"
@@ -3065,7 +3067,6 @@ function TestEmail() {
       setBusy(false);
     }
   }
-  if (!workspace) return <CustomEmail />;
   return (
     <>
       <PageHeader

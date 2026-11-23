@@ -12,7 +12,11 @@ from sqlalchemy.orm import Session
 
 from studio_copilot.administration.service import conflict, require
 from studio_copilot.agent.contracts import RequestInterpretation, ReviewedMemory
-from studio_copilot.agent.proposals import candidate_session_ids, confirmation_body
+from studio_copilot.agent.proposals import (
+    candidate_session_ids,
+    confirmation_body,
+    legacy_confirmation_body,
+)
 from studio_copilot.agent.question_resolutions import require_resolved_questions
 from studio_copilot.agent.tools import enrolments
 from studio_copilot.bookings.service import create_booking
@@ -356,12 +360,14 @@ class WorkflowStore:
                     # confirmation to the evidenced schedule, not just a mutable row ID.
                     target = require(db, ClassSession, session_id)
                     location = require(db, Location, target.regular_class.location_id, lock=True)
-                    expected_body = confirmation_body(
-                        target.regular_class.name,
-                        location.name,
-                        target.starts_at.astimezone(ZoneInfo(location.timezone)),
-                    )
-                    if draft.body != expected_body:
+                    conversation = require(db, Conversation, run.conversation_id)
+                    student = require(db, Student, conversation.student_id)
+                    local_start = target.starts_at.astimezone(ZoneInfo(location.timezone))
+                    session_details = target.regular_class.name, location.name, local_start
+                    if draft.body not in (
+                        confirmation_body(*session_details, student.display_name),
+                        legacy_confirmation_body(*session_details),
+                    ):
                         conflict("Session details changed. Request a new draft before booking.")
                     snapshots = [
                         item
@@ -385,6 +391,12 @@ class WorkflowStore:
                             conflict(
                                 "The session class changed. Request a new draft before booking."
                             )
+                        for field, value in (
+                            ("location_id", str(location.id)),
+                            ("location_name", location.name),
+                        ):
+                            if field in snapshot and snapshot[field] != value:
+                                conflict("The session location changed. Request a new draft first.")
                         for field, attribute in (
                             ("class_name", "name"),
                             ("level", "level"),

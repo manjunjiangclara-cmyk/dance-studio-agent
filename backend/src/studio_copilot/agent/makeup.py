@@ -34,7 +34,10 @@ def evidence_result(evidence: list[dict], name: str) -> dict:
 def validated_candidate_ids(evidence: list[dict]) -> set[UUID]:
     if not evidence_result(evidence, "verify_makeup_request").get("verified"):
         return set()
-    ids = evidence_result(evidence, "validate_makeup_candidates").get("valid_session_ids", [])
+    validation = evidence_result(evidence, "validate_makeup_candidates")
+    if validation.get("ambiguous") or validation.get("search_incomplete"):
+        return set()
+    ids = validation.get("valid_session_ids", [])
     searched = {
         s.get("id")
         for e in evidence
@@ -101,7 +104,8 @@ def _explicit_absence_notice(message: Message, day: date) -> bool:
 
 _MAKEUP_DATE_CHANGE = re.compile(
     r"\s*(?:actually,?\s+)?(?P<weekday>monday|tuesday|wednesday|thursday|friday|saturday|sunday)"
-    r"(?:\s+(?P<date>\d{4}-\d{2}-\d{2}))?\s+"
+    r"(?:\s+(?P<date>\d{4}-\d{2}-\d{2}))?"
+    r"(?:\s+at\s+(?P<time>\d{1,2}(?::[0-5]\d)?\s*[ap]m))?\s+"
     r"(?:instead(?:,?\s+please)?[.!]?|works after all[.!]\s+could I switch back to that one\?)"
     r"\s*",
     re.IGNORECASE,
@@ -136,14 +140,12 @@ def _matches_date_change(
 
 
 def _notice_context_unambiguous(db: Session, notice: Message, source: Message, day: date) -> bool:
-    if not _explicit_absence_notice(notice, day):
-        return False
-    if notice.id != source.id and notice.created_at >= source.created_at:
-        return False
+    followups = _notice_followups(db, notice)
+    return _notice_matches(notice, source, day, followups)
 
-    # Carry forward the original evidence only across unambiguous date changes or
-    # explicit confirmations of the same absence. Apply the same check at approval.
-    followups = db.scalars(
+
+def _notice_followups(db, notice):
+    return db.scalars(
         select(Message).where(
             Message.conversation_id == notice.conversation_id,
             Message.kind == "student_email",
@@ -151,6 +153,13 @@ def _notice_context_unambiguous(db: Session, notice: Message, source: Message, d
             Message.id != notice.id,
         )
     )
+
+
+def _notice_matches(notice, source, day, followups):
+    if not _explicit_absence_notice(notice, day):
+        return False
+    if notice.id != source.id and notice.created_at >= source.created_at:
+        return False
     return all(
         message.created_at <= source.created_at
         and (_makeup_date_change(message.body, day) or _explicit_absence_notice(message, day))
@@ -203,8 +212,6 @@ def attendance_status(db, student_id, session_id):
 
 def attended_level(db, student_id, policy, reference_at):
     """Return the highest recorded attended level, failing closed on unknown labels."""
-    order = policy.get("level_order", [])
-    ranks = {name.casefold(): index for index, name in enumerate(order)}
     levels = list(
         db.scalars(
             select(SessionAttendance.level_at_attendance)
@@ -216,6 +223,11 @@ def attended_level(db, student_id, policy, reference_at):
             )
         )
     )
+    return attended_rank(policy, levels)
+
+
+def attended_rank(policy, levels):
+    ranks = {name.casefold(): index for index, name in enumerate(policy.get("level_order", []))}
     if not ranks or not levels or any(level.casefold() not in ranks for level in levels):
         return None
     return max(ranks[level.casefold()] for level in levels)
@@ -237,8 +249,93 @@ def overlapping_session(db, student_id, target):
     )
 
 
+class WorkspaceMakeupReader:
+    def __init__(self, db, student_id, source_id, policy):
+        self.db = db
+        self.student_id = student_id
+        self.source_id = source_id
+        self.policy = policy
+
+    def tool(self, name, arguments, *, session_cursor=None):
+        return execute_tool(
+            self.db,
+            self.student_id,
+            self.source_id,
+            self.policy,
+            name,
+            arguments,
+            session_cursor=session_cursor,
+        )
+
+    def source(self, source_id):
+        require(self.db, Student, self.student_id)
+        return require(self.db, Message, source_id)
+
+    def notice(self, notice_id):
+        return self.db.get(Message, notice_id)
+
+    def notice_followups(self, notice):
+        return _notice_followups(self.db, notice)
+
+    def sessions_on(self, student_id, absence_date):
+        lower = datetime.combine(absence_date - timedelta(days=1), time.min, UTC)
+        upper = datetime.combine(absence_date + timedelta(days=2), time.min, UTC)
+        return self.db.scalars(
+            select(ClassSession).where(
+                ClassSession.starts_at >= lower,
+                ClassSession.starts_at < upper,
+                ClassSession.students.any(student_id),
+            )
+        )
+
+    def session(self, session_id):
+        return require(self.db, ClassSession, session_id)
+
+    def existing_makeup(self, student_id, missed_id):
+        return _existing_makeup(self.db, student_id, missed_id)
+
+    def pending_makeups(self, student_id, missed_id, run_id):
+        pending = self.db.scalars(
+            select(AgentRun)
+            .join(Conversation)
+            .where(
+                Conversation.student_id == student_id,
+                AgentRun.status == "awaiting_review",
+                AgentRun.approved_response_id.is_(None),
+            )
+        )
+        return {
+            run.draft_details["booking_session_id"]
+            for run in pending
+            if str(run.id) != run_id
+            and run.draft_details.get("booking_session_id")
+            and evidence_result(run.evidence, "verify_makeup_request").get("absence_session_id")
+            == str(missed_id)
+        }
+
+    def attendance_status(self, student_id, session_id):
+        return attendance_status(self.db, student_id, session_id)
+
+    def attended_level(self, student_id, policy, now):
+        return attended_level(self.db, student_id, policy, now)
+
+    def overlaps(self, student_id, session):
+        return overlapping_session(self.db, student_id, session)
+
+
 def gather_makeup(engine, state: dict) -> dict:
-    """Fixed sequence: date-specific enrolments, source/notice verification, search, validation."""
+    context = state["context"]
+    with Session(engine) as db:
+        reader = WorkspaceMakeupReader(
+            db, UUID(context["student"]["id"]), UUID(context["source"]["id"]), context["policy"]
+        )
+        result = gather_makeup_records(reader, state, datetime.now(UTC))
+        db.rollback()
+        return result
+
+
+def gather_makeup_records(reader, state: dict, now: datetime) -> dict:
+    """Verify absence, notice, level and candidate policies on either records adapter."""
     context, parsed = state["context"], state["interpretation"]
     student_id, source_id = UUID(context["student"]["id"]), UUID(context["source"]["id"])
     evidence, warnings = [], list(parsed.get("missing_details", []))
@@ -247,287 +344,272 @@ def gather_makeup(engine, state: dict) -> dict:
         evidence.append({"tool": name, "arguments": arguments, "result": result})
         return result
 
-    with Session(engine) as db:
+    def tool(name, arguments, *, session_cursor=None):
+        return record(name, arguments, reader.tool(name, arguments, session_cursor=session_cursor))
 
-        def tool(name, arguments, *, session_cursor=None):
-            return record(
-                name,
-                arguments,
-                execute_tool(
-                    db,
-                    student_id,
-                    source_id,
-                    context["policy"],
-                    name,
-                    arguments,
-                    **({"session_cursor": session_cursor} if session_cursor else {}),
-                ),
-            )
-
-        require(db, Student, student_id)
-        source = require(db, Message, source_id)
-        absence_date = _date(parsed.get("absence_date"))
-        verification = {
-            "verified": False,
-            "absence_session_id": None,
-            "absence_message_id": None,
-            "notice_acceptable": False,
-            "issues": [],
-            "references": [],
-        }
-        issues = verification["issues"]
-        enrolments = []
-        if absence_date is None:
-            issues.append("Confirm the missed class and its date.")
-        else:
-            enrolments = tool("get_enrolments", {"on_date": absence_date.isoformat()})["items"]
-        active_classes = {e["class_id"] for e in enrolments}
-        matches = []
-        if absence_date is not None:
-            lower = datetime.combine(absence_date - timedelta(days=1), time.min, UTC)
-            upper = datetime.combine(absence_date + timedelta(days=2), time.min, UTC)
-            sessions = db.scalars(
-                select(ClassSession).where(
-                    ClassSession.starts_at >= lower,
-                    ClassSession.starts_at < upper,
-                    ClassSession.students.any(student_id),
-                )
-            )
-            for session in sessions:
-                zone = ZoneInfo(session.regular_class.location.timezone)
-                if (
-                    session.starts_at.astimezone(zone).date() == absence_date
-                    and str(session.class_id) in active_classes
-                ):
-                    matches.append(session)
-            if len(matches) != 1:
-                issues.append(
-                    "The missed class/date must match one enrolled session in your student list."
-                )
-            elif parsed.get("absence_class_id") and str(matches[0].class_id) != str(
-                parsed["absence_class_id"]
+    source = reader.source(source_id)
+    absence_date = _date(parsed.get("absence_date"))
+    verification = {
+        "verified": False,
+        "absence_session_id": None,
+        "absence_message_id": None,
+        "notice_acceptable": False,
+        "issues": [],
+        "references": [],
+    }
+    issues = verification["issues"]
+    enrolments = []
+    if absence_date is None:
+        issues.append("Confirm the missed class and its date.")
+    else:
+        enrolments = tool("get_enrolments", {"on_date": absence_date.isoformat()})["items"]
+    active_classes = {e["class_id"] for e in enrolments}
+    matches = []
+    if absence_date is not None:
+        sessions = reader.sessions_on(student_id, absence_date)
+        for session in sessions:
+            zone = ZoneInfo(session.regular_class.location.timezone)
+            if (
+                session.starts_at.astimezone(zone).date() == absence_date
+                and str(session.class_id) in active_classes
             ):
-                issues.append("The selected class does not match the missed session.")
-        missed = matches[0] if len(matches) == 1 else None
-        try:
-            notice_id = UUID(str(parsed.get("absence_message_id")))
-        except (TypeError, ValueError):
-            notice_id = None
-        notice = db.get(Message, notice_id) if notice_id else None
-        visible_ids = {
-            m["id"] for m in context.get("history", []) if m.get("kind") == "student_email"
-        } | {str(source_id)}
-        if (
-            notice is None
-            or str(notice.id) not in visible_ids
-            or notice.kind != "student_email"
-            or notice.conversation_id != source.conversation_id
-            or source.conversation.student_id != student_id
-            or notice.occurred_at > source.occurred_at
-            or notice.created_at > source.created_at
-        ):
-            issues.append("Confirm the student email that reported this absence.")
-        elif missed is not None and not _notice_context_unambiguous(
-            db, notice, source, absence_date
-        ):
-            issues.append("Staff must confirm that the selected email reports this absence.")
-        elif missed is not None:
-            result = tool(
-                "check_absence_notice",
-                {"session_id": str(missed.id), "absence_message_id": str(notice.id)},
+                matches.append(session)
+        if len(matches) != 1:
+            issues.append(
+                "The missed class/date must match one enrolled session in your student list."
             )
-            if result.get("absence_message_id") != str(notice.id):
-                issues.append("Absence notice provenance could not be verified.")
-            else:
-                verification["notice_before_start"] = result.get("notice_before_start")
-                verification["notice_acceptable"] = (
-                    not result.get("rule_enabled") or result.get("notice_before_start") is True
-                )
-                if not verification["notice_acceptable"]:
-                    warnings.append("The absence notice was late; teacher review is needed.")
-        if missed is not None:
-            booked = _existing_makeup(db, student_id, missed.id)
-            if booked is not None:
-                verification["existing_makeup_session_id"] = str(booked.id)
-                verification["references"].append("session:" + str(booked.id))
-                issues.append(
-                    "A makeup is already booked for this absence. Staff must review changes."
-                )
-            status = attendance_status(db, student_id, missed.id)
-            verification["attendance_status"] = status
-            if status == "attended":
-                issues.append(
-                    "The attendance record says the student attended this session; "
-                    "staff review is needed."
-                )
-            elif status == "unknown" and missed.ends_at <= datetime.now(UTC):
-                issues.append(
-                    "Attendance for the missed session is not recorded; staff review is needed."
-                )
-        if missed is not None and not issues:
-            enrolment = next(e for e in enrolments if e["class_id"] == str(missed.class_id))
-            verification.update(
-                verified=True,
-                absence_session_id=str(missed.id),
-                absence_message_id=str(notice.id),
-                source_message_id=str(source_id),
-                enrolment_id=enrolment["id"],
-                absence_date=absence_date.isoformat(),
-                missed_session=_snapshot(missed),
-                notice_digest=_notice_digest(notice),
-                references=[
-                    "session:" + str(missed.id),
-                    "enrolment:" + enrolment["id"],
-                    "message:" + str(notice.id),
-                ],
-            )
-        record("verify_makeup_request", {"absence_date": parsed.get("absence_date")}, verification)
-        warnings.extend(issues)
-        # Timetable facts can still help a clarification; this never grants a booking.
-        tool("get_timetable", {})
-        preferred = _date(parsed.get("preferred_date"))
-        change = (
-            _makeup_date_change(source.body, absence_date) if absence_date is not None else None
+        elif parsed.get("absence_class_id") and str(matches[0].class_id) != str(
+            parsed["absence_class_id"]
+        ):
+            issues.append("The selected class does not match the missed session.")
+    missed = matches[0] if len(matches) == 1 else None
+    try:
+        notice_id = UUID(str(parsed.get("absence_message_id")))
+    except (TypeError, ValueError):
+        notice_id = None
+    notice = reader.notice(notice_id) if notice_id else None
+    visible_ids = {
+        m["id"] for m in context.get("history", []) if m.get("kind") == "student_email"
+    } | {str(source_id)}
+    if (
+        notice is None
+        or str(notice.id) not in visible_ids
+        or notice.kind != "student_email"
+        or notice.conversation_id != source.conversation_id
+        or source.conversation.student_id != student_id
+        or notice.occurred_at > source.occurred_at
+        or notice.created_at > source.created_at
+    ):
+        issues.append("Confirm the student email that reported this absence.")
+    elif missed is not None and not _notice_matches(
+        notice, source, absence_date, reader.notice_followups(notice)
+    ):
+        issues.append("Staff must confirm that the selected email reports this absence.")
+    elif missed is not None:
+        result = tool(
+            "check_absence_notice",
+            {"session_id": str(missed.id), "absence_message_id": str(notice.id)},
         )
-        weekday = parsed.get("preferred_weekday")
-        date_conflict = change is not None and not _matches_date_change(change, preferred, weekday)
-        if date_conflict:
-            warnings.append("The interpreted makeup date differs from the latest email.")
-        requested_class = parsed.get("preferred_class_name")
-        requested_time_text = parsed.get("preferred_time")
-        requested_time = _local_time(requested_time_text)
-        validated = {
-            "valid_session_ids": [],
-            "excluded": [],
-            "references": [],
-            "requested_class_name": requested_class,
-            "requested_time": requested_time_text,
-            "invalid_requested_time": bool(requested_time_text and requested_time is None),
-            "request_date_conflict": date_conflict,
-        }
-        max_level = attended_level(db, student_id, context["policy"], datetime.now(UTC))
-        level_order = context["policy"].get("level_order", [])
-        validated["max_attended_level"] = level_order[max_level] if max_level is not None else None
-        validated["options_requested"] = preferred is None
-        if verification["verified"] and max_level is None:
-            warnings.append(
-                "Record attended class levels and configure the studio level order "
-                "before offering a makeup."
+        if result.get("absence_message_id") != str(notice.id):
+            issues.append("Absence notice provenance could not be verified.")
+        else:
+            verification["notice_before_start"] = result.get("notice_before_start")
+            verification["notice_acceptable"] = (
+                not result.get("rule_enabled") or result.get("notice_before_start") is True
             )
-        if validation_time_invalid := validated["invalid_requested_time"]:
-            warnings.append("Confirm the requested makeup start time.")
-        if (
-            verification["verified"]
-            and verification["notice_acceptable"]
-            and max_level is not None
-            and not validation_time_invalid
-            and not date_conflict
-        ):
-            location_id = None
-            preference = parsed.get("location_preference")
-            if preference:
-                locations = tool("get_locations", {"location_id": None})["items"]
-                options = [
-                    location
-                    for location in locations
-                    if preference.casefold() in location["name"].casefold()
-                    or preference == location["id"]
-                ]
-                if len(options) == 1:
-                    location_id = options[0]["id"]
-                else:
-                    warnings.append("Confirm which studio location you prefer.")
-            weekdays = [
-                "monday",
-                "tuesday",
-                "wednesday",
-                "thursday",
-                "friday",
-                "saturday",
-                "sunday",
+            if not verification["notice_acceptable"]:
+                warnings.append("The absence notice was late; teacher review is needed.")
+    if missed is not None:
+        booked = reader.existing_makeup(student_id, missed.id)
+        if booked is not None:
+            verification["existing_makeup_session_id"] = str(booked.id)
+            verification["existing_makeup"] = _snapshot(booked)
+            verification["references"].append("session:" + str(booked.id))
+            issues.append("A makeup is already booked for this absence. Staff must review changes.")
+        status = reader.attendance_status(student_id, missed.id)
+        verification["attendance_status"] = status
+        if status == "attended":
+            issues.append(
+                "The attendance record says the student attended this session; "
+                "staff review is needed."
+            )
+        elif status == "unknown" and missed.ends_at <= now:
+            issues.append(
+                "Attendance for the missed session is not recorded; staff review is needed."
+            )
+    if missed is not None and not issues:
+        enrolment = next(e for e in enrolments if e["class_id"] == str(missed.class_id))
+        verification.update(
+            verified=True,
+            absence_session_id=str(missed.id),
+            absence_message_id=str(notice.id),
+            source_message_id=str(source_id),
+            enrolment_id=enrolment["id"],
+            absence_date=absence_date.isoformat(),
+            missed_session=_snapshot(missed),
+            notice_digest=_notice_digest(notice),
+            references=[
+                "session:" + str(missed.id),
+                "enrolment:" + enrolment["id"],
+                "message:" + str(notice.id),
+            ],
+        )
+    record("verify_makeup_request", {"absence_date": parsed.get("absence_date")}, verification)
+    warnings.extend(issues)
+    # Timetable facts can still help a clarification; this never grants a booking.
+    tool("get_timetable", {})
+    preferred = _date(parsed.get("preferred_date"))
+    change = _makeup_date_change(source.body, absence_date) if absence_date is not None else None
+    weekday = parsed.get("preferred_weekday")
+    date_conflict = change is not None and not _matches_date_change(change, preferred, weekday)
+    if date_conflict:
+        warnings.append("The interpreted makeup date differs from the latest email.")
+    requested_class = parsed.get("preferred_class_name")
+    requested_time_text = parsed.get("preferred_time")
+    requested_time = _local_time(requested_time_text)
+    if change and change["time"]:
+        hours, minutes, period = re.fullmatch(
+            r"(\d{1,2})(?::([0-5]\d))?\s*([ap]m)", change["time"], re.IGNORECASE
+        ).groups()
+        if 1 <= int(hours) <= 12:
+            exact_time = time(
+                int(hours) % 12 + (12 if period.lower() == "pm" else 0), int(minutes or 0)
+            )
+            if requested_time and requested_time != exact_time:
+                warnings.append("The interpreted makeup time differs from the latest email.")
+                date_conflict = True
+            requested_time = exact_time
+            requested_time_text = exact_time.isoformat(timespec="minutes")
+    validated = {
+        "valid_session_ids": [],
+        "excluded": [],
+        "references": [],
+        "requested_class_name": requested_class,
+        "requested_time": requested_time_text,
+        "invalid_requested_time": bool(requested_time_text and requested_time is None),
+        "request_date_conflict": date_conflict,
+    }
+    max_level = reader.attended_level(student_id, context["policy"], now)
+    level_order = context["policy"].get("level_order", [])
+    validated["max_attended_level"] = level_order[max_level] if max_level is not None else None
+    validated["options_requested"] = preferred is None
+    if verification["verified"] and max_level is None:
+        warnings.append(
+            "Record attended class levels and configure the studio level order "
+            "before offering a makeup."
+        )
+    if validation_time_invalid := validated["invalid_requested_time"]:
+        warnings.append("Confirm the requested makeup start time.")
+    if (
+        verification["verified"]
+        and verification["notice_acceptable"]
+        and max_level is not None
+        and not validation_time_invalid
+        and not date_conflict
+    ):
+        location_id = None
+        preference = parsed.get("location_preference")
+        if preference:
+            locations = tool("get_locations", {"location_id": None})["items"]
+            options = [
+                location
+                for location in locations
+                if preference.casefold() in location["name"].casefold()
+                or preference == location["id"]
             ]
-            inconsistent_day = (
-                preferred is not None
-                and weekday
-                and weekday.casefold() != weekdays[preferred.weekday()]
-            )
-            if weekday and weekday.casefold() not in weekdays:
-                inconsistent_day = True
-            if inconsistent_day:
-                warnings.append("Confirm the preferred date and weekday; they do not match.")
-            elif not preference or location_id:
-                search_args = {
-                    "from_date": (preferred or datetime.now(UTC).date()).isoformat(),
-                    "to_date": (
-                        preferred or (datetime.now(UTC).date() + timedelta(days=60))
-                    ).isoformat(),
-                    "weekday": preferred.weekday()
-                    if preferred
-                    else weekdays.index(weekday.casefold())
-                    if weekday
-                    else None,
-                    "level": None,
-                    "location_id": location_id,
-                }
-                cursor = None
-                for _ in range(20):
-                    result = tool("search_sessions", search_args, session_cursor=cursor)
-                    for item in result["items"]:
-                        session = require(db, ClassSession, UUID(item["id"]))
-                        item["student_already_in_session"] = student_id in session.students
-                        item["location_name"] = session.regular_class.location.name
-                        reason = None
-                        if requested_class and (
-                            " ".join(requested_class.casefold().split())
-                            != " ".join(session.regular_class.name.casefold().split())
-                        ):
-                            reason = "requested_class_mismatch"
-                        elif requested_time is not None and (
-                            session.starts_at.astimezone(
-                                ZoneInfo(session.regular_class.location.timezone)
-                            ).time()
-                            != requested_time
-                        ):
-                            reason = "requested_time_mismatch"
-                        elif session.starts_at <= datetime.now(UTC):
-                            reason = "past"
-                        elif item["student_already_in_session"]:
-                            reason = "already_in_session"
-                        elif len(session.students) >= session.capacity:
-                            reason = "full"
-                        elif overlapping_session(db, student_id, session):
-                            reason = "overlapping_session"
-                        elif session.regular_class.level.casefold() not in [
-                            x.casefold() for x in level_order
-                        ]:
-                            reason = "unknown_level"
-                        elif [x.casefold() for x in level_order].index(
-                            session.regular_class.level.casefold()
-                        ) > max_level:
-                            reason = "above_attended_level"
-                        if reason:
-                            validated["excluded"].append(
-                                {"session_id": item["id"], "reason": reason}
-                            )
-                        else:
-                            validated["valid_session_ids"].append(item["id"])
-                            validated["references"].append("session:" + item["id"])
-                    next_cursor = result.get("next_cursor")
-                    if not next_cursor or len(validated["valid_session_ids"]) >= 30:
-                        break
-                    cursor = (datetime.fromisoformat(next_cursor[0]), UUID(next_cursor[1]))
-                else:
-                    validated["search_incomplete"] = True
-                    warnings.append(
-                        "The session search was incomplete; please review further options."
-                    )
-                if not validated["valid_session_ids"] and not validated.get("search_incomplete"):
-                    warnings.append(
-                        "No available replacement session matches the verified request."
-                    )
-        record("validate_makeup_candidates", {}, validated)
-        # All reads end without a commit; model calls happen after this session closes.
-        db.rollback()
+            if len(options) == 1:
+                location_id = options[0]["id"]
+            else:
+                warnings.append("Confirm which studio location you prefer.")
+        weekdays = [
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+            "saturday",
+            "sunday",
+        ]
+        inconsistent_day = (
+            preferred is not None
+            and weekday
+            and weekday.casefold() != weekdays[preferred.weekday()]
+        )
+        if weekday and weekday.casefold() not in weekdays:
+            inconsistent_day = True
+        if inconsistent_day:
+            warnings.append("Confirm the preferred date and weekday; they do not match.")
+        elif not preference or location_id:
+            search_args = {
+                "from_date": (preferred or now.date()).isoformat(),
+                "to_date": (preferred or (now.date() + timedelta(days=60))).isoformat(),
+                "weekday": preferred.weekday()
+                if preferred
+                else weekdays.index(weekday.casefold())
+                if weekday
+                else None,
+                "level": None,
+                "location_id": location_id,
+            }
+            cursor = None
+            pending = reader.pending_makeups(student_id, missed.id, state["run_id"])
+            for _ in range(20):
+                result = tool("search_sessions", search_args, session_cursor=cursor)
+                for item in result["items"]:
+                    session = reader.session(UUID(item["id"]))
+                    item["student_already_in_session"] = student_id in session.students
+                    item["location_name"] = session.regular_class.location.name
+                    if item["id"] in pending:
+                        item["makeup_status"] = "awaiting_review"
+                    reason = None
+                    if requested_class and (
+                        " ".join(requested_class.casefold().split())
+                        != " ".join(session.regular_class.name.casefold().split())
+                    ):
+                        reason = "requested_class_mismatch"
+                    elif requested_time is not None and (
+                        session.starts_at.astimezone(
+                            ZoneInfo(session.regular_class.location.timezone)
+                        ).time()
+                        != requested_time
+                    ):
+                        reason = "requested_time_mismatch"
+                    elif session.starts_at <= now:
+                        reason = "past"
+                    elif item["student_already_in_session"]:
+                        reason = "already_in_session"
+                    elif len(session.students) >= session.capacity:
+                        reason = "full"
+                    elif reader.overlaps(student_id, session):
+                        reason = "overlapping_session"
+                    elif session.regular_class.level.casefold() not in [
+                        x.casefold() for x in level_order
+                    ]:
+                        reason = "unknown_level"
+                    elif [x.casefold() for x in level_order].index(
+                        session.regular_class.level.casefold()
+                    ) > max_level:
+                        reason = "above_attended_level"
+                    if reason:
+                        validated["excluded"].append({"session_id": item["id"], "reason": reason})
+                    else:
+                        validated["valid_session_ids"].append(item["id"])
+                        validated["references"].append("session:" + item["id"])
+                next_cursor = result.get("next_cursor")
+                if not next_cursor or len(validated["valid_session_ids"]) >= 30:
+                    break
+                cursor = (datetime.fromisoformat(next_cursor[0]), UUID(next_cursor[1]))
+            else:
+                validated["search_incomplete"] = True
+                warnings.append("The session search was incomplete; please review further options.")
+            if not validated["valid_session_ids"] and not validated.get("search_incomplete"):
+                warnings.append("No available replacement session matches the verified request.")
+    if len(validated["valid_session_ids"]) > 1:
+        validated["ambiguous"] = True
+        warnings.append(
+            "More than one eligible session matches; confirm the intended class or time."
+        )
+    record("validate_makeup_candidates", {}, validated)
     return {"evidence": evidence, "warnings": warnings}
 
 
@@ -536,6 +618,15 @@ def clarification_body(evidence: list[dict]) -> str:
     excluded = evidence_result(evidence, "validate_makeup_candidates").get("excluded", [])
     verification = evidence_result(evidence, "verify_makeup_request")
     if verification.get("existing_makeup_session_id"):
+        if booking := verification.get("existing_makeup"):
+            starts = datetime.fromisoformat(booking["starts_at"]).astimezone(
+                ZoneInfo(booking["timezone"])
+            )
+            return (
+                f"Our records show your makeup for that absence is already booked in "
+                f"{booking['class_name']} on {starts:%A %d %B at %I:%M %p}. "
+                "We can review your request to change it."
+            )
         return (
             "Our records show a makeup is already booked for that absence. "
             "We can review your request to change it."
@@ -570,7 +661,9 @@ def clarification_body(evidence: list[dict]) -> str:
         return "Could you confirm the requested makeup start time?"
     if validation.get("max_attended_level") is None:
         return "We need to review your attendance and class levels before suggesting a makeup."
-    if validation.get("options_requested") and validation.get("valid_session_ids"):
+    if (validation.get("options_requested") or validation.get("ambiguous")) and validation.get(
+        "valid_session_ids"
+    ):
         valid = set(validation["valid_session_ids"])
         items = [
             item

@@ -30,8 +30,16 @@ def _traced(name: str, handler: Callable):
 
 
 class Workflow:
-    def __init__(self, engine, model):
-        self.nodes = WorkflowNodes(WorkflowStore(engine), model)
+    def __init__(
+        self, engine, model, *, store=None, records=None, evidence_review=None, draft_override=None
+    ):
+        self.nodes = WorkflowNodes(
+            store if store is not None else WorkflowStore(engine),
+            model,
+            records=records,
+            evidence_review=evidence_review,
+            draft_override=draft_override,
+        )
 
     def compile(self, checkpointer):
         nodes = self.nodes

@@ -1153,6 +1153,17 @@ label > textarea {
   font-size: 12px;
   line-height: 1.5;
 }
+.review-requirement {
+  background: #fff5e5;
+  color: #674215;
+  border-color: #e7c894;
+}
+.review-requirement.teacher_input,
+.review-requirement.teacher_review {
+  background: #f2eefb;
+  color: #51387a;
+  border-color: #d6c8ee;
+}
 .classification-panel h2 {
   font-family: inherit;
   font-size: 28px;
@@ -1587,13 +1598,16 @@ dd {
   padding: 20px 0;
   margin-top: 0;
 }
+.live-conversation-reply,
 .profile-message-response {
   flex-direction: row-reverse;
 }
+.live-conversation-reply .live-conversation-avatar,
 .profile-message-response .live-conversation-avatar {
   background: #e5eee1;
   color: #395f38;
 }
+.live-conversation-reply .live-conversation-bubble,
 .profile-message-response .live-conversation-bubble {
   background: #f1f7ee;
   border-color: #d3e4cd;
@@ -1605,6 +1619,7 @@ dd {
   gap: 4px 10px;
   align-items: baseline;
 }
+.live-conversation-reply .live-conversation-sender,
 .profile-message-response .live-conversation-sender {
   justify-content: flex-end;
   text-align: right;
@@ -2042,6 +2057,13 @@ dd {
 .email-form label {
   display: block;
   margin-bottom: 22px;
+}
+.walkthrough-form label {
+  margin: 16px 0 6px;
+}
+.walkthrough-form textarea {
+  width: 100%;
+  resize: vertical;
 }
 .email-form .button {
   margin-top: 15px;
@@ -3585,6 +3607,32 @@ h3 {
   }
 }
 
+.demo-question {
+  border: 1px solid #b8cbd6;
+  padding: 20px;
+  border-radius: 10px;
+  margin: 20px 0;
+  min-width: 0;
+}
+.demo-question legend {
+  font-weight: 700;
+}
+.demo-question label {
+  display: block;
+  margin: 16px 0;
+}
+.demo-question input {
+  width: auto;
+  margin-right: 8px;
+}
+.demo-question textarea {
+  display: block;
+  width: 100%;
+  margin: 10px 0;
+  min-height: 100px;
+  font: inherit;
+  line-height: 1.6;
+}
 .live-draft-evidence {
   border-top: 1px solid #dbe4eb;
   margin-top: 24px;

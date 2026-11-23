@@ -74,10 +74,17 @@ def state(session_id, *, flow="makeup", tool="search_sessions"):
 def test_evidenced_makeup_proposal_retains_selected_session():
     session_id = uuid4()
     draft = proposal(session_id)
-    result = _validate_booking_proposal(draft, state(session_id))
+    verified = state(session_id)
+    verified["context"]["student"] = {"name": "Alex Morgan"}
+    verified["evidence"][-1]["result"]["items"][0]["class_name"] = (
+        "Adult Ballet · Level 2 · Thursday"
+    )
+    result = _validate_booking_proposal(draft, verified)
     assert result.booking_session_id == session_id
-    assert "Thursday Level 2" in result.body
-    assert "11 February 2027" in result.body
+    assert result.body == (
+        "Hi Alex,\n\nThanks for letting me know. I've booked you into Adult Ballet Level 2 "
+        "at Studio A on Thursday 11 February 2027 at 6 pm.\n\nSee you then!"
+    )
 
 
 @pytest.mark.parametrize("unsupported", ["different_id", "wrong_tool", "handoff", "reference_only"])

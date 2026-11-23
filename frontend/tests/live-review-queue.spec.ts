@@ -1,4 +1,73 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page, type Route } from "@playwright/test";
+import { DEMO_DEFER } from "../src/DemoQuestionAnswers";
+import examples from "../src/data/examples.v1.json" with { type: "json" };
+const booking = {
+  student: { id: "3861ca04-d9bd-5994-af78-b1540c29f791", name: "Alex Morgan" },
+  session: {
+    id: "df96032d-5ce8-561e-948f-bda79b05887e",
+    className: "Adult Ballet · Level 2",
+    date: "Saturday 13 February 2027",
+    time: "6 pm · Australia/Melbourne",
+    location: "Merri Ballet · Brunswick",
+    capacity: 2,
+    students: [
+      { id: "55c19f62-e578-4e33-9672-3dfe3fb65d3e", name: "Noah Ellis" },
+    ],
+  },
+};
+
+const sources = {
+  booking: "97aa529c-2ca7-5ee9-86c6-0d7c9da03752",
+  document: "3a067002-bcaf-57b7-a336-a1e6dbe29914",
+  noah: "11021b1d-f2c9-5bc0-bed7-01d1418e57bf",
+  riley: "e7006165-a655-507c-815c-2ead33050f7f",
+};
+
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/public-demo/cases/*", (route) => {
+    expect(route.request().method()).toBe("GET");
+    const scenario = new URL(route.request().url()).pathname
+      .split("/")
+      .at(-1) as keyof typeof sources;
+    const source = examples.messages.find(
+      ({ id }) => id === sources[scenario],
+    )!;
+    return route.fulfill({
+      json: {
+        messages: examples.messages.filter(
+          (message) =>
+            message.conversation_id === source.conversation_id &&
+            message.kind === "student_email" &&
+            message.occurred_at <= source.occurred_at,
+        ),
+      },
+    });
+  });
+});
+
+async function mockStages(
+  page: Page,
+  handler: (route: Route) => Promise<unknown>,
+) {
+  await page.route("**/api/public-demo/**", async (route) => {
+    if (route.request().method() === "GET") await route.fallback();
+    else await handler(route);
+  });
+}
+
+function draftResponse(body: string, booking_proposed = false) {
+  return { body, booking_proposed, revision: 1, model: "test" };
+}
+
+function approveResponse(body: string, simulateBooking = false) {
+  return {
+    status: "approved_mock",
+    revision: 1,
+    body,
+    booking_simulated: simulateBooking,
+    ...(simulateBooking ? { booking } : {}),
+  };
+}
 
 test("all unanswered emails share the same live review experience", async ({
   page,
@@ -52,7 +121,7 @@ test("new cases handle missing information and retry with the same run", async (
     body: Record<string, unknown>;
     token?: string;
   }[] = [];
-  await page.route("**/api/public-demo/**", async (route) => {
+  await mockStages(page, async (route) => {
     const request = route.request();
     const stage = new URL(request.url()).pathname.split("/").at(-1)!;
     calls.push({
@@ -71,31 +140,35 @@ test("new cases handle missing information and retry with the same run", async (
           model: "test",
         },
       });
+    if (stage === "approve")
+      return route.fulfill({
+        json: approveResponse(String(request.postDataJSON().body)),
+      });
     if (calls.filter((call) => call.stage === "draft").length === 1)
       return route.fulfill({
         status: 502,
         json: { detail: "Temporary failure" },
       });
     return route.fulfill({
-      json: { body: "Please tell me the dates.", model: "test" },
+      json: draftResponse("Please tell me the dates."),
     });
   });
   await page.goto("/demo/reviews/live-noah");
   await page
     .getByRole("button", { name: "Generate draft", exact: true })
     .click();
-  await expect(page.getByLabel("Absence date")).toBeVisible();
+  await expect(page.getByLabel("Absence date answer")).toBeVisible();
   await page
-    .getByLabel("Absence date")
+    .getByLabel("Absence date answer")
     .fill("I will confirm the absence date.");
   await page
-    .getByLabel("Preferred date")
+    .getByLabel("Preferred date answer")
     .fill("I will confirm the preferred date.");
   await page
     .getByRole("button", { name: "Generate draft", exact: true })
     .click();
   await expect(page.getByRole("alert")).toContainText("Temporary failure");
-  await expect(page.getByLabel("Absence date")).toBeDisabled();
+  await expect(page.getByLabel("Absence date answer")).toBeDisabled();
   await page.getByRole("button", { name: "Retry", exact: true }).click();
   await expect(
     page.getByRole("textbox", { name: "Response", exact: true }),
@@ -106,10 +179,9 @@ test("new cases handle missing information and retry with the same run", async (
     "draft",
     "draft",
   ]);
-  expect(calls[0].body).toMatchObject({
-    scenario: "custom",
-    student: "60bbb539-91bc-5858-80f5-a1b6ae915aae",
-    email_body: "Could I arrange a makeup class?",
+  expect(calls[0].body).toEqual({
+    request_id: expect.any(String),
+    scenario: "noah",
   });
   expect(calls[2].body).toEqual({
     teacher_answers: [
@@ -123,13 +195,17 @@ test("new cases handle missing information and retry with the same run", async (
   await expect(
     page.getByText(/Simulation complete. No email was sent/),
   ).toBeVisible();
+  expect(calls.at(-1)).toMatchObject({
+    stage: "approve",
+    body: { revision: 1, body: "Please tell me the dates." },
+  });
 });
 
 test("a new case accepts empty evidence when no teacher input is needed", async ({
   page,
 }) => {
   const calls: { stage: string; body: Record<string, unknown> }[] = [];
-  await page.route("**/api/public-demo/**", async (route) => {
+  await mockStages(page, async (route) => {
     const stage = new URL(route.request().url()).pathname.split("/").at(-1)!;
     calls.push({ stage, body: route.request().postDataJSON() });
     if (stage === "runs")
@@ -144,7 +220,7 @@ test("a new case accepts empty evidence when no teacher input is needed", async 
         },
       });
     return route.fulfill({
-      json: { body: "Tell me what days work for you.", model: "test" },
+      json: draftResponse("Tell me what days work for you."),
     });
   });
   await page.goto("/demo/reviews/live-riley");
@@ -159,10 +235,9 @@ test("a new case accepts empty evidence when no teacher input is needed", async 
     "evidence",
     "draft",
   ]);
-  expect(calls[0].body).toMatchObject({
-    scenario: "custom",
-    student: "2eca4988-037e-54f9-9668-59ee06b2888b",
-    email_body: "Could you help me choose a class?",
+  expect(calls[0].body).toEqual({
+    request_id: expect.any(String),
+    scenario: "riley",
   });
   expect(calls[2].body).toEqual({ teacher_answers: [] });
 });
@@ -171,7 +246,7 @@ test("visitors generate and review a temporary live response", async ({
   page,
 }) => {
   const calls: string[] = [];
-  await page.route("**/api/public-demo/**", async (route) => {
+  await mockStages(page, async (route) => {
     const stage = new URL(route.request().url()).pathname.split("/").at(-1)!;
     calls.push(stage);
     if (stage === "runs") {
@@ -184,9 +259,17 @@ test("visitors generate and review a temporary live response", async ({
           model: "test",
         },
       });
-    } else {
+    } else if (stage === "draft") {
       await route.fulfill({
-        json: { body: "A live response for Alex.", model: "test" },
+        json: draftResponse("A live response for Alex.", true),
+      });
+    } else {
+      expect(route.request().postDataJSON()).toEqual({
+        revision: 1,
+        body: "A live response for Alex.",
+      });
+      await route.fulfill({
+        json: approveResponse("A live response for Alex.", true),
       });
     }
   });
@@ -247,13 +330,15 @@ test("visitors generate and review a temporary live response", async ({
     "datetime",
     "2027-02-07T10:00:00+11:00",
   );
-  await expect(messages.nth(0)).toContainText("Could I come Thursday instead?");
+  await expect(messages.nth(0)).toContainText(
+    "Could I make it up on 2027-02-11?",
+  );
   await expect(messages.nth(1).locator("time")).toHaveAttribute(
     "datetime",
     "2027-02-07T10:05:00+11:00",
   );
   await expect(messages.nth(1)).toContainText(
-    "Saturday 13 February would be better.",
+    examples.messages.find(({ id }) => id === sources.booking)!.body,
   );
   expect(calls).toEqual([]);
   await expect(
@@ -273,15 +358,14 @@ test("visitors generate and review a temporary live response", async ({
     page.getByRole("textbox", { name: "Response", exact: true }),
   ).toHaveValue("A live response for Alex.");
   await expect(page.getByText(/AI-generated draft · test/)).toBeVisible();
-  await page
-    .getByRole("textbox", { name: "Response", exact: true })
-    .fill("Edited response");
-  await expect(page.getByText(/AI draft edited · test/)).toBeVisible();
+  await expect(
+    page.getByRole("textbox", { name: "Response", exact: true }),
+  ).toBeDisabled();
   await expect(
     page.getByRole("heading", { name: "Booking confirmed" }),
   ).toHaveCount(0);
   await expect(
-    page.getByText(/Editing the email does not change the selected class/),
+    page.getByText(/Approval simulates the booking for the verified class/),
   ).toBeVisible();
   await page.getByRole("button", { name: "Approve response" }).click();
   await expect(page.getByRole("separator")).toHaveCount(1);
@@ -309,7 +393,7 @@ test("visitors generate and review a temporary live response", async ({
   await expect(
     page.getByRole("button", { name: "Approved", exact: true }),
   ).toBeDisabled();
-  expect(calls).toEqual(["runs", "evidence", "draft"]);
+  expect(calls).toEqual(["runs", "evidence", "draft", "approve"]);
   await page.reload();
   await expect(
     page.getByRole("heading", { name: "Booking confirmed" }),
@@ -317,7 +401,7 @@ test("visitors generate and review a temporary live response", async ({
   await expect(
     page.getByRole("textbox", { name: "Response", exact: true }),
   ).toBeEmpty();
-  expect(calls).toHaveLength(3);
+  expect(calls).toHaveLength(4);
 });
 
 test("quota failure is visible without a fabricated response", async ({
@@ -338,18 +422,22 @@ test("quota failure is visible without a fabricated response", async ({
 
 test("document enquiry requires a teacher decision", async ({ page }) => {
   let answers: string[] = [];
-  await page.route("**/api/public-demo/**", async (route) => {
+  await mockStages(page, async (route) => {
     const stage = new URL(route.request().url()).pathname.split("/").at(-1);
     if (stage === "runs") await route.fulfill({ json: { token: "token" } });
     else if (stage === "evidence")
       await route.fulfill({
-        json: { evidence: ["Fee is unknown"], model: "test" },
+        json: {
+          evidence: ["Fee is unknown"],
+          missing_information: ["Trial fee"],
+          model: "test",
+        },
       });
-    else {
+    else if (stage === "draft") {
       answers = route.request().postDataJSON().teacher_answers;
-      await route.fulfill({
-        json: { body: "I will confirm the fee.", model: "test" },
-      });
+      await route.fulfill({ json: draftResponse("I will confirm the fee.") });
+    } else {
+      await route.fulfill({ json: approveResponse("I will confirm the fee.") });
     }
   });
   await page.goto("/demo/reviews/live-document");
@@ -362,16 +450,14 @@ test("document enquiry requires a teacher decision", async ({ page }) => {
     .getByRole("button", { name: "Generate draft", exact: true })
     .click();
   await expect(
-    page.getByRole("button", { name: "Generate draft with decision" }),
+    page.getByRole("button", { name: "Generate draft" }),
   ).toBeDisabled();
-  await page.getByLabel("Confirm the fee later").check();
-  await page
-    .getByRole("button", { name: "Generate draft with decision" })
-    .click();
+  await page.getByRole("checkbox", { name: "Confirm later" }).check();
+  await page.getByRole("button", { name: "Generate draft" }).click();
   await expect(
     page.getByRole("textbox", { name: "Response", exact: true }),
   ).toHaveValue("I will confirm the fee.");
-  expect(answers).toEqual(["I will confirm the trial fee later."]);
+  expect(answers).toEqual([DEMO_DEFER]);
   await page.getByRole("button", { name: "Approve response" }).click();
   await expect(page.getByRole("separator")).toHaveCount(0);
   await expect(
@@ -396,7 +482,7 @@ test("student links keep their filtered predefined records", async ({
 test("retry reuses the run after a failed draft", async ({ page }) => {
   let runs = 0;
   let drafts = 0;
-  await page.route("**/api/public-demo/**", async (route) => {
+  await mockStages(page, async (route) => {
     const stage = new URL(route.request().url()).pathname.split("/").at(-1);
     if (stage === "runs") {
       runs++;
@@ -408,7 +494,7 @@ test("retry reuses the run after a failed draft", async ({ page }) => {
       await route.fulfill(
         drafts === 1
           ? { status: 502, json: { detail: "Try again" } }
-          : { json: { body: "Live draft", model: "test" } },
+          : { json: draftResponse("Live draft") },
       );
     }
   });
@@ -429,14 +515,13 @@ test("manual draft is editable and protected before generating", async ({
   page,
 }) => {
   let calls = 0;
-  await page.route("**/api/public-demo/**", async (route) => {
+  await mockStages(page, async (route) => {
     calls++;
     const stage = new URL(route.request().url()).pathname.split("/").at(-1);
     if (stage === "runs") await route.fulfill({ json: { token: "token" } });
     else if (stage === "evidence")
       await route.fulfill({ json: { evidence: ["Evidence"], model: "test" } });
-    else
-      await route.fulfill({ json: { body: "Generated reply", model: "test" } });
+    else await route.fulfill({ json: draftResponse("Generated reply") });
   });
   await page.goto("/demo/reviews/live-booking");
   const field = page.getByRole("textbox", { name: "Response" });
@@ -493,13 +578,12 @@ test("evidence cards retain complete facts in returned order with a safe fallbac
     "A new source with unfamiliar wording.",
     "The fictional absence notice arrived before Monday's class started.",
   ];
-  await page.route("**/api/public-demo/**", async (route) => {
+  await mockStages(page, async (route) => {
     const stage = new URL(route.request().url()).pathname.split("/").at(-1);
     if (stage === "runs") await route.fulfill({ json: { token: "token" } });
     else if (stage === "evidence")
       await route.fulfill({ json: { evidence, model: "test" } });
-    else
-      await route.fulfill({ json: { body: "Live response", model: "test" } });
+    else await route.fulfill({ json: draftResponse("Live response") });
   });
   await page.goto("/demo/reviews/live-booking");
   await page
@@ -534,24 +618,31 @@ test("evidence cards retain complete facts in returned order with a safe fallbac
 test("policy evidence links to the fictional original and its version", async ({
   page,
 }) => {
-  const fact =
-    "Beginner clothing policy, revision 1: Wear comfortable clothes you can move in, such as leggings and a fitted T-shirt. Socks are suitable for your first class; ballet shoes are optional.";
-  await page.route("**/api/public-demo/**", async (route) => {
+  const policy = [
+    "Merri Ballet — Beginner clothing policy",
+    "For adult beginners attending a first class:\nWear comfortable clothes you can move in, such as leggings and a fitted T-shirt. Socks are suitable for your first class; ballet shoes are optional.",
+    "Bring water and tie long hair back. This document does not specify trial fees.",
+  ].join("\n\n");
+  const fact = `Beginner clothing policy, revision 1: ${policy}`;
+  await mockStages(page, async (route) => {
     const stage = new URL(route.request().url()).pathname.split("/").at(-1);
     if (stage === "runs") await route.fulfill({ json: { token: "token" } });
     else if (stage === "evidence")
-      await route.fulfill({ json: { evidence: [fact], model: "test" } });
-    else
-      await route.fulfill({ json: { body: "Live response", model: "test" } });
+      await route.fulfill({
+        json: {
+          evidence: [fact],
+          missing_information: ["Trial fee"],
+          model: "test",
+        },
+      });
+    else await route.fulfill({ json: draftResponse("Live response") });
   });
   await page.goto("/demo/reviews/live-document");
   await page
     .getByRole("button", { name: "Generate draft", exact: true })
     .click();
-  await page.getByLabel("Confirm the fee later").check();
-  await page
-    .getByRole("button", { name: "Generate draft with decision" })
-    .click();
+  await page.getByRole("checkbox", { name: "Confirm later" }).check();
+  await page.getByRole("button", { name: "Generate draft" }).click();
   const card = page.locator(".live-evidence-card");
   await expect(card).toContainText(
     "Comfortable clothes and socks are suitable",
@@ -563,7 +654,7 @@ test("policy evidence links to the fictional original and its version", async ({
   await expect(
     card.getByText("Bring water and tie long hair back.", { exact: false }),
   ).toBeVisible();
-  await expect(card.getByText(fact, { exact: true })).toBeVisible();
+  await expect(card.getByText(policy, { exact: true })).toBeVisible();
 });
 
 test("a failed document draft explains its locked decision and retries the same answer", async ({
@@ -571,21 +662,25 @@ test("a failed document draft explains its locked decision and retries the same 
 }) => {
   const answers: string[][] = [];
   let runs = 0;
-  await page.route("**/api/public-demo/**", async (route) => {
+  await mockStages(page, async (route) => {
     const stage = new URL(route.request().url()).pathname.split("/").at(-1);
     if (stage === "runs") {
       runs++;
       await route.fulfill({ json: { token: "token" } });
     } else if (stage === "evidence")
       await route.fulfill({
-        json: { evidence: ["Fee unknown"], model: "test" },
+        json: {
+          evidence: ["Fee unknown"],
+          missing_information: ["Trial fee"],
+          model: "test",
+        },
       });
     else {
       answers.push(route.request().postDataJSON().teacher_answers);
       await route.fulfill(
         answers.length === 1
           ? { status: 502, json: { detail: "Try again" } }
-          : { json: { body: "I will confirm.", model: "test" } },
+          : { json: draftResponse("I will confirm.") },
       );
     }
   });
@@ -593,22 +688,16 @@ test("a failed document draft explains its locked decision and retries the same 
   await page
     .getByRole("button", { name: "Generate draft", exact: true })
     .click();
-  await page.getByLabel("Confirm the fee later").check();
-  await page
-    .getByRole("button", { name: "Generate draft with decision" })
-    .click();
+  await page.getByRole("checkbox", { name: "Confirm later" }).check();
+  await page.getByRole("button", { name: "Generate draft" }).click();
   await expect(page.getByRole("alert")).toContainText("Try again");
   await expect(
-    page.getByText(/Your decision is locked for this attempt/),
-  ).toBeVisible();
-  await expect(page.getByLabel("Confirm the fee later")).toBeDisabled();
+    page.getByRole("checkbox", { name: "Confirm later" }),
+  ).toBeDisabled();
   await page.getByRole("button", { name: "Retry" }).click();
   await expect(page.getByRole("textbox", { name: "Response" })).toHaveValue(
     "I will confirm.",
   );
-  expect(answers).toEqual([
-    ["I will confirm the trial fee later."],
-    ["I will confirm the trial fee later."],
-  ]);
+  expect(answers).toEqual([[DEMO_DEFER], [DEMO_DEFER]]);
   expect(runs).toBe(1);
 });
