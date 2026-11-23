@@ -17,7 +17,7 @@ flowchart LR
     Review --> Confirmation[Simulated booking or response confirmation]
 ```
 
-The public Studio Knowledge document library reads the same fictional document catalog used by the live demo. It includes first-class, clothing, makeup, class and fee guidance. The library is read-only and is served by `/api/public-demo/documents`, including when live model calls are disabled. The walkthrough uses a fixed catalog rather than the owner document retrieval pipeline.
+The public Studio Knowledge library contains fictional reference documents, including first-class, clothing, makeup, class, fee and administrative guidance. It is read-only and served by `/api/public-demo/documents`, including when live model calls are disabled. The walkthrough uses a fixed evidence catalog containing selected documents from this library; the additional library documents are not searched by the demo. The public demo does not chunk or embed the library and does not use the owner document retrieval pipeline.
 
 ## Public review queue
 
