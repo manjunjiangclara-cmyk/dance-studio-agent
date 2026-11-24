@@ -88,6 +88,9 @@ export interface QuestionResolution {
   decision: "answer" | "defer";
   answer: string | null;
 }
+export type ReviewRequirement =
+  "student_information" | "teacher_input" | "teacher_review";
+
 export interface Run extends RecordBase {
   conversation_id: string;
   source_message_id: string;
@@ -96,6 +99,7 @@ export interface Run extends RecordBase {
   status: RunStatus;
   revision: number;
   interpretation: Record<string, unknown>;
+  review_requirements?: ReviewRequirement[];
   evidence: Record<string, unknown>[];
   draft_details: {
     body?: string;

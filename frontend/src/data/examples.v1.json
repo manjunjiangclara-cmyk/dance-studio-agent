@@ -138,6 +138,19 @@
       "ends_at": "2027-02-13T20:30:00+11:00",
       "capacity": 12,
       "students": []
+    },
+    {
+      "id": "293bd76f-86ef-4ca0-8aba-1d19a9f4ee81",
+      "created_at": "2027-02-01T00:00:00Z",
+      "updated_at": "2027-02-01T00:00:00Z",
+      "class_id": "ec2e2a4e-818e-590c-ad6d-bb4c1505a2ef",
+      "starts_at": "2027-02-01T18:00:00+11:00",
+      "ends_at": "2027-02-01T19:00:00+11:00",
+      "capacity": 12,
+      "students": [
+        "3861ca04-d9bd-5994-af78-b1540c29f791",
+        "833efaed-1e89-5f89-8b47-cb9cbcf3399c"
+      ]
     }
   ],
   "students": [
@@ -314,11 +327,11 @@
   "messages": [
     {
       "id": "92f76986-8fde-575c-ae10-194f8b550877",
-      "created_at": "2027-02-07T00:00:00Z",
+      "created_at": "2027-02-06T23:00:00Z",
       "updated_at": "2027-02-07T00:00:00Z",
       "conversation_id": "9cd9b2cd-7029-5591-a118-e6eedb5b9b1a",
       "kind": "student_email",
-      "body": "I cannot attend Monday 8 February. Could I come Thursday instead? I've practised ballet for two years, and I enjoy evening classes and barre work.",
+      "body": "I cannot attend Monday 2027-02-08. Could I make it up on 2027-02-11?",
       "occurred_at": "2027-02-07T10:00:00+11:00",
       "review_managed": false
     },
@@ -334,11 +347,11 @@
     },
     {
       "id": "97aa529c-2ca7-5ee9-86c6-0d7c9da03752",
-      "created_at": "2027-02-07T00:00:00Z",
+      "created_at": "2027-02-06T23:05:00Z",
       "updated_at": "2027-02-07T00:00:00Z",
       "conversation_id": "9cd9b2cd-7029-5591-a118-e6eedb5b9b1a",
       "kind": "student_email",
-      "body": "Actually, Saturday 13 February would be better.",
+      "body": "Saturday 2027-02-13 at 6 pm instead, please.",
       "occurred_at": "2027-02-07T10:05:00+11:00",
       "review_managed": false
     },
@@ -358,7 +371,7 @@
       "updated_at": "2027-02-07T00:00:00Z",
       "conversation_id": "e9e6c1f4-55f2-5477-a400-0079aca9b31f",
       "kind": "student_email",
-      "body": "I will miss Monday 8 February. Is Saturday 13 February an option?",
+      "body": "I will miss Monday 2027-02-08. Could I make it up on 2027-02-13?",
       "occurred_at": "2027-02-07T10:00:00+11:00",
       "review_managed": false
     },
@@ -510,6 +523,15 @@
       },
       "evidence": [
         {
+          "tool": "verify_makeup_request",
+          "arguments": {},
+          "result": {
+            "verified": true,
+            "absence_session_id": "f3060638-cac6-5551-b008-86f21ae98c07",
+            "references": ["session:f3060638-cac6-5551-b008-86f21ae98c07"]
+          }
+        },
+        {
           "tool": "search_sessions",
           "arguments": {},
           "result": {
@@ -563,6 +585,15 @@
         "preferred_date": "2027-02-13"
       },
       "evidence": [
+        {
+          "tool": "verify_makeup_request",
+          "arguments": {},
+          "result": {
+            "verified": true,
+            "absence_session_id": "f3060638-cac6-5551-b008-86f21ae98c07",
+            "references": ["session:f3060638-cac6-5551-b008-86f21ae98c07"]
+          }
+        },
         {
           "tool": "search_sessions",
           "arguments": {},
@@ -780,7 +811,44 @@
       "error": null
     }
   ],
-  "session_attendance": [],
+  "session_attendance": [
+    {
+      "id": "931c07c1-086b-4aa1-9f9e-c535ffa8b4ab",
+      "created_at": "2027-02-01T00:00:00Z",
+      "updated_at": "2027-02-01T00:00:00Z",
+      "session_id": "293bd76f-86ef-4ca0-8aba-1d19a9f4ee81",
+      "student_id": "3861ca04-d9bd-5994-af78-b1540c29f791",
+      "status": "attended",
+      "level_at_attendance": "Level 2"
+    },
+    {
+      "id": "b052780f-630a-4126-8785-ffb6d565d6a9",
+      "created_at": "2027-02-09T00:00:00Z",
+      "updated_at": "2027-02-09T00:00:00Z",
+      "session_id": "f3060638-cac6-5551-b008-86f21ae98c07",
+      "student_id": "3861ca04-d9bd-5994-af78-b1540c29f791",
+      "status": "absent",
+      "level_at_attendance": "Level 2"
+    },
+    {
+      "id": "768b615c-54bd-4948-8804-45662a39c918",
+      "created_at": "2027-02-01T00:00:00Z",
+      "updated_at": "2027-02-01T00:00:00Z",
+      "session_id": "293bd76f-86ef-4ca0-8aba-1d19a9f4ee81",
+      "student_id": "833efaed-1e89-5f89-8b47-cb9cbcf3399c",
+      "status": "attended",
+      "level_at_attendance": "Level 2"
+    },
+    {
+      "id": "fa13be4a-bb51-449f-b95d-cb8456435b20",
+      "created_at": "2027-02-09T00:00:00Z",
+      "updated_at": "2027-02-09T00:00:00Z",
+      "session_id": "f3060638-cac6-5551-b008-86f21ae98c07",
+      "student_id": "833efaed-1e89-5f89-8b47-cb9cbcf3399c",
+      "status": "absent",
+      "level_at_attendance": "Level 2"
+    }
+  ],
   "documents": [],
   "document_revisions": []
 }

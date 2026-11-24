@@ -9,9 +9,8 @@ from sqlalchemy import create_engine
 
 from studio_copilot.api.app import create_app
 from studio_copilot.persistence.models import Base
-from studio_copilot.public_demo import availability
-from studio_copilot.public_demo.availability import recorded_makeup_booking, trial_spaces
 from studio_copilot.public_demo.fixtures import SATURDAY_TRIAL_CLASSES
+from studio_copilot.public_demo.records import FictionalMakeupReader, FictionalRecords
 
 ROOT = Path(__file__).resolve().parents[3]
 DATA = ROOT / "frontend" / "src" / "data"
@@ -97,34 +96,44 @@ def test_trial_classes_match_the_public_database_and_timetable():
                 f"Adult Ballet Level {level}, Saturday 13 February 2027 at {time}, {location}"
             )
     assert actual == SATURDAY_TRIAL_CLASSES
-    assert {
-        level: trial_spaces({"description": description}) for level, description in actual.items()
-    } == {1: 12, 2: 10, 3: 12}
+    records = FictionalRecords(data)
+    reader = FictionalMakeupReader(records, records.context("booking"))
+    sessions = reader.tool("search_sessions", {"from_date": "2027-02-13", "to_date": "2027-02-13"})[
+        "items"
+    ]
+    assert {row["level"]: row["remaining_places"] for row in sessions} == {
+        "Level 1": 12,
+        "Level 2": 10,
+        "Level 3": 12,
+    }
 
 
-def test_makeup_booking_requires_approval_and_student_on_roster(monkeypatch):
+def test_makeup_booking_requires_approval_and_student_on_roster():
+    from uuid import UUID
+
     data = json.loads((DATA / "examples.v1.json").read_text())
-    monkeypatch.setattr(availability, "_demo_records", lambda: data)
+    records = FictionalRecords(data)
     maya = next(student for student in data["students"] if student["email"] == "maya@example.test")
-    student_id = maya["id"]
-    maya_booking = recorded_makeup_booking(student_id, 2)
-    assert "Saturday 13 February 2027 at 6 pm" in maya_booking["description"]
-    assert maya_booking["makeup_status"] == "approved"
-    assert recorded_makeup_booking("alex", 2)["makeup_status"] == "awaiting_review"
-    assert recorded_makeup_booking(student_id, 3) is None
-    run = next(
-        run
-        for run in data["agent_runs"]
-        if run["draft_details"].get("booking_session_id") and run["approved_response_id"]
+    alex_context = records.context("booking")
+    reader = FictionalMakeupReader(records, alex_context)
+    student = UUID(maya["id"])
+    missed = UUID(
+        next(
+            row["id"] for row in data["class_sessions"] if row["starts_at"].startswith("2027-02-08")
+        )
     )
-    session_id = run["draft_details"]["booking_session_id"]
-    session = next(session for session in data["class_sessions"] if session["id"] == session_id)
-    approved_response = run["approved_response_id"]
+    booking = reader.existing_makeup(student, missed)
+    assert booking.starts_at.isoformat() == "2027-02-13T18:00:00+11:00"
+    alex = UUID(alex_context["student"]["id"])
+    assert reader.existing_makeup(alex, missed) is None
+    assert str(booking.id) in reader.pending_makeups(alex, missed, "another-run")
+    run = next(row for row in data["agent_runs"] if row["approved_response_id"])
+    approved = run["approved_response_id"]
     run["approved_response_id"] = None
-    assert recorded_makeup_booking(student_id, 2) is None
-    run["approved_response_id"] = approved_response
-    session["students"].remove(student_id)
-    assert recorded_makeup_booking(student_id, 2) is None
+    assert reader.existing_makeup(student, missed) is None
+    run["approved_response_id"] = approved
+    records.session_rows[str(booking.id)]["students"].remove(str(student))
+    assert reader.existing_makeup(student, missed) is None
 
 
 def test_static_website_serves_no_backend_or_workspace_records(monkeypatch, tmp_path):

@@ -16,6 +16,7 @@ from studio_copilot.agent.contracts import (
     Model,
     ModelContextLimitError,
     ModelError,
+    QuestionResolution,
     Review,
     Routing,
     State,
@@ -25,20 +26,21 @@ from studio_copilot.agent.document_answers import (
     document_draft,
     document_safe_body,
 )
+from studio_copilot.agent.draft_voice import student_greeting
 from studio_copilot.agent.enquiry import safe_body, validate_answers
 from studio_copilot.agent.makeup import clarification_body, validated_candidate_ids
-from studio_copilot.agent.persistence.store import WorkflowStore
 from studio_copilot.agent.privacy import normalize_unknown_greeting
-from studio_copilot.agent.proposals import confirmation_body
+from studio_copilot.agent.proposals import confirmation_body, session_description
 from studio_copilot.agent.question_resolutions import (
     RevisionExtractionError,
     deferral_text,
     identify_questions,
     merge_resolutions,
+    resolution_evidence,
     resolved_question_context,
     validate_resolution_update,
 )
-from studio_copilot.agent.workflow.queries import QueryRunner
+from studio_copilot.agent.workflow.queries import QueryRunner, WorkspaceReads
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +51,8 @@ SIGNATURE = re.compile(
 )
 PLACEHOLDER = re.compile(r"\[(?:your name|teacher(?:'s)? name|studio name)\]", re.IGNORECASE)
 PROMISE = re.compile(
-    r"\b(?:I|we)(?:['’]ll| will)\s+(?:check|confirm|follow up|get back|look into|"
+    r"\b(?:I|we)(?:['’]ll| will)\s+(?:(?:also|still)\s+)?(?:need to\s+)?"
+    r"(?:check|confirm|review|follow up|get back|look into|"
     r"email|write|reply|call|contact|reach out|let you know|send (?:you )?(?:an? )?update|"
     r"be in touch|ask (?:the )?office)",
     re.IGNORECASE,
@@ -219,11 +222,13 @@ def _composition_concerns(body: str, facts: list[dict], *, deferred: bool) -> li
     return list(dict.fromkeys(concerns))
 
 
-def _remove_unapproved_promises(body: str, deferred_questions: list[str]) -> tuple[str, bool]:
-    """Keep only the teacher's explicit question-scoped deferral wording."""
+def _remove_unapproved_promises(
+    body: str, deferred_questions: list[str], *, teacher_answers: tuple[str, ...] = ()
+) -> tuple[str, bool]:
+    """Preserve explicitly supplied teacher text while removing model-added promises."""
     protected = {}
-    for index, question in enumerate(deferred_questions):
-        wording = deferral_text(question)
+    approved = [*(deferral_text(question) for question in deferred_questions), *teacher_answers]
+    for index, wording in enumerate(approved):
         marker = f"__approved_deferral_{index}__."
         if wording in body:
             protected[marker] = wording
@@ -235,7 +240,13 @@ def _remove_unapproved_promises(body: str, deferred_questions: list[str]) -> tup
         sentence = pieces[index]
         if PROMISE.search(sentence):
             removed = True
-            continue
+            for clause in re.finditer(r";\s*|,\s+but\s+", sentence, re.IGNORECASE):
+                prefix, suffix = sentence[: clause.start()], sentence[clause.end() :]
+                if PROMISE.match(suffix) and not PROMISE.search(prefix):
+                    sentence = prefix.rstrip() + "."
+                    break
+            else:
+                continue
         separator = pieces[index - 1] if index and retained else ""
         retained.append(separator + sentence)
     body = "".join(retained)
@@ -261,7 +272,7 @@ def select_flow(routing: Routing) -> str:
 def _fallback_draft(state: State) -> Draft:
     if state.get("flow", "makeup") != "makeup":
         return Draft(
-            body="Thanks for your message. I'll review your enquiry and get back to you.",
+            body="Thanks for your message. I can't confirm the details yet.",
             rationale=state["routing"]["reason"] + " The model was unavailable.",
             questions=state["warnings"],
             references=[],
@@ -291,6 +302,7 @@ def _validate_references(draft: Draft, state: State) -> Draft:
 
 
 def _validate_booking_proposal(draft: Draft, state: State) -> Draft:
+    student_name = state.get("context", {}).get("student", {}).get("name")
     if any(
         item.get("tool") == "validate_makeup_candidates"
         and item.get("result", {}).get("options_requested")
@@ -299,7 +311,11 @@ def _validate_booking_proposal(draft: Draft, state: State) -> Draft:
         draft.booking_session_id = None
     if draft.booking_session_id is None:
         if state.get("flow", state.get("context", {}).get("flow")) == "makeup":
-            draft.body = clarification_body(state.get("evidence", []))
+            draft.body = (
+                student_greeting(student_name)
+                + "\n\n"
+                + clarification_body(state.get("evidence", []))
+            )
         return draft
     if state.get(
         "flow", state.get("context", {}).get("flow")
@@ -308,7 +324,7 @@ def _validate_booking_proposal(draft: Draft, state: State) -> Draft:
     ):
         draft.booking_session_id = None
         draft.body = (
-            clarification_body(state.get("evidence", []))
+            student_greeting(student_name) + "\n\n" + clarification_body(state.get("evidence", []))
             if state.get("flow", state.get("context", {}).get("flow")) == "makeup"
             else safe_body(
                 draft.answers,
@@ -328,7 +344,9 @@ def _validate_booking_proposal(draft: Draft, state: State) -> Draft:
         item = candidates[-1] if candidates else {}
         try:
             start = datetime.fromisoformat(item["starts_at"])
-            draft.body = confirmation_body(item["class_name"], item["location_name"], start)
+            draft.body = confirmation_body(
+                item["class_name"], item["location_name"], start, student_name
+            )
         except (KeyError, TypeError, ValueError):
             draft.booking_session_id = None
             draft.body = "We need to verify the session details before arranging your makeup."
@@ -336,10 +354,59 @@ def _validate_booking_proposal(draft: Draft, state: State) -> Draft:
     return draft
 
 
+def _trial_handoff_reply(state: State) -> str | None:
+    interpretation = state["interpretation"]
+    if interpretation["questions"] or not any(
+        re.search(r"\btrial\b", action, re.IGNORECASE)
+        for action in interpretation.get("requested_actions", [])
+    ):
+        return None
+    sessions = {}
+    for entry in state["evidence"]:
+        arguments, result = entry["arguments"], entry["result"]
+        if (
+            entry["tool"] == "search_sessions"
+            and arguments.get("from_date")
+            and arguments["from_date"] == arguments.get("to_date")
+            and not result.get("next_cursor")
+        ):
+            sessions.update((item["id"], item) for item in result.get("items", []))
+    if len(sessions) != 1:
+        return None
+    session = next(iter(sessions.values()))
+    try:
+        description = session_description(
+            session["class_name"],
+            session["location_name"],
+            datetime.fromisoformat(session["starts_at"]),
+        )
+    except (KeyError, TypeError, ValueError):
+        return None
+    places = session.get("remaining_places")
+    if places == 0:
+        availability = " The class is currently full."
+    elif isinstance(places, int) and places > 0:
+        noun = "place" if places == 1 else "places"
+        availability = f" {places} {noun} {'is' if places == 1 else 'are'} currently available."
+    else:
+        availability = ""
+    greeting = student_greeting(state["context"]["student"].get("name"))
+    return (
+        f"{greeting}\n\nThe timetable lists {description}.{availability} "
+        "Placement needs to be confirmed before a trial can be booked."
+    )
+
+
 class WorkflowNodes:
-    def __init__(self, store: WorkflowStore, model: Model):
+    def __init__(
+        self, store, model: Model, *, records=None, evidence_review=None, draft_override=None
+    ):
         self.store, self.model = store, model
-        self.queries = QueryRunner(store.engine, model)
+        self.queries = QueryRunner(
+            records if records is not None else WorkspaceReads(store.engine), model
+        )
+        self.evidence_review = evidence_review
+        self.draft_override = draft_override
 
     def load(self, state: State) -> dict:
         return {"attempt": 1, "feedback": "", "context": self.store.load_context(state["run_id"])}
@@ -443,6 +510,26 @@ class WorkflowNodes:
         return self.queries.gather(state)
 
     def draft(self, state: State) -> dict:
+        review_updates = {}
+        if self.evidence_review is not None and not state.get("question_resolutions"):
+            questions = self.evidence_review(state)
+            answers = interrupt({"stage": "evidence", "questions": questions})
+            resolutions = [QuestionResolution.model_validate(item) for item in answers]
+            if {str(item.question_id) for item in resolutions} != {
+                question["id"] for question in questions
+            }:
+                conflict("Resolve each question before generating the draft.")
+            review_updates["question_resolutions"] = [
+                item.model_dump(mode="json") for item in resolutions
+            ]
+            if resolutions:
+                review_updates["evidence"] = [
+                    *state["evidence"],
+                    resolution_evidence(review_updates["question_resolutions"]),
+                ]
+            state = {**state, **review_updates}
+        if self.draft_override is not None and (draft := self.draft_override(state)) is not None:
+            return {"draft": draft.model_dump(mode="json"), **review_updates}
         context = {
             **state["context"],
             "interpretation": state["interpretation"],
@@ -558,6 +645,7 @@ class WorkflowNodes:
                 "student": state["context"].get("student", {}),
                 "source": state["context"].get("source", {}),
                 "original_request": state["context"].get("source", {}).get("body", ""),
+                "approved_replies": state["context"].get("approved_replies", [])[-3:],
                 "facts": facts,
                 "unresolved_actions": state["interpretation"].get("requested_actions", []),
                 "live_state_questions": live_state_questions,
@@ -620,6 +708,19 @@ class WorkflowNodes:
                 body, signature_removed = _unsigned_email(
                     body, has_signature=bool(state["context"].get("teacher_signature"))
                 )
+                resolved_text = [
+                    item["answer"]
+                    if item["decision"] == "answer"
+                    else deferral_text(item["question"])
+                    for item in composition_context["question_resolutions"]
+                ]
+                if any(
+                    " ".join(text.split()) not in " ".join(body.split()) for text in resolved_text
+                ):
+                    body = document_safe_body(draft.answers)
+                    composed.review_concerns.append(
+                        "The teacher's decisions were retained verbatim."
+                    )
                 if (
                     not isinstance(body, str)
                     or not body.strip()
@@ -662,7 +763,28 @@ class WorkflowNodes:
                     " Email composition or its support check failed; "
                     "the teacher should review the fallback draft."
                 )
-        return {"draft": draft.model_dump(mode="json")}
+        if state.get("flow") in {"enquiry", "teacher_handoff"} and not document_mode:
+            if state["flow"] == "teacher_handoff" and (reply := _trial_handoff_reply(state)):
+                draft.body = reply
+            deferred_questions = [
+                item["question"]
+                for item in context["question_resolutions"]
+                if item.get("decision") == "defer"
+            ]
+            teacher_answers = tuple(
+                item["answer"]
+                for item in context["question_resolutions"]
+                if item.get("decision") == "answer"
+            )
+            body, promise_removed = _remove_unapproved_promises(
+                draft.body, deferred_questions, teacher_answers=teacher_answers
+            )
+            if promise_removed:
+                draft.body = body or safe_body([], [])
+                draft.review_concerns.append(
+                    "An unapproved follow-up promise was removed from the draft."
+                )
+        return {"draft": draft.model_dump(mode="json"), **review_updates}
 
     def persist_draft(self, state: State) -> dict:
         self.store.save_draft(

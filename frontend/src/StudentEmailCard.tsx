@@ -8,6 +8,7 @@ export function StudentEmailCard({
     time?: string;
     dateTime?: string;
     sender?: "teacher";
+    simulatedTrial?: boolean;
   }[];
 }) {
   const initials = name
@@ -44,7 +45,11 @@ export function StudentEmailCard({
             <div className="live-conversation-content">
               {message.sender === "teacher" && (
                 <div className="live-conversation-sender">
-                  Merri Ballet team · Accepted reply · simulated
+                  Merri Ballet team ·{" "}
+                  {message.simulatedTrial
+                    ? "Trial confirmation"
+                    : "Accepted reply"}{" "}
+                  · simulated
                 </div>
               )}
               {message.time && (

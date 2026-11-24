@@ -9,6 +9,20 @@ const run = examples.agent_runs.find((item) => item.revision === 2)!;
 const conversation = examples.conversations.find(
   (item) => item.id === run.conversation_id,
 )!;
+const alexFollowup = examples.messages.find(
+  (item) => item.id === run.source_message_id,
+)!;
+const jules = examples.students.find(
+  (student) => student.display_name === "Jules Park",
+)!;
+const julesConversation = examples.conversations.find(
+  (item) => item.student_id === jules.id,
+)!;
+const julesEmail = examples.messages.find(
+  (item) =>
+    item.conversation_id === julesConversation.id &&
+    item.kind === "student_email",
+)!;
 const session = examples.class_sessions.find((item) =>
   item.starts_at.startsWith("2027-02-13"),
 )!;
@@ -71,12 +85,12 @@ test("homepage previews and links to both fictional enquiries", async ({
     page.getByRole("heading", { name: "Makeup for Monday 8 February" }),
   ).toBeVisible();
   await expect(
-    page.getByText("Actually, Saturday 13 February would be better."),
+    page.getByText(alexFollowup.body, { exact: true }),
   ).toBeVisible();
   await page.goto("/demo");
   await page.getByRole("link", { name: /Jules Park/ }).click();
   await expect(page).toHaveURL(/\/demo\/reviews\/live-document$/);
-  await expect(page.getByText(/I'm new to ballet/)).toBeVisible();
+  await expect(page.getByText(julesEmail.body, { exact: true })).toBeVisible();
 });
 
 test("public examples work without touching the workspace API", async ({
@@ -163,8 +177,10 @@ test("public examples work without touching the workspace API", async ({
     enrolments.getByRole("link", { name: "Adult Ballet" }).first(),
   ).toHaveAttribute("href", /timetable\?class=/);
   const sessions = page.getByRole("region", { name: "Confirmed sessions" });
-  await expect(sessions.getByText("Monday")).toBeVisible();
-  await expect(sessions.getByText("Merri Ballet · Brunswick")).toBeVisible();
+  await expect(sessions.getByText("Monday").first()).toBeVisible();
+  await expect(
+    sessions.getByText("Merri Ballet · Brunswick").first(),
+  ).toBeVisible();
   await expect(
     sessions.getByRole("link", { name: "Adult Ballet" }).first(),
   ).toHaveAttribute("href", /timetable\?session=/);
@@ -198,14 +214,13 @@ test("public examples work without touching the workspace API", async ({
   await expect(
     page.getByRole("region", { name: "students data" }),
   ).toContainText(alex.email);
-  await page.goto("/demo/test-email");
+  await page.goto("/demo/tour?mode=recorded");
+  await expect(page).toHaveURL(/\/demo\/reviews$/);
+  await page.getByRole("link", { name: "Email walkthrough" }).click();
+  await expect(page).toHaveURL(/\/demo\/test-email$/);
   await expect(
-    page.getByLabel("Sender context", { exact: true }),
+    page.getByRole("heading", { name: "Email Walkthrough", exact: true }),
   ).toBeVisible();
-  await expect(page.getByLabel("Email body", { exact: true })).toBeEmpty();
-  await expect(
-    page.getByRole("button", { name: "Simulate email", exact: true }),
-  ).toBeDisabled();
   expect(calls).toEqual([]);
 });
 
@@ -260,9 +275,7 @@ test("student conversations use the review message presentation", async ({
       .locator(".profile-message-response .live-conversation-sender strong")
       .first(),
   ).toHaveText("Generated draft");
-  await expect(thread).toContainText(
-    "Actually, Saturday 13 February would be better.",
-  );
+  await expect(thread).toContainText(alexFollowup.body);
   await expect(thread.getByRole("link", { name: /View .* run/ })).toHaveCount(
     0,
   );

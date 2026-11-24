@@ -1,4 +1,4 @@
-import { tourSource } from "./tourData";
+const clothingPolicyPrefix = "Beginner clothing policy, revision 1:";
 
 function evidenceInfo(entry: string) {
   if (entry.startsWith("Class availability: "))
@@ -51,12 +51,16 @@ function evidenceInfo(entry: string) {
     )
   )
     return { label: "Student record", summary: entry, source: "fact" };
-  if (entry.startsWith("Beginner clothing policy, revision 1:"))
+  if (entry.startsWith(clothingPolicyPrefix))
     return {
       label: "Studio policy",
       summary:
         "Comfortable clothes and socks are suitable; ballet shoes are optional.",
       source: "policy",
+      document: {
+        title: "Beginner clothing policy · Revision 1",
+        text: entry.slice(clothingPolicyPrefix.length).trim(),
+      },
     };
   if (entry.startsWith("No trial fee is specified"))
     return {
@@ -92,18 +96,14 @@ export function SupportingEvidence({
               <details className="live-evidence-detail">
                 <summary>View source</summary>
                 <div className="live-evidence-original">
-                  <strong>Fictional demo input</strong>
-                  <p>{entry}</p>
+                  <strong>
+                    {info.document?.title || "Fictional demo input"}
+                  </strong>
+                  <p>{info.document?.text || entry}</p>
                   {info.source === "email" && showConversationLink && (
                     <a href="#conversation-heading">
                       View original student emails ↑
                     </a>
-                  )}
-                  {info.source === "policy" && (
-                    <>
-                      <strong>{tourSource.title} · Revision 1</strong>
-                      <p>{tourSource.text}</p>
-                    </>
                   )}
                 </div>
               </details>

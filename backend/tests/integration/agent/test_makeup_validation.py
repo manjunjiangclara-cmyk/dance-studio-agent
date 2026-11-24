@@ -9,10 +9,12 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from studio_copilot.agent.contracts import Draft
+from studio_copilot.agent.proposals import legacy_confirmation_body
 from studio_copilot.persistence.models import (
     AgentRun,
     ClassSession,
     Enrolment,
+    Location,
     Message,
     Student,
     StudioClass,
@@ -122,6 +124,26 @@ def test_edited_approval_cannot_book_original_proposal(
     assert review(rig[0], run, "approve", body=edited).status_code == 409
     assert_no_approval_side_effects(db_engine, run, verified_makeup, [])
     assert review(rig[0], run, "approve", body=run["draft_details"]["body"]).status_code == 200
+
+
+def test_pending_legacy_confirmation_can_still_be_approved(
+    rig, scenario, verified_makeup, db_engine
+):
+    run = start(rig, scenario)
+    assert run["draft_details"]["booking_session_id"] == str(verified_makeup)
+    with Session(db_engine) as db, db.begin():
+        target = db.get(ClassSession, verified_makeup)
+        location = db.get(Location, target.regular_class.location_id)
+        legacy_body = legacy_confirmation_body(
+            target.regular_class.name,
+            location.name,
+            target.starts_at.astimezone(ZoneInfo(location.timezone)),
+        )
+        stored_run = db.get(AgentRun, UUID(run["id"]))
+        db.get(Message, stored_run.draft_message_id).body = legacy_body
+        stored_run.draft_details = {**stored_run.draft_details, "body": legacy_body}
+
+    assert review(rig[0], run, "approve", body=legacy_body).status_code == 200
 
 
 def test_weekday_only_search_excludes_other_days(

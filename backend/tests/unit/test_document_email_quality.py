@@ -594,6 +594,11 @@ def test_teacher_deferral_only_preserves_its_own_follow_up_promise():
     assert "check your booking" not in cleaned
 
 
+def test_remove_promise_preserves_a_confirmed_fact_in_the_same_sentence():
+    body = "The class starts at 4 pm, but I’ll also need to confirm your placement."
+    assert _remove_unapproved_promises(body, []) == ("The class starts at 4 pm.", True)
+
+
 def test_other_follow_up_wording_is_removed_without_teacher_deferral():
     for promise in (
         "I'll email you tomorrow.",

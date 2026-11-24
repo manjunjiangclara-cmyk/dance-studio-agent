@@ -3,6 +3,7 @@
 import json
 import logging
 import re
+from contextlib import contextmanager
 from uuid import UUID
 
 from pydantic import ValidationError
@@ -57,14 +58,46 @@ def _is_booked_makeup_schedule_question(state: State) -> bool:
     )
 
 
+class WorkspaceReads:
+    def __init__(self, engine):
+        self.engine = engine
+
+    def makeup(self, state):
+        return gather_makeup(self.engine, state)
+
+    def documents(self, state):
+        from studio_copilot.documents.online import gather
+
+        return gather(self.engine, state)
+
+    @contextmanager
+    def tools(self, context):
+        with Session(self.engine) as db:
+
+            def read(name, arguments):
+                try:
+                    return execute_tool(
+                        db,
+                        UUID(context["student"]["id"]),
+                        UUID(context["source"]["id"]),
+                        context["policy"],
+                        name,
+                        arguments,
+                    )
+                finally:
+                    db.rollback()
+
+            yield read
+
+
 class QueryRunner:
-    def __init__(self, engine, model: Model):
-        self.engine, self.model = engine, model
+    def __init__(self, records, model: Model):
+        self.records, self.model = records, model
 
     def gather(self, state: State) -> dict:
         if state.get("flow", state["context"].get("flow")) == "makeup":
             try:
-                return gather_makeup(self.engine, state)
+                return self.records.makeup(state)
             except SQLAlchemyError:
                 warning = "Studio records could not be verified; teacher clarification is needed."
                 return {
@@ -89,9 +122,7 @@ class QueryRunner:
                 "document_answers_enabled": False,
             }
 
-        from studio_copilot.documents.online import gather as gather_documents
-
-        document_result = gather_documents(self.engine, state)
+        document_result = self.records.documents(state)
         if document_result is not None:
             if state.get("question_resolutions"):
                 document_result["evidence"].append(
@@ -108,7 +139,7 @@ class QueryRunner:
         }
         warnings = list(state["interpretation"]["missing_details"])
         evidence, transcript, seen = [], [], set()
-        with Session(self.engine) as db:
+        with self.records.tools(context) as read:
             for round_number in range(1, MAX_ROUNDS + 1):
                 try:
                     turn = self.model.choose_tools(context, transcript)
@@ -128,7 +159,7 @@ class QueryRunner:
                         "The model exceeded the three-call limit; extra calls were not executed."
                     )
                 for call in turn.calls[:MAX_CALLS]:
-                    output = self._execute_call(db, context, call, seen)
+                    output = self._execute_call(read, context, call, seen)
                     if output is None:
                         warnings.append(
                             "A repeated tool call was blocked; information gathering stopped."
@@ -175,7 +206,7 @@ class QueryRunner:
         return {"evidence": evidence, "warnings": warnings, "document_answers_enabled": False}
 
     @staticmethod
-    def _execute_call(db, context: dict, call: ToolCall, seen: set[str]) -> dict | None:
+    def _execute_call(read, context: dict, call: ToolCall, seen: set[str]) -> dict | None:
         """Return None for a duplicate, or a safe result/error for an attempted call."""
         try:
             if context.get("flow") == "enquiry" and call.name not in ENQUIRY_TOOLS:
@@ -186,16 +217,6 @@ class QueryRunner:
             if fingerprint in seen:
                 return None
             seen.add(fingerprint)
-            output = execute_tool(
-                db,
-                UUID(context["student"]["id"]),
-                UUID(context["source"]["id"]),
-                context["policy"],
-                call.name,
-                arguments,
-            )
-            db.rollback()  # Read-only transaction; never commit model tools.
-            return output
+            return read(call.name, arguments)
         except (KeyError, ValueError, ValidationError, SQLAlchemyError):
-            db.rollback()
             return {"error": "The requested tool data could not be retrieved.", "references": []}

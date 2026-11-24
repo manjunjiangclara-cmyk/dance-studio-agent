@@ -124,16 +124,20 @@ PUBLIC_DOCUMENTS = [
             "## Example Saturday trial options\n\n"
             "The following are fictional sessions used in this demonstration:\n\n"
             + "\n".join(f"- {description}" for description in SATURDAY_TRIAL_CLASSES.values())
-            + "\n\n## Enquiries and bookings\n\n"
+            + "\n\nLevel 1 is for beginners, Level 2 is intermediate, and Level 3 is advanced. "
+            "For a real class, the teacher confirms placement and completes the booking.\n\n"
+            "## Enquiries and bookings\n\n"
             "When enquiring, include the level and session you are interested in and any "
             "relevant experience. Class availability can change. A place is confirmed only "
             "after the teacher has reviewed and completed the booking; asking about a class "
             "or receiving a suggestion does not reserve a place.\n\n"
             "For a first visit, see the beginner clothing policy and first-class guide. "
             "The trial fee and any conditions are not specified in this example; the teacher "
-            "must confirm them before a price is quoted.\n"
+            "must confirm them before a price is quoted.\n\n"
+            "In this demo, a clear request for one eligible trial with an open place can "
+            "complete automatically in the simulation. Class availability can change.\n"
         ),
-        "revision": 2,
+        "revision": 3,
     },
     {
         "id": "trials-and-fees",
