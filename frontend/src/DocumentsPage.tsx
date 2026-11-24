@@ -494,7 +494,9 @@ export function DocumentsPage({
       )}
       {!workspace && (
         <div className="notice">
-          Read-only example. Sign in to manage your studio documents.
+          Read-only fictional library. The demo uses a fixed selection of these
+          documents for answers; it does not search the full library. Sign in
+          to manage your studio documents.
         </div>
       )}
       {error && (

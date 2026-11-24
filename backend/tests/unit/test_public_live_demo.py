@@ -842,3 +842,14 @@ def test_full_fictional_trial_does_not_auto_book(demo):
     )
     assert "automatic_approval" not in ledger.execute(run["token"], "evidence")
     assert ledger.execute(run["token"], "draft")["booking_proposed"] is False
+
+
+def test_public_documents_include_the_expanded_fictional_library():
+    response = TestClient(api.create_public_demo_app()).get("/api/public-demo/documents")
+    assert response.status_code == 200
+    rows = response.json()
+    assert len({item["id"] for item in rows}) == len(rows)
+    assert len({item["filename"] for item in rows}) == len(rows)
+    assert len(rows) >= 24
+    assert all(len(item["content"].split()) >= 300 for item in rows[6:])
+    assert all(item["byte_size"] == len(item["content"].encode("utf-8")) for item in rows)
