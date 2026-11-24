@@ -26,11 +26,78 @@ from studio_copilot.api import public_demo as api
 from studio_copilot.api.app import create_app
 from studio_copilot.api.public_demo import DraftInput
 from studio_copilot.public_demo.records import CASES, FictionalRecords, example_records
-from studio_copilot.public_demo.service import PublicDemo
+from studio_copilot.public_demo.service import PublicDemo, unsigned_demo_draft
 from tests.integration.agent.helpers import FakeModel, turn
 
 BASE = "/api/public-demo"
 ORIGIN = "http://localhost:8010"
+
+
+@pytest.mark.parametrize(
+    ("body", "expected"),
+    [
+        (
+            "Hi Riley,\n\nWear comfortable clothes.\n\nBest,\nRiley James",
+            "Hi Riley,\n\nWear comfortable clothes.",
+        ),
+        (
+            "Hi Riley,\n\nWear comfortable clothes.\n\nRiley James",
+            "Hi Riley,\n\nWear comfortable clothes.",
+        ),
+        (
+            "Hi Riley,\n\nWear comfortable clothes.\n\nKind regards,\nMerri Ballet",
+            "Hi Riley,\n\nWear comfortable clothes.",
+        ),
+        (
+            "Hi Riley,\n\nWear comfortable clothes.\n\n[Teacher Name]",
+            "Hi Riley,\n\nWear comfortable clothes.",
+        ),
+        ("Hi Riley,\n\nSee you then!", "Hi Riley,\n\nSee you then!"),
+        (
+            "Hi Riley,\n\nYour class is at Merri Ballet.",
+            "Hi Riley,\n\nYour class is at Merri Ballet.",
+        ),
+    ],
+)
+def test_demo_generated_draft_has_no_signature(body, expected):
+    assert unsigned_demo_draft(body, {"context": {"student": {"name": "Riley James"}}}) == expected
+
+
+def test_public_document_example_is_a_single_clothing_question():
+    context = FictionalRecords().context("document")
+    assert context["source"]["body"] == (
+        "I have never danced before. What should I wear to my first ballet class?"
+    )
+
+
+def test_public_generated_document_draft_removes_signature_but_preserves_teacher_edit(demo):
+    ledger, model = demo
+    model.routing = Routing(
+        intents=["new_student_enquiry"],
+        action="information_only",
+        request_summary="What should I wear?",
+        needs_clarification=False,
+        reason="The student asks about clothing.",
+    )
+    model.interpret_enquiry = lambda context: EnquiryInterpretation(
+        request_summary="What should I wear?",
+        questions=["What should I wear?"],
+        requested_actions=[],
+        missing_details=[],
+        enduring_preferences=[],
+    )
+    model.compose_document_email = lambda context: DocumentEmailComposition(
+        body="Hi there,\n\nSocks are suitable for your first class.\n\nBest,\nRiley James",
+        review_concerns=[],
+    )
+    token = ledger.create_walkthrough(str(uuid4()), "new", "What should I wear?")["token"]
+    assert not ledger.execute(token, "evidence")["missing_information"]
+    draft = ledger.execute(token, "draft")
+    assert draft["body"] == "Hi there,\n\nSocks are suitable for your first class."
+    edited = draft["body"] + "\n\nTeacher edit"
+    assert (
+        ledger.execute(token, "approve", revision=draft["revision"], body=edited)["body"] == edited
+    )
 
 
 class DemoGraphModel(FakeModel):

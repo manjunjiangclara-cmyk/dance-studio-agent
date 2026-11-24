@@ -1,6 +1,7 @@
 """Drive the shared workflow with a private SQLite ledger and fictional records."""
 
 import json
+import re
 import secrets
 import sqlite3
 import time
@@ -30,6 +31,34 @@ EXPIRES_IN = 3600
 LEASE_SECONDS = 300
 MAX_ATTEMPTS = 2
 MAX_REVISION_ATTEMPTS = 20
+
+DEMO_SIGNOFF = re.compile(
+    r"(?im)(?:^|\n)[ \t]*(?:best(?: regards)?|kind regards|warm regards|regards|"
+    r"warmly|sincerely|cheers|thanks|thank you)[,.!]?[ \t]*"
+    r"(?:\n[ \t]*[^\n]{1,80}[ \t]*)?[ \t]*\Z"
+)
+
+
+def unsigned_demo_draft(body, state):
+    """Remove generated sign-offs while preserving staff edits and booking wording."""
+    body = DEMO_SIGNOFF.sub("", body).rstrip()
+    name = str(state.get("context", {}).get("student", {}).get("name") or "").strip()
+    aliases = {
+        "[your name]",
+        "[teacher name]",
+        "[teacher's name]",
+        "[studio name]",
+        "merri ballet",
+        "merri ballet team",
+        "the merri ballet team",
+        "studio team",
+    }
+    if name and name.casefold() != "new enquirer":
+        aliases.update({name.casefold(), name.split()[0].casefold()})
+    paragraphs = body.rsplit("\n\n", 1)
+    if len(paragraphs) == 2 and paragraphs[-1].strip().casefold() in aliases:
+        body = paragraphs[0].rstrip()
+    return body or "Thanks for your message."
 
 
 def evidence_questions(state):
@@ -376,6 +405,7 @@ class PublicDemo:
                         records=self.records,
                         evidence_review=evidence_questions,
                         draft_override=lambda state: trial_draft(self.records, state),
+                        draft_transform=unsigned_demo_draft,
                     ).compile(saver)
                     return self._drive(graph, config, row, stage, teacher_answers, revision, body)
             except AdministrationError as error:
@@ -631,12 +661,12 @@ class DemoStore:
 
     def load_context(self, run_id):
         if self.row["scenario"] != "walkthrough":
-            return self.demo.records.context(self.row["scenario"])
+            return {**self.demo.records.context(self.row["scenario"]), "public_demo": True}
         with self.demo.db() as db:
             result = db.execute(
                 "SELECT context FROM walkthrough_inputs WHERE request_id = ?", (run_id,)
             ).fetchone()
-        return json.loads(result["context"])
+        return {**json.loads(result["context"]), "public_demo": True}
 
     def save_routing(self, run_id, routing, flow):
         pass
