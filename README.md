@@ -1,14 +1,52 @@
 # Ballet Studio AI Copilot
 
-An independent portfolio project for teacher-reviewed ballet studio administration. Initial students, locations, and messages are synthetic; no real studio adoption or endorsement is claimed.
+A human-reviewed AI assistant for the administrative work behind a ballet studio: understanding student emails, finding relevant studio information, and preparing responses and makeup-class proposals for a teacher to review.
 
-## Current scope
+This is an independent portfolio project built with **Python, FastAPI, LangGraph, PostgreSQL/pgvector, React, and TypeScript**. Students, messages, and studio documents in the demo are fictional. It is not a claim of real studio adoption or time saved.
 
-The app prepares drafts for teacher review and handles makeup requests using a LangGraph workflow. The agent verifies the missed session and notice, checks actual attendance and eligible replacement sessions, and leaves the final decision to a teacher. Approving a draft with a verified booking proposal adds the student to that session atomically; approval never sends email. Information-only requests use an enquiry workflow with a question-by-question review checklist. Other business actions or unclear requests go to teacher handoff. For missing studio facts, teachers provide an answer or explicitly choose to confirm later beside each question, then update the draft before approval. Teacher answers stay scoped to the conversation. The owner can maintain a document library and use explicit CLIs to inspect chunks, prepare revision-pinned PostgreSQL embeddings, and search selected revisions. Teachers can explicitly prepare and enable documents in Studio Knowledge; the opt-in online answer path retrieves enabled revisions, prepares citation-checked answers and composes a teacher-reviewed email. The checker’s concerns appear separately beside the draft for the teacher to review. See [online document answers](docs/20-online-document-answers.md).
+## The problem
 
-Dated sessions have independent student rosters. Staff separately record attendance as attended, absent, or unknown. The studio policy defines the order of class levels from easiest to hardest; makeup candidates cannot exceed the student's highest recorded attended level. Missing attendance or level order requires staff review. Historical runs retain their policy snapshots.
+A short email such as “I missed my class. Can I make it up next week?” can require a teacher to check enrolment, attendance, notice, class level, session capacity, and scheduling conflicts before replying. Other emails need answers grounded in studio documents, or a person’s judgment when the information is missing. The project explores how an AI workflow can make that work easier while keeping consequential decisions under human control.
 
-The public record browser uses predefined fictional data. The public Review Queue and Email Walkthrough use the same LangGraph as the owner workspace with public fictional records and a separate SQLite ledger. Visitors find evidence, generate a draft and simulate teacher approval. Public Studio Knowledge serves a read-only fictional document library; the live demo uses a fixed evidence catalog and does not search or embed the full library. The hosted service admits 20 runs per Melbourne day. See [public live demo](docs/22-public-live-demo.md). The owner workspace provides a review queue, Studio knowledge area for documents, attendance controls, and database inspection. The library accepts UTF-8 `.txt` and `.md` files up to 10 MB, retains immutable revisions, and supports effective dates, duplicate-content notices, and paginated previews. Files up to 1 MB can also be edited inline. Ingestion alone does not publish or enable documents for the agent. See [document ingestion](docs/10-document-ingestion.md). See [website setup](docs/09-website.md).
+## Try the project
+
+- **Public demo:** Run locally at [http://127.0.0.1:8000/demo](http://127.0.0.1:8000/demo) after following [local setup](#local-setup). Explore the Review Queue, Email Walkthrough, timetable, fictional records, and Studio Knowledge.
+- **API:** Open [interactive API documentation](http://127.0.0.1:8000/docs) after starting the app. The [email intake example](#test-an-email-through-one-api-call) shows how to submit a message.
+- **How it works:** See the [public demo guide](docs/22-public-live-demo.md), [agent walkthrough](docs/08-agent-api.md), and [architecture notes](docs/04-architecture.md).
+
+Live AI drafting requires an OpenAI API key and incurs API usage charges. The public demo uses fictional data and simulated approvals; it does not send emails or modify the owner’s records. A verified fictional trial request may be automatically approved in the Email Walkthrough; owner-workspace decisions still require teacher review.
+
+## What it does
+
+- **Processes email conversations.** Routes makeup requests, information enquiries, and requests requiring teacher handoff. Threaded intake supplies conversation history for follow-up messages.
+- **Checks makeup eligibility.** Uses enrolment, absence and notice, recorded attendance, level order, rosters, and conflicts to identify a specific eligible session. Missing or uncertain information goes to staff review.
+- **Supports teacher review.** Shows the draft, evidence, and unresolved questions. A teacher can answer questions, revise the draft, or defer a decision. When an eligible booking is proposed, approval revalidates it and commits the booking atomically; approval does not send an email.
+- **Answers from studio documents.** The owner can manage versioned documents, explicitly prepare and enable revisions, and use an opt-in retrieval path to generate cited answers for review. The public demo instead uses a fixed catalog of selected fictional evidence; it does not search or embed the entire public library.
+- **Makes the workflow inspectable.** The interface exposes fictional student records, sessions, review decisions, and supporting evidence; LangGraph checkpoints preserve workflow state for review and recovery.
+
+## How it is built
+
+```mermaid
+flowchart LR
+    Email[Student email] --> Intake[Conversation and intent]
+    Intake --> Graph[LangGraph workflow]
+    Records[Enrolment, attendance and sessions] --> Graph
+    Docs[Enabled studio documents] --> Graph
+    Graph --> Draft[Draft, evidence and questions]
+    Draft --> Teacher[Teacher review]
+    Teacher -->|Approved eligible proposal| Booking[Revalidate and commit booking]
+    Teacher -->|Resolve questions| Graph
+```
+
+The model interprets messages and drafts responses; application code checks business rules and controls state changes. PostgreSQL stores application data and workflow checkpoints, while pgvector supports document retrieval. The React/TypeScript frontend presents the review workflow, and FastAPI exposes the application API. The public demo uses its own SQLite ledger and fictional records. See the [architecture](docs/04-architecture.md) and [online document answers](docs/20-online-document-answers.md) for details.
+
+## Evaluation and limitations
+
+The repository includes automated tests with scripted model responses, retrieval and RAG evaluations, and optional live-model workflow scenarios. These measure different aspects of the system; passing deterministic tests does not prove the quality of a live model’s response.
+
+A [November 2026 simulated-use evaluation](docs/measurements/whole-agent-portfolio-evaluation-2026-11-16.md) ran 100 everyday and 25 high-risk fictional scenarios. An independent AI reviewer recorded **69/100** and **12/25** passes respectively; 19 everyday and 10 high-risk cases were unscorable because of fixture or expectation limitations. The report also documents substantive failures and notes that later changes were not freshly validated by that run. Teacher adjudication remains pending, so these results do not establish pilot readiness or real-world performance.
+
+The system does not send email or implement financial rules and credit ledgers. Model-generated drafts can be incomplete or incorrect and require review. The public demo is a constrained simulation, not a production deployment for real student data.
 
 ## AWS deployment
 
@@ -185,4 +223,4 @@ scenario format and test database requirements.
 - [Tracing and observability](docs/19-tracing-and-observability.md)
 - [Offline chunking and inspection CLI](docs/12-document-chunking.md)
 
-Policies remain external resources. Financial rules, credit ledgers, email delivery, and production infrastructure remain outside the implemented workflow.
+Policies remain external resources. Financial rules, credit ledgers, and email delivery remain outside the implemented workflow.
