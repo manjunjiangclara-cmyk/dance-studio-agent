@@ -247,6 +247,33 @@ def test_review_queue_example_needs_no_missing_studio_fact(demo):
     assert "socks" in ledger.execute(token, "draft")["body"].lower()
 
 
+def test_document_approval_takes_only_one_publication_guard(demo, monkeypatch):
+    from contextlib import contextmanager
+
+    from studio_copilot.public_demo.service import DemoStore
+
+    acquired, calls = [], []
+
+    @contextmanager
+    def guard(store, state):
+        assert not acquired, "A nested guard can deadlock behind an index publisher."
+        calls.append(True)
+        acquired.append(True)
+        try:
+            yield
+        finally:
+            acquired.pop()
+
+    monkeypatch.setattr(DemoStore, "document_approval_guard", guard)
+    ledger, _ = demo
+    token = create(ledger, "document")
+    ledger.execute(token, "evidence")
+    draft = ledger.execute(token, "draft")
+    assert ledger.execute(token, "approve", revision=draft["revision"])["status"] == "approved_mock"
+    assert not acquired
+    assert calls == [True]
+
+
 def selected_saturday(records, level="Level 2"):
     return next(
         row

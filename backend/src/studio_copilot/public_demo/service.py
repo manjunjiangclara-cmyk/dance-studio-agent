@@ -797,25 +797,26 @@ class DemoStore:
                 "context": self.load_context(run_id),
             }
             if row["approval"] is None:
-                with self.document_approval_guard(state):
-                    trial_id = self.check_approval(state, body)
-                    proposal = draft.get("booking_session_id")
-                    approval = {
-                        "status": "approved_mock",
-                        "revision": row["revision"],
-                        "body": body,
-                        "booking_simulated": bool(trial_id or proposal),
-                    }
-                    if trial_id or proposal:
-                        approval["booking_kind"] = "trial" if trial_id else "makeup"
-                        approval["booking"] = self._booking(
-                            trial_id or proposal, state["context"]["student"]
-                        )
-                    db.execute(
-                        "UPDATE graph_runs SET approval = ? WHERE request_id = ?",
-                        (json.dumps(approval), run_id),
+                # PublicDemo._drive holds the document approval guard across this
+                # graph invocation and the SQLite commit. Acquiring another shared
+                # lock here can deadlock behind a queued exclusive publisher.
+                trial_id = self.check_approval(state, body)
+                proposal = draft.get("booking_session_id")
+                approval = {
+                    "status": "approved_mock",
+                    "revision": row["revision"],
+                    "body": body,
+                    "booking_simulated": bool(trial_id or proposal),
+                }
+                if trial_id or proposal:
+                    approval["booking_kind"] = "trial" if trial_id else "makeup"
+                    approval["booking"] = self._booking(
+                        trial_id or proposal, state["context"]["student"]
                     )
-                    db.commit()
+                db.execute(
+                    "UPDATE graph_runs SET approval = ? WHERE request_id = ?",
+                    (json.dumps(approval), run_id),
+                )
         return response_id
 
     def _booking(self, session_id, student):
