@@ -1,0 +1,115 @@
+{
+  "id": "d0c1a80c-00f4-527a-a178-888ce7eee84e",
+  "created_at": "2027-02-07T00:00:00Z",
+  "updated_at": "2027-02-07T00:00:00Z",
+  "conversation_id": "f6574588-1747-5532-99aa-9adedffd94ad",
+  "source_message_id": "3a067002-bcaf-57b7-a336-a1e6dbe29914",
+  "draft_message_id": "ab636798-e48d-53ad-ad28-6d6a67e308dc",
+  "approved_response_id": null,
+  "status": "awaiting_review",
+  "revision": 1,
+  "interpretation": {
+    "request_summary": "New dancer asks about Thursday classes, trial fees and clothing.",
+    "flow": "enquiry",
+    "missing_details": [],
+    "routing": {
+      "intents": ["new_student_enquiry"],
+      "needs_clarification": false,
+      "reason": "The student asks for information; no booking or enrolment change is requested.",
+      "action": "information_only",
+      "request_summary": "New dancer asks about Thursday classes, trial fees and clothing."
+    },
+    "enduring_preferences": [],
+    "questions": [
+      "When and where is the Thursday class?",
+      "What does a trial cost?",
+      "What should I wear?"
+    ],
+    "requested_actions": [],
+    "question_ids": {
+      "When and where is the Thursday class?": "c7b515bb-a9af-5891-952b-56e6eb819c3a",
+      "What does a trial cost?": "2a2feaf0-08ca-5cab-bb37-6a1e440a9594",
+      "What should I wear?": "fba7a2f4-30c4-5256-808d-58e3c308277d"
+    }
+  },
+  "evidence": [
+    {
+      "tool": "get_timetable",
+      "arguments": {},
+      "result": {
+        "items": [
+          {
+            "id": "8cb0d988-fc35-5ed4-8d34-7e02e00d0464",
+            "name": "Adult Ballet · Level 2 · Thursday",
+            "prerequisites": "For dancers with previous ballet experience; placement confirmed by the teacher.",
+            "location": {
+              "id": "31503400-74bd-5783-afe1-eb1e69f321a4",
+              "name": "Merri Ballet · Carlton"
+            },
+            "upcoming_sessions": [
+              {
+                "id": "a4ad2f4b-29e9-5a3b-9e78-e77026e88576",
+                "starts_at": "2027-02-11T18:00:00+11:00",
+                "ends_at": "2027-02-11T19:00:00+11:00"
+              }
+            ]
+          }
+        ],
+        "references": [
+          "class:8cb0d988-fc35-5ed4-8d34-7e02e00d0464",
+          "session:a4ad2f4b-29e9-5a3b-9e78-e77026e88576",
+          "location:31503400-74bd-5783-afe1-eb1e69f321a4"
+        ],
+        "truncated": false
+      }
+    }
+  ],
+  "draft_details": {
+    "body": "Hi Jules, thanks for getting in touch. Thursday's Level 2 class runs from 6 to 7 pm at our Carlton studio. It is intended for dancers with previous ballet experience, so I will help you find a suitable starting class and confirm the trial fees and clothing details.",
+    "rationale": "The timetable supports the schedule and location. Beginner placement, trial fees and clothing need teacher input.",
+    "questions": [],
+    "references": [
+      "class:8cb0d988-fc35-5ed4-8d34-7e02e00d0464",
+      "session:a4ad2f4b-29e9-5a3b-9e78-e77026e88576",
+      "location:31503400-74bd-5783-afe1-eb1e69f321a4"
+    ],
+    "booking_session_id": null,
+    "answers": [
+      {
+        "question": "When and where is the Thursday class?",
+        "status": "answered",
+        "answer": "Thursday Level 2 runs from 6 to 7 pm at Merri Ballet · Carlton. Placement needs teacher confirmation.",
+        "references": [
+          "class:8cb0d988-fc35-5ed4-8d34-7e02e00d0464",
+          "session:a4ad2f4b-29e9-5a3b-9e78-e77026e88576",
+          "location:31503400-74bd-5783-afe1-eb1e69f321a4"
+        ],
+        "question_id": "c7b515bb-a9af-5891-952b-56e6eb819c3a"
+      },
+      {
+        "question": "What does a trial cost?",
+        "status": "needs_teacher",
+        "answer": "The teacher needs to confirm this studio information.",
+        "references": [],
+        "question_id": "2a2feaf0-08ca-5cab-bb37-6a1e440a9594"
+      },
+      {
+        "question": "What should I wear?",
+        "status": "needs_teacher",
+        "answer": "The teacher needs to confirm this studio information.",
+        "references": [],
+        "question_id": "fba7a2f4-30c4-5256-808d-58e3c308277d"
+      }
+    ],
+    "question_resolutions": [],
+    "required_question_ids": [
+      "2a2feaf0-08ca-5cab-bb37-6a1e440a9594",
+      "fba7a2f4-30c4-5256-808d-58e3c308277d"
+    ]
+  },
+  "policy_snapshot": {
+    "source": "Illustrative policy snapshot",
+    "unknown_rules": "Refer suitability and availability to teacher review."
+  },
+  "error": null
+}
