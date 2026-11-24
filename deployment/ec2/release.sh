@@ -85,6 +85,12 @@ compose stop app proxy
 compose run --rm --no-deps app alembic upgrade head
 compose run --rm --no-deps app alembic check
 compose run --rm --no-deps app python -m studio_copilot.agent.persistence.checkpoints
+# The public corpus is isolated from owner data and is prepared before traffic resumes.
+if ! compose exec -T db psql -U copilot -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'studio_copilot_public'" | grep -q '^1$'; then
+    compose exec -T db createdb -U copilot studio_copilot_public
+fi
+compose run --rm --no-deps app sh -c 'DATABASE_URL="$STUDIO_PUBLIC_DOCUMENT_DATABASE_URL" alembic upgrade head'
+compose run --rm --no-deps app python -m studio_copilot.public_demo.document_index
 # A newly provisioned demo uses fictional fixtures; subsequent releases preserve edits.
 if [ ! -f /srv/studio/initialized ]; then
     compose run --rm --no-deps app python -m studio_copilot.demo

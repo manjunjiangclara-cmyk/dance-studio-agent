@@ -22,7 +22,6 @@ from studio_copilot.agent.openai_model import OpenAIModel
 from studio_copilot.agent.question_resolutions import require_resolved_questions
 from studio_copilot.agent.review_requirements import review_requirements
 from studio_copilot.agent.workflow.graph import Workflow
-from studio_copilot.public_demo.fixtures import PUBLIC_DOCUMENTS
 from studio_copilot.public_demo.records import CASES, FictionalRecords
 from studio_copilot.public_demo.trial_booking import TRIAL, latest_text, previous_offer, trial_draft
 
@@ -43,9 +42,7 @@ def evidence_questions(state):
             missing.append(
                 {
                     "id": result["question_id"],
-                    "label": "Trial fee"
-                    if result.get("missing_information")
-                    else result["question"],
+                    "label": result["question"],
                 }
             )
     return missing
@@ -103,12 +100,12 @@ def supporting_evidence(state):
                 )
         elif item["tool"] == "document_answer":
             for claim in result.get("claims", []):
-                if "public-document:beginner-clothing" in claim.get("references", []):
+                evidence.append(claim["text"])
+                for citation in claim.get("citations", []):
                     evidence.append(
-                        "Beginner clothing policy, revision 1: " + PUBLIC_DOCUMENTS[0]["content"]
+                        f"{citation['title']} · revision {citation['revision']}: "
+                        f"“{citation['quote']}”"
                     )
-                else:
-                    evidence.append(claim["text"])
         elif item["tool"] == "get_timetable" and state["flow"] != "makeup":
             evidence.extend(
                 f"Timetable: {row['name']} at {row['location']['name']}."
@@ -522,22 +519,25 @@ class PublicDemo:
             raise HTTPException(409, "An approval for this draft is already in progress.")
         if row["approval"]:
             return json.loads(row["approval"])
-        DemoStore(self, row).check_approval(state, approved_body)
-        with self.db() as db:
-            db.execute(
-                "UPDATE graph_runs SET decision = ? WHERE request_id = ?",
-                (json.dumps(decision), row["request_id"]),
-            )
-        if not interrupts and not state.get("decision"):
-            graph.invoke(None, config)
-            snapshot = graph.get_state(config)
-            interrupts = [value for task in snapshot.tasks for value in task.interrupts]
-        graph.invoke(Command(resume=decision) if interrupts else None, config)
-        with self.db() as db:
-            saved = db.execute(
-                "SELECT approval FROM graph_runs WHERE request_id = ?", (row["request_id"],)
-            ).fetchone()[0]
-        return json.loads(saved)
+        store = DemoStore(self, row)
+        # Prevent a publication between validation and the durable graph decision.
+        with store.document_approval_guard(state):
+            store.check_approval(state, approved_body)
+            with self.db() as db:
+                db.execute(
+                    "UPDATE graph_runs SET decision = ? WHERE request_id = ?",
+                    (json.dumps(decision), row["request_id"]),
+                )
+            if not interrupts and not state.get("decision"):
+                graph.invoke(None, config)
+                snapshot = graph.get_state(config)
+                interrupts = [value for task in snapshot.tasks for value in task.interrupts]
+            graph.invoke(Command(resume=decision) if interrupts else None, config)
+            with self.db() as db:
+                saved = db.execute(
+                    "SELECT approval FROM graph_runs WHERE request_id = ?", (row["request_id"],)
+                ).fetchone()[0]
+            return json.loads(saved)
 
     def _automatic_trial_result(self, approval):
         session = approval["booking"]["session"]
@@ -665,6 +665,34 @@ class DemoStore:
                 (attempt, json.dumps(draft), json.dumps(evidence), run_id),
             )
 
+    @contextmanager
+    def document_approval_guard(self, state):
+        references = state["draft"].get("references") or []
+        if not any(ref.startswith(("document:", "public-document:")) for ref in references):
+            yield
+            return
+        from sqlalchemy import text
+
+        from studio_copilot.public_demo import document_index
+
+        engine = None
+        try:
+            engine = document_index.engine_from_env()
+            with engine.begin() as connection:
+                # Index publication takes the exclusive form of this lock. Keep the
+                # shared lock until the SQLite approval is committed.
+                connection.execute(text("SELECT pg_advisory_xact_lock_shared(582910743)"))
+                yield
+        except HTTPException:
+            raise
+        except Exception as error:
+            raise HTTPException(
+                409, "The demo document sources changed or are unavailable. Regenerate the draft."
+            ) from error
+        finally:
+            if engine is not None:
+                engine.dispose()
+
     def check_approval(self, state, body):
         draft = state["draft"]
         require_resolved_questions(
@@ -675,6 +703,39 @@ class DemoStore:
             )
         )
         references = draft.get("references") or []
+        if any(ref.startswith(("document:", "public-document:")) for ref in references):
+            from sqlalchemy.orm import Session
+
+            from studio_copilot.documents import online
+            from studio_copilot.public_demo import document_index
+
+            engine = None
+            try:
+                engine = document_index.engine_from_env()
+                config = document_index.configuration(engine)
+                sources = [
+                    source
+                    for item in state["evidence"]
+                    if item.get("tool") == "document_answer"
+                    for source in item["result"].get("sources", [])
+                ]
+                if not sources or any(ref.startswith("public-document:") for ref in references):
+                    raise online.OnlineError("source_changed")
+                as_of = (
+                    datetime.fromisoformat(state["context"]["source"]["occurred_at"])
+                    .astimezone(ZoneInfo("Australia/Melbourne"))
+                    .date()
+                )
+                with Session(engine) as db:
+                    online.check_identities(db, config, sources, as_of)
+            except Exception as error:
+                raise HTTPException(
+                    409,
+                    "The demo document sources changed or are unavailable. Regenerate the draft.",
+                ) from error
+            finally:
+                if engine is not None:
+                    engine.dispose()
         if any(ref.startswith("public-trial:") for ref in references):
             trial = trial_draft(self.demo.records, state)
             if trial is None or trial.references != references or body != trial.body:
@@ -706,23 +767,25 @@ class DemoStore:
                 "context": self.load_context(run_id),
             }
             if row["approval"] is None:
-                trial_id = self.check_approval(state, body)
-                proposal = draft.get("booking_session_id")
-                approval = {
-                    "status": "approved_mock",
-                    "revision": row["revision"],
-                    "body": body,
-                    "booking_simulated": bool(trial_id or proposal),
-                }
-                if trial_id or proposal:
-                    approval["booking_kind"] = "trial" if trial_id else "makeup"
-                    approval["booking"] = self._booking(
-                        trial_id or proposal, state["context"]["student"]
+                with self.document_approval_guard(state):
+                    trial_id = self.check_approval(state, body)
+                    proposal = draft.get("booking_session_id")
+                    approval = {
+                        "status": "approved_mock",
+                        "revision": row["revision"],
+                        "body": body,
+                        "booking_simulated": bool(trial_id or proposal),
+                    }
+                    if trial_id or proposal:
+                        approval["booking_kind"] = "trial" if trial_id else "makeup"
+                        approval["booking"] = self._booking(
+                            trial_id or proposal, state["context"]["student"]
+                        )
+                    db.execute(
+                        "UPDATE graph_runs SET approval = ? WHERE request_id = ?",
+                        (json.dumps(approval), run_id),
                     )
-                db.execute(
-                    "UPDATE graph_runs SET approval = ? WHERE request_id = ?",
-                    (json.dumps(approval), run_id),
-                )
+                    db.commit()
         return response_id
 
     def _booking(self, session_id, student):

@@ -52,6 +52,14 @@ class DemoGraphModel(FakeModel):
             )
         return super().route(context)
 
+    def demo_evidence_route(self, context):
+        questions = " ".join(context["interpretation"].get("questions", [])).lower()
+        return (
+            "documents"
+            if any(word in questions for word in ("wear", "clothes", "trial cost"))
+            else "records"
+        )
+
     def interpret_enquiry(self, context):
         if context["source"]["id"] == CASES["document"]:
             return EnquiryInterpretation(
@@ -90,6 +98,58 @@ class DemoGraphModel(FakeModel):
 def demo(tmp_path):
     model = DemoGraphModel()
     return PublicDemo(tmp_path / "ledger.sqlite", factory=lambda: model), model
+
+
+@pytest.fixture(autouse=True)
+def fake_document_provider(monkeypatch):
+    """Supply deterministic document answers; retrieval integration is tested separately."""
+    from contextlib import nullcontext
+
+    from studio_copilot.documents import online
+    from studio_copilot.public_demo import document_index
+    from studio_copilot.public_demo.service import DemoStore
+
+    monkeypatch.setattr(document_index, "engine_from_env", lambda: create_engine("sqlite://"))
+    monkeypatch.setattr(document_index, "configuration", lambda engine: object())
+    monkeypatch.setattr(online, "check_identities", lambda *args, **kwargs: None)
+    monkeypatch.setattr(DemoStore, "document_approval_guard", lambda *args: nullcontext())
+
+    def gather(engine, state, **kwargs):
+        resolved = {str(x["question_id"]) for x in state.get("question_resolutions", [])}
+        evidence = []
+        for question in state["interpretation"]["questions"]:
+            qid = state["interpretation"]["question_ids"][question]
+            if qid in resolved:
+                continue
+            supported = "wear" in question.lower() or "thursday" in question.lower()
+            quote = (
+                "Socks are suitable for your first class."
+                if "wear" in question.lower()
+                else "Thursday class is at 6 pm in Carlton."
+            )
+            refs = ["document:E0123456789abcdef01234567"] if supported else []
+            result = {
+                "question_id": qid,
+                "question": question,
+                "status": "answered" if supported else "abstained",
+                "claims": [
+                    {
+                        "text": quote,
+                        "citations": [{"title": "Clothing", "revision": 1, "quote": quote}],
+                    }
+                ]
+                if supported
+                else [],
+                "references": refs,
+                "sources": [{"run_id": str(uuid4())}] if supported else [],
+                "missing_information": [] if supported else [question],
+            }
+            evidence.append(
+                {"tool": "document_answer", "arguments": {}, "finding": question, "result": result}
+            )
+        return {"evidence": evidence, "warnings": []}
+
+    monkeypatch.setattr(online, "gather", gather)
 
 
 def create(demo, scenario="booking"):
@@ -194,7 +254,7 @@ def test_document_resume_requires_original_teacher_answers(demo):
     ledger, model = demo
     token = create(ledger, "document")
     evidence = ledger.execute(token, "evidence")
-    assert evidence["missing_information"] == ["Trial fee"]
+    assert evidence["missing_information"] == ["What does a trial cost?"]
     assert any("socks" in item.lower() for item in evidence["evidence"])
     assert not model.drafts and not model.compositions
 
@@ -296,7 +356,7 @@ def test_public_document_deferral_stays_a_deferral_after_approval(demo):
     ledger, model = demo
     token = create(ledger, "document")
     evidence = ledger.execute(token, "evidence")
-    assert evidence["missing_information"] == ["Trial fee"]
+    assert evidence["missing_information"] == ["What does a trial cost?"]
     draft = ledger.execute(
         token, "draft", teacher_answers=["I will confirm this information later."]
     )
@@ -542,7 +602,7 @@ def test_walkthrough_uses_the_same_graph_and_only_carries_approved_reply(demo):
         ledger.create_walkthrough(str(uuid4()), "new", "Thanks!", token)
     assert unapproved.value.status_code == 409
     evidence = ledger.execute(token, "evidence")
-    assert evidence["missing_information"] == ["Trial fee"]
+    assert evidence["missing_information"] == ["What does a trial cost?"]
     assert evidence["review_requirements"] == ["teacher_input"]
     resumed = PublicDemo(ledger.path, factory=lambda: model)
     draft = resumed.execute(token, "draft", teacher_answers=["The trial costs $15."])

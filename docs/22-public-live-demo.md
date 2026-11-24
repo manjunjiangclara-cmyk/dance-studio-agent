@@ -17,7 +17,7 @@ flowchart LR
     Approve --> Simulate[Demo records simulated approval]
 ```
 
-The public Studio Knowledge library contains fictional reference documents, including first-class, clothing, makeup, class, fee and administrative guidance. It is read-only and served by `/api/public-demo/documents`, including when live model calls are disabled. The walkthrough uses a fixed evidence catalog containing selected documents from this library; the additional library documents are not searched by the demo. The public demo does not chunk or embed the library and does not use the owner document retrieval pipeline.
+The public Studio Knowledge library contains fictional reference documents, including first-class, clothing, makeup, class, fee and administrative guidance. It is read-only and served by `/api/public-demo/documents`, including when live model calls are disabled. Both demos retrieve from a separately prepared index containing the entire fictional library. They use the owner chunker, embedding profile, hybrid retrieval, reranking and quote-validated document answers; the owner document database and activation registry are separate. Document-source questions and live timetable questions use separate routes; combining both in one enquiry is not yet supported.
 
 At the entry to the shared draft node, the demo pauses so visitors can see the evidence and answer any unresolved questions. If drafting identifies another fact that needs a teacher decision, the demo asks for that answer and resumes the shared graph's revision path. Makeup verification checks the enrolled absence, the original notice, attended level, current session roster, conflicting sessions and existing bookings. The public example records use a fixed reference date. A verified makeup must resolve to one exact session before the graph can produce a booking proposal.
 
@@ -40,6 +40,18 @@ Set the following privately on the server with `OPENAI_API_KEY`, `OPENAI_MODEL` 
 ```dotenv
 STUDIO_PUBLIC_LIVE_DEMO=true
 STUDIO_PUBLIC_DEMO_DB=/persistent/private/public-demo.sqlite3
+STUDIO_PUBLIC_DOCUMENT_DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST:5432/studio_copilot_public
+STUDIO_TOKENIZER_CACHE=/absolute/path/to/prepared-tokenizer
+STUDIO_RERANKER_CACHE=/absolute/path/to/prepared-reranker-models
 ```
 
-For a standalone local API preview, run `studio_copilot.api.public_demo:create_public_demo_app` with Uvicorn's `--factory` flag and set `PUBLIC_DEMO_PROXY_TARGET` for Vite. No workspace database is needed for that preview. The regular application serves both endpoints and the built frontend.
+Before serving document questions, create a separate PostgreSQL database (with a different database name from the owner database), apply the application migrations to it, then explicitly prepare the complete public index. Prepare the tokenizer and reranker assets as described in the owner online document guide and install the rerank dependency group. Run from `backend/` with both owner `DATABASE_URL` and `STUDIO_PUBLIC_DOCUMENT_DATABASE_URL` configured:
+
+```sh
+DATABASE_URL="$STUDIO_PUBLIC_DOCUMENT_DATABASE_URL" uv run alembic upgrade head
+uv run python -m studio_copilot.public_demo.document_index
+```
+
+The preparation command calls the configured embedding provider and can incur charges. It builds all sources before atomically publishing them; source content, chunker or embedding-profile changes require preparation again. The runtime never embeds documents on startup or on behalf of visitors. Missing, outdated or failed preparation returns a temporary document-search error; it does not use old or fixed answers. Query embeddings and answer generation still incur API costs during live use. The public database contains only reproducible fictional documents and can be rebuilt after restore.
+
+For a standalone local API preview, run `studio_copilot.api.public_demo:create_public_demo_app` with Uvicorn's `--factory` flag and set `PUBLIC_DEMO_PROXY_TARGET` for Vite. Record-only previews do not query the workspace database. Document answers require both database URLs and an accessible owner database so the server can verify that the public corpus is isolated. The regular application serves both endpoints and the built frontend.

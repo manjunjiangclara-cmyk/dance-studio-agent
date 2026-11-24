@@ -122,7 +122,10 @@ class QueryRunner:
                 "document_answers_enabled": False,
             }
 
-        document_result = self.records.documents(state)
+        if hasattr(self.records, "demo_documents"):
+            document_result = self.records.demo_documents(state, self.model)
+        else:
+            document_result = self.records.documents(state)
         if document_result is not None:
             if state.get("question_resolutions"):
                 document_result["evidence"].append(

@@ -96,6 +96,10 @@ def configure(config, client):
         STUDIO_RERANKER_CACHE="/app/assets/reranker",
         STUDIO_POLICY_PATH="/data/policy/studio.yaml",
         STUDIO_PUBLIC_DEMO_DB="/data/public-demo/ledger.sqlite3",
+        STUDIO_PUBLIC_DOCUMENT_DATABASE_URL=(
+            f"postgresql+psycopg://copilot:{values['POSTGRES_PASSWORD']}@db:5432/"
+            "studio_copilot_public"
+        ),
     )
     atomic_write(ROOT / "config/app.env", env_text(values))
     atomic_write(ROOT / "config/domain", parsed.hostname + "\n")

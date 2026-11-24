@@ -141,7 +141,11 @@ maintenance window; failed migrations or readiness checks stop the candidate. Th
 script records failed/ready status and does not claim a successful rollback.
 
 Application migrations, schema parity checks and LangGraph checkpoint provisioning
-are separate explicit release steps. Fictional fixtures are inserted only on the
+are separate explicit release steps. Each release also migrates the separate
+`studio_copilot_public` database and prepares its fictional document index before
+restarting the app. New embeddings can incur provider charges. The index is
+reproducible and excluded from the owner database backup; prepare it again after
+restoring. Fictional fixtures are inserted only on the
 first application setup; subsequent releases preserve teacher edits. The writable
 policy **directory**, public demo ledger and PostgreSQL data live on the separate
 data disk. Container recreation does not reset daily demo allowances or policy edits.

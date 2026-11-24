@@ -53,6 +53,10 @@ class Routing(StrictModel):
     action: Literal["information_only", "makeup_booking", "other_action", "unclear"] = "unclear"
 
 
+class DemoEvidenceRoute(StrictModel):
+    source: Literal["documents", "records"]
+
+
 class RequestInterpretation(StrictModel):
     """Common fields consumed by memory and review, independent of the selected flow."""
 
