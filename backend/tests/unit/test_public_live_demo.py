@@ -113,7 +113,7 @@ class DemoGraphModel(FakeModel):
             self.routing = Routing(
                 intents=["general_enquiry"],
                 action="information_only",
-                request_summary="Trial policy and class timetable questions.",
+                request_summary="What to wear to a first ballet class.",
                 needs_clarification=False,
                 reason="The student asks for information.",
             )
@@ -130,12 +130,8 @@ class DemoGraphModel(FakeModel):
     def interpret_enquiry(self, context):
         if context["source"]["id"] == CASES["document"]:
             return EnquiryInterpretation(
-                request_summary="Trial policy and class timetable questions.",
-                questions=[
-                    "What should I wear?",
-                    "When and where is the Thursday class?",
-                    "What does a trial cost?",
-                ],
+                request_summary="What to wear to a first ballet class.",
+                questions=["What should I wear to my first ballet class?"],
                 missing_details=[],
                 enduring_preferences=[],
             )
@@ -221,6 +217,34 @@ def fake_document_provider(monkeypatch):
 
 def create(demo, scenario="booking"):
     return demo.create(scenario, str(uuid4()))["token"]
+
+
+def create_fee_enquiry(ledger, model):
+    model.routing = Routing(
+        intents=["general_enquiry"],
+        action="information_only",
+        request_summary="Ask about clothing and trial fees.",
+        needs_clarification=False,
+        reason="The student asks about two studio policies.",
+    )
+    model.interpret_enquiry = lambda context: EnquiryInterpretation(
+        request_summary="Ask about clothing and trial fees.",
+        questions=["What should I wear?", "What does a trial cost?"],
+        missing_details=[],
+        enduring_preferences=[],
+    )
+    return ledger.create_walkthrough(
+        str(uuid4()), "new", "What should I wear, and what does a trial cost?"
+    )["token"]
+
+
+def test_review_queue_example_needs_no_missing_studio_fact(demo):
+    ledger, _ = demo
+    token = create(ledger, "document")
+    evidence = ledger.execute(token, "evidence")
+    assert evidence["missing_information"] == []
+    assert any("socks" in item.lower() for item in evidence["evidence"])
+    assert "socks" in ledger.execute(token, "draft")["body"].lower()
 
 
 def selected_saturday(records, level="Level 2"):
@@ -319,7 +343,7 @@ def test_sqlite_resume_and_mock_booking_are_revision_bound(demo):
 
 def test_document_resume_requires_original_teacher_answers(demo):
     ledger, model = demo
-    token = create(ledger, "document")
+    token = create_fee_enquiry(ledger, model)
     evidence = ledger.execute(token, "evidence")
     assert evidence["missing_information"] == ["What does a trial cost?"]
     assert any("socks" in item.lower() for item in evidence["evidence"])
@@ -421,7 +445,7 @@ def test_teacher_answer_api_accepts_the_shared_question_limit():
 
 def test_public_document_deferral_stays_a_deferral_after_approval(demo):
     ledger, model = demo
-    token = create(ledger, "document")
+    token = create_fee_enquiry(ledger, model)
     evidence = ledger.execute(token, "evidence")
     assert evidence["missing_information"] == ["What does a trial cost?"]
     draft = ledger.execute(

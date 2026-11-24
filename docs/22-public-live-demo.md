@@ -9,7 +9,12 @@ flowchart LR
     Walkthrough[Public Email Walkthrough] --> Load
     Load --> Classify[Classify and interpret]
     Classify --> Gather[Gather evidence and verify makeup candidates]
-    Gather --> Draft[Draft]
+    Gather -->|Public document question| Documents[Retrieve and verify demo document passages]
+    Gather -->|Owner document question| OwnerDocuments[Retrieve and verify enabled owner documents]
+    Gather -->|Timetable or booking| Records[Read fictional records and verify candidates]
+    Documents --> Draft[Draft]
+    OwnerDocuments --> Draft
+    Records --> Draft
     Draft --> Review[Review exact draft revision]
     Review --> Approve[Approve or resume verified demo trial]
     Review -->|Resolve teacher questions and regenerate| Gather
@@ -20,6 +25,8 @@ flowchart LR
 The public Studio Knowledge library contains fictional reference documents, including first-class, clothing, makeup, class, fee and administrative guidance. It is read-only and served by `/api/public-demo/documents`, including when live model calls are disabled. Both demos retrieve from a separately prepared index containing the entire fictional library. They use the owner chunker, embedding profile, hybrid retrieval, reranking and quote-validated document answers; the owner document database and activation registry are separate. Document-source questions and live timetable questions use separate routes; combining both in one enquiry is not yet supported.
 
 At the entry to the shared draft node, the demo pauses so visitors can see the evidence and answer any unresolved questions. If drafting identifies another fact that needs a teacher decision, the demo asks for that answer and resumes the shared graph's revision path. Makeup verification checks the enrolled absence, the original notice, attended level, current session roster, conflicting sessions and existing bookings. The public example records use a fixed reference date. A verified makeup must resolve to one exact session before the graph can produce a booking proposal.
+
+The demo requests drafts without a sign-off and removes common generated closings and known name placeholders before review. The teacher can still edit the reply; the simulation does not send an email.
 
 ## Public API
 

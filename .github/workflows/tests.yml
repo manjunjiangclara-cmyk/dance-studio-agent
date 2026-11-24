@@ -7,13 +7,12 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: tests-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   test:
     runs-on: ubuntu-latest
+    concurrency:
+      group: tests-${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
     services:
       postgres:
         image: pgvector/pgvector:0.8.7-pg18-trixie
@@ -99,3 +98,67 @@ jobs:
       - name: Check public and owner browser journeys
         working-directory: frontend
         run: npm test
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository == 'manjunjiangclara-cmyk/dance-studio-agent'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    concurrency:
+      group: dance-studio-aws-deployment
+      cancel-in-progress: false
+      queue: max
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      STUDIO_DEPLOY_INSTANCE_ID: ${{ vars.STUDIO_DEPLOY_INSTANCE_ID }}
+      STUDIO_DEPLOY_BUCKET: ${{ vars.STUDIO_DEPLOY_BUCKET }}
+      STUDIO_DEPLOY_ORIGIN: ${{ vars.STUDIO_DEPLOY_ORIGIN }}
+    steps:
+      - name: Check out the tested commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Skip superseded master commits
+        id: current
+        shell: bash
+        run: |
+          set -euo pipefail
+          current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/master" --jq .object.sha)
+          if [ "$current" = "$GITHUB_SHA" ]; then
+            echo 'deploy=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'Master has advanced; the newer CI run owns deployment.'
+            echo 'deploy=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install uv
+        if: steps.current.outputs.deploy == 'true'
+        uses: astral-sh/setup-uv@v10.3.2
+
+      - name: Set up Python
+        if: steps.current.outputs.deploy == 'true'
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Install deployment dependencies
+        if: steps.current.outputs.deploy == 'true'
+        working-directory: backend
+        run: uv sync --locked --no-dev --group aws-validation
+
+      - name: Obtain short-lived AWS credentials
+        if: steps.current.outputs.deploy == 'true'
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.STUDIO_GITHUB_DEPLOY_ROLE_ARN }}
+          aws-region: ap-southeast-2
+          allowed-account-ids: '287785301532'
+          role-duration-seconds: 7200
+
+      - name: Deploy tested master commit and verify HTTPS
+        if: steps.current.outputs.deploy == 'true'
+        run: backend/.venv/bin/python deployment/ec2/ci_release.py

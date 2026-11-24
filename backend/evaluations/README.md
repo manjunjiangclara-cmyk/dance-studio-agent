@@ -170,3 +170,10 @@ remain `needs_teacher` without unrelated citations; the mixed case must also
 answer the supported timetable question. Phrase and topic checks are limited:
 review the complete reply and relevance of every cited source. These scenarios
 stop before teacher answers or deferrals, which integration tests cover.
+
+These owner-workspace cases do not exercise the public demo's document-versus-records
+router. The public demo currently selects one source path per enquiry; mixing a
+document question with a live timetable question is not covered by this evaluation
+and is not supported by that demo route. Public demo regression tests exercise the
+single-question example and citation handling with fake providers; they do not
+establish live-model answer quality.
