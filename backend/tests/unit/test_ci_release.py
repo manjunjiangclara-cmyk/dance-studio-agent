@@ -5,7 +5,8 @@ import io
 import json
 from pathlib import Path
 from types import SimpleNamespace
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
+from urllib.request import Request
 
 import pytest
 import yaml
@@ -25,6 +26,7 @@ def test_workflow_requires_successful_tests_and_master_push():
     assert REPO in job["if"]
     assert job["concurrency"]["cancel-in-progress"] is False
     assert job["concurrency"]["queue"] == "max"
+    assert job["timeout-minutes"] >= 90
     assert job["permissions"] == {"contents": "read", "id-token": "write"}
     assert "concurrency" not in workflow
 
@@ -244,3 +246,29 @@ def test_smoke_failure_fails_the_deployment(ci, trusted_event, monkeypatch):
     monkeypatch.setattr(ci.deploy, "smoke", fail)
     with pytest.raises(RuntimeError, match="health check failed"):
         ci.main()
+
+
+@pytest.mark.parametrize("cross_origin_allowed", [False, True])
+def test_smoke_requires_cross_origin_request_to_be_rejected(ci, monkeypatch, cross_origin_allowed):
+    class Response(io.BytesIO):
+        status = 200
+
+    def fake_urlopen(request, timeout):
+        if isinstance(request, Request):
+            if cross_origin_allowed:
+                return Response(b"{}")
+            raise HTTPError(request.full_url, 403, "Forbidden", {}, None)
+        if request.endswith(("/api/v1/students", "/api/v1/documents")):
+            raise HTTPError(request, 401, "Unauthorized", {}, None)
+        if request.endswith("/auth/me"):
+            return Response(b'{"authenticated": false, "login_available": true}')
+        if request.endswith("/demo"):
+            return Response(b'<script src="/assets/app.js"></script>')
+        return Response(b"OK")
+
+    monkeypatch.setattr(ci.deploy, "urlopen", fake_urlopen)
+    if cross_origin_allowed:
+        with pytest.raises(AssertionError, match="cross-origin"):
+            ci.deploy.smoke("https://studio.example.test")
+    else:
+        ci.deploy.smoke("https://studio.example.test")

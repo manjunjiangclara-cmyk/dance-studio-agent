@@ -103,7 +103,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository == 'manjunjiangclara-cmyk/dance-studio-agent'
     needs: test
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 90
     concurrency:
       group: dance-studio-aws-deployment
       cancel-in-progress: false

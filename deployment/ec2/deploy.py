@@ -153,7 +153,9 @@ def release(clients, config, *, before_dispatch=None, document_name=None):
     )["Command"]["CommandId"]
     print("Deployment command:", command, flush=True)
     ssm = clients.client("ssm")
-    for attempt in range(370):
+    # Allow for the 10-minute SSM delivery window, one hour of execution,
+    # and a small margin for terminal status propagation.
+    for attempt in range(450):
         try:
             result = ssm.get_command_invocation(CommandId=command, InstanceId=config["instance_id"])
         except ssm.exceptions.InvocationDoesNotExist:
@@ -219,6 +221,8 @@ def smoke(origin):
         urlopen(request, timeout=30)
     except HTTPError as error:
         assert error.code == 403
+    else:
+        raise AssertionError("Public demo unexpectedly accepted a cross-origin request")
     print("HTTPS, assets, owner configuration and anonymous access checks passed.")
 
 
