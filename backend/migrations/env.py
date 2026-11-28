@@ -20,7 +20,13 @@ def include_object(obj, name, type_, reflected, compare_to):
     return not (
         type_ == "table"
         and name
-        in {"checkpoint_migrations", "checkpoints", "checkpoint_blobs", "checkpoint_writes"}
+        in {
+            "checkpoint_migrations",
+            "checkpoints",
+            "checkpoint_blobs",
+            "checkpoint_writes",
+            "public_demo_sources",
+        }
     )
 
 

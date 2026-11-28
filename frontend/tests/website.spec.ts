@@ -216,6 +216,8 @@ test("public examples work without touching the workspace API", async ({
   ).toContainText(alex.email);
   await page.goto("/demo/tour?mode=recorded");
   await expect(page).toHaveURL(/\/demo\/reviews$/);
+  const menu = page.getByRole("button", { name: "Open menu" });
+  if (await menu.isVisible()) await menu.click();
   await page.getByRole("link", { name: "Email walkthrough" }).click();
   await expect(page).toHaveURL(/\/demo\/test-email$/);
   await expect(

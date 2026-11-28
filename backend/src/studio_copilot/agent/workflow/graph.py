@@ -31,7 +31,15 @@ def _traced(name: str, handler: Callable):
 
 class Workflow:
     def __init__(
-        self, engine, model, *, store=None, records=None, evidence_review=None, draft_override=None
+        self,
+        engine,
+        model,
+        *,
+        store=None,
+        records=None,
+        evidence_review=None,
+        draft_override=None,
+        draft_transform=None,
     ):
         self.nodes = WorkflowNodes(
             store if store is not None else WorkflowStore(engine),
@@ -40,10 +48,18 @@ class Workflow:
             evidence_review=evidence_review,
             draft_override=draft_override,
         )
+        self.draft_transform = draft_transform
 
     def compile(self, checkpointer):
         nodes = self.nodes
         builder = StateGraph(State)
+
+        def draft(state):
+            result = nodes.draft(state)
+            if self.draft_transform is not None:
+                result["draft"]["body"] = self.draft_transform(result["draft"]["body"], state)
+            return result
+
         steps = {
             "load": nodes.load,
             "route": nodes.route,
@@ -51,7 +67,7 @@ class Workflow:
             "interpret_general": nodes.interpret_general,
             "remember_student": nodes.remember_student,
             "gather": nodes.gather,
-            "draft": nodes.draft,
+            "draft": draft,
             "persist_draft": nodes.persist_draft,
             "review": nodes.review,
             "revision": nodes.revision,

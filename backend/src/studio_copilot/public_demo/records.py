@@ -1,7 +1,6 @@
 """Read-only adapter for the same fictional records shown by Database and Timetable."""
 
 import json
-import re
 from contextlib import contextmanager
 from datetime import UTC, date, datetime, time, timedelta
 from functools import lru_cache
@@ -11,7 +10,6 @@ from uuid import UUID, uuid5
 from zoneinfo import ZoneInfo
 
 from studio_copilot.agent.makeup import attended_rank, gather_makeup_records
-from studio_copilot.public_demo.fixtures import CLOTHING, PUBLIC_DOCUMENTS
 
 CASES = {
     "booking": "97aa529c-2ca7-5ee9-86c6-0d7c9da03752",
@@ -122,11 +120,10 @@ class FictionalRecords:
                 "delivery": "unconfirmed",
             }
             context["approved_replies"].append(approved_reply)
-            fee_question_ids = {
-                item["result"]["question_id"]
+            questions = {
+                item["result"]["question_id"]: item["result"]["question"]
                 for item in prior_evidence
                 if item["tool"] == "document_answer"
-                and "Trial fee" in item["result"].get("missing_information", [])
             }
             for item in prior_evidence:
                 if item["tool"] != "teacher_question_resolutions":
@@ -134,14 +131,17 @@ class FictionalRecords:
                 for resolution in item["result"]["items"]:
                     answer = resolution.get("answer")
                     if (
-                        resolution["question_id"] in fee_question_ids
+                        resolution["question_id"] in questions
                         and answer
                         and answer.casefold().strip() in reply.casefold()
                     ):
-                        context["approved_trial_fee"] = {
-                            "text": answer,
-                            "references": ["message:" + approved_reply["id"]],
-                        }
+                        context.setdefault("approved_teacher_answers", []).append(
+                            {
+                                "question": questions[resolution["question_id"]],
+                                "text": answer,
+                                "references": ["message:" + approved_reply["id"]],
+                            }
+                        )
             occurred_at += timedelta(minutes=1)
         else:
             occurred_at = self.now
@@ -266,78 +266,50 @@ class FictionalRecords:
     def tools(self, context):
         yield FictionalMakeupReader(self, context).tool
 
-    def documents(self, state):
-        interpretation = state["interpretation"]
-        if state["context"]["source"]["id"] != CASES["document"]:
-            if not state["context"].get("walkthrough") or not any(
-                re.search(
-                    r"\b(?:wear|clothes|clothing|shoes|attire|fee|fees|cost|price|much)\b",
-                    question.casefold(),
-                )
-                for question in interpretation["questions"]
-            ):
-                return None
-        evidence = []
-        clothing = PUBLIC_DOCUMENTS[0]
-        clothing_ref = "public-document:" + clothing["id"]
-        for question in interpretation["questions"]:
-            terms = question.casefold()
-            claims = []
-            references = []
-            if re.search(r"\b(?:wear|clothes|clothing|shoes|attire)\b", terms):
-                claims.append({"text": CLOTHING, "references": [clothing_ref]})
-                references.append(clothing_ref)
-            if re.search(
-                r"\bthursday\b"
-                if state["context"].get("walkthrough")
-                else r"\b(?:thursday|time|where|location|when)\b",
-                terms,
-            ):
-                for row in self.session_rows.values():
-                    session = self.session(UUID(row["id"]))
-                    if session.starts_at.strftime("%A") == "Thursday":
-                        ref = "session:" + row["id"]
-                        claims.append(
-                            {
-                                "text": f"{session.regular_class.name} is at "
-                                f"{session.starts_at:%I:%M %p} at "
-                                f"{session.regular_class.location.name}.",
-                                "references": [ref],
-                            }
-                        )
-                        references.append(ref)
-            missing_fee = bool(re.search(r"\b(?:fee|fees|cost|price|much)\b", terms))
-            approved_fee = state["context"].get("approved_trial_fee")
-            if (
-                missing_fee
-                and approved_fee
-                and re.fullmatch(
-                    r"(?:what does (?:a|the) trial cost|how much does (?:a|the) trial cost|"
-                    r"what is the trial fee|how much is (?:a|the) trial)[?. ]*",
-                    terms.strip(),
-                )
-            ):
-                claims.append(approved_fee)
-                references.extend(approved_fee["references"])
-                missing_fee = False
-            status = "partial" if claims and missing_fee else "answered" if claims else "unanswered"
-            evidence.append(
-                {
-                    "tool": "document_answer",
-                    "arguments": {},
-                    "finding": question,
-                    "result": {
-                        "question": question,
-                        "question_id": interpretation["question_ids"][question],
-                        "status": status,
-                        "claims": claims,
-                        "references": references,
-                        "sources": [],
-                        "missing_information": ["Trial fee"] if missing_fee else [],
-                    },
-                }
+    def demo_documents(self, state, model):
+        """Use the same grounded document pipeline on the isolated public corpus."""
+        from fastapi import HTTPException
+
+        from studio_copilot.documents import online
+        from studio_copilot.public_demo import document_index
+
+        if (
+            model.demo_evidence_route(
+                {**state["context"], "interpretation": state["interpretation"]}
             )
-        return {"evidence": evidence, "warnings": []}
+            != "documents"
+        ):
+            return None
+        engine = None
+        try:
+            engine = document_index.engine_from_env()
+            config = document_index.configuration(engine)
+            result = online.gather(engine, state, config=config)
+            if result is None or any(
+                item["result"].get("status") == "failed" for item in result["evidence"]
+            ):
+                raise online.OnlineError("retrieval_failed")
+            prior = state["context"].get("approved_teacher_answers", [])
+            for item in result["evidence"]:
+                answer = item["result"]
+                for fact in reversed(prior):
+                    if fact["question"].casefold().strip() == answer["question"].casefold().strip():
+                        answer.update(
+                            status="answered",
+                            claims=[{"text": fact["text"]}],
+                            references=fact["references"],
+                            sources=[],
+                            missing_information=[],
+                        )
+                        break
+            return result
+        except Exception as error:
+            raise HTTPException(
+                503, "Demo document search is temporarily unavailable. Please retry."
+            ) from error
+        finally:
+            if engine is not None:
+                engine.dispose()
 
 
 class FictionalMakeupReader:

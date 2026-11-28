@@ -129,6 +129,35 @@ values never enter Terraform, user data, the source archive, SSM command argumen
 or normal deployment output. The host writes mode-0600 configuration atomically on
 the encrypted data disk; Docker reads it when creating the application container.
 
+### Automatic release after CI
+
+The GitHub Actions `Tests` workflow runs on pushes and pull requests. Only a
+successful push to `master` in this repository may run its dependent deployment
+job. The job serializes releases, checks that its tested commit is still the
+current master both before preparing and immediately before dispatch, and
+uses a short-lived GitHub OIDC role. Pull requests never receive deployment
+credentials. A newer push does not cancel an SSM command already in progress.
+
+The dedicated role and fixed `DanceStudioDeploy` SSM command document are
+defined in `infrastructure/github-deploy/`. Its separate Terraform backend
+uses the existing encrypted state bucket and the `github-ci/terraform.tfstate`
+key. Initialize and apply it with the verified deployment instance and release
+bucket as `instance_id` and `release_bucket`. The IAM principal applying this
+configuration needs permission to manage the specific SSM document as well as
+the IAM role. Its OIDC trust is pinned to the repository's immutable owner and
+repository IDs and the `master` ref. Its permissions can upload only releases,
+invoke only that fixed document on the selected instance, and read command
+status; it cannot directly read application secrets.
+
+Set the repository variables `STUDIO_GITHUB_DEPLOY_ROLE_ARN`,
+`STUDIO_DEPLOY_INSTANCE_ID`, `STUDIO_DEPLOY_BUCKET`, and
+`STUDIO_DEPLOY_ORIGIN` to the verified values. They are identifiers, not
+credentials. GitHub Actions billing and spending limits must permit the test
+and deployment jobs to start. A failed test or unavailable CI prevents the
+release. A failed release retains the backup and previous image but does not
+automatically roll back a potentially incompatible database migration; inspect
+the deployment status and restore procedure before recovery.
+
 Releases require a clean committed checkout. The CLI archives that commit, uploads
 it to the private release prefix and sends only its commit and SHA-256 identities
 through SSM. The host validates the archive, updates versioned host helpers, builds
@@ -141,7 +170,11 @@ maintenance window; failed migrations or readiness checks stop the candidate. Th
 script records failed/ready status and does not claim a successful rollback.
 
 Application migrations, schema parity checks and LangGraph checkpoint provisioning
-are separate explicit release steps. Fictional fixtures are inserted only on the
+are separate explicit release steps. Each release also migrates the separate
+`studio_copilot_public` database and prepares its fictional document index before
+restarting the app. New embeddings can incur provider charges. The index is
+reproducible and excluded from the owner database backup; prepare it again after
+restoring. Fictional fixtures are inserted only on the
 first application setup; subsequent releases preserve teacher edits. The writable
 policy **directory**, public demo ledger and PostgreSQL data live on the separate
 data disk. Container recreation does not reset daily demo allowances or policy edits.

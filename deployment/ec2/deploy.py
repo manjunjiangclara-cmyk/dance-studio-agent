@@ -110,7 +110,7 @@ def configure(clients, config, env_file):
     print("Register the exact Google redirect URI:", config["callback"])
 
 
-def release(clients, config):
+def release(clients, config, *, before_dispatch=None, document_name=None):
     if subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True).strip():
         raise ValueError("Commit the reviewed release first; deployment requires a clean checkout")
     sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
@@ -131,14 +131,23 @@ def release(clients, config):
             f"releases/{sha}.tar.gz",
             ExtraArgs={"ServerSideEncryption": "AES256"},
         )
+    if before_dispatch is not None and not before_dispatch(sha):
+        print("Master has advanced; skipping this superseded release.")
+        return False
     # Only immutable non-secret identities enter SSM's command history.
-    command = clients.client("ssm").send_command(
-        InstanceIds=[config["instance_id"]],
-        DocumentName="AWS-RunShellScript",
-        Parameters={
+    document = document_name or "AWS-RunShellScript"
+    parameters = (
+        {"ReleaseSha": [sha], "Checksum": [checksum]}
+        if document_name
+        else {
             "commands": [f"/usr/local/bin/studio-release {sha} {checksum}"],
             "executionTimeout": ["3600"],
-        },
+        }
+    )
+    command = clients.client("ssm").send_command(
+        InstanceIds=[config["instance_id"]],
+        DocumentName=document,
+        Parameters=parameters,
         TimeoutSeconds=600,
         Comment="Deploy reviewed Dance Studio application release",
     )["Command"]["CommandId"]
@@ -156,7 +165,7 @@ def release(clients, config):
             if status != "Success":
                 # Do not echo arbitrary provider/container output containing environment errors.
                 raise RuntimeError("Deployment failed; inspect the private SSM invocation output")
-            return
+            return True
         if attempt % 6 == 0:
             print("Release:", status, flush=True)
         time.sleep(10)

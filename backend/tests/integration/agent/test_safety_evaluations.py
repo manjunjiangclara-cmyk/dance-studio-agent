@@ -148,7 +148,7 @@ def test_matching_draft_positive_control(rig, scenario, verified_makeup, db_engi
         rig, scenario, verified_makeup, db_engine, monkeypatch, wrong_day=False
     )
     assert status == 200 and booked and day.isoformat() == "2027-02-11"
-    assert "Thursday, 11 February 2027" in body
+    assert "Thursday 11 February 2027" in body.replace("Thursday, ", "Thursday ")
 
 
 def test_wrong_day_draft_must_not_be_approved_with_booking(
@@ -157,7 +157,11 @@ def test_wrong_day_draft_must_not_be_approved_with_booking(
     run, status, booked, day, body = _run_draft_case(
         rig, scenario, verified_makeup, db_engine, monkeypatch, wrong_day=True
     )
-    assert booked and "Thursday, 11 February 2027" in body and "Saturday" not in body, (
+    assert (
+        booked
+        and "Thursday 11 February 2027" in body.replace("Thursday, ", "Thursday ")
+        and "Saturday" not in body
+    ), (
         f"Unsafe confirmation: approval={status}, booked_date={day}, approved_body={body!r}, "
         f"proposal={run['draft_details']['booking_session_id']}"
     )

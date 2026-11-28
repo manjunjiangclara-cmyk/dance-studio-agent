@@ -219,7 +219,7 @@
       "ai_summary": "New to ballet and has never danced before.",
       "context": {
         "_agent_memory": {
-          "request_summary": "Asked about the Thursday class time and location, trial cost, and what to wear.",
+          "request_summary": "Asked what to wear to a first ballet class.",
           "source_message_ids": ["3a067002-bcaf-57b7-a336-a1e6dbe29914"]
         }
       }
@@ -421,7 +421,7 @@
       "updated_at": "2027-02-07T00:00:00Z",
       "conversation_id": "f6574588-1747-5532-99aa-9adedffd94ad",
       "kind": "student_email",
-      "body": "I have never danced before. When and where is the Thursday class? What does a trial cost, and what should I wear?",
+      "body": "I have never danced before. What should I wear to my first ballet class?",
       "occurred_at": "2027-02-07T10:00:00+11:00",
       "review_managed": false
     },
@@ -431,7 +431,7 @@
       "updated_at": "2027-02-07T00:00:00Z",
       "conversation_id": "f6574588-1747-5532-99aa-9adedffd94ad",
       "kind": "assistant_draft",
-      "body": "Hi Jules, thanks for getting in touch. Thursday's Level 2 class runs from 6 to 7 pm at our Carlton studio. It is intended for dancers with previous ballet experience, so I will help you find a suitable starting class and confirm the trial fees and clothing details.",
+      "body": "Hi Jules, wear comfortable clothes you can move in, such as leggings and a fitted T-shirt. Socks are suitable for your first class; ballet shoes are optional.",
       "occurred_at": "2027-02-07T10:06:00+11:00",
       "review_managed": true
     },
@@ -672,7 +672,7 @@
       "status": "awaiting_review",
       "revision": 1,
       "interpretation": {
-        "request_summary": "New dancer asks about Thursday classes, trial fees and clothing.",
+        "request_summary": "New dancer asks what to wear to a first ballet class.",
         "flow": "enquiry",
         "missing_details": [],
         "routing": {
@@ -680,95 +680,33 @@
           "needs_clarification": false,
           "reason": "The student asks for information; no booking or enrolment change is requested.",
           "action": "information_only",
-          "request_summary": "New dancer asks about Thursday classes, trial fees and clothing."
+          "request_summary": "New dancer asks what to wear to a first ballet class."
         },
         "enduring_preferences": [],
-        "questions": [
-          "When and where is the Thursday class?",
-          "What does a trial cost?",
-          "What should I wear?"
-        ],
+        "questions": ["What should I wear to my first ballet class?"],
         "requested_actions": [],
         "question_ids": {
-          "When and where is the Thursday class?": "c7b515bb-a9af-5891-952b-56e6eb819c3a",
-          "What does a trial cost?": "2a2feaf0-08ca-5cab-bb37-6a1e440a9594",
-          "What should I wear?": "fba7a2f4-30c4-5256-808d-58e3c308277d"
+          "What should I wear to my first ballet class?": "fba7a2f4-30c4-5256-808d-58e3c308277d"
         }
       },
-      "evidence": [
-        {
-          "tool": "get_timetable",
-          "arguments": {},
-          "result": {
-            "items": [
-              {
-                "id": "8cb0d988-fc35-5ed4-8d34-7e02e00d0464",
-                "name": "Adult Ballet · Level 2 · Thursday",
-                "prerequisites": "For dancers with previous ballet experience; placement confirmed by the teacher.",
-                "location": {
-                  "id": "31503400-74bd-5783-afe1-eb1e69f321a4",
-                  "name": "Merri Ballet · Carlton"
-                },
-                "upcoming_sessions": [
-                  {
-                    "id": "a4ad2f4b-29e9-5a3b-9e78-e77026e88576",
-                    "starts_at": "2027-02-11T18:00:00+11:00",
-                    "ends_at": "2027-02-11T19:00:00+11:00"
-                  }
-                ]
-              }
-            ],
-            "references": [
-              "class:8cb0d988-fc35-5ed4-8d34-7e02e00d0464",
-              "session:a4ad2f4b-29e9-5a3b-9e78-e77026e88576",
-              "location:31503400-74bd-5783-afe1-eb1e69f321a4"
-            ],
-            "truncated": false
-          }
-        }
-      ],
+      "evidence": [],
       "draft_details": {
-        "body": "Hi Jules, thanks for getting in touch. Thursday's Level 2 class runs from 6 to 7 pm at our Carlton studio. It is intended for dancers with previous ballet experience, so I will help you find a suitable starting class and confirm the trial fees and clothing details.",
-        "rationale": "The timetable supports the schedule and location. Beginner placement, trial fees and clothing need teacher input.",
+        "body": "Hi Jules, wear comfortable clothes you can move in, such as leggings and a fitted T-shirt. Socks are suitable for your first class; ballet shoes are optional.",
+        "rationale": "Illustrative draft based on the fictional beginner clothing guide.",
         "questions": [],
-        "references": [
-          "class:8cb0d988-fc35-5ed4-8d34-7e02e00d0464",
-          "session:a4ad2f4b-29e9-5a3b-9e78-e77026e88576",
-          "location:31503400-74bd-5783-afe1-eb1e69f321a4"
-        ],
+        "references": [],
         "booking_session_id": null,
         "answers": [
           {
-            "question": "When and where is the Thursday class?",
-            "status": "answered",
-            "answer": "Thursday Level 2 runs from 6 to 7 pm at Merri Ballet · Carlton. Placement needs teacher confirmation.",
-            "references": [
-              "class:8cb0d988-fc35-5ed4-8d34-7e02e00d0464",
-              "session:a4ad2f4b-29e9-5a3b-9e78-e77026e88576",
-              "location:31503400-74bd-5783-afe1-eb1e69f321a4"
-            ],
-            "question_id": "c7b515bb-a9af-5891-952b-56e6eb819c3a"
-          },
-          {
-            "question": "What does a trial cost?",
+            "question": "What should I wear to my first ballet class?",
             "status": "needs_teacher",
-            "answer": "The teacher needs to confirm this studio information.",
-            "references": [],
-            "question_id": "2a2feaf0-08ca-5cab-bb37-6a1e440a9594"
-          },
-          {
-            "question": "What should I wear?",
-            "status": "needs_teacher",
-            "answer": "The teacher needs to confirm this studio information.",
+            "answer": "Review the clothing guidance before replying.",
             "references": [],
             "question_id": "fba7a2f4-30c4-5256-808d-58e3c308277d"
           }
         ],
         "question_resolutions": [],
-        "required_question_ids": [
-          "2a2feaf0-08ca-5cab-bb37-6a1e440a9594",
-          "fba7a2f4-30c4-5256-808d-58e3c308277d"
-        ]
+        "required_question_ids": ["fba7a2f4-30c4-5256-808d-58e3c308277d"]
       },
       "policy_snapshot": {
         "source": "Illustrative policy snapshot",

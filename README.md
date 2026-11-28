@@ -21,7 +21,7 @@ Live AI drafting requires an OpenAI API key and incurs API usage charges. The pu
 - **Processes email conversations.** Routes makeup requests, information enquiries, and requests requiring teacher handoff. Threaded intake supplies conversation history for follow-up messages.
 - **Checks makeup eligibility.** Uses enrolment, absence and notice, recorded attendance, level order, rosters, and conflicts to identify a specific eligible session. Missing or uncertain information goes to staff review.
 - **Supports teacher review.** Shows the draft, evidence, and unresolved questions. A teacher can answer questions, revise the draft, or defer a decision. When an eligible booking is proposed, approval revalidates it and commits the booking atomically; approval does not send an email.
-- **Answers from studio documents.** The owner can manage versioned documents, explicitly prepare and enable revisions, and use an opt-in retrieval path to generate cited answers for review. The public demo instead uses a fixed catalog of selected fictional evidence; it does not search or embed the entire public library.
+- **Answers from studio documents.** The owner can manage versioned documents, explicitly prepare and enable revisions, and use an opt-in retrieval path to generate cited answers for review. The public demo retrieves from a separately prepared index of the full fictional library using the owner document-answer pipeline.
 - **Makes the workflow inspectable.** The interface exposes fictional student records, sessions, review decisions, and supporting evidence; LangGraph checkpoints preserve workflow state for review and recovery.
 
 ## How it is built

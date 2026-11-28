@@ -26,11 +26,78 @@ from studio_copilot.api import public_demo as api
 from studio_copilot.api.app import create_app
 from studio_copilot.api.public_demo import DraftInput
 from studio_copilot.public_demo.records import CASES, FictionalRecords, example_records
-from studio_copilot.public_demo.service import PublicDemo
+from studio_copilot.public_demo.service import PublicDemo, unsigned_demo_draft
 from tests.integration.agent.helpers import FakeModel, turn
 
 BASE = "/api/public-demo"
 ORIGIN = "http://localhost:8010"
+
+
+@pytest.mark.parametrize(
+    ("body", "expected"),
+    [
+        (
+            "Hi Riley,\n\nWear comfortable clothes.\n\nBest,\nRiley James",
+            "Hi Riley,\n\nWear comfortable clothes.",
+        ),
+        (
+            "Hi Riley,\n\nWear comfortable clothes.\n\nRiley James",
+            "Hi Riley,\n\nWear comfortable clothes.",
+        ),
+        (
+            "Hi Riley,\n\nWear comfortable clothes.\n\nKind regards,\nMerri Ballet",
+            "Hi Riley,\n\nWear comfortable clothes.",
+        ),
+        (
+            "Hi Riley,\n\nWear comfortable clothes.\n\n[Teacher Name]",
+            "Hi Riley,\n\nWear comfortable clothes.",
+        ),
+        ("Hi Riley,\n\nSee you then!", "Hi Riley,\n\nSee you then!"),
+        (
+            "Hi Riley,\n\nYour class is at Merri Ballet.",
+            "Hi Riley,\n\nYour class is at Merri Ballet.",
+        ),
+    ],
+)
+def test_demo_generated_draft_has_no_signature(body, expected):
+    assert unsigned_demo_draft(body, {"context": {"student": {"name": "Riley James"}}}) == expected
+
+
+def test_public_document_example_is_a_single_clothing_question():
+    context = FictionalRecords().context("document")
+    assert context["source"]["body"] == (
+        "I have never danced before. What should I wear to my first ballet class?"
+    )
+
+
+def test_public_generated_document_draft_removes_signature_but_preserves_teacher_edit(demo):
+    ledger, model = demo
+    model.routing = Routing(
+        intents=["new_student_enquiry"],
+        action="information_only",
+        request_summary="What should I wear?",
+        needs_clarification=False,
+        reason="The student asks about clothing.",
+    )
+    model.interpret_enquiry = lambda context: EnquiryInterpretation(
+        request_summary="What should I wear?",
+        questions=["What should I wear?"],
+        requested_actions=[],
+        missing_details=[],
+        enduring_preferences=[],
+    )
+    model.compose_document_email = lambda context: DocumentEmailComposition(
+        body="Hi there,\n\nSocks are suitable for your first class.\n\nBest,\nRiley James",
+        review_concerns=[],
+    )
+    token = ledger.create_walkthrough(str(uuid4()), "new", "What should I wear?")["token"]
+    assert not ledger.execute(token, "evidence")["missing_information"]
+    draft = ledger.execute(token, "draft")
+    assert draft["body"] == "Hi there,\n\nSocks are suitable for your first class."
+    edited = draft["body"] + "\n\nTeacher edit"
+    assert (
+        ledger.execute(token, "approve", revision=draft["revision"], body=edited)["body"] == edited
+    )
 
 
 class DemoGraphModel(FakeModel):
@@ -46,21 +113,25 @@ class DemoGraphModel(FakeModel):
             self.routing = Routing(
                 intents=["general_enquiry"],
                 action="information_only",
-                request_summary="Trial policy and class timetable questions.",
+                request_summary="What to wear to a first ballet class.",
                 needs_clarification=False,
                 reason="The student asks for information.",
             )
         return super().route(context)
 
+    def demo_evidence_route(self, context):
+        questions = " ".join(context["interpretation"].get("questions", [])).lower()
+        return (
+            "documents"
+            if any(word in questions for word in ("wear", "clothes", "trial cost"))
+            else "records"
+        )
+
     def interpret_enquiry(self, context):
         if context["source"]["id"] == CASES["document"]:
             return EnquiryInterpretation(
-                request_summary="Trial policy and class timetable questions.",
-                questions=[
-                    "What should I wear?",
-                    "When and where is the Thursday class?",
-                    "What does a trial cost?",
-                ],
+                request_summary="What to wear to a first ballet class.",
+                questions=["What should I wear to my first ballet class?"],
                 missing_details=[],
                 enduring_preferences=[],
             )
@@ -92,8 +163,115 @@ def demo(tmp_path):
     return PublicDemo(tmp_path / "ledger.sqlite", factory=lambda: model), model
 
 
+@pytest.fixture(autouse=True)
+def fake_document_provider(monkeypatch):
+    """Supply deterministic document answers; retrieval integration is tested separately."""
+    from contextlib import nullcontext
+
+    from studio_copilot.documents import online
+    from studio_copilot.public_demo import document_index
+    from studio_copilot.public_demo.service import DemoStore
+
+    monkeypatch.setattr(document_index, "engine_from_env", lambda: create_engine("sqlite://"))
+    monkeypatch.setattr(document_index, "configuration", lambda engine: object())
+    monkeypatch.setattr(online, "check_identities", lambda *args, **kwargs: None)
+    monkeypatch.setattr(DemoStore, "document_approval_guard", lambda *args: nullcontext())
+
+    def gather(engine, state, **kwargs):
+        resolved = {str(x["question_id"]) for x in state.get("question_resolutions", [])}
+        evidence = []
+        for question in state["interpretation"]["questions"]:
+            qid = state["interpretation"]["question_ids"][question]
+            if qid in resolved:
+                continue
+            supported = "wear" in question.lower() or "thursday" in question.lower()
+            quote = (
+                "Socks are suitable for your first class."
+                if "wear" in question.lower()
+                else "Thursday class is at 6 pm in Carlton."
+            )
+            refs = ["document:E0123456789abcdef01234567"] if supported else []
+            result = {
+                "question_id": qid,
+                "question": question,
+                "status": "answered" if supported else "abstained",
+                "claims": [
+                    {
+                        "text": quote,
+                        "citations": [{"title": "Clothing", "revision": 1, "quote": quote}],
+                    }
+                ]
+                if supported
+                else [],
+                "references": refs,
+                "sources": [{"run_id": str(uuid4())}] if supported else [],
+                "missing_information": [] if supported else [question],
+            }
+            evidence.append(
+                {"tool": "document_answer", "arguments": {}, "finding": question, "result": result}
+            )
+        return {"evidence": evidence, "warnings": []}
+
+    monkeypatch.setattr(online, "gather", gather)
+
+
 def create(demo, scenario="booking"):
     return demo.create(scenario, str(uuid4()))["token"]
+
+
+def create_fee_enquiry(ledger, model):
+    model.routing = Routing(
+        intents=["general_enquiry"],
+        action="information_only",
+        request_summary="Ask about clothing and trial fees.",
+        needs_clarification=False,
+        reason="The student asks about two studio policies.",
+    )
+    model.interpret_enquiry = lambda context: EnquiryInterpretation(
+        request_summary="Ask about clothing and trial fees.",
+        questions=["What should I wear?", "What does a trial cost?"],
+        missing_details=[],
+        enduring_preferences=[],
+    )
+    return ledger.create_walkthrough(
+        str(uuid4()), "new", "What should I wear, and what does a trial cost?"
+    )["token"]
+
+
+def test_review_queue_example_needs_no_missing_studio_fact(demo):
+    ledger, _ = demo
+    token = create(ledger, "document")
+    evidence = ledger.execute(token, "evidence")
+    assert evidence["missing_information"] == []
+    assert any("socks" in item.lower() for item in evidence["evidence"])
+    assert "socks" in ledger.execute(token, "draft")["body"].lower()
+
+
+def test_document_approval_takes_only_one_publication_guard(demo, monkeypatch):
+    from contextlib import contextmanager
+
+    from studio_copilot.public_demo.service import DemoStore
+
+    acquired, calls = [], []
+
+    @contextmanager
+    def guard(store, state):
+        assert not acquired, "A nested guard can deadlock behind an index publisher."
+        calls.append(True)
+        acquired.append(True)
+        try:
+            yield
+        finally:
+            acquired.pop()
+
+    monkeypatch.setattr(DemoStore, "document_approval_guard", guard)
+    ledger, _ = demo
+    token = create(ledger, "document")
+    ledger.execute(token, "evidence")
+    draft = ledger.execute(token, "draft")
+    assert ledger.execute(token, "approve", revision=draft["revision"])["status"] == "approved_mock"
+    assert not acquired
+    assert calls == [True]
 
 
 def selected_saturday(records, level="Level 2"):
@@ -192,9 +370,9 @@ def test_sqlite_resume_and_mock_booking_are_revision_bound(demo):
 
 def test_document_resume_requires_original_teacher_answers(demo):
     ledger, model = demo
-    token = create(ledger, "document")
+    token = create_fee_enquiry(ledger, model)
     evidence = ledger.execute(token, "evidence")
-    assert evidence["missing_information"] == ["Trial fee"]
+    assert evidence["missing_information"] == ["What does a trial cost?"]
     assert any("socks" in item.lower() for item in evidence["evidence"])
     assert not model.drafts and not model.compositions
 
@@ -294,9 +472,9 @@ def test_teacher_answer_api_accepts_the_shared_question_limit():
 
 def test_public_document_deferral_stays_a_deferral_after_approval(demo):
     ledger, model = demo
-    token = create(ledger, "document")
+    token = create_fee_enquiry(ledger, model)
     evidence = ledger.execute(token, "evidence")
-    assert evidence["missing_information"] == ["Trial fee"]
+    assert evidence["missing_information"] == ["What does a trial cost?"]
     draft = ledger.execute(
         token, "draft", teacher_answers=["I will confirm this information later."]
     )
@@ -542,7 +720,7 @@ def test_walkthrough_uses_the_same_graph_and_only_carries_approved_reply(demo):
         ledger.create_walkthrough(str(uuid4()), "new", "Thanks!", token)
     assert unapproved.value.status_code == 409
     evidence = ledger.execute(token, "evidence")
-    assert evidence["missing_information"] == ["Trial fee"]
+    assert evidence["missing_information"] == ["What does a trial cost?"]
     assert evidence["review_requirements"] == ["teacher_input"]
     resumed = PublicDemo(ledger.path, factory=lambda: model)
     draft = resumed.execute(token, "draft", teacher_answers=["The trial costs $15."])

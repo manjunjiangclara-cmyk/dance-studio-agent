@@ -1,10 +1,10 @@
 import { test, expect, type Page } from "@playwright/test";
 import examples from "../src/data/examples.v1.json" with { type: "json" };
+import ownerEnquiry from "./fixtures/owner-enquiry.json" with { type: "json" };
 import type { QuestionResolution, Run } from "../src/types";
 
-const example = examples.agent_runs.find(
-  (run) => run.interpretation.flow === "enquiry",
-)! as unknown as Run;
+// Owner decision tests exercise multiple questions independently of the public demo.
+const example = ownerEnquiry as unknown as Run;
 const feeQuestion = "What does a trial cost?";
 const clothingQuestion = "What should I wear?";
 const feeAnswer = "A trial costs $20.";
@@ -296,7 +296,10 @@ test("public enquiry shows each question and evidence without owner controls or 
   await expect(
     input.getByRole("heading", { name: "Needs teacher input" }),
   ).toBeVisible();
-  await expect(input.locator(".enquiry-question")).toHaveCount(2);
+  await expect(input.locator(".enquiry-question")).toHaveCount(1);
+  await expect(input).toContainText(
+    "What should I wear to my first ballet class?",
+  );
   await expect(input).not.toContainText(
     "When and where is the Thursday class?",
   );
@@ -382,7 +385,8 @@ test("regeneration asks before replacing text edits and applies teacher answers"
 test("response references show class, session, and studio names instead of IDs", async ({
   page,
 }) => {
-  await page.goto(`/demo/reviews/${example.id}`);
+  await mockOwner(page, structuredClone(example));
+  await page.goto(`/workspace/reviews/${example.id}`);
   await page.locator(".response-support > summary").click();
   const references = page.locator(".response-support .source-links");
   const classId = example.draft_details
@@ -393,10 +397,10 @@ test("response references show class, session, and studio names instead of IDs",
     .slice(8);
   await expect(
     references.getByRole("link", { name: /Class: Adult Ballet/ }),
-  ).toHaveAttribute("href", `/demo/timetable?class=${classId}`);
+  ).toHaveAttribute("href", `/workspace/timetable?class=${classId}`);
   await expect(
     references.getByRole("link", { name: /Session: Adult Ballet/ }),
-  ).toHaveAttribute("href", `/demo/timetable?session=${sessionId}`);
+  ).toHaveAttribute("href", `/workspace/timetable?session=${sessionId}`);
   await expect(references).toContainText("Studio: Merri Ballet");
   await expect(references).not.toContainText(
     /(?:class|session|location):[0-9a-f-]{20,}/,

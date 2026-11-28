@@ -33,7 +33,7 @@ const cases: {
     name: "Jules Park",
     subject: "Questions about starting ballet",
     email: "jules@example.test",
-    description: "Asks what to wear and how much a trial costs.",
+    description: "Asks what to wear to a first ballet class.",
     category: "NEW STUDENT",
     intent: "new_student_enquiry",
     received: "2027-02-07",

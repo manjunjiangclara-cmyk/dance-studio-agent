@@ -1,9 +1,10 @@
 """Long-form fictional reference documents for the public studio library.
 
-These documents are illustrative. The public walkthrough uses its fixed evidence
-catalog; adding a library document here does not index it or make it retrievable.
+These fictional documents join the public index when it is explicitly prepared.
 """
 
+# Keep these generated document literals stable for source review.
+# fmt: off
 DOCUMENTS = [
     (
         'enquiry-handbook',
@@ -681,3 +682,5 @@ PUBLIC_ADDITIONAL_DOCUMENTS = [
     }
     for document_id, title, content in DOCUMENTS
 ]
+
+# fmt: on
