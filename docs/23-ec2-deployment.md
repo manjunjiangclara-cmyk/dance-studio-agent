@@ -137,6 +137,9 @@ job. The job serializes releases, checks that its tested commit is still the
 current master both before preparing and immediately before dispatch, and
 uses a short-lived GitHub OIDC role. Pull requests never receive deployment
 credentials. A newer push does not cancel an SSM command already in progress.
+If the runner is interrupted while SSM is still running, the host lock prevents
+overlapping releases; a subsequent release can fail and needs to be retried after
+the earlier command finishes.
 
 The dedicated role and fixed `DanceStudioDeploy` SSM command document are
 defined in `infrastructure/github-deploy/`. Its separate Terraform backend
