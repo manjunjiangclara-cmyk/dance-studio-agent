@@ -216,6 +216,9 @@ test("public examples work without touching the workspace API", async ({
   ).toContainText(alex.email);
   await page.goto("/demo/tour?mode=recorded");
   await expect(page).toHaveURL(/\/demo\/reviews$/);
+  if (testInfo.project.name === "mobile") {
+    await page.getByRole("button", { name: "Open menu" }).click();
+  }
   await page.getByRole("link", { name: "Email walkthrough" }).click();
   await expect(page).toHaveURL(/\/demo\/test-email$/);
   await expect(
